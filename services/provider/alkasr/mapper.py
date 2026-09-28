@@ -37,7 +37,7 @@ KNOWN_APPS_REGISTRY = [
     ("قسم الألعاب", "ببجي تركيا (PUBG Turkey)", ["pupg turkey", "pubg turkey", "ببجي تركيا"]),
     ("قسم الألعاب", "ببجي موبايل (PUBG Mobile)", ["pubg", "ببجي", "uc", "شدة", "شدات"]),
     ("قسم الألعاب", "فري فاير (Free Fire)", ["free fire", "فري فاير", "ff ", "جواهر"]),
-    ("قسم الألعاب", "روبلوكس (Roblox)", ["roblox", "روبلوكس", "robux"]),
+    ("قسم الألعاب", "روبلوكس (Roblox)", ["roblox", "roblex", "robux", "روبلوكس", "روبلكس", "كروت روبلوكس", "بطاقات روبلوكس"]),
     ("قسم الألعاب", "جواكر (Jawaker)", ["jawaker", "جواكر", "توكنز"]),
     ("قسم الألعاب", "كلاش أوف كلانس (Clash of Clans)", ["clash of clans", "كلاش اوف كلانس", "كلاش أوف"]),
     ("قسم الألعاب", "كلاش رويال (Clash Royale)", ["clash royale", "كلاش رويال"]),
@@ -50,6 +50,7 @@ KNOWN_APPS_REGISTRY = [
     ("قسم الألعاب", "أونور أوف كينغز (Honor of Kings)", ["honor of kings"]),
 
     # ── 2. قسم الدردشة والتطبيقات ──────────────────────────────────────────────
+    ("قسم الدردشة والتطبيقات", "تيك توك شحن عملات (TikTok Coins)", ["عملات تيك توك", "شحن تيك توك", "تيك توك عملات", "tiktok coin", "tiktok coins"]),
     ("قسم الدردشة والتطبيقات", "يلا لودو (Yalla Ludo)", ["yalla ludo", "يلا لودو"]),
     ("قسم الدردشة والتطبيقات", "بيجو لايف (BIGO LIVE)", ["bigo", "بيجو"]),
     ("قسم الدردشة والتطبيقات", "توب توب (TopTop)", ["toptop", "توب توب"]),
@@ -88,7 +89,6 @@ KNOWN_APPS_REGISTRY = [
     ("البطاقات الإلكترونية", "بطاقات آبل آيتونز (Apple iTunes)", ["itunes", "ايتونز", "آيتونز", "apple"]),
     ("البطاقات الإلكترونية", "بطاقات بلايستيشن (PlayStation Store)", ["playstation", "بلايستيشن", "psn", "ps kuwait", "ps uae", "ps ksa", "ps usa", "ps uk", "ps canada", "ps fransa", "ps oman", "ps qatar", "ps italy", "ps japan"]),
     ("البطاقات الإلكترونية", "بطاقات جوجل بلاي (Google Play)", ["google play", "جوجل بلاي"]),
-    ("البطاقات الإلكترونية", "بطاقات روبلوكس (Roblox Cards)", ["roblex", "roblox card", "roblex cards", "roblex usa", "roblex canada", "roblex uae", "كروت روبلوكس", "بطاقات روبلوكس"]),
     ("البطاقات الإلكترونية", "بطاقات ستيم (Steam Wallet)", ["steam", "ستيم"]),
     ("البطاقات الإلكترونية", "بطاقات ريزر جولد (Razer Gold)", ["razer gold", "ريزر جولد", "razer", "ريزر"]),
     ("البطاقات الإلكترونية", "بطاقات فيزا مسبقة الدفع (Visa Cards)", ["visa", "فيزا"]),
@@ -132,11 +132,15 @@ KNOWN_APPS_REGISTRY = [
     ("برامج وتصميم", "فلات آيكون (Flaticon Access)", ["flaticon"]),
 
     # ── 9. السوشيال ميديا ──────────────────────────────────────────────────────
-    ("السوشيال ميديا", "خدمات تيك توك (TikTok Services)", ["تيك توك", "tiktok"]),
-    ("السوشيال ميديا", "خدمات انستغرام (Instagram Services)", ["انستغرام", "instagram"]),
+    ("السوشيال ميديا", "خدمات تيك توك (TikTok Services)", ["متابعين تيك توك", "لايكات تيك توك", "مشاهدات تيك توك", "خدمات تيك توك", "سيرفر تيك توك", "تيك توك", "tiktok"]),
+    ("السوشيال ميديا", "خدمات انستغرام (Instagram Services)", ["انستغرام", "انستقرام", "instagram"]),
     ("السوشيال ميديا", "خدمات فيسبوك (Facebook Services)", ["فيس بوك", "فيسبوك", "facebook"]),
     ("السوشيال ميديا", "خدمات إكس تويتر (Twitter / X Services)", ["تويتر", "twitter", " x "]),
     ("السوشيال ميديا", "خدمات يوتيوب (YouTube Services)", ["يوتيوب", "youtube"]),
+
+    # ── 10. الأرقام والحسابات ──────────────────────────────────────────────────
+    ("الأرقام والحسابات", "تفعيل أرقام واتساب (WhatsApp Numbers)", ["ارقام واتساب", "أرقام واتساب", "رقم واتساب", "تفعيل واتساب", "واتساب"]),
+    ("الأرقام والحسابات", "تليجرام بريميوم (Telegram Premium)", ["telegram premium", "تليجرام بريميوم", "تيليجرام بريميوم", "تلغرام بريميوم", "تليجرام", "تيليجرام", "تلغرام"]),
 ]
 
 
@@ -253,14 +257,7 @@ class AlkasrMapperService:
         except Exception:
             pass
 
-        # 1. SPECIAL CASE: ROBLOX / ROBLEX Gift Cards vs In-Game
-        if any(w in combined for w in ("roblox", "roblex", "robux", "روبلوكس", "روبلكس")):
-            if any(w in combined for w in ("card", "cards", "كارت", "كروت", "بطاق", "usa", "canada", "uae", "$", "dollar", "دولار")) or any("بطاق" in a.lower() for a in cat_ancestors):
-                return "البطاقات الإلكترونية", "بطاقات روبلوكس (Roblox Cards)"
-            else:
-                return "قسم الألعاب", "روبلوكس (Roblox)"
-
-        # 2. Match from Known Registry
+        # 1. Match from Known Canonical Apps Registry
         for section, app_name, keywords in KNOWN_APPS_REGISTRY:
             if any(kw.lower() in combined for kw in keywords):
                 return section, app_name
@@ -428,7 +425,10 @@ class AlkasrMapperService:
 
                 schema = self.build_form_schema(combined_params, app_name)
 
-                # Check if any variant has a category image
+                # Check if brand vector SVG or category image exists
+                from apps.catalog.image_caching import match_brand_static_asset
+                brand_svg = match_brand_static_asset(app_name)
+
                 img_url = ""
                 for p_item in pp_list:
                     if p_item.provider_category_img:
@@ -436,7 +436,9 @@ class AlkasrMapperService:
                         break
 
                 meta = dict(local_product.metadata or {}) if local_product else {}
-                if img_url:
+                if brand_svg:
+                    meta["image_url"] = brand_svg
+                elif img_url:
                     meta["image_url"] = img_url
 
                 # Primary provider ID (first item's parent_id or id)

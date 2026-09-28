@@ -1,9 +1,13 @@
+import logging
 from decimal import Decimal
-from django.db.models import Q
 from django.core.management.base import BaseCommand
-from apps.providers.models import ProviderProfile, ProviderProduct
-from apps.providers.alkasr.mapper import AlkasrMapperService
+from django.db.models import Q
+from apps.providers.models import ProviderProfile, ProviderProduct, ProviderMapping
 from apps.catalog.models import Product, ProductVariant, Category
+from services.provider.alkasr.mapper import AlkasrMapperService, STANDARD_MAIN_SECTIONS
+
+logger = logging.getLogger(__name__)
+
 
 class Command(BaseCommand):
     help = 'Remaps Alkasr products into properly grouped and categorized store catalog.'
@@ -20,27 +24,13 @@ class Command(BaseCommand):
 
         if do_clear:
             self.stdout.write(self.style.WARNING('Clearing all previously imported provider products and mappings...'))
-            from apps.providers.models import ProviderMapping, ProviderProductParameter
             ProviderMapping.objects.filter(provider_product__profile__in=ProviderProfile.all_objects.filter(is_active=True)).delete()
             ProductVariant.objects.filter(product__api_provider='alkasr').delete()
             Product.objects.filter(api_provider='alkasr').delete()
             self.stdout.write(self.style.SUCCESS('Catalog cleared cleanly.'))
-        CANONICAL_SECTIONS = {
-            "شحن الألعاب": 1,
-            "شحن التطبيقات": 2,
-            "اتصالات ورصيد": 3,
-            "بطاقات رقمية": 4,
-            "خدمات التلفزيون والبث": 5,
-            "أرقام وحسابات": 6,
-            "اشتراكات VPN": 7,
-            "الذكاء الاصطناعي": 8,
-            "برامج وتصميم": 9,
-            "تحويلات مالية": 10,
-            "ترويج ودعم السوشيال ميديا": 11,
-        }
 
-        canonical_objs = {}
-        for name, order in CANONICAL_SECTIONS.items():
+        # 1. Ensure Standard Categories
+        for name, order in STANDARD_MAIN_SECTIONS:
             cat = Category.objects.filter(name=name, store=None).first()
             if not cat:
                 cat = Category.objects.filter(name=name).first()
@@ -55,44 +45,6 @@ class Command(BaseCommand):
                 cat.sort_order = order
                 cat.is_active = True
                 cat.save(update_fields=["sort_order", "is_active"])
-            canonical_objs[name] = cat
-
-        def get_canon_cat(c_name):
-            return Category.objects.filter(name=c_name, store=None).first() or canonical_objs.get(c_name)
-
-        # Remap and delete only platform non-canonical categories
-        non_canonical = Category.objects.filter(store=None).exclude(name__in=list(CANONICAL_SECTIONS.keys()))
-        for old_cat in non_canonical:
-            c_low = (old_cat.name or "").lower()
-            if any(k in c_low for k in ("pubg", "ببجي", "free fire", "فري فاير", "roblox", "روبلوكس", "jawaker", "جواكر", "لعبة", "العاب", "ألعاب", "game", "سيرفر", "اوتوماتيك", "يدوي", "برايم", "نخبة", "حزم")):
-                target = canonical_objs["شحن الألعاب"]
-            elif any(k in c_low for k in ("تويتر", "انستغرام", "إنستغرام", "فيسبوك", "فيس بوك", "social", "ميديا", "سوشيال", "متابعين", "لايكات", "مشاهدات", "tiktok services", "خدمات تيك توك")):
-                target = canonical_objs["ترويج ودعم السوشيال ميديا"]
-            elif any(k in c_low for k in ("tiktok", "تيك توك", "yalla", "يلا", "bigo", "بيجو", "likee", "لايكي", "imo", "ايمو", "إيمو", "azar", "أزار", "livu", "ليف", "meyo", "ميو", "party star", "soul", "star lite", "tumile", "yaahlan", "hi cat", "bermuda", "zepeto", "chat", "شات", "دردشة", "live", "لايف", "mixu")):
-                target = canonical_objs["شحن التطبيقات"]
-            elif any(k in c_low for k in ("turkcell", "تروكسل", "telekom", "تليكوم", "vodafone", "فودافون", "syriatel", "سيريتل", "mtn", "رصيد", "fatura", "فاتورة", "باقات", "paket", "wi-fi", "واي فاي")):
-                target = canonical_objs["اتصالات ورصيد"]
-            elif any(k in c_low for k in ("playstation", "بلايستيشن", "psn", "itunes", "ايتونز", "آيتونز", "apple", "ابل", "أبل", "google play", "جوجل", "steam", "ستيم", "razer", "ريزر", "بطاقات", "cards", "card", "فيزا", "visa", "voucher", "roblex")):
-                target = canonical_objs["بطاقات رقمية"]
-            elif any(k in c_low for k in ("netflix", "نتفلكس", "نتفليكس", "shahid", "شاهد", "shamna", "شامنا", "tv", "تلفاز", "تلفزيون", "disney", "ديزني", "osn", "او اس ان", "blue 4k", "iptv", "tango pro", "زين تي في", "بركات")):
-                target = canonical_objs["خدمات التلفزيون والبث"]
-            elif any(k in c_low for k in ("whatsapp", "واتساب", "telegram", "تلغرام", "تليجرام", "رقم", "أرقام", "ارقام", "number", "accounts", "حسابات جاهزة")):
-                target = canonical_objs["أرقام وحسابات"]
-            elif any(k in c_low for k in ("vpn", "بروكسي", "proxy", "hotspot", "lagofast", "expressvpn", "nordvpn")):
-                target = canonical_objs["اشتراكات VPN"]
-            elif any(k in c_low for k in ("gemini", "جيميني", "gpt", "chatgpt", "ذكاء", "ai")):
-                target = canonical_objs["الذكاء الاصطناعي"]
-            elif any(k in c_low for k in ("picsart", "بيكس آرت", "canva", "كانفا", "رد تلقائي", "auto reply", "تصميم", "برامج")):
-                target = canonical_objs["برامج وتصميم"]
-            elif any(k in c_low for k in ("حوالات", "تحويلات", "money transfer")):
-                target = canonical_objs["تحويلات مالية"]
-            else:
-                target = canonical_objs["شحن الألعاب"]
-
-            Product.objects.filter(category=old_cat).update(category=target)
-            old_cat.delete()
-
-        self.stdout.write(self.style.SUCCESS(f'Categories consolidated to canonical sections. Remaining: {Category.objects.count()}'))
 
         profiles = ProviderProfile.all_objects.filter(is_active=True)
         if not profiles.exists():
@@ -103,9 +55,10 @@ class Command(BaseCommand):
             if not ProviderProduct.objects.filter(profile=profile).exists():
                 self.stdout.write(f'Skipping profile with no products: {profile.provider_name} (ID: {profile.id})')
                 continue
-            self.stdout.write(f'Processing profile: {profile.provider_name} (ID: {profile.id})...')
             
-            # Sync from Alkasr to get latest availability and category tree only if requested
+            self.stdout.write(f'Processing profile: {profile.provider_name} (ID: {profile.id})...')
+
+            # Optional live sync
             if do_sync:
                 try:
                     from services.provider.manager import ProviderManager
@@ -114,413 +67,27 @@ class Command(BaseCommand):
                 except Exception as e:
                     self.stdout.write(self.style.ERROR(f'Sync error: {e}'))
 
+            # Map all products to canonical catalog
             mapper = AlkasrMapperService(profile)
-            mapper.map_all_to_catalog()
-            
+            stats = mapper.map_all_to_catalog()
+            self.stdout.write(self.style.SUCCESS(f'Mapping stats: {stats}'))
+
+            # Cleanup corrupted mappings & misassigned variants
+            cleanup_stats = AlkasrMapperService.cleanup_corrupted_mappings(profile)
+            self.stdout.write(self.style.SUCCESS(f'Cleanup stats: {cleanup_stats}'))
+
             # Delete auto-created dummy variants with 0 price
             ProductVariant.objects.filter(sku__startswith='AUTO-').delete()
 
-            # Ensure all mapped variants with real prices are active
-            ProductVariant.objects.filter(product__api_provider='alkasr', price__gt=0).update(is_active=True, is_temporarily_disabled=False)
-            Product.objects.filter(api_provider='alkasr').update(is_active=True, is_out_of_stock=False)
-
-            # Fix any mistakenly named products like "3 شهور"
-            snap_app_cat = get_canon_cat("شحن التطبيقات")
-            duration_prods = Product.objects.filter(name__iregex=r'^\d+\s*(شهر|شهور|سنة|سنوات|أيام|يوم)')
-            for dp in duration_prods:
-                dp.name = "سناب شات بلس (Snapchat Plus)"
-                if snap_app_cat:
-                    dp.category = snap_app_cat
-                dp.save(update_fields=['name', 'category'])
-                for s_idx, var in enumerate(dp.variants.all(), start=1):
-                    var.name = f"اشتراك 3 شهور (سيرفر {s_idx})"
-                    var.save(update_fields=['name'])
-                self.stdout.write(self.style.SUCCESS(f'Fixed duration product {dp.id}: renamed to سناب شات بلس (Snapchat Plus)'))
-
-            # Clean and align TikTok packages (150 coins, 400 coins, range recharge)
-            tiktok_prods = Product.objects.filter(name__icontains="تيك توك")
-            for tp in tiktok_prods:
-                tp.name = "تيك توك (TikTok)"
-                snap_cat = get_canon_cat("شحن التطبيقات")
-                if snap_cat:
-                    tp.category = snap_cat
-                tp.save(update_fields=['name', 'category'])
-                
-                for var in tp.variants.all():
-                    meta = dict(var.metadata or {})
-                    rem_id = str(meta.get("remote_id") or "")
-                    if rem_id == "9391" or "150" in var.name:
-                        var.name = "تيك توك 150 عملة"
-                        var.sort_order = 1
-                        meta["qty_type"] = "fixed"
-                        meta["qty_min"] = 1
-                        meta["qty_max"] = 1
-                        var.metadata = meta
-                        if var.cost and var.cost < 1:
-                            var.cost = (var.cost * 150).quantize(Decimal("0.01"))
-                        if var.price and var.price < 2:
-                            var.price = Decimal("2.94")
-                        var.save(update_fields=['name', 'sort_order', 'metadata', 'cost', 'price'])
-                    elif rem_id == "9390" or "400" in var.name:
-                        var.name = "تيك توك 400 عملة"
-                        var.sort_order = 2
-                        meta["qty_type"] = "fixed"
-                        meta["qty_min"] = 1
-                        meta["qty_max"] = 1
-                        var.metadata = meta
-                        if var.cost and var.cost < 1:
-                            var.cost = (var.cost * 400).quantize(Decimal("0.01"))
-                        if var.price and var.price < 4:
-                            var.price = Decimal("5.88")
-                        var.save(update_fields=['name', 'sort_order', 'metadata', 'cost', 'price'])
-                    elif rem_id == "9389" or "تعبئة" in var.name or "رصيد" in var.name or "tik tok" in var.name.lower():
-                        var.name = "تعبئة رصيد عملات تيك توك (1,000 - 5,000,000)"
-                        var.sort_order = 3
-                        meta["qty_type"] = "range"
-                        meta["qty_min"] = 1000
-                        meta["qty_max"] = 5000000
-                        var.metadata = meta
-                        var.save(update_fields=['name', 'sort_order', 'metadata'])
-                self.stdout.write(self.style.SUCCESS(f'Cleanly aligned TikTok (Product {tp.id}) into 3 provider options: 150 coins, 400 coins, and custom recharge.'))
-
-            # Clean and align Syriatel packages and denominations
-            syriatel_prods = Product.objects.filter(name__icontains="سيريتل") | Product.objects.filter(name__icontains="syriatel")
-            for sp in syriatel_prods:
-                if "تحويل" in sp.name or "transfer" in sp.name.lower():
-                    continue
-                sp.name = "سيريتل (Syriatel)"
-                syr_cat = get_canon_cat("اتصالات ورصيد")
-                if syr_cat:
-                    sp.category = syr_cat
-                sp.form_schema = {
-                    "version": 1,
-                    "fields": [
-                        {"name": "phone", "label": "رقم الهاتف", "type": "text", "required": True, "placeholder": "مثال: 09XXXXXXXX"},
-                        {"name": "service_type", "label": "نوع الخدمة", "type": "select", "options": ["رصيد تعبئة وباقات", "دفع فواتير لاحق الدفع", "سيريتل كاش"], "required": False}
-                    ]
-                }
-                sp.save(update_fields=['name', 'category', 'form_schema'])
-                for var in sp.variants.all():
-                    meta = dict(var.metadata or {})
-                    v_low = var.name.lower()
-                    if "cash" in v_low or "كاش" in v_low:
-                        var.name = "سيريتل كاش (Syriatel Cash)"
-                        var.sort_order = 3
-                        meta["qty_type"] = "range"
-                        meta["qty_min"] = 100
-                        meta["qty_max"] = 500000
-                    elif "fatura" in v_low or "فاتورة" in v_low or "فواتير" in v_low:
-                        var.name = "فواتير سيريتل (Syriatel Fatura)"
-                        var.sort_order = 2
-                        meta["qty_type"] = "range"
-                        meta["qty_min"] = 100
-                        meta["qty_max"] = 5000000
-                    elif "credit" in v_low or "رصيد" in v_low or "باقات" in v_low:
-                        var.name = "رصيد وباقات سيريتل (Syriatel Credit)"
-                        var.sort_order = 1
-                        meta["qty_type"] = "list"
-                        meta["qty_list"] = [
-                            "1000", "2000", "3000", "5000", "10000", "15000", "20000",
-                            "25000", "30000", "50000", "75000", "100000", "150000",
-                            "200000", "250000", "500000", "1000000"
-                        ]
-                    var.metadata = meta
-                    var.save(update_fields=['name', 'sort_order', 'metadata'])
-                self.stdout.write(self.style.SUCCESS(f'Cleanly aligned Syriatel (Product {sp.id}) with denominations and categories.'))
-
-            # Clean and align MTN packages
-            mtn_prods = Product.objects.filter(name__icontains="mtn") | Product.objects.filter(name__icontains="ام تي ان")
-            for mp in mtn_prods:
-                mp.name = "ام تي ان (MTN)"
-                mtn_cat = get_canon_cat("اتصالات ورصيد")
-                if mtn_cat:
-                    mp.category = mtn_cat
-                mp.form_schema = {
-                    "version": 1,
-                    "fields": [
-                        {"name": "phone", "label": "رقم الهاتف", "type": "text", "required": True, "placeholder": "مثال: 09XXXXXXXX"},
-                        {"name": "service_type", "label": "نوع الخدمة", "type": "select", "options": ["رصيد تعبئة وباقات", "دفع فواتير لاحق الدفع", "ام تي ان كاش"], "required": False}
-                    ]
-                }
-                mp.save(update_fields=['name', 'category', 'form_schema'])
-                for var in mp.variants.all():
-                    meta = dict(var.metadata or {})
-                    v_low = var.name.lower()
-                    if "fatura" in v_low or "فاتورة" in v_low or "فواتير" in v_low:
-                        var.name = "فواتير ام تي ان (MTN Fatura)"
-                        var.sort_order = 2
-                        meta["qty_type"] = "range"
-                        meta["qty_min"] = 100
-                        meta["qty_max"] = 5000000
-                    elif "credit" in v_low or "رصيد" in v_low or "باقات" in v_low:
-                        var.name = "رصيد وباقات ام تي ان (MTN Credit)"
-                        var.sort_order = 1
-                        meta["qty_type"] = "list"
-                        if not meta.get("qty_list"):
-                            meta["qty_list"] = [
-                                "1000", "2000", "3000", "5000", "10000", "15000", "20000",
-                                "25000", "30000", "50000", "75000", "100000", "150000",
-                                "200000", "250000", "500000", "1000000"
-                            ]
-                    elif "cash" in v_low or "كاش" in v_low:
-                        var.name = "ام تي ان كاش (MTN Cash)"
-                        var.sort_order = 3
-                        meta["qty_type"] = "range"
-                        meta["qty_min"] = 100
-                        meta["qty_max"] = 500000
-                    var.metadata = meta
-                    var.save(update_fields=['name', 'sort_order', 'metadata'])
-                self.stdout.write(self.style.SUCCESS(f'Cleanly aligned MTN (Product {mp.id}) with denominations and categories.'))
-
-            # System-wide consolidation of duplicates and re-linking variants to single canonical products
-            consolidation_map = [
-                # Target Canonical Name, Target Category Name, list of alias regexes
-                ("ببجي موبايل (PUBG Global)", "شحن الألعاب", [r"^pubg global$", r"^code$", r"^red package$", r"^ببجي موبايل$"]),
-                ("ببجي موبايل تركيا (PUBG TR)", "شحن الألعاب", [r"^pupg turkey$", r"^pubg tr$"]),
-                ("فري فاير (Free Fire)", "شحن الألعاب", [r"^free fire$", r"^free fire tr$", r"^free fire global$", r"^فري فاير$"]),
-                ("روبلوكس (Roblox)", "شحن الألعاب", [r"^roblex\b", r"^roblox\b", r"^بطاقات روبلوكس", r"^روبلوكس"]),
-                ("بطاقات بلايستيشن (PlayStation)", "بطاقات رقمية", [r"^ps\s+", r"^playstation", r"^بلايستيشن"]),
-                ("بطاقات أبل / آيتونز (iTunes)", "بطاقات رقمية", [r"^itunes\b", r"^itunes\s+", r"^ابل\b", r"^آيتونز\b", r"^ايتونز\b"]),
-                ("بطاقات جوجل بلاي (Google Play)", "بطاقات رقمية", [r"^google play\b", r"^جوجل بلاي\b"]),
-                ("بطاقات ستيم (Steam)", "بطاقات رقمية", [r"^sudi$", r"^usa$", r"^steam global$", r"^ستيم\b"]),
-                ("بطاقات ريزر جولد (Razer Gold)", "بطاقات رقمية", [r"^razer gold\b", r"^ريزر\b"]),
-                ("تروكسل تركيا (Turkcell)", "اتصالات ورصيد", [r"^tl turkcell$", r"^turkcell$", r"^خدمات تروكسل$", r"^تروكسل\b"]),
-                ("ترك تليكوم تركيا (Türk Telekom)", "اتصالات ورصيد", [r"^tl türk telekom$", r"^türk telekom$", r"^تليكوم\b", r"^تيليكوم\b"]),
-                ("فودافون تركيا (Vodafone)", "اتصالات ورصيد", [r"^tl vodafone$", r"^vodafone$", r"^فودافون\b"]),
-                ("تفعيل أرقام واتساب (WhatsApp)", "أرقام وحسابات", [r"^whatsapp\b", r"^واتساب يدوي", r"^واتساب\b"]),
-                ("تليجرام بريميوم (Telegram Premium)", "أرقام وحسابات", [r"^telegram premium", r"^تلغرام\b", r"^تليجرام\b"]),
-                ("خدمات تويتر / X (Twitter)", "ترويج ودعم السوشيال ميديا", [r"^twitter\b", r"^لايكات تويتر$", r"^متابعين تويتر$", r"^تويتر\b"]),
-                ("خدمات إنستغرام (Instagram)", "ترويج ودعم السوشيال ميديا", [r"^خدمات الانستغرام$", r"^انستغرام\b", r"^إنستغرام\b"]),
-                ("خدمات فيسبوك (Facebook)", "ترويج ودعم السوشيال ميديا", [r"^خدمات الفيس بوك$", r"^فيسبوك\b", r"^فيس بوك\b"]),
-                ("خدمات تيك توك (TikTok Services)", "ترويج ودعم السوشيال ميديا", [r"^سيرفر 1$", r"^سيرفر 2$"]),
-                ("سول (Soul App)", "شحن التطبيقات", [r"^soul chat", r"^soul chill", r"^soul u", r"^soulfa"]),
-                ("لايونز شات (Lions Chat)", "شحن التطبيقات", [r"^lions chat"]),
-                ("ليف يو (LivU)", "شحن التطبيقات", [r"^livu\b"]),
-                ("شاهد VIP (Shahid VIP)", "خدمات التلفزيون والبث", [r"^shahid\b", r"^شاهد\b"]),
-                ("لايكي (Likee)", "شحن التطبيقات", [r"^likee\b"]),
-                ("شحن HGS الطرق السريعة تركيا", "اتصالات ورصيد", [r"^hgs$"]),
-            ]
-
-            import re
-            for target_name, cat_name, aliases in consolidation_map:
-                target_cat = get_canon_cat(cat_name)
-                # Find or create primary product
-                primary = Product.objects.filter(name=target_name, store=None).first()
-                if not primary:
-                    primary = Product.objects.create(
-                        name=target_name,
-                        category=target_cat,
-                        store=None,
-                        is_active=True,
-                        api_provider='alkasr'
-                    )
-                else:
-                    if target_cat and primary.category != target_cat:
-                        primary.category = target_cat
-                        primary.save(update_fields=['category'])
-
-                # Merge any duplicate products with the exact same name
-                for dup in Product.objects.filter(store=None, name=target_name).exclude(id=primary.id):
-                    if not primary.image and dup.image:
-                        primary.image = dup.image
-                        primary.save(update_fields=['image'])
-                    dup.variants.all().update(product=primary)
-                    dup.delete()
-                    self.stdout.write(self.style.SUCCESS(f"Merged identical product '{dup.name}' into '{target_name}'"))
-
-                for alias_pattern in aliases:
-                    alias_prods = Product.objects.filter(store=None).exclude(id=primary.id).filter(name__iregex=alias_pattern)
-                    for ap in alias_prods:
-                        if not primary.image and ap.image:
-                            primary.image = ap.image
-                            primary.save(update_fields=['image'])
-                        # Move all variants to primary
-                        ap.variants.all().update(product=primary)
-                        ap.delete()
-                        self.stdout.write(self.style.SUCCESS(f"Merged duplicate product '{ap.name}' into '{target_name}'"))
-
-            # Re-route any misfiled individual variants into their strictly correct products
-            prod_ig = Product.objects.filter(name="خدمات إنستغرام (Instagram)", store=None).first()
-            prod_tw = Product.objects.filter(name="خدمات تويتر / X (Twitter)", store=None).first()
-            prod_fb = Product.objects.filter(name="خدمات فيسبوك (Facebook)", store=None).first()
-            prod_tk_sm = Product.objects.filter(name="خدمات تيك توك (TikTok Services)", store=None).first()
-            
-            for var in ProductVariant.objects.filter(product__api_provider='alkasr'):
-                v_low = var.name.lower()
-                cur_prod_name = var.product.name if var.product else ""
-                
-                # Instagram variants
-                if prod_ig and ("انستا" in v_low or "انستغرام" in v_low) and cur_prod_name != prod_ig.name:
-                    var.product = prod_ig
-                    var.save(update_fields=['product'])
-                # Twitter variants
-                elif prod_tw and ("تويتر" in v_low or "twitter" in v_low) and cur_prod_name != prod_tw.name:
-                    var.product = prod_tw
-                    var.save(update_fields=['product'])
-                # Facebook variants
-                elif prod_fb and ("فيسبوك" in v_low or "فيس بوك" in v_low) and cur_prod_name != prod_fb.name:
-                    var.product = prod_fb
-                    var.save(update_fields=['product'])
-                # TikTok followers/views
-                elif prod_tk_sm and any(k in v_low for k in ("متابعين تيك توك", "مشاهدات تيك توك", "لايكات تيك توك")) and cur_prod_name != prod_tk_sm.name:
-                    var.product = prod_tk_sm
-                    var.save(update_fields=['product'])
-
-            # Clean any bogus products (null, placeholder, empty)
-            Product.objects.filter(name__in=["null", "none", "", "."], store=None).delete()
-
-            # Normalize and correct qty_type on all variants across catalog
-            for var in ProductVariant.objects.filter(product__api_provider='alkasr'):
-                meta = dict(var.metadata or {})
-                v_name = var.name
-                
-                # Check for fixed denominations
-                import re
-                is_fixed = bool(re.search(r'\b\d+\s*(uc|gems|diamond|diamonds|coins|gold|tl|aed|sar|eur|usd|\$|€|£|month|months|year|years|شهور|شهر|سنة|عملة|جواهر|شدات|ماسات|كود|elmas)\b', v_name, re.IGNORECASE))
-                
-                # Clean qty_list from None/null
-                if meta.get("qty_list"):
-                    meta["qty_list"] = [str(x).strip() for x in meta["qty_list"] if x is not None and str(x).strip().lower() not in ("none", "null", "")]
-
-                if meta.get("qty_type") == "list" or (meta.get("qty_list") and len(meta.get("qty_list")) > 0) or "رصيد وباقات" in v_name or "canva pro" in v_name.lower() or "asiacell" in v_name.lower():
-                    meta["qty_type"] = "list"
-                elif meta.get("qty_type") == "range" or any(k in v_name.lower() for k in ("فواتير", "كاش", "تعبئة رصيد", "متابعين", "لايكات", "مشاهدات", "تعليقات")):
-                    meta["qty_type"] = "range"
-                elif is_fixed:
-                    meta["qty_type"] = "fixed"
-                    meta["qty_min"] = 1
-                    meta["qty_max"] = 999999
-
-                # Ensure SMM rates are accurate and prevent double-division
-                rem_id = str(meta.get("remote_id") or "")
-                if rem_id in ("9364", "7346", "7350", "7354", "7359", "7370", "7373", "7377"):
-                    if var.price and var.price >= Decimal("0.50"):
-                        var.price = (var.price / Decimal("1000")).quantize(Decimal("0.00000001"))
-                        if var.wholesale_price:
-                            var.wholesale_price = (var.wholesale_price / Decimal("1000")).quantize(Decimal("0.00000001"))
-                        if var.vip_price:
-                            var.vip_price = (var.vip_price / Decimal("1000")).quantize(Decimal("0.00000001"))
-                        if var.cost:
-                            var.cost = (var.cost / Decimal("1000")).quantize(Decimal("0.00000001"))
-                        var.save(update_fields=['price', 'wholesale_price', 'vip_price', 'cost'])
-                    elif var.price and var.price < Decimal("0.0001") and var.price > Decimal("0.00000000"):
-                        # Fix accidental double-division (e.g. Instagram Server 3: 0.00000473 -> 0.00473)
-                        var.price = (var.price * Decimal("1000")).quantize(Decimal("0.00000001"))
-                        if var.wholesale_price:
-                            var.wholesale_price = (var.wholesale_price * Decimal("1000")).quantize(Decimal("0.00000001"))
-                        if var.vip_price:
-                            var.vip_price = (var.vip_price * Decimal("1000")).quantize(Decimal("0.00000001"))
-                        if var.cost:
-                            var.cost = (var.cost * Decimal("1000")).quantize(Decimal("0.00000001"))
-                        var.save(update_fields=['price', 'wholesale_price', 'vip_price', 'cost'])
-
-                # Fix Vodafone Cash Egypt / Egyptian Money Transfers rate
-                if any(k in v_name.lower() for k in ("مصر", "فودافون كاش", "egypt")) or (var.product and "مصر" in var.product.name):
-                    if var.price and var.price > Decimal("1.0"):
-                        var.price = Decimal("0.02150000")
-                        var.wholesale_price = Decimal("0.02100000")
-                        var.vip_price = Decimal("0.02070000")
-                        var.cost = Decimal("0.02050000")
-                        meta["qty_type"] = "range"
-                        meta["qty_min"] = 100
-                        meta["qty_max"] = 1000000
-                        var.save(update_fields=['price', 'wholesale_price', 'vip_price', 'cost'])
-
-                # Fix Visa Card product so user is not forced to buy 5 cards at once
-                if ("visa" in v_name.lower() or "فيزا" in v_name) and ("5$" in v_name or "بطاقة" in v_name or "card" in v_name):
-                    if var.price and var.price >= Decimal("50.0"):
-                        var.name = "بطاقة فيزا برصيد 5$ (VISA Card 5$)"
-                        var.price = Decimal("12.99000000")
-                        var.wholesale_price = Decimal("12.50000000")
-                        var.vip_price = Decimal("12.20000000")
-                        var.cost = Decimal("11.50000000")
-                        meta["qty_type"] = "fixed"
-                        meta["qty_min"] = 1
-                        meta["qty_max"] = 999999
-                        var.save(update_fields=['name', 'price', 'wholesale_price', 'vip_price', 'cost'])
-                
-                if var.metadata != meta:
-                    var.metadata = meta
-                    var.save(update_fields=['metadata'])
-
-            # Clean up and assign explicit durations to all VPN and AI subscription variants
-            vpn_ai_prods = Product.objects.filter(
-                Q(category__name__in=["اشتراكات VPN", "الذكاء الاصطناعي", "خدمات التلفزيون والبث", "برامج وتصميم"]) |
-                Q(name__icontains="vpn") | Q(name__icontains="gemini") | Q(name__icontains="جيميني")
-            )
-            for sprod in vpn_ai_prods:
-                s_vars = list(sprod.variants.all())
-                if len(s_vars) > 1:
-                    s_vars.sort(key=lambda x: x.price or 0)
-                    total_v = len(s_vars)
-                    for idx, sv in enumerate(s_vars):
-                        s_name = sv.name
-                        import re
-                        cleaned_base = re.sub(r'\s*\(سيرفر\s*\d+\)', '', s_name).strip()
-                        cleaned_base = re.sub(r'\s*-\s*اشتراك.*', '', cleaned_base).strip()
-                        
-                        has_dur = any(k in s_name for k in ("شهر", "شهور", "سنة", "سنوات", "أيام", "يوم", "Month", "Year", "Day"))
-                        if not has_dur or "(سيرفر" in s_name:
-                            if total_v == 2:
-                                dur = "اشتراك شهر (1 Month)" if idx == 0 else "اشتراك سنة كاملة (1 Year)"
-                            elif total_v == 3:
-                                if idx == 0: dur = "اشتراك شهر (1 Month)"
-                                elif idx == 1: dur = "اشتراك 3 أشهر (3 Months)"
-                                else: dur = "اشتراك سنة كاملة (1 Year)"
-                            elif total_v >= 4:
-                                if idx == 0: dur = "اشتراك شهر (1 Month)"
-                                elif idx == 1: dur = "اشتراك 3 أشهر (3 Months)"
-                                elif idx == 2: dur = "اشتراك 6 أشهر (6 Months)"
-                                else: dur = "اشتراك سنة كاملة (1 Year)"
-                            
-                            # Check for special Gemini Pro naming
-                            if "gemini" in sprod.name.lower() or "جيميني" in sprod.name:
-                                if idx == 0: dur = "اشتراك شهر (دعوة على ايميلك)"
-                                elif idx == 1: dur = "اشتراك شهر (حساب خاص مباشر)"
-                                elif idx == 2: dur = "اشتراك 3 أشهر (حساب رسمي)"
-                                elif idx == 3: dur = "اشتراك 6 أشهر"
-                                else: dur = "اشتراك سنة كاملة (12 شهر)"
-                            
-                            sv.name = f"{cleaned_base} - {dur}"
-                            sv.sort_order = idx + 1
-                            sv.save(update_fields=['name', 'sort_order'])
-
-            # Clean up empty Alkasr products that have 0 variants
+            # Clean empty Alkasr products with no variants
             empty_prods = Product.objects.filter(api_provider='alkasr', variants__isnull=True)
-            empty_count = empty_prods.count()
+            empty_cnt = empty_prods.count()
             empty_prods.delete()
-            if empty_count > 0:
-                self.stdout.write(f'Cleaned up {empty_count} unused empty products.')
+            if empty_cnt > 0:
+                self.stdout.write(f'Cleaned up {empty_cnt} empty products with no variants.')
 
-            # Clean and deduplicate existing order fulfillment data in the database
-            from apps.orders.models import Order
-            from apps.orders.provider_status import cleanup_fulfillment_data
-            orders_with_fulfillment = Order.objects.exclude(fulfillment_data={}).exclude(fulfillment_data__isnull=True)
-            cleaned_orders_count = 0
-            for ord_obj in orders_with_fulfillment:
-                old_ful = ord_obj.fulfillment_data or {}
-                new_ful = cleanup_fulfillment_data(dict(old_ful))
-                if old_ful != new_ful:
-                    ord_obj.fulfillment_data = new_ful
-                    ord_obj.save(update_fields=['fulfillment_data'])
-                    cleaned_orders_count += 1
-            if cleaned_orders_count > 0:
-                self.stdout.write(self.style.SUCCESS(f'Cleaned up and deduplicated fulfillment data for {cleaned_orders_count} orders.'))
-
-            from apps.stores.services import deduplicate_all_stores
-            dedup_res = deduplicate_all_stores()
-            self.stdout.write(self.style.SUCCESS(f'Deduplicated all stores: {dedup_res}'))
-
-            # Ensure all products across catalog have bilingual names, available stock, and fallback schema
-            from apps.providers.alkasr.mapper import format_bilingual_name, KNOWN_NAMES
-            updated_names_count = 0
-            for p in Product.objects.all():
-                changed = False
-                if p.is_out_of_stock:
-                    p.is_out_of_stock = False
-                    changed = True
-                
-                # Check form schema for digital products
+            # Ensure all products across catalog have fallback schema if missing
+            for p in Product.objects.filter(api_provider='alkasr'):
                 schema = p.form_schema or {}
                 fields = schema.get("fields", [])
                 if not fields and getattr(p, "product_type", "digital") != "physical":
@@ -536,27 +103,11 @@ class Command(BaseCommand):
                             }
                         ]
                     }
-                    changed = True
+                    p.save(update_fields=['form_schema'])
 
-                formatted = format_bilingual_name(p.name)
-                if p.name != formatted:
-                    p.name = formatted
-                    changed = True
-                    updated_names_count += 1
-                
-                if changed:
-                    p.save()
-
-            if updated_names_count > 0:
-                self.stdout.write(self.style.SUCCESS(f'Updated {updated_names_count} products with bilingual names & fallback schemas.'))
-
-            total_cats = Category.objects.count()
-            total_prods = Product.objects.filter(api_provider='alkasr').count()
-            total_vars = ProductVariant.objects.filter(product__api_provider='alkasr').count()
-
+            # Smart branding
             from apps.catalog.smart_branding import apply_branding_to_product
             branded_count = 0
-            # Always ensure any product missing an image gets branded
             target_prods = Product.objects.filter(is_active=True)
             if not do_brand:
                 target_prods = target_prods.filter(Q(image='') | Q(image__isnull=True))
@@ -567,10 +118,14 @@ class Command(BaseCommand):
                         branded_count += 1
                 except Exception as b_err:
                     self.stdout.write(self.style.WARNING(f'Branding error for {prod.name}: {b_err}'))
+
             if branded_count > 0:
                 self.stdout.write(self.style.SUCCESS(f'Successfully applied smart branding to {branded_count} products.'))
+
+            total_cats = Category.objects.count()
+            total_prods = Product.objects.filter(api_provider='alkasr').count()
+            total_vars = ProductVariant.objects.filter(product__api_provider='alkasr').count()
 
             self.stdout.write(self.style.SUCCESS(
                 f'Successfully remapped Alkasr catalog: {total_prods} products, {total_vars} variants across {total_cats} categories.'
             ))
-

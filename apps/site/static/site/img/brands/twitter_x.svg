@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128">
+  <defs>
+    <linearGradient id="g_x" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#ffffff"/>
+      <stop offset="100%" stop-color="#94a3b8"/>
+    </linearGradient>
+  </defs>
+  <rect width="128" height="128" rx="28" fill="#000000"/>
+  <circle cx="64" cy="64" r="48" fill="#ffffff" opacity="0.05"/>
+  <path d="M42 36 L58 59 L38 92 L46 92 L62 66 L78 92 L90 92 L72 63 L90 36 L82 36 L68 57 L54 36 Z" fill="url(#g_x)"/>
+  <text x="64" y="114" text-anchor="middle" fill="#ffffff" font-size="13" font-weight="900" font-family="sans-serif" letter-spacing="3">X / TWITTER</text>
+</svg>

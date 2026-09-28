@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128">
+  <defs>
+    <linearGradient id="g_gemini" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#4285f4"/>
+      <stop offset="50%" stop-color="#9b72cb"/>
+      <stop offset="100%" stop-color="#d96570"/>
+    </linearGradient>
+  </defs>
+  <rect width="128" height="128" rx="28" fill="#0f172a"/>
+  <circle cx="64" cy="64" r="48" fill="url(#g_gemini)" opacity="0.15"/>
+  <path d="M64 28 C64 48 48 64 28 64 C48 64 64 80 64 100 C64 80 80 64 100 64 C80 64 64 48 64 28 Z" fill="url(#g_gemini)"/>
+  <text x="64" y="116" text-anchor="middle" fill="#9b72cb" font-size="13" font-weight="900" font-family="sans-serif" letter-spacing="2">GEMINI</text>
+</svg>

@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="100%" height="100%">
+  <defs>
+    <linearGradient id="poppoGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#FF4081"/>
+      <stop offset="100%" stop-color="#7C4DFF"/>
+    </linearGradient>
+  </defs>
+  <rect width="100" height="100" rx="22" fill="url(#poppoGrad)"/>
+  <!-- Poppo Live icon -->
+  <circle cx="50" cy="50" r="26" fill="#FFFFFF"/>
+  <path d="M42 36 C42 36 40 46 48 48 C56 50 58 40 58 40 C58 40 60 50 52 52 C44 54 42 36 42 36 Z" fill="#FF4081"/>
+  <circle cx="44" cy="46" r="3" fill="#7C4DFF"/>
+  <circle cx="56" cy="46" r="3" fill="#7C4DFF"/>
+  <path d="M45 58 Q50 64 55 58" stroke="#7C4DFF" stroke-width="3" stroke-linecap="round" fill="none"/>
+</svg>

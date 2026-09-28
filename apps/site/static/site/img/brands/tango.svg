@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128">
+  <defs>
+    <linearGradient id="g_tango" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#ff2e63"/>
+      <stop offset="100%" stop-color="#ea0042"/>
+    </linearGradient>
+  </defs>
+  <rect width="128" height="128" rx="28" fill="#181824"/>
+  <circle cx="64" cy="64" r="48" fill="url(#g_tango)" opacity="0.15"/>
+  <circle cx="64" cy="58" r="26" fill="url(#g_tango)"/>
+  <path d="M52 50 L76 50 L64 74 Z" fill="#ffffff"/>
+  <text x="64" y="114" text-anchor="middle" fill="#ff2e63" font-size="14" font-weight="900" font-family="sans-serif" letter-spacing="2">TANGO</text>
+</svg>

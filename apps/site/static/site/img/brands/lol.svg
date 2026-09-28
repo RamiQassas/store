@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="100%" height="100%">
+  <defs>
+    <linearGradient id="lolGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0A1428"/>
+      <stop offset="100%" stop-color="#091428"/>
+    </linearGradient>
+    <linearGradient id="goldGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#C89B3C"/>
+      <stop offset="100%" stop-color="#785A28"/>
+    </linearGradient>
+  </defs>
+  <rect width="100" height="100" rx="22" fill="url(#lolGrad)"/>
+  <!-- Stylized League of Legends L -->
+  <path d="M32 25 L45 25 L45 65 L68 65 L68 75 L32 75 Z" fill="url(#goldGrad)"/>
+  <circle cx="62" cy="35" r="4" fill="#C89B3C"/>
+</svg>
