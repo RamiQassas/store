@@ -121,6 +121,25 @@ class AlkasrSyncService:
                 logger.warning("Category tree fetch warning: %s", cat_tree_err)
 
             remote_products = self.product_service.fetch_all_products()
+            
+            # PHASE 4: Empty Response Safety
+            if not remote_products or not isinstance(remote_products, list) or len(remote_products) == 0:
+                warning_msg = "Alkasr API returned an empty or invalid products list. Sync aborted safely to prevent accidental catalog deactivation."
+                logger.warning(warning_msg)
+                log_entry.status = "failed"
+                log_entry.error_message = warning_msg
+                log_entry.save(update_fields=["status", "error_message", "updated_at"])
+                err_data = {"status": "aborted", "error": warning_msg, "percent": 0}
+                self._set_cache(progress_key, err_data, timeout=600)
+                return {
+                    "status": "aborted",
+                    "reason": warning_msg,
+                    "total": 0,
+                    "created": 0,
+                    "updated": 0,
+                    "disabled": 0,
+                }
+
             total_items = len(remote_products)
             seen_remote_ids = set()
 
@@ -175,6 +194,11 @@ class AlkasrSyncService:
                         cat_obj.parent_remote_id = str(raw_parent_id)
                         cat_obj.save(update_fields=["parent", "parent_remote_id", "updated_at"])
 
+                    # Extract canonical fields
+                    cost_val = Decimal(str(item.get("cost_price") or "0.00"))
+                    base_price_val = Decimal(str(item.get("base_price") or item.get("cost_price") or "0.00"))
+                    parent_id_val = str(item.get("parent_id") or "") if item.get("parent_id") not in (None, "", "0", 0) else None
+
                     # Get or create ProviderProduct
                     prod_obj, created = ProviderProduct.objects.get_or_create(
                         profile=self.profile,
@@ -185,10 +209,18 @@ class AlkasrSyncService:
                             "product_type": item["product_type"],
                             "is_active": item["is_active"],
                             "local_is_active": item["is_active"],
-                            "cost_price": Decimal(str(item["cost_price"] or "0.00")),
+                            "cost_price": cost_val,
+                            "provider_base_price": base_price_val,
+                            "remote_parent_id": parent_id_val,
+                            "provider_category_name": item.get("category_name") or "",
+                            "provider_category_img": item.get("category_img") or "",
+                            "raw_qty_values": item.get("raw_qty_values"),
+                            "raw_params": item.get("parameters") or [],
                             "qty_min": item["qty_min"],
                             "qty_max": item["qty_max"],
                             "qty_list": item["qty_list"],
+                            "last_provider_sync": timezone.now(),
+                            "sync_status": "synced",
                         }
                     )
 
@@ -215,22 +247,27 @@ class AlkasrSyncService:
                         prod_obj.category = cat_obj
                         prod_obj.product_type = item["product_type"]
                         prod_obj.is_active = item["is_active"]
-                        # Restore local_is_active if product is active
                         if item["is_active"]:
                             prod_obj.local_is_active = True
                         else:
                             prod_obj.local_is_active = False
-                        prod_obj.cost_price = Decimal(str(item["cost_price"] or "0.00"))
+                        prod_obj.cost_price = cost_val
+                        prod_obj.provider_base_price = base_price_val
+                        prod_obj.remote_parent_id = parent_id_val
+                        prod_obj.provider_category_name = item.get("category_name") or ""
+                        prod_obj.provider_category_img = item.get("category_img") or ""
+                        prod_obj.raw_qty_values = item.get("raw_qty_values")
+                        prod_obj.raw_params = item.get("parameters") or []
                         prod_obj.qty_min = item["qty_min"]
                         prod_obj.qty_max = item["qty_max"]
                         prod_obj.qty_list = item["qty_list"]
+                        prod_obj.last_provider_sync = timezone.now()
+                        prod_obj.sync_status = "synced"
                         prod_obj.save()
 
                     # Update parameters
                     if item.get("parameters"):
                         prod_obj.parameters.all().delete()
-                        # We might receive ["playerId", "anotherKey"]
-                        # name should be unique for this product.
                         for p_idx, p in enumerate(item["parameters"]):
                             if isinstance(p, dict):
                                 ProviderProductParameter.objects.create(
@@ -241,7 +278,6 @@ class AlkasrSyncService:
                                     parameter_type=str(p.get("type") or "text")[:50]
                                 )
                             elif isinstance(p, str):
-                                # If it's a list of strings, just make unique names.
                                 p_name = "playerId" if p_idx == 0 else f"param_{p_idx}"
                                 ProviderProductParameter.objects.create(
                                     product=prod_obj,
@@ -264,11 +300,11 @@ class AlkasrSyncService:
                     except Exception:
                         pass
 
-            # Soft disable products missing from provider payload
+            # PHASE 5: Soft disable stale products missing from provider payload
             with transaction.atomic():
                 disabled_qs = ProviderProduct.objects.filter(profile=self.profile).exclude(remote_id__in=seen_remote_ids)
                 disabled_count = disabled_qs.filter(is_active=True).count()
-                disabled_qs.update(is_active=False, local_is_active=False)
+                disabled_qs.update(is_active=False, local_is_active=False, sync_status="stale")
 
             # Automatically map ProviderProducts to store catalog Product & ProductVariant
             try:

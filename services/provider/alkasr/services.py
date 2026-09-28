@@ -49,3 +49,11 @@ class AlkasrProviderService:
 
     def check_orders(self, order_identifiers: list, is_uuid: bool = True) -> list:
         return self.order_service.check_orders(order_identifiers, is_uuid=is_uuid)
+
+    def reconcile_orders(self, days: int = 7, batch_size: int = 50) -> dict:
+        from .reconciliation import AlkasrReconciliationService
+        return AlkasrReconciliationService(self.profile, client=self.client).reconcile_pending_orders(days=days, batch_size=batch_size)
+
+    def cleanup_mappings(self) -> dict:
+        from .mapper import AlkasrMapperService
+        return AlkasrMapperService.cleanup_corrupted_mappings(profile=self.profile)

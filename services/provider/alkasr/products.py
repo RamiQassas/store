@@ -187,17 +187,23 @@ class AlkasrProductService:
             except Exception:
                 cost_price = "0.00000000"
 
+            base_price = item.get("base_price") or cost_price
+            category_img = str(item.get("category_img") or item.get("category_image") or item.get("img") or item.get("image") or "").strip()
+
             params = item.get("params") or item.get("parameters") or item.get("fields") or []
 
             parsed_products.append({
                 "remote_id": remote_id,
                 "name": name,
-                "cost_price": cost_price,
+                "cost_price": str(cost_price),
+                "base_price": str(base_price),
+                "category_img": category_img,
                 "product_type": product_type,
                 "is_active": is_active,
                 "qty_min": int(qty_min) if qty_min is not None else None,
                 "qty_max": int(qty_max) if qty_max is not None else None,
                 "qty_list": qty_list if isinstance(qty_list, list) else [],
+                "raw_qty_values": qty_values,
                 "category_id": str(category_id),
                 "category_name": str(category_name),
                 "parent_id": parent_id_val,

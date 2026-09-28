@@ -3,7 +3,7 @@ Alkasr VIP Integration Package.
 Provides Client, Services, Exceptions, Pricing, Sync, Order, and Validation engines.
 """
 
-from .client import AlkasrClient
+from .client import AlkasrClient, AlkasrAPIClient
 from .exceptions import (
     AlkasrAPIException,
     ApiTokenRequiredException,
@@ -37,7 +37,10 @@ from .mapper import AlkasrMapperService
 from .constants import DEFAULT_BASE_URL, ERROR_CODES, PROVIDER_STATUS_MAP
 from .validators import validate_order_preconditions
 
+from .reconciliation import AlkasrReconciliationService
+
 __all__ = [
+    "AlkasrAPIClient",
     "AlkasrClient",
     "AlkasrProviderService",
     "PricingEngine",
@@ -46,6 +49,7 @@ __all__ = [
     "AlkasrProductService",
     "AlkasrProfileService",
     "AlkasrMapperService",
+    "AlkasrReconciliationService",
     "validate_order_preconditions",
     "AlkasrAPIException",
 ]

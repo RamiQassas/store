@@ -94,6 +94,16 @@ class ProviderProduct(TimeStampedModel):
     qty_max = models.BigIntegerField(null=True, blank=True)
     qty_list = models.JSONField(default=list, blank=True)
 
+    # Canonical Provider API Fields
+    remote_parent_id = models.CharField(max_length=100, null=True, blank=True, db_index=True, verbose_name="معرف الأب في المزود")
+    provider_base_price = models.DecimalField(max_digits=18, decimal_places=8, null=True, blank=True, verbose_name="سعر الأساس من المزود")
+    provider_category_name = models.CharField(max_length=255, blank=True, default="", verbose_name="اسم التصنيف من المزود")
+    provider_category_img = models.CharField(max_length=500, blank=True, default="", verbose_name="رابط صورة التصنيف")
+    raw_qty_values = models.JSONField(null=True, blank=True, verbose_name="بيانات الكميات الخام")
+    raw_params = models.JSONField(default=list, blank=True, verbose_name="معاملات المنتج")
+    last_provider_sync = models.DateTimeField(null=True, blank=True, verbose_name="تاريخ آخر مزامنة")
+    sync_status = models.CharField(max_length=50, default="synced", verbose_name="حالة المزامنة")
+
     class Meta:
         unique_together = ('profile', 'remote_id')
 

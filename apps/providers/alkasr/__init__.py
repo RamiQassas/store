@@ -4,6 +4,7 @@ Forwards all imports to new central services layer services.provider.alkasr.
 """
 
 from services.provider.alkasr import (
+    AlkasrAPIClient,
     AlkasrClient,
     AlkasrProviderService,
     AlkasrSyncService,
@@ -15,6 +16,7 @@ from services.provider.alkasr import (
 )
 
 __all__ = [
+    "AlkasrAPIClient",
     "AlkasrClient",
     "AlkasrProviderService",
     "AlkasrSyncService",

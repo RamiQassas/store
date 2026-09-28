@@ -142,6 +142,22 @@ class ProviderManager:
         return svc.check_orders(order_identifiers, is_uuid=is_uuid)
 
     @classmethod
+    def reconcile_orders(cls, profile, days: int = 7, batch_size: int = 50) -> dict:
+        """Audits and reconciles pending orders with the provider."""
+        svc = cls.get_service(profile)
+        if hasattr(svc, "reconcile_orders"):
+            return svc.reconcile_orders(days=days, batch_size=batch_size)
+        return {"checked": 0, "completed": 0, "failed": 0, "pending": 0, "errors": 0}
+
+    @classmethod
+    def cleanup_mappings(cls, profile) -> dict:
+        """Repairs corrupted package-to-product mappings."""
+        svc = cls.get_service(profile)
+        if hasattr(svc, "cleanup_mappings"):
+            return svc.cleanup_mappings()
+        return {"reassigned_count": 0, "deactivated_count": 0}
+
+    @classmethod
     def test_connection(cls, profile) -> dict:
         """Tests API token and connectivity with provider."""
         try:

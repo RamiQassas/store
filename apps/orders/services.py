@@ -810,25 +810,41 @@ def _create_order_atomic(customer, variant_id, quantity=1, fulfillment_data=None
                 note_prefix="النظام الآلي",
             )
         except Exception as exc:
+            is_timeout_or_transient = any(
+                term in str(exc).lower()
+                for term in ("timeout", "timed out", "time out", "connection", "connect", "econnreset", "closed connection", "502", "503", "504")
+            )
             if is_provider_unavailable_error(exc):
                 mark_variant_unavailable(variant, reason=str(exc), error_code=getattr(exc, "code", None), provider_product=provider_product)
-            from apps.orders.provider_status import apply_provider_status
-            order = apply_provider_status(
-                order,
-                "failed",
-                raw_response={
-                    "error": str(exc),
-                    "msg": str(exc),
-                    "code": getattr(exc, "code", None)
-                },
-                actor=customer,
-                note_prefix="النظام الآلي (فشل الإرسال للمزود)",
-            )
+            
             order_meta = dict(order.metadata or {})
             order_meta["api_provider"] = provider
             order_meta["api_error"] = str(exc)
-            order.metadata = order_meta
-            order.save(update_fields=["metadata", "updated_at"])
+
+            if is_timeout_or_transient:
+                # Retain in processing and let reconciliation verify with provider before refunding
+                logger.warning("Order %s encountered network timeout/transient error: %s. Holding in processing for reconciliation.", order.number, exc)
+                fulfillment = dict(order.fulfillment_data or {})
+                fulfillment["api_status"] = "pending_verification"
+                fulfillment["api_error"] = str(exc)
+                order.fulfillment_data = fulfillment
+                order.metadata = order_meta
+                order.save(update_fields=["fulfillment_data", "metadata", "updated_at"])
+            else:
+                from apps.orders.provider_status import apply_provider_status
+                order = apply_provider_status(
+                    order,
+                    "failed",
+                    raw_response={
+                        "error": str(exc),
+                        "msg": str(exc),
+                        "code": getattr(exc, "code", None)
+                    },
+                    actor=customer,
+                    note_prefix="النظام الآلي (فشل الإرسال للمزود)",
+                )
+                order.metadata = order_meta
+                order.save(update_fields=["metadata", "updated_at"])
             try:
                 from apps.notifications.services import notify_provider_error
                 notify_provider_error(

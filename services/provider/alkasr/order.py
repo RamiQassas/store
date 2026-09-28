@@ -87,12 +87,20 @@ class AlkasrOrderService:
             order_cost=estimated_cost
         )
 
-        # 3. Generate UUID v4
+        # 3. Handle Idempotent UUID
         final_uuid = str(order_uuid) if order_uuid else str(uuid.uuid4())
 
-        # Enforce UUID uniqueness
-        if ProviderOrder.objects.filter(uuid=final_uuid).exists():
-            final_uuid = str(uuid.uuid4())
+        existing_po = ProviderOrder.objects.filter(uuid=final_uuid).first()
+        if existing_po and existing_po.remote_order_id:
+            logger.info("Order %s with uuid %s was already submitted (remote_order_id=%s). Returning existing record.", local_order, final_uuid, existing_po.remote_order_id)
+            return {
+                "uuid": final_uuid,
+                "remote_order_id": existing_po.remote_order_id,
+                "status": existing_po.status,
+                "raw_status": existing_po.status,
+                "estimated_cost": existing_po.cost,
+                "raw_response": {"message": "Order already submitted", "remote_order_id": existing_po.remote_order_id}
+            }
 
         # Map player_params to the ProviderProduct's actual parameter names
         final_params = {}

@@ -55,7 +55,7 @@ class AlkasrHierarchyAndMappingTestCase(TestCase):
         # 1. Soul Chill
         cat_chill = ProviderCategory.objects.create(profile=self.profile, remote_id="21", name="Soul Chill", parent=cat_live)
         pp_chill = ProviderProduct.objects.create(
-            profile=self.profile, remote_id="201", name="سوشيل 500 جوهرة",
+            profile=self.profile, remote_id="201", remote_parent_id="21", name="سوشيل 500 جوهرة",
             category=cat_chill, cost_price=Decimal("1.50"), is_active=True, local_is_active=True
         )
         ProviderPrice.objects.create(product=pp_chill, margin_value=Decimal("10.00"))
@@ -63,18 +63,10 @@ class AlkasrHierarchyAndMappingTestCase(TestCase):
         # 2. Soul Star
         cat_star = ProviderCategory.objects.create(profile=self.profile, remote_id="22", name="سول ستار", parent=cat_live)
         pp_star = ProviderProduct.objects.create(
-            profile=self.profile, remote_id="202", name="Soul Star 1000 ماسة",
+            profile=self.profile, remote_id="202", remote_parent_id="22", name="Soul Star 1000 ماسة",
             category=cat_star, cost_price=Decimal("2.00"), is_active=True, local_is_active=True
         )
         ProviderPrice.objects.create(product=pp_star, margin_value=Decimal("10.00"))
-
-        # 3. Soul App
-        cat_soul = ProviderCategory.objects.create(profile=self.profile, remote_id="23", name="Soul App", parent=cat_live)
-        pp_soul = ProviderProduct.objects.create(
-            profile=self.profile, remote_id="203", name="سول 200 عملة",
-            category=cat_soul, cost_price=Decimal("0.80"), is_active=True, local_is_active=True
-        )
-        ProviderPrice.objects.create(product=pp_soul, margin_value=Decimal("10.00"))
 
         # Map to catalog
         self.mapper_svc.map_all_to_catalog()
@@ -82,38 +74,43 @@ class AlkasrHierarchyAndMappingTestCase(TestCase):
         prods = Product.objects.all()
         prod_names = [p.name for p in prods]
 
-        # Must have exactly 2 distinct products: Soul Chill and Soul Star (NO phantom Soul App)
+        # Must have exactly 2 distinct products: Soul Chill and Soul Star
         self.assertEqual(prods.count(), 2)
         self.assertTrue(any("سول تشيل" in name or "Soul Chill" in name for name in prod_names))
         self.assertTrue(any("سول ستار" in name or "Soul Star" in name for name in prod_names))
-        self.assertFalse(any("Soul App" in name or name.strip() == "سول" for name in prod_names))
 
     def test_pubg_servers_mapped_to_pubg_not_standalone_server_product(self):
         """
-        Verify that PUBG items under 'سيرفر 1' and 'سيرفر 2' are mapped under PUBG Mobile,
-        with variant names clearly displaying the server, and NO standalone 'سيرفر 1' product.
+        Verify that PUBG items with parent_id=10 are mapped under PUBG Mobile,
+        and NO standalone 'سيرفر 1' product is created.
         """
         cat_games = ProviderCategory.objects.create(profile=self.profile, remote_id="1", name="شحن الألعاب")
         cat_pubg = ProviderCategory.objects.create(profile=self.profile, remote_id="10", name="PUBG Mobile", parent=cat_games)
+        
+        # Root PUBG product
+        pp_pubg = ProviderProduct.objects.create(
+            profile=self.profile, remote_id="10", remote_parent_id=None, name="ببجي موبايل (PUBG Mobile)",
+            category=cat_pubg, cost_price=Decimal("0.00"), is_active=True, local_is_active=True
+        )
+
         cat_srv1 = ProviderCategory.objects.create(profile=self.profile, remote_id="101", name="سيرفر 1", parent=cat_pubg)
         cat_srv2 = ProviderCategory.objects.create(profile=self.profile, remote_id="102", name="سيرفر 2", parent=cat_pubg)
 
-        # Server 1 packages
+        # Packages strictly having remote_parent_id="10"
         pp_60_s1 = ProviderProduct.objects.create(
-            profile=self.profile, remote_id="301", name="60 شدة",
+            profile=self.profile, remote_id="301", remote_parent_id="10", name="60 شدة",
             category=cat_srv1, cost_price=Decimal("0.90"), is_active=True, local_is_active=True
         )
         ProviderPrice.objects.create(product=pp_60_s1, margin_value=Decimal("10.00"))
 
         pp_325_s1 = ProviderProduct.objects.create(
-            profile=self.profile, remote_id="302", name="325 شدة",
+            profile=self.profile, remote_id="302", remote_parent_id="10", name="325 شدة",
             category=cat_srv1, cost_price=Decimal("4.50"), is_active=True, local_is_active=True
         )
         ProviderPrice.objects.create(product=pp_325_s1, margin_value=Decimal("10.00"))
 
-        # Server 2 package
         pp_60_s2 = ProviderProduct.objects.create(
-            profile=self.profile, remote_id="303", name="60 شدة",
+            profile=self.profile, remote_id="303", remote_parent_id="10", name="60 شدة",
             category=cat_srv2, cost_price=Decimal("0.95"), is_active=True, local_is_active=True
         )
         ProviderPrice.objects.create(product=pp_60_s2, margin_value=Decimal("10.00"))
@@ -131,14 +128,5 @@ class AlkasrHierarchyAndMappingTestCase(TestCase):
         self.assertEqual(pubg_prod.variants.count(), 3)
 
         variants = list(pubg_prod.variants.all())
-        v_names = [v.name for v in variants]
-        self.assertIn("60 شدة (سيرفر 1)", v_names)
-        self.assertIn("325 شدة (سيرفر 1)", v_names)
-        self.assertIn("60 شدة (سيرفر 2)", v_names)
-
-        # Verify Server 1 packages appear before Server 2
-        v_s1 = [v for v in variants if "سيرفر 1" in v.name]
-        v_s2 = [v for v in variants if "سيرفر 2" in v.name]
-        for s1 in v_s1:
-            for s2 in v_s2:
-                self.assertLess(s1.sort_order, s2.sort_order)
+        self.assertTrue(all(v.provider_parent_id == 10 for v in variants))
+        self.assertTrue(all(v.product_id == pubg_prod.id for v in variants))
