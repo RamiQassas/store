@@ -191,7 +191,24 @@ class ProviderSyncLogAdmin(admin.ModelAdmin):
         c = queryset.delete()[0]
         self.message_user(request, f"تم حذف {c} سجل بنجاح.", messages.SUCCESS)
 
+from .models import (
+    ProviderProfile, ProviderCategory, ProviderProduct, ProviderPrice,
+    ProviderProductParameter, ProviderPriceHistory, ProviderOrder,
+    ProviderOrderStatus, ProviderSyncLog, ProviderRequestLog,
+    ProviderResponseLog, ProviderErrorLog, ProviderMapping, ProviderAppRule
+)
+
 admin.site.register(ProviderProductParameter)
 admin.site.register(ProviderPriceHistory)
 admin.site.register(ProviderOrderStatus)
 admin.site.register(ProviderMapping)
+
+
+@admin.register(ProviderAppRule)
+class ProviderAppRuleAdmin(admin.ModelAdmin):
+    list_display = ('keyword', 'section', 'app_name', 'priority', 'is_active', 'updated_at')
+    list_filter = ('section', 'is_active')
+    search_fields = ('keyword', 'app_name')
+    list_editable = ('priority', 'is_active')
+    ordering = ('-priority', 'keyword')
+

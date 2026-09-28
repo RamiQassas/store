@@ -251,3 +251,38 @@ class ProviderMapping(TimeStampedModel):
     local_product = models.ForeignKey("catalog.Product", on_delete=models.CASCADE, related_name="provider_mappings", null=True, blank=True)
     local_variant = models.OneToOneField("catalog.ProductVariant", on_delete=models.CASCADE, related_name="provider_mapping", null=True, blank=True)
     provider_product = models.ForeignKey(ProviderProduct, on_delete=models.CASCADE, related_name="mappings")
+
+
+class ProviderAppRule(TimeStampedModel):
+    """
+    Dynamic catalog mapping rules managed from Admin.
+    Allows matching provider products by keyword to a Canonical Section and App Name
+    without requiring code changes.
+    """
+    SECTION_CHOICES = (
+        ("قسم الألعاب", "قسم الألعاب"),
+        ("قسم الدردشة والتطبيقات", "قسم الدردشة والتطبيقات"),
+        ("قسم الأرصدة والاتصالات", "قسم الأرصدة والاتصالات"),
+        ("البطاقات الإلكترونية", "البطاقات الإلكترونية"),
+        ("خدمات التلفاز والبث", "خدمات التلفاز والبث"),
+        ("اشتراكات VPN", "اشتراكات VPN"),
+        ("الذكاء الاصطناعي", "الذكاء الاصطناعي"),
+        ("برامج وتصميم", "برامج وتصميم"),
+        ("السوشيال ميديا", "السوشيال ميديا"),
+        ("الأرقام والحسابات", "الأرقام والحسابات"),
+    )
+
+    keyword = models.CharField(max_length=100, verbose_name="الكلمة الدلالية / الكلمة المفتاحية", help_text="مثال: pubg, ببجي, jawaker, تيك توك")
+    section = models.CharField(max_length=100, choices=SECTION_CHOICES, verbose_name="القسم الرئيسي")
+    app_name = models.CharField(max_length=150, verbose_name="اسم التطبيق أو اللعبة في المتجر", help_text="مثال: ببجي موبايل (PUBG Mobile)")
+    priority = models.IntegerField(default=10, verbose_name="الأولوية (الأعلى يطبق أولاً)")
+    is_active = models.BooleanField(default=True, verbose_name="مفعل")
+
+    class Meta:
+        verbose_name = "قاعدة تصنيف المزود"
+        verbose_name_plural = "قواعد تصنيف المزود"
+        ordering = ["-priority", "keyword"]
+
+    def __str__(self):
+        return f"{self.keyword} -> {self.section} / {self.app_name}"
+

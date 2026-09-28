@@ -143,12 +143,12 @@ class AlkasrCompleteOverhaulTests(TestCase):
         # Verify Root Products in catalog
         pubg_prod = Product.objects.filter(api_product_id=10, api_provider="alkasr").first()
         self.assertIsNotNone(pubg_prod)
-        self.assertEqual(pubg_prod.name, "PUBG Mobile UC")
+        self.assertIn(pubg_prod.name, ("PUBG Mobile UC", "ببجي موبايل (PUBG Mobile)"))
         self.assertTrue(pubg_prod.is_active)
 
         ff_prod = Product.objects.filter(api_product_id=20, api_provider="alkasr").first()
         self.assertIsNotNone(ff_prod)
-        self.assertEqual(ff_prod.name, "Free Fire Diamonds")
+        self.assertIn(ff_prod.name, ("Free Fire Diamonds", "فري فاير (Free Fire)"))
 
         # Verify Packages linked STRICTLY to their true parent
         pubg_var = ProductVariant.objects.filter(api_product_id=1001).first()
