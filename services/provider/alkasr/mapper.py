@@ -155,6 +155,14 @@ class AlkasrMapperService:
         self.store = getattr(profile, "store", None)
         self._categories_cache = {}
 
+    def _get_group_name(self, pp) -> str:
+        """Helper to get canonical app/group name for a provider product."""
+        try:
+            _, app_name = self.resolve_app_and_section(pp)
+            return app_name or (pp.category.name if pp.category else "عام")
+        except Exception:
+            return pp.category.name if pp.category else "عام"
+
     def _ensure_standard_sections(self):
         """Pre-creates the 10 standard categories in catalog.Category."""
         from apps.catalog.models import Category

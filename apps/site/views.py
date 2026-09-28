@@ -9734,11 +9734,18 @@ def control_apicontrol_dashboard(request):
             pass
 
         for pp in all_p:
+            g_name = None
             if mapper_svc:
-                g_name = mapper_svc._get_group_name(pp)
-            else:
+                try:
+                    if hasattr(mapper_svc, "_get_group_name"):
+                        g_name = mapper_svc._get_group_name(pp)
+                    elif hasattr(mapper_svc, "resolve_app_and_section"):
+                        _, g_name = mapper_svc.resolve_app_and_section(pp)
+                except Exception:
+                    g_name = None
+            if not g_name:
                 g_name = pp.category.name if pp.category else "عام"
-            if not g_name or g_name.lower() in ("null", "none"):
+            if not g_name or str(g_name).lower() in ("null", "none"):
                 continue
             if g_name not in groups_dict:
                 groups_dict[g_name] = {"name": g_name, "count": 0}

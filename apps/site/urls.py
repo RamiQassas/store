@@ -237,4 +237,6 @@ urlpatterns = [
     path("control/merchant/pages/", views.control_dashboard, name="merchant_pages"),
     path("control/merchant/subscription/", views.control_dashboard, name="merchant_subscription"),
     path("control/merchant/domains/", views.control_dashboard, name="merchant_domains"),
+    path("control/merchant/meta-ads/", views.control_meta_ads_dashboard, name="merchant_meta_ads_dashboard"),
+    path("control/merchant/meta-pixel/", views.control_meta_pixel, name="merchant_meta_pixel"),
 ]
