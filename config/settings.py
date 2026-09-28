@@ -273,6 +273,8 @@ def database_config():
             "PASSWORD": parsed.password or "",
             "HOST": parsed.hostname or "",
             "PORT": parsed.port or "",
+            "CONN_MAX_AGE": 60,
+            "CONN_HEALTH_CHECKS": True,
         }
     if env("POSTGRES_DB"):
         pg_host = env("POSTGRES_HOST", "127.0.0.1")
@@ -284,6 +286,8 @@ def database_config():
                 "PASSWORD": env("POSTGRES_PASSWORD", ""),
                 "HOST": pg_host,
                 "PORT": env("POSTGRES_PORT", "5432"),
+                "CONN_MAX_AGE": 60,
+                "CONN_HEALTH_CHECKS": True,
             }
     return {"ENGINE": "django.db.backends.sqlite3", "NAME": BASE_DIR / "db.sqlite3"}
 

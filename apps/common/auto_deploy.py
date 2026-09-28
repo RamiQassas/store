@@ -107,25 +107,35 @@ def apply_git_update():
 
 def auto_deploy_poller():
     logger.info("🔄 [AUTO-DEPLOY] Background GitHub polling thread started.")
-    time.sleep(15)
+    time.sleep(30)
     
+    last_synced_sha = None
+    last_sync_time = 0
+
     while True:
         try:
             from django.core.cache import cache
             if cache.get("auto_deploy_paused"):
-                time.sleep(30)
+                time.sleep(60)
                 continue
 
             local_sha = get_local_commit_sha()
             remote_sha = get_remote_commit_sha()
             
+            now_ts = time.time()
             if remote_sha and local_sha and remote_sha != local_sha:
+                if remote_sha == last_synced_sha and (now_ts - last_sync_time) < 600:
+                    time.sleep(60)
+                    continue
+
+                last_synced_sha = remote_sha
+                last_sync_time = now_ts
                 logger.info(f"🔄 [AUTO-DEPLOY] Remote SHA ({remote_sha[:7]}) differs from Local SHA ({local_sha[:7]}). Updating...")
                 apply_git_update()
         except Exception as e:
             logger.debug(f"Auto deploy loop exception: {e}")
             
-        time.sleep(45)
+        time.sleep(60)
 
 def start_auto_deploy_background_thread():
     global _auto_deploy_thread_started
