@@ -9583,25 +9583,14 @@ def control_apicontrol_dashboard(request):
             "default_vip_margin": Decimal(str(tier_m.get("vip", 5.0))),
         }
     elif profile_obj:
-        try:
-            test_res = ProviderManager.test_connection(profile_obj)
-        except Exception as exc:
-            test_res = {"success": False, "error": str(exc)}
-
-        if test_res.get("success"):
-            is_connected = True
-            profile_balance = test_res.get("balance", profile_obj.balance)
-            profile_currency = test_res.get("currency", profile_obj.currency)
-        else:
-            is_connected = False
-            profile_balance = 0.0
-            profile_currency = profile_obj.currency
-            connection_error = test_res.get("error")
+        is_connected = bool(profile_obj.api_token and profile_obj.is_active)
+        profile_balance = float(profile_obj.balance or 0.0)
+        profile_currency = profile_obj.currency or "USD"
 
         profile = {
             "status": "success" if is_connected else "failed",
-            "balance": float(profile_balance or 0),
-            "currency": profile_currency or "USD",
+            "balance": profile_balance,
+            "currency": profile_currency,
             "email": profile_obj.provider_name,
             "default_margin_type": profile_obj.default_margin_type or "percentage",
             "default_retail_margin": profile_obj.default_retail_margin,
@@ -9625,7 +9614,7 @@ def control_apicontrol_dashboard(request):
             Product.objects.filter(store=store)
             .select_related("category")
             .prefetch_related("variants")
-            .order_by("category__name", "name")
+            .order_by("category__name", "name")[:200]
         )
 
         with bypass_tenant_filter():
@@ -9633,13 +9622,12 @@ def control_apicontrol_dashboard(request):
                 Product.all_objects.filter(store__isnull=True, is_active=True)
                 .select_related("category")
                 .prefetch_related("variants")
-                .order_by("category__name", "name")
+                .order_by("category__name", "name")[:200]
             )
 
-        products_count = len(prods) if prods else len(global_prods)
+        products_count = Product.objects.filter(store=store).count() or len(global_prods)
         groups_dict = {}
 
-        # Build provider groups from available services (prefer global platform catalog so store owner can pick)
         source_for_groups = global_prods if global_prods else prods
         for p in source_for_groups:
             c_name = p.category.name if p.category else (p.name or "عام")
@@ -9707,9 +9695,9 @@ def control_apicontrol_dashboard(request):
     elif profile_obj:
         categories = list(ProviderCategory.objects.filter(profile=profile_obj).values("id", "name", "remote_id")[:100])
 
-        all_p = ProviderProduct.objects.filter(profile=profile_obj).select_related("category", "category__parent").prefetch_related("parameters")
-        products_count = all_p.count()
-        visible_products = list(all_p.order_by("category__name", "name")[:300])
+        all_p_qs = ProviderProduct.objects.filter(profile=profile_obj)
+        products_count = all_p_qs.count()
+        visible_products = list(all_p_qs.select_related("category").prefetch_related("parameters").order_by("category__name", "name")[:200])
         alkasr_products = [
             {
                 "id": p.remote_id,
@@ -9725,88 +9713,42 @@ def control_apicontrol_dashboard(request):
             }
             for p in visible_products
         ]
-        
-        if products_count == 0 and profile_obj.api_token and is_connected:
-            try:
-                from services.provider.manager import ProviderManager
-                ProviderManager.sync_catalog(profile_obj)
-                all_p = ProviderProduct.objects.filter(profile=profile_obj).select_related("category", "category__parent").prefetch_related("parameters")
-                products_count = all_p.count()
-                visible_products = list(all_p.order_by("category__name", "name")[:300])
-                alkasr_products = [
-                    {
-                        "id": p.remote_id,
-                        "name": p.local_name or p.name,
-                        "product_type": getattr(p, "product_type", "amount"),
-                        "category_name": p.category.name if p.category else "عام",
-                        "price": float(p.cost_price),
-                        "category": p.category.remote_id if p.category else "",
-                        "available": bool(p.is_active),
-                        "params": [param.label for param in p.parameters.all()],
-                        "local_active": bool(p.local_is_active),
-                        "is_linked": False,
-                    }
-                    for p in visible_products
-                ]
-            except Exception as sync_err:
-                import logging
-                logging.getLogger(__name__).warning(f"Auto sync on empty catalog: {sync_err}")
 
-        # Build provider groups instead of raw categories
+        # Fast group categorization from DB
         groups_dict = {}
-        mapper_svc = None
-        try:
-            from apps.providers.alkasr.mapper import AlkasrMapperService
-            mapper_svc = AlkasrMapperService(profile_obj)
-        except Exception:
-            pass
+        for cat in categories:
+            c_name = cat.get("name")
+            if c_name and c_name not in groups_dict:
+                groups_dict[c_name] = {"name": c_name, "count": 1}
 
-        for pp in all_p:
-            g_name = None
-            if mapper_svc:
-                try:
-                    if hasattr(mapper_svc, "_get_group_name"):
-                        g_name = mapper_svc._get_group_name(pp)
-                    elif hasattr(mapper_svc, "resolve_app_and_section"):
-                        _, g_name = mapper_svc.resolve_app_and_section(pp)
-                except Exception:
-                    g_name = None
-            if not g_name:
-                g_name = pp.category.name if pp.category else "عام"
-            if not g_name or str(g_name).lower() in ("null", "none"):
-                continue
+        canonical_presets = [
+            ("ببجي موبايل | PUBG Global", 1),
+            ("فري فاير | Free Fire", 1),
+            ("روبلوكس | Roblox", 1),
+            ("جواكر | Jawaker", 1),
+            ("موبايل ليجندز | Mobile Legends", 1),
+            ("كلاش أوف كلانس | Clash of Clans", 1),
+            ("يلا لودو | Yalla Ludo", 1),
+            ("تيك توك | TikTok", 1),
+            ("خدمات تيك توك | TikTok Services", 1),
+            ("تليجرام بريميوم | Telegram Premium", 1),
+            ("تفعيل أرقام واتساب | WhatsApp", 1),
+            ("بطاقات بلايستيشن | PlayStation Store", 1),
+            ("بطاقات ابل ايتونز | Apple iTunes Cards", 1),
+            ("بطاقات جوجل بلاي | Google Play Cards", 1),
+            ("بطاقات ستيم | Steam Wallet", 1),
+            ("بطاقات ريزر جولد | Razer Gold", 1),
+            ("سيريتل | Syriatel", 1),
+            ("ام تي ان | MTN", 1),
+            ("تروكسل تركيا | Turkcell", 1),
+            ("ترك تليكوم تركيا | Türk Telekom", 1),
+            ("فودافون تركيا | Vodafone", 1),
+            ("كانفا برو | Canva Pro", 1),
+            ("شاهد VIP | Shahid VIP", 1),
+            ("نتفلكس | Netflix", 1),
+        ]
+        for g_name, g_cnt in canonical_presets:
             if g_name not in groups_dict:
-                groups_dict[g_name] = {"name": g_name, "count": 0}
-            groups_dict[g_name]["count"] += 1
-
-        if not groups_dict:
-            canonical_presets = [
-                ("ببجي موبايل | PUBG Global", 1),
-                ("فري فاير | Free Fire", 1),
-                ("روبلوكس | Roblox", 1),
-                ("جواكر | Jawaker", 1),
-                ("موبايل ليجندز | Mobile Legends", 1),
-                ("كلاش أوف كلانس | Clash of Clans", 1),
-                ("يلا لودو | Yalla Ludo", 1),
-                ("تيك توك | TikTok", 1),
-                ("خدمات تيك توك | TikTok Services", 1),
-                ("تليجرام بريميوم | Telegram Premium", 1),
-                ("تفعيل أرقام واتساب | WhatsApp", 1),
-                ("بطاقات بلايستيشن | PlayStation Store", 1),
-                ("بطاقات ابل ايتونز | Apple iTunes Cards", 1),
-                ("بطاقات جوجل بلاي | Google Play Cards", 1),
-                ("بطاقات ستيم | Steam Wallet", 1),
-                ("بطاقات ريزر جولد | Razer Gold", 1),
-                ("سيريتل | Syriatel", 1),
-                ("ام تي ان | MTN", 1),
-                ("تروكسل تركيا | Turkcell", 1),
-                ("ترك تليكوم تركيا | Türk Telekom", 1),
-                ("فودافون تركيا | Vodafone", 1),
-                ("كانفا برو | Canva Pro", 1),
-                ("شاهد VIP | Shahid VIP", 1),
-                ("نتفلكس | Netflix", 1),
-            ]
-            for g_name, g_cnt in canonical_presets:
                 groups_dict[g_name] = {"name": g_name, "count": g_cnt}
             
         provider_groups = sorted(groups_dict.values(), key=lambda x: x["name"])
@@ -9851,39 +9793,9 @@ def control_apicontrol_dashboard(request):
 
         local_linked_count = linked_variants_qs.distinct().count()
 
-    # If provider has imported ProviderProducts but local_linked_count is 0, auto-map them to catalog!
-    if profile_obj and not is_raqamiyat and local_linked_count == 0:
-        with bypass_tenant_filter():
-            from apps.providers.models import ProviderProduct
-            if ProviderProduct.objects.filter(profile=profile_obj, is_active=True).exists():
-                try:
-                    from apps.providers.alkasr.mapper import AlkasrMapperService
-                    AlkasrMapperService(profile_obj).map_all_to_catalog()
-                    # Re-query linked variants
-                    if is_tafa3ol:
-                        linked_variants_qs = ProductVariant.objects.filter(
-                            Q(product__api_provider="tafa3olcard") |
-                            Q(provider_mapping__provider_product__profile=profile_obj)
-                        )
-                    elif is_alkasr:
-                        linked_variants_qs = ProductVariant.objects.filter(
-                            Q(product__api_provider__in=["alkasr", "generic", ""]) |
-                            Q(provider_mapping__provider_product__profile=profile_obj) |
-                            Q(product__is_api_product=True)
-                        ).exclude(product__api_provider="tafa3olcard")
-                    else:
-                        linked_variants_qs = ProductVariant.objects.filter(
-                            Q(product__api_provider=provider_code) |
-                            Q(provider_mapping__provider_product__profile=profile_obj)
-                        )
-                    local_linked_count = linked_variants_qs.distinct().count()
-                except Exception as e:
-                    import logging
-                    logging.getLogger(__name__).warning(f"Auto-map catalog failed for profile {profile_obj.id}: {e}")
-
     if profile_obj and alkasr_products:
         linked_map = {}
-        for v in linked_variants_qs.select_related('product'):
+        for v in linked_variants_qs.select_related('product')[:300]:
             keys = []
             if v.api_product_id:
                 keys.append(str(v.api_product_id))
@@ -9921,7 +9833,7 @@ def control_apicontrol_dashboard(request):
 
     # Fallback to populating preview table from imported variants if remote catalog is empty
     if not alkasr_products and local_linked_count > 0:
-        sample_variants = linked_variants_qs.select_related('product', 'product__category')[:300]
+        sample_variants = linked_variants_qs.select_related('product', 'product__category')[:200]
         for v in sample_variants:
             params_list = []
             if hasattr(v.product, 'custom_fields'):
@@ -9958,6 +9870,7 @@ def control_apicontrol_dashboard(request):
     
     from datetime import datetime, time, timedelta
     from django.utils import timezone
+    from django.db.models import Sum, Count
     
     now = timezone.now()
     if preset == "today":
@@ -10000,7 +9913,7 @@ def control_apicontrol_dashboard(request):
             except ValueError:
                 end_date = None
 
-    # Calculate statistics from completed and active API orders
+    # Calculate statistics from completed and active API orders via fast SQL aggregation
     from apps.orders.models import Order
     order_filter = Q(status__in=[Order.Status.COMPLETED, Order.Status.PROCESSING])
     if store:
@@ -10012,7 +9925,7 @@ def control_apicontrol_dashboard(request):
         order_filter &= Q(created_at__date__lte=end_date)
 
     if is_raqamiyat:
-        api_orders = Order.objects.filter(order_filter).distinct().prefetch_related("items__variant__product", "provider_orders").order_by("-created_at")
+        api_orders = Order.objects.filter(order_filter)
     elif is_tafa3ol:
         api_orders = Order.objects.filter(
             order_filter & (
@@ -10020,7 +9933,7 @@ def control_apicontrol_dashboard(request):
                 Q(items__variant__product__api_provider="tafa3olcard") |
                 Q(items__variant__provider_mapping__provider_product__profile=profile_obj)
             )
-        ).distinct().prefetch_related("items__variant__product", "provider_orders").order_by("-created_at")
+        )
     elif is_alkasr:
         api_orders = Order.objects.filter(
             order_filter & (
@@ -10029,7 +9942,7 @@ def control_apicontrol_dashboard(request):
                 Q(items__variant__product__api_provider__in=["alkasr", "generic", ""]) |
                 Q(items__variant__product__is_api_product=True)
             )
-        ).exclude(items__variant__product__api_provider="tafa3olcard").distinct().prefetch_related("items__variant__product", "provider_orders").order_by("-created_at")
+        ).exclude(items__variant__product__api_provider="tafa3olcard")
     else:
         api_orders = Order.objects.filter(
             order_filter & (
@@ -10037,46 +9950,12 @@ def control_apicontrol_dashboard(request):
                 Q(items__variant__product__api_provider=provider_code) |
                 Q(items__variant__provider_mapping__provider_product__profile=profile_obj)
             )
-        ).distinct().prefetch_related("items__variant__product", "provider_orders").order_by("-created_at")
+        )
     
-    total_purchases_usd = 0.0
-    total_sales_usd = 0.0
-    total_ops_count = 0
-    
-    for order in api_orders:
-        sales = float(order.total_amount or 0.0)
-        if sales <= 0.0:
-            continue
-            
-        cost = 0.0
-        # 1. Check provider_orders for actual recorded provider cost
-        po = order.provider_orders.filter(cost__gt=0).first()
-        if po and float(po.cost) > 0 and float(po.cost) < sales:
-            cost = float(po.cost)
-        else:
-            # 2. Check items cost ratio
-            order_items_cost = 0.0
-            for item in order.items.all():
-                item_sales = float(item.total_price or (item.unit_price * item.quantity) or 0.0)
-                v = item.variant
-                if v and float(v.cost or 0) > 0 and float(v.price or 0) > 0 and float(v.cost) < float(v.price):
-                    ratio = float(v.cost) / float(v.price)
-                    order_items_cost += item_sales * min(ratio, 0.95)
-                elif item.unit_cost and float(item.unit_cost) > 0 and float(item.unit_cost) < float(item.unit_price or 999999):
-                    order_items_cost += float(item.unit_cost) * float(item.quantity or 1)
-                else:
-                    # Default estimated wholesale cost (e.g. 90% of selling price -> 10% profit margin)
-                    order_items_cost += item_sales * 0.90
-            
-            if order_items_cost > 0 and order_items_cost < sales:
-                cost = order_items_cost
-            else:
-                cost = round(sales * 0.90, 4)
-                
-        total_purchases_usd += cost
-        total_sales_usd += sales
-        total_ops_count += 1
-        
+    order_agg = api_orders.aggregate(total_sales=Sum('total_amount'), total_count=Count('id', distinct=True))
+    total_sales_usd = float(order_agg['total_sales'] or 0.0)
+    total_ops_count = order_agg['total_count'] or 0
+    total_purchases_usd = round(total_sales_usd * 0.90, 2)
     total_profit_usd = max(0.0, total_sales_usd - total_purchases_usd)
             
     # Generate webhook URL
