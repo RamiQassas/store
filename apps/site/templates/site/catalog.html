@@ -638,27 +638,49 @@
     font-size: 0.8rem;
     font-weight: 700;
 }
-/* Out of stock overlay */
-.card-oos-overlay {
-    position: absolute;
-    inset: 0;
-    z-index: 20;
-    background: rgba(2,6,23,0.8);
-    backdrop-filter: blur(4px);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    border-radius: 22px;
-}
-.card-oos-tag {
-    background: #ef4444;
+/* Out of stock badges and strips - CRYSTAL CLEAR LOGOS, NO BLUR */
+.badge-oos {
+    background: linear-gradient(135deg, #ef4444, #dc2626);
     color: #fff;
-    font-size: 0.75rem;
+    border: 1px solid rgba(255, 255, 255, 0.25);
+    box-shadow: 0 4px 14px rgba(239, 68, 68, 0.4);
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+}
+.card-img-oos-strip {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    z-index: 8;
+    background: linear-gradient(to top, rgba(185, 28, 28, 0.95), rgba(220, 38, 38, 0.85));
+    color: #ffffff;
+    font-size: 0.68rem;
     font-weight: 900;
-    padding: 0.45rem 1rem;
-    border-radius: 12px;
-    transform: rotate(-5deg);
-    box-shadow: 0 8px 20px rgba(239,68,68,0.4);
+    text-align: center;
+    padding: 0.25rem 0.5rem;
+    letter-spacing: 0.02em;
+    border-top: 1px solid rgba(255, 255, 255, 0.25);
+    box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.3);
+}
+.card-buy-btn.oos {
+    background: rgba(239, 68, 68, 0.12);
+    color: #ef4444;
+    border: 1px solid rgba(239, 68, 68, 0.35);
+    box-shadow: none;
+    width: auto;
+    padding: 0 0.7rem;
+    font-size: 0.72rem;
+    font-weight: 800;
+    gap: 0.35rem;
+}
+.card-buy-btn.oos:hover {
+    background: rgba(239, 68, 68, 0.22);
+    color: #fca5a5;
+    border-color: rgba(239, 68, 68, 0.6);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(239, 68, 68, 0.25);
 }
 
 /* Card image area - ENLARGED & MODERN */
@@ -1505,18 +1527,15 @@
             <div class="products-section" id="products-section">
                 <div class="product-grid">
                     {% for p in page_obj %}
-                    <div class="p-card">
+                    <div class="p-card {% if p.is_out_of_stock %}is-oos{% endif %}">
                         <!-- Badges -->
                         {% if p.catalog_index %}
                         <span class="card-index-badge" title="رقم المنتج في الدليل">#{{ p.catalog_index }}</span>
                         {% endif %}
                         {% if p.is_sale %}
                         <span class="card-badge badge-sale">عرض خاص</span>
-                        {% endif %}
-                        {% if p.is_out_of_stock %}
-                        <div class="card-oos-overlay">
-                            <span class="card-oos-tag">نفدت الكمية</span>
-                        </div>
+                        {% elif p.is_out_of_stock %}
+                        <span class="card-badge badge-oos"><i class="fas fa-box-open mr-1"></i> نفدت الكمية</span>
                         {% endif %}
 
                         <!-- Image -->
@@ -1528,6 +1547,9 @@
                             <div class="card-no-img">
                                 <i class="fas fa-bolt text-gold/30"></i>
                             </div>
+                            {% endif %}
+                            {% if p.is_out_of_stock %}
+                            <div class="card-img-oos-strip"><span>غير متوفر حالياً</span></div>
                             {% endif %}
                             <!-- Product type chip -->
                             {% if p.product_type == 'physical' %}
@@ -1558,8 +1580,13 @@
                                     <div class="card-price-label">يبدأ من</div>
                                     <div class="card-price-value">{% product_starting_price p %}</div>
                                 </div>
-                                <a href="{% url 'product_detail' p.id %}" class="card-buy-btn" title="عرض المنتج">
+                                <a href="{% url 'product_detail' p.id %}" class="card-buy-btn {% if p.is_out_of_stock %}oos{% endif %}" title="{% if p.is_out_of_stock %}المنتج غير متوفر حالياً - تفاصيل المنتج{% else %}عرض المنتج{% endif %}">
+                                    {% if p.is_out_of_stock %}
+                                    <span style="font-size:0.68rem; font-weight:800;">غير متوفر</span>
+                                    <i class="fas fa-chevron-left" style="font-size:0.65rem;"></i>
+                                    {% else %}
                                     <i class="fas fa-arrow-left"></i>
+                                    {% endif %}
                                 </a>
                             </div>
                         </div>

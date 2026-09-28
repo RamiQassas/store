@@ -82,11 +82,11 @@ class AlkasrHierarchyAndMappingTestCase(TestCase):
         prods = Product.objects.all()
         prod_names = [p.name for p in prods]
 
-        # Must have 3 distinct products
-        self.assertEqual(prods.count(), 3)
+        # Must have exactly 2 distinct products: Soul Chill and Soul Star (NO phantom Soul App)
+        self.assertEqual(prods.count(), 2)
         self.assertTrue(any("سول تشيل" in name or "Soul Chill" in name for name in prod_names))
         self.assertTrue(any("سول ستار" in name or "Soul Star" in name for name in prod_names))
-        self.assertTrue(any("Soul" in name and "Star" not in name and "Chill" not in name for name in prod_names))
+        self.assertFalse(any("Soul App" in name or name.strip() == "سول" for name in prod_names))
 
     def test_pubg_servers_mapped_to_pubg_not_standalone_server_product(self):
         """

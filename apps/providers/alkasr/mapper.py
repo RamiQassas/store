@@ -314,13 +314,11 @@ class AlkasrMapperService:
             return "تانجو برو (Tango Pro)"
 
         # 21. Chat & Live Apps
-        # Distinct Soul applications must NEVER be merged!
-        if "soul star" in combined or "سول ستار" in combined:
+        # Distinct Soul applications must NEVER be merged, and there is NO standalone 'Soul App' product:
+        if any(k in combined for k in ("soul star", "soulstar", "سول ستار", "سولستار")):
             return "سول ستار (Soul Star)"
-        if "soul chill" in combined or "سول تشيل" in combined or "سوشيل" in combined or "سول شيل" in combined:
+        if any(k in combined for k in ("soul chill", "soulchill", "سول تشيل", "سولتشيل", "سوشيل", "سول شيل", "سولشيل", "soul", "سول")):
             return "سول تشيل (Soul Chill)"
-        if "soul" in combined or "سول" in combined:
-            return "سول (Soul App)"
         if "lions" in combined or "ليونس" in combined:
             return "لايونز شات (Lions Chat)"
         if "siya" in combined or "سيا" in combined:
@@ -1165,6 +1163,30 @@ class AlkasrMapperService:
                         ProductVariant.all_objects.filter(product__store__isnull=False, sku__in=active_var_skus).update(is_active=True, is_temporarily_disabled=False)
         except Exception as stock_err:
             logger.warning(f"Product availability status sync error: {stock_err}")
+
+        # Clean up any phantom "Soul App" product records in the database
+        try:
+            phantom_souls = Product.objects.filter(
+                Q(name__icontains="سول (Soul App)") |
+                Q(name__icontains="سول | Soul App") |
+                Q(name__iexact="سول") |
+                Q(name__iexact="Soul App")
+            )
+            target_chill = Product.objects.filter(name__icontains="سول تشيل").first()
+            target_star = Product.objects.filter(name__icontains="سول ستار").first()
+            for ps in phantom_souls:
+                for v in ps.variants.all():
+                    v_name_lower = (v.name or "").lower()
+                    if ("star" in v_name_lower or "ستار" in v_name_lower) and target_star:
+                        v.product = target_star
+                        v.save(update_fields=["product"])
+                    elif target_chill:
+                        v.product = target_chill
+                        v.save(update_fields=["product"])
+                if ps.variants.count() == 0:
+                    ps.delete()
+        except Exception as soul_clean_err:
+            logger.warning(f"Error cleaning phantom soul products: {soul_clean_err}")
 
         # Clean up empty categories (except standard storefront sections)
         try:

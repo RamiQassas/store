@@ -47,7 +47,27 @@ class Command(BaseCommand):
                 except Exception as e:
                     self.stdout.write(self.style.WARNING(f"Sync/Mapping warning for {prof}: {e}"))
 
-            # 5. Final pass: ensure all products with at least one active variant are in-stock
+            # 5. Clean up any phantom Soul App products
+            for ps in Product.all_objects.filter(
+                Q(name__icontains="سول (Soul App)") |
+                Q(name__icontains="سول | Soul App") |
+                Q(name__iexact="سول") |
+                Q(name__iexact="Soul App")
+            ):
+                target_chill = Product.all_objects.filter(name__icontains="سول تشيل").first()
+                target_star = Product.all_objects.filter(name__icontains="سول ستار").first()
+                for v in ps.variants.all():
+                    v_name_lower = (v.name or "").lower()
+                    if ("star" in v_name_lower or "ستار" in v_name_lower) and target_star:
+                        v.product = target_star
+                        v.save(update_fields=["product"])
+                    elif target_chill:
+                        v.product = target_chill
+                        v.save(update_fields=["product"])
+                if ps.variants.count() == 0:
+                    ps.delete()
+
+            # 6. Final pass: ensure all products with at least one active variant are in-stock
             fixed_count = 0
             for p in Product.all_objects.all():
                 has_active = p.variants.filter(is_active=True, is_temporarily_disabled=False).exists()
