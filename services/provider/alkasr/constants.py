@@ -3,7 +3,7 @@ Alkasr VIP API Constants and Response Codes.
 """
 
 DEFAULT_BASE_URL = "https://api.alkasr-vip.com/client/api/"
-DEFAULT_TIMEOUT = 30  # seconds
+DEFAULT_TIMEOUT = 8  # seconds
 
 # Endpoint paths relative to Base URL
 ENDPOINT_PROFILE = "/profile"
