@@ -276,9 +276,9 @@ def _extract_url_from_field(val):
 def get_product_image_url(product, depth=0, allow_db=True):
     """
     Multi-tier intelligent image resolution for catalog products:
-    1. Direct product media: image, thumbnail, cover_image.
-    2. High-resolution brand static SVG matching (0ms in-memory).
-    3. Product metadata image URLs (Alkasr/Tafa3ol/SMM API fields).
+    1. High-resolution authentic brand static SVG matching (0ms in-memory, 100% accurate).
+    2. Product metadata image URLs (Alkasr/Tafa3ol/SMM official API banner/icon fields).
+    3. Direct product media: image, thumbnail, cover_image.
     4. Category image / brand matching.
     5. (If allow_db) Check gallery, linked ProviderProduct, or parent product.
     6. High-end Raqamiyat brand luxury SVG fallback.
@@ -287,39 +287,13 @@ def get_product_image_url(product, depth=0, allow_db=True):
         return static(DEFAULT_FALLBACK_SVG)
 
     p_name = getattr(product, 'name', '')
-    is_api = getattr(product, 'is_api_product', False) or bool(getattr(product, 'api_provider', None))
 
-    # 1. For API products, prioritize official brand static SVG or official metadata image
-    if is_api:
-        brand_asset = match_brand_static_asset(p_name)
-        if brand_asset:
-            return brand_asset
+    # 1. ALWAYS check authentic brand vector SVG first (Guarantees zero random mismatches for famous apps/games/cards)
+    brand_asset = match_brand_static_asset(p_name)
+    if brand_asset:
+        return brand_asset
 
-        try:
-            meta = getattr(product, 'metadata', None)
-            if isinstance(meta, dict):
-                for k in ('image_url', 'image', 'icon_url', 'icon', 'artworkUrl512', 'artworkUrl100', 'logo_url', 'logo'):
-                    v = meta.get(k)
-                    u = _extract_url_from_field(v)
-                    if u:
-                        return u
-        except Exception:
-            pass
-
-    # 2. Direct product media fields (for custom uploaded products, or fallback for API products)
-    for attr in ('image', 'thumbnail', 'cover_image'):
-        val = getattr(product, attr, None)
-        u = _extract_url_from_field(val)
-        if u:
-            return u
-
-    # 3. High-resolution brand static SVG matching for non-API products if no image uploaded
-    if not is_api:
-        brand_asset = match_brand_static_asset(p_name)
-        if brand_asset:
-            return brand_asset
-
-    # 4. Product metadata fallback for non-API products
+    # 2. Check product metadata image fields (official provider banner / artwork)
     try:
         meta = getattr(product, 'metadata', None)
         if isinstance(meta, dict):
@@ -328,6 +302,16 @@ def get_product_image_url(product, depth=0, allow_db=True):
                 u = _extract_url_from_field(v)
                 if u:
                     return u
+    except Exception:
+        pass
+
+    # 3. Direct product media fields (for custom uploaded products)
+    try:
+        for attr in ('image', 'thumbnail', 'cover_image'):
+            val = getattr(product, attr, None)
+            u = _extract_url_from_field(val)
+            if u:
+                return u
     except Exception:
         pass
 

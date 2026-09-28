@@ -280,7 +280,6 @@
                     </div>
                 </div>
 
-                {% if is_connected %}
                 <div class="pt-4 border-t border-white/5 flex flex-col gap-3">
                     <form method="POST" action="." class="w-full">
                         {% csrf_token %}
@@ -299,7 +298,6 @@
                         </button>
                     </form>
                 </div>
-                {% endif %}
             </div>
         </div>
 
@@ -570,37 +568,50 @@
         
         <!-- Bulk Adjustment Panel -->
         <div id="api-bulk-panel" class="hidden p-6 border-b border-white/5 bg-cyan/[0.01] flex flex-col gap-4">
-            <form method="POST" action="." class="flex flex-wrap items-center gap-4">
-                {% csrf_token %}
-                <input type="hidden" name="integration_id" value="{{ selected_integration.id }}">
-                <input type="hidden" name="action" value="bulk_adjust_prices">
-                
-                <!-- Hidden inputs container for selected variant IDs -->
-                <div id="api-selected-ids-container"></div>
-                
-                <span class="text-xs text-slate-300 font-bold">
-                    تم تحديد <span id="api-selected-count" class="text-cyan font-black">0</span> باقة. التعديل الجماعي:
-                </span>
-                
-                <select name="adjust_type" class="builder-input text-xs" style="width: 180px; background: rgba(0,0,0,0.4); border: 1px solid rgba(255,255,255,0.05); color: #fff; padding: 0.5rem 1rem; border-radius: 8px;" required>
-                    <option value="fixed_increase">زيادة بمبلغ ثابت ($)</option>
-                    <option value="fixed_decrease">نقصان بمبلغ ثابت ($)</option>
-                    <option value="percent_increase">زيادة بنسبة %</option>
-                    <option value="percent_decrease">نقصان بنسبة %</option>
-                    <option value="set_fixed">تحديد سعر ثابت ($)</option>
-                </select>
-                
-                <input type="number" name="adjust_value" step="0.01" class="builder-input text-xs" style="width: 100px; background: rgba(0,0,0,0.4); border: 1px solid rgba(255,255,255,0.05); color: #fff; padding: 0.5rem 1rem; border-radius: 8px;" placeholder="القيمة" required>
-                
-                <select name="apply_to" class="builder-input text-xs" style="width: 160px; background: rgba(0,0,0,0.4); border: 1px solid rgba(255,255,255,0.05); color: #fff; padding: 0.5rem 1rem; border-radius: 8px;">
-                    <option value="selected">على الباقات المحددة فقط</option>
-                    <option value="all">على جميع المنتجات المستوردة</option>
-                </select>
-                
-                <button type="submit" class="btn btn-primary text-xs py-2 px-4 rounded-lg bg-cyan hover:bg-cyan/90 text-black font-black transition-all">
-                    تطبيق التعديل
-                </button>
-            </form>
+            <div class="flex flex-wrap items-center justify-between gap-4">
+                <form method="POST" action="." class="flex flex-wrap items-center gap-4">
+                    {% csrf_token %}
+                    <input type="hidden" name="integration_id" value="{{ selected_integration.id }}">
+                    <input type="hidden" name="action" value="bulk_adjust_prices">
+                    
+                    <!-- Hidden inputs container for selected variant IDs -->
+                    <div id="api-selected-ids-container"></div>
+                    
+                    <span class="text-xs text-slate-300 font-bold">
+                        تم تحديد <span id="api-selected-count" class="text-cyan font-black">0</span> باقة. التعديل الجماعي:
+                    </span>
+                    
+                    <select name="adjust_type" class="builder-input text-xs" style="width: 180px; background: rgba(0,0,0,0.4); border: 1px solid rgba(255,255,255,0.05); color: #fff; padding: 0.5rem 1rem; border-radius: 8px;" required>
+                        <option value="fixed_increase">زيادة بمبلغ ثابت ($)</option>
+                        <option value="fixed_decrease">نقصان بمبلغ ثابت ($)</option>
+                        <option value="percent_increase">زيادة بنسبة %</option>
+                        <option value="percent_decrease">نقصان بنسبة %</option>
+                        <option value="set_fixed">تحديد سعر ثابت ($)</option>
+                    </select>
+                    
+                    <input type="number" name="adjust_value" step="0.01" class="builder-input text-xs" style="width: 100px; background: rgba(0,0,0,0.4); border: 1px solid rgba(255,255,255,0.05); color: #fff; padding: 0.5rem 1rem; border-radius: 8px;" placeholder="القيمة" required>
+                    
+                    <select name="apply_to" class="builder-input text-xs" style="width: 160px; background: rgba(0,0,0,0.4); border: 1px solid rgba(255,255,255,0.05); color: #fff; padding: 0.5rem 1rem; border-radius: 8px;">
+                        <option value="selected">على الباقات المحددة فقط</option>
+                        <option value="all">على جميع المنتجات المستوردة</option>
+                    </select>
+                    
+                    <button type="submit" class="btn btn-primary text-xs py-2 px-4 rounded-lg bg-cyan hover:bg-cyan/90 text-black font-black transition-all">
+                        تطبيق التعديل
+                    </button>
+                </form>
+
+                <!-- Bulk Delete Selected Form -->
+                <form method="POST" action="." onsubmit="return confirm('هل أنت متأكد من حذف كافة المنتجات المحددة نهائياً من متجرك وإلغاء ربطها؟');">
+                    {% csrf_token %}
+                    <input type="hidden" name="integration_id" value="{{ selected_integration.id }}">
+                    <input type="hidden" name="action" value="delete_selected_products">
+                    <div id="api-delete-ids-container"></div>
+                    <button type="submit" class="btn btn-outline text-xs py-2 px-4 rounded-lg bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border border-rose-500/30 font-black transition-all flex items-center gap-1.5">
+                        <i class="fas fa-trash-can"></i> حذف المحدد
+                    </button>
+                </form>
+            </div>
         </div>
 
         <div class="overflow-x-auto">
@@ -1005,19 +1016,30 @@
         const panel = document.getElementById('api-bulk-panel');
         const countDisplay = document.getElementById('api-selected-count');
         const container = document.getElementById('api-selected-ids-container');
+        const deleteContainer = document.getElementById('api-delete-ids-container');
         
-        container.innerHTML = '';
+        if (container) container.innerHTML = '';
+        if (deleteContainer) deleteContainer.innerHTML = '';
         
         if (checkboxes.length > 0) {
             panel.classList.remove('hidden');
             countDisplay.innerText = checkboxes.length;
             
             checkboxes.forEach(cb => {
-                const input = document.createElement('input');
-                input.type = 'hidden';
-                input.name = 'selected_variants';
-                input.value = cb.value;
-                container.appendChild(input);
+                if (container) {
+                    const input = document.createElement('input');
+                    input.type = 'hidden';
+                    input.name = 'selected_variants';
+                    input.value = cb.value;
+                    container.appendChild(input);
+                }
+                if (deleteContainer) {
+                    const delInput = document.createElement('input');
+                    delInput.type = 'hidden';
+                    delInput.name = 'selected_variants';
+                    delInput.value = cb.value;
+                    deleteContainer.appendChild(delInput);
+                }
             });
         } else {
             panel.classList.add('hidden');

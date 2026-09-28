@@ -9439,23 +9439,47 @@ def control_apicontrol_dashboard(request):
                 messages.error(request, "المنتج غير موجود.")
             return redirect(redirect_url)
             
-        elif action == "delete_product":
-            product_id = request.POST.get("product_id")
-            try:
-                prod = Product.all_objects.get(id=product_id, store=store)
-                prod_name = prod.name
-                
-                from apps.providers.models import ProviderMapping
-                mappings = ProviderMapping.objects.filter(local_product=prod)
-                for m in mappings:
-                    if m.provider_product:
-                        m.provider_product.delete()
-                mappings.delete()
-                
-                prod.delete()
-                messages.success(request, f"تم حذف وإلغاء ربط المنتج '{prod_name}' نهائياً بنجاح.")
-            except Product.DoesNotExist:
-                messages.error(request, "المنتج غير موجود.")
+        elif action in ("delete_product", "delete_selected_products"):
+            p_id = request.POST.get("product_id")
+            selected_ids = list(request.POST.getlist("selected_api_variants") or request.POST.getlist("selected_variants") or [])
+            if p_id:
+                selected_ids.append(p_id)
+
+            if not selected_ids:
+                messages.error(request, "لم تقم بتحديد أي منتج لحذفه.")
+                return redirect(redirect_url)
+
+            deleted_cnt = 0
+            from apps.providers.models import ProviderMapping, ProviderProduct
+            for target_id in selected_ids:
+                try:
+                    # Target could be Product PK, Variant PK, Product SKU, or ProviderProduct remote_id
+                    prods = list(Product.all_objects.filter(store=store).filter(
+                        Q(id=target_id) | Q(variants__id=target_id) | Q(api_product_id=target_id) | Q(sku=target_id)
+                    ).distinct())
+
+                    if not prods:
+                        mapped_prod_ids = ProviderMapping.objects.filter(
+                            provider_product__remote_id=str(target_id)
+                        ).values_list('local_product_id', flat=True)
+                        if mapped_prod_ids:
+                            prods = list(Product.all_objects.filter(store=store, id__in=mapped_prod_ids))
+
+                    for prod in prods:
+                        ProviderMapping.objects.filter(local_product=prod).delete()
+                        prod.variants.all().delete()
+                        prod.delete()
+                        deleted_cnt += 1
+
+                    if profile_obj and not is_raqamiyat:
+                        ProviderProduct.objects.filter(profile=profile_obj, remote_id=str(target_id)).delete()
+                except Exception:
+                    pass
+
+            if deleted_cnt > 0:
+                messages.success(request, f"تم بنجاح حذف {deleted_cnt} منتج وإلغاء ربطه من الكتالوج.")
+            else:
+                messages.error(request, "لم يتم العثور على المنتج المحدد لحذفه.")
             return redirect(redirect_url)
             
         elif action == "quick_update_price":
@@ -9559,7 +9583,11 @@ def control_apicontrol_dashboard(request):
             "default_vip_margin": Decimal(str(tier_m.get("vip", 5.0))),
         }
     elif profile_obj:
-        test_res = ProviderManager.test_connection(profile_obj)
+        try:
+            test_res = ProviderManager.test_connection(profile_obj)
+        except Exception as exc:
+            test_res = {"success": False, "error": str(exc)}
+
         if test_res.get("success"):
             is_connected = True
             profile_balance = test_res.get("balance", profile_obj.balance)
