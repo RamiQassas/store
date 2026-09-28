@@ -4403,51 +4403,439 @@ def control_products_reorder_bulk_ajax(request):
             return JsonResponse({"status": "error", "message": str(e)}, status=400)
     return JsonResponse({"status": "error", "message": "Method not allowed"}, status=405)
 
-@admin_required
+@support_required
+def control_product_import_template(request):
+    """
+    Generate and download an official Excel template for bulk product import.
+    Includes:
+    - Products sheet with styled headers (required columns highlighted),
+      validations, and 2 real examples (Digital Product & Physical Product).
+    - Instructions sheet explaining physical vs digital products, mandatory fields,
+      multi-variant products, etc.
+    """
+    import openpyxl
+    from openpyxl.styles import Font, Alignment, PatternFill, Border, Side
+    from openpyxl.utils import get_column_letter
+    from io import BytesIO
+    from django.http import HttpResponse
+
+    wb = openpyxl.Workbook()
+
+    # ── Sheet 1: Products Import Template ──
+    ws = wb.active
+    ws.title = "قالب استيراد المنتجات"
+    ws.sheet_view.rightToLeft = True
+
+    font_header_req = Font(name="Segoe UI", size=11, bold=True, color="FFFFFF")
+    font_header_opt = Font(name="Segoe UI", size=11, bold=True, color="FFFFFF")
+    font_data = Font(name="Segoe UI", size=10)
+    font_example = Font(name="Segoe UI", size=10, italic=True)
+
+    fill_req = PatternFill(start_color="0891b2", end_color="0891b2", fill_type="solid")  # Cyan-600
+    fill_opt = PatternFill(start_color="334155", end_color="334155", fill_type="solid")  # Slate-700
+    fill_example_digital = PatternFill(start_color="ecfeff", end_color="ecfeff", fill_type="solid")  # Cyan-50
+    fill_example_physical = PatternFill(start_color="f0fdf4", end_color="f0fdf4", fill_type="solid")  # Green-50
+
+    align_center = Alignment(horizontal="center", vertical="center", wrap_text=True)
+    align_right = Alignment(horizontal="right", vertical="center", wrap_text=True)
+
+    thin_border = Border(
+        left=Side(style='thin', color='cbd5e1'),
+        right=Side(style='thin', color='cbd5e1'),
+        top=Side(style='thin', color='cbd5e1'),
+        bottom=Side(style='thin', color='cbd5e1')
+    )
+
+    headers = [
+        ("معرّف المنتج (ID)", False),
+        ("اسم المنتج *", True),
+        ("نوع المنتج * (رقمي / مادي)", True),
+        ("القسم / التصنيف *", True),
+        ("اسم الباقة / الخيار", False),
+        ("السعر (سعر البيع) *", True),
+        ("التكلفة", False),
+        ("سعر الجملة", False),
+        ("سعر VIP", False),
+        ("الكمية المتوفرة", False),
+        ("رمز التخزين (SKU)", False),
+        ("نشط (نعم / لا)", False),
+        ("طريقة التسليم (يدوي / تلقائي)", False),
+        ("الوصف", False),
+        ("تعليمات الاستخدام", False),
+    ]
+
+    ws.row_dimensions[1].height = 42
+    for col_idx, (title, is_req) in enumerate(headers, 1):
+        cell = ws.cell(row=1, column=col_idx, value=title)
+        cell.font = font_header_req if is_req else font_header_opt
+        cell.fill = fill_req if is_req else fill_opt
+        cell.alignment = align_center
+        cell.border = thin_border
+
+    # Sample rows (Digital & Physical)
+    example_digital = [
+        "",  # ID empty for new product
+        "بطاقة بلايستيشن 50$ (PlayStation Store US)",
+        "رقمي",
+        "بطاقات رقمية",
+        "رصيد 50 دولار أمريكي",
+        50.00,
+        47.50,
+        48.50,
+        48.00,
+        100,
+        "PSN-50-US",
+        "نعم",
+        "تلقائي",
+        "بطاقة شحن رصيد رسمي لمتجر بلايستيشن الأمريكي",
+        "يتم تسليم كود التفعيل فوراً بعد الدفع وتظهر في صفحة الطلب",
+    ]
+
+    example_physical = [
+        "",  # ID empty for new product
+        "سماعة ألعاب محيطية RGB (Gaming Headset Pro)",
+        "مادي",
+        "إكسسوارات وأجهزة",
+        "اللون الأسود الملكي",
+        35.00,
+        22.00,
+        28.00,
+        26.00,
+        50,
+        "HDST-RGB-BLK",
+        "نعم",
+        "يدوي",
+        "سماعة ألعاب سلكية بصوت محيطي 7.1 مع مايك عازل للضوضاء وإضاءة RGB",
+        "يتم الشحن والتوصيل خلال 24-48 ساعة إلى عنوان العميل",
+    ]
+
+    for row_idx, (data_row, fill_color) in enumerate([(example_digital, fill_example_digital), (example_physical, fill_example_physical)], 2):
+        ws.row_dimensions[row_idx].height = 30
+        for col_idx, val in enumerate(data_row, 1):
+            cell = ws.cell(row=row_idx, column=col_idx, value=val)
+            cell.font = font_example
+            cell.fill = fill_color
+            cell.border = thin_border
+            cell.alignment = align_right if isinstance(val, str) else align_center
+
+    for col in ws.columns:
+        max_len = 0
+        col_letter = get_column_letter(col[0].column)
+        for cell in col:
+            val_str = str(cell.value or "")
+            if len(val_str) > max_len:
+                max_len = len(val_str)
+        ws.column_dimensions[col_letter].width = max(max_len + 4, 15)
+
+    # ── Sheet 2: Instructions ──
+    ws2 = wb.create_sheet(title="تعليمات الاستيراد الهامة")
+    ws2.sheet_view.rightToLeft = True
+
+    title_cell = ws2.cell(row=1, column=1, value="دليل وتعليمات استيراد المنتجات إلى الكتالوج")
+    title_cell.font = Font(name="Segoe UI", size=14, bold=True, color="0891b2")
+    ws2.row_dimensions[1].height = 35
+
+    instructions = [
+        ("نوع المنتج (مادي أو رقمي)", "• 'رقمي' (Digital): مخصص للمنتجات الرقمية مثل: البطاقات، الأكواد، الشحن المباشر، والاشتراكات.\n• 'مادي' (Physical): للمنتجات الملموسة التي تتطلب شحناً وتوصيلاً وإدارة مخزون كميات (مثل الأجهزة، الإلكترونيات، الإكسسوارات)."),
+        ("الحقول الإجبارية (*)", "• اسم المنتج (*)\n• نوع المنتج (*) [اكتب: رقمي أو مادي]\n• القسم / التصنيف (*) [إن لم يكن موجوداً سيتم إنشاؤه تلقائياً في متجرك]\n• السعر (*) [سعر البيع للزبون بالعملة المعتمدة]"),
+        ("معرّف المنتج (ID)", "• اتركه فارغاً تماماً عند إضافة منتجات جديدة لأول مرة.\n• ضع معرف المنتج (UUID) فقط في حال رغبتك بتحديث بيانات أو أسعار منتج موجود مسبقاً."),
+        ("تعدد الباقات للمنتج الواحد", "• إذا كان لديك منتج يحتوي على أكثر من خيار أو باقة (مثل بطاقة 10$ وبطاقة 50$)، كرر اسم المنتج في سطر جديد مع وضع اسم الباقة والسعر المختلف، وسيقوم النظام بدمج الباقات تلقائياً تحت نفس المنتج!"),
+        ("طريقة التسليم", "• 'تلقائي': يتم تسليم أكواد فورية من مخزن المفاتيح بمجرد الدفع.\n• 'يدوي': يتطلب موافقة أو شحن وتنفيذ من التاجر (وهو الخيار الافتراضي للمنتج المادي)."),
+        ("الحفظ والرفع", "• قم بتعبئة بيانات منتجاتك ثم احفظ الملف بصيغة Excel (.xlsx).\n• توجه إلى لوحة التحكم -> المنتجات -> زر 'استيراد'، وارفع الملف لتبدأ عملية الإدخال فوراً!"),
+    ]
+
+    header_inst_font = Font(name="Segoe UI", size=11, bold=True, color="FFFFFF")
+    header_inst_fill = PatternFill(start_color="1e293b", end_color="1e293b", fill_type="solid")
+
+    ws2.cell(row=3, column=1, value="العنصر").fill = header_inst_fill
+    ws2.cell(row=3, column=1).font = header_inst_font
+    ws2.cell(row=3, column=1).alignment = align_center
+
+    ws2.cell(row=3, column=2, value="التوضيح والشرح").fill = header_inst_fill
+    ws2.cell(row=3, column=2).font = header_inst_font
+    ws2.cell(row=3, column=2).alignment = align_center
+    ws2.row_dimensions[3].height = 25
+
+    for idx, (topic, text) in enumerate(instructions, 4):
+        c1 = ws2.cell(row=idx, column=1, value=topic)
+        c2 = ws2.cell(row=idx, column=2, value=text)
+        c1.font = Font(name="Segoe UI", size=10, bold=True)
+        c2.font = font_data
+        c1.alignment = Alignment(horizontal="right", vertical="top")
+        c2.alignment = Alignment(horizontal="right", vertical="top", wrap_text=True)
+        c1.border = thin_border
+        c2.border = thin_border
+        ws2.row_dimensions[idx].height = 45
+
+    ws2.column_dimensions["A"].width = 28
+    ws2.column_dimensions["B"].width = 85
+
+    buf = BytesIO()
+    wb.save(buf)
+    buf.seek(0)
+
+    response = HttpResponse(
+        buf.getvalue(),
+        content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+    )
+    response["Content-Disposition"] = 'attachment; filename="product_import_template.xlsx"'
+    return response
+
+
+@support_required
 def control_product_import(request):
+    if request.method == "GET":
+        if request.GET.get("template") or request.GET.get("download_template"):
+            return control_product_import_template(request)
+        return redirect("control_products_list")
+
     if request.method == "POST" and request.FILES.get("file"):
         import openpyxl
+        import uuid
+        import re
+        from decimal import Decimal
+
+        excel_file = request.FILES["file"]
+        default_type_param = request.POST.get("default_product_type", "digital").strip().lower()
+        if "physic" in default_type_param or "ماد" in default_type_param:
+            fallback_type = "physical"
+        else:
+            fallback_type = "digital"
+
+        store = getattr(request, "store", None)
+
+        def clean_decimal(v, default="0.00"):
+            if v is None:
+                return Decimal(default)
+            s = str(v).strip()
+            if not s:
+                return Decimal(default)
+            s = re.sub(r'[^\d\.\-]', '', s)
+            try:
+                return Decimal(s)
+            except Exception:
+                return Decimal(default)
+
         try:
-            excel_file = request.FILES["file"]
-            wb = openpyxl.load_workbook(excel_file)
+            wb = openpyxl.load_workbook(excel_file, data_only=True)
             ws = wb.active
-            
-            created, updated = 0, 0
-            for row in ws.iter_rows(min_row=2, values_only=True):
-                if not row[0]: continue # Skip empty ID rows
-                
+
+            rows = list(ws.iter_rows(values_only=True))
+            if not rows or len(rows) < 2:
+                messages.error(request, "الملف فارغ أو لا يحتوي على صفوف بيانات للاستيراد.")
+                return redirect("control_products_list")
+
+            # Map headers
+            headers = [str(c or "").strip().lower() for c in rows[0]]
+            col_map = {}
+            for idx, h in enumerate(headers):
+                if any(k in h for k in ("معرف", "معرّف", "id", "كود المنتج", "product_id")) and "sku" not in h:
+                    col_map["id"] = idx
+                elif any(k in h for k in ("نوع المنتج", "النوع", "product_type", "type", "مادي", "رقمي")):
+                    col_map["product_type"] = idx
+                elif any(k in h for k in ("اسم المنتج", "اسم_المنتج", "المنتج", "name", "title")) and "نوع" not in h:
+                    col_map["name"] = idx
+                elif any(k in h for k in ("قسم", "تصنيف", "category", "cat", "الفئة")):
+                    col_map["category"] = idx
+                elif any(k in h for k in ("اسم الباقة", "اسم_الباقة", "باقة", "خيار", "variant", "package")) and "منتج" not in h:
+                    col_map["variant_name"] = idx
+                elif any(k in h for k in ("سعر البيع", "السعر الأساسي", "السعر", "price", "sale_price")) and not any(x in h for x in ("تكلفة", "جملة", "vip")):
+                    col_map["price"] = idx
+                elif any(k in h for k in ("تكلفة", "التكلفة", "cost")):
+                    col_map["cost"] = idx
+                elif any(k in h for k in ("جملة", "الجملة", "wholesale")):
+                    col_map["wholesale_price"] = idx
+                elif any(k in h for k in ("vip", "سعر vip")):
+                    col_map["vip_price"] = idx
+                elif any(k in h for k in ("كمية", "كميه", "مخزون", "الكمية", "qty", "quantity", "stock")):
+                    col_map["quantity"] = idx
+                elif any(k in h for k in ("sku", "رمز التخزين", "كود التخزين", "تخزين")):
+                    col_map["sku"] = idx
+                elif any(k in h for k in ("نشط", "مفعل", "الحالة", "active", "is_active")):
+                    col_map["is_active"] = idx
+                elif any(k in h for k in ("تسليم", "طريقة التسليم", "delivery")):
+                    col_map["delivery_type"] = idx
+                elif any(k in h for k in ("وصف", "الوصف", "description")):
+                    col_map["description"] = idx
+                elif any(k in h for k in ("تعليمات", "instructions", "ملاحظات")):
+                    col_map["instructions"] = idx
+
+            # Fallbacks
+            if "name" not in col_map:
+                col_map["name"] = 1 if len(headers) > 1 else 0
+            if "product_type" not in col_map:
+                col_map["product_type"] = 2 if len(headers) > 2 else None
+            if "category" not in col_map:
+                col_map["category"] = 3 if len(headers) > 3 else (2 if len(headers) > 2 else None)
+            if "price" not in col_map:
+                col_map["price"] = 5 if len(headers) > 5 else None
+
+            created_prods, updated_prods = 0, 0
+            created_vars, updated_vars = 0, 0
+            skipped_rows = 0
+
+            for row_idx, row in enumerate(rows[1:], start=2):
+                if not any(row):
+                    continue
+
+                def get_val(key):
+                    if key in col_map and col_map[key] is not None and col_map[key] < len(row):
+                        v = row[col_map[key]]
+                        return v if v is not None else ""
+                    return ""
+
+                name = str(get_val("name")).strip()
+                if not name:
+                    skipped_rows += 1
+                    continue
+
+                # Determine Product Type (Physical vs Digital)
+                raw_type = str(get_val("product_type")).strip().lower()
+                if not raw_type:
+                    prod_type = fallback_type
+                elif any(k in raw_type for k in ("ماد", "physic")):
+                    prod_type = "physical"
+                elif any(k in raw_type for k in ("رقم", "digit")):
+                    prod_type = "digital"
+                else:
+                    prod_type = fallback_type
+
+                # Category
+                cat_name = str(get_val("category")).strip() or "عام"
+                if store:
+                    category = Category.objects.filter(name=cat_name, store=store).first()
+                    if not category:
+                        category = Category.objects.create(name=cat_name, store=store, is_active=True)
+                else:
+                    category = Category.objects.filter(name=cat_name, store__isnull=True).first()
+                    if not category:
+                        category = Category.objects.create(name=cat_name, store=None, is_active=True)
+
+                # Active status
+                raw_active = str(get_val("is_active")).strip().lower()
+                if raw_active:
+                    is_active = raw_active in ("نعم", "yes", "true", "1", "نشط", "مفعل")
+                else:
+                    is_active = True
+
+                # Quantities & Inventory
+                qty_raw = get_val("quantity")
                 try:
-                    product_id = row[0]
-                    name = row[1]
-                    cat_name = row[2]
-                    is_active = str(row[4]).strip() == "نعم"
-                    is_featured = str(row[5]).strip() == "نعم"
-                    
-                    store = getattr(request, "store", None)
-                    category, _ = Category.objects.get_or_create(
-                        name=cat_name,
-                        defaults={"store": store}
+                    qty = int(clean_decimal(qty_raw, "0"))
+                except Exception:
+                    qty = 0
+
+                desc = str(get_val("description")).strip()
+                instr = str(get_val("instructions")).strip()
+
+                # Product Lookup / Upsert
+                raw_id = str(get_val("id")).strip()
+                product = None
+                if raw_id:
+                    try:
+                        if store:
+                            product = Product.all_objects.filter(id=raw_id, store=store).first()
+                        else:
+                            product = Product.all_objects.filter(id=raw_id).first()
+                    except Exception:
+                        product = None
+
+                if not product:
+                    if store:
+                        product = Product.all_objects.filter(name=name, store=store).first()
+                    else:
+                        product = Product.all_objects.filter(name=name, store__isnull=True).first()
+
+                if product:
+                    product.name = name
+                    product.product_type = prod_type
+                    product.category = category
+                    product.is_active = is_active
+                    if desc:
+                        product.description = desc
+                    if instr:
+                        product.instructions = instr
+                    if prod_type == "physical":
+                        product.track_inventory = True
+                        if qty > 0:
+                            product.quantity = qty
+                            product.is_out_of_stock = False
+                    product.save()
+                    updated_prods += 1
+                else:
+                    product = Product.objects.create(
+                        store=store,
+                        name=name,
+                        product_type=prod_type,
+                        category=category,
+                        is_active=is_active,
+                        description=desc,
+                        instructions=instr,
+                        track_inventory=(prod_type == "physical"),
+                        quantity=qty if (prod_type == "physical" and qty > 0) else 0,
+                        is_out_of_stock=False,
                     )
-                    
-                    p, created_now = Product.objects.update_or_create(
-                        id=product_id,
-                        defaults={
-                            "name": name,
-                            "category": category,
-                            "is_active": is_active,
-                            "is_featured": is_featured,
-                            "store": store
-                        }
+                    created_prods += 1
+
+                # Variant Upsert
+                variant_name = str(get_val("variant_name")).strip() or name
+                price = clean_decimal(get_val("price"), "0.00")
+                cost = clean_decimal(get_val("cost"), "0.00")
+                wholesale_price = clean_decimal(get_val("wholesale_price"), "0.00")
+                vip_price = clean_decimal(get_val("vip_price"), "0.00")
+
+                # Delivery Type
+                raw_delivery = str(get_val("delivery_type")).strip().lower()
+                if any(k in raw_delivery for k in ("تلقائ", "auto", "key", "كود")):
+                    delivery_type = "keys"
+                else:
+                    delivery_type = "manual"
+
+                sku_val = str(get_val("sku")).strip()
+                variant = None
+                if sku_val:
+                    variant = ProductVariant.all_objects.filter(sku=sku_val).first()
+
+                if not variant:
+                    variant = ProductVariant.all_objects.filter(product=product, name=variant_name).first()
+
+                if variant:
+                    variant.price = price
+                    if cost > 0:
+                        variant.cost = cost
+                    if wholesale_price > 0:
+                        variant.wholesale_price = wholesale_price
+                    if vip_price > 0:
+                        variant.vip_price = vip_price
+                    variant.delivery_type = delivery_type
+                    variant.is_active = is_active
+                    variant.save()
+                    updated_vars += 1
+                else:
+                    if not sku_val or ProductVariant.all_objects.filter(sku=sku_val).exists():
+                        sku_val = f"SKU-{str(product.id)[:6].upper()}-{uuid.uuid4().hex[:4].upper()}"
+
+                    ProductVariant.objects.create(
+                        product=product,
+                        name=variant_name,
+                        sku=sku_val,
+                        price=price,
+                        cost=cost,
+                        wholesale_price=wholesale_price,
+                        vip_price=vip_price,
+                        delivery_type=delivery_type,
+                        is_active=is_active,
                     )
-                    if created_now: created += 1
-                    else: updated += 1
-                except Exception as row_err:
-                    logger.warning(f"Error importing row {row}: {row_err}")
-            
-            messages.success(request, f"تم الاستيراد بنجاح: {created} جديد، {updated} تم تحديثه.")
+                    created_vars += 1
+
+            messages.success(
+                request,
+                f"تم اكتمال الاستيراد بنجاح! تم إنشاء {created_prods} منتج جديد، وتحديث {updated_prods} منتج قائم، ومعالجة {created_vars + updated_vars} باقة بنجاح."
+            )
         except Exception as e:
-            messages.error(request, f"فشل الاستيراد: {str(e)}")
-            
+            logger.exception("Product Excel Import Error: %s", e)
+            messages.error(request, f"حدث خطأ أثناء قراءة ومعالجة ملف الاستيراد: {str(e)}")
+
     return redirect("control_products_list")
 
 @support_required
@@ -4658,13 +5046,22 @@ def control_products_list(request):
         products = products.filter(q_filter).distinct()
 
     if request.GET.get("export") == "excel":
+        from decimal import Decimal
         columns = [
-            ("ID", lambda p: str(p.id)),
-            ("اسم المنتج", lambda p: p.name),
-            ("القسم", lambda p: p.category.name if p.category else ""),
-            ("النوع", lambda p: p.get_product_type_display()),
-            ("نشط", lambda p: "نعم" if p.is_active else "لا"),
-            ("ترتيب العرض", lambda p: p.sort_order),
+            ("معرّف المنتج (ID)", lambda p: str(p.id)),
+            ("اسم المنتج *", lambda p: p.name),
+            ("نوع المنتج * (رقمي / مادي)", lambda p: "مادي" if p.product_type == "physical" else "رقمي"),
+            ("القسم / التصنيف *", lambda p: p.category.name if p.category else ""),
+            ("اسم الباقة / الخيار", lambda p: p.variants.first().name if p.variants.exists() else p.name),
+            ("السعر (سعر البيع) *", lambda p: p.variants.first().price if p.variants.exists() else Decimal("0.00")),
+            ("التكلفة", lambda p: p.variants.first().cost if p.variants.exists() else Decimal("0.00")),
+            ("سعر الجملة", lambda p: p.variants.first().wholesale_price if p.variants.exists() else Decimal("0.00")),
+            ("سعر VIP", lambda p: p.variants.first().vip_price if p.variants.exists() else Decimal("0.00")),
+            ("الكمية المتوفرة", lambda p: p.quantity if p.product_type == "physical" else 0),
+            ("رمز التخزين (SKU)", lambda p: p.variants.first().sku if p.variants.exists() else ""),
+            ("نشط (نعم / لا)", lambda p: "نعم" if p.is_active else "لا"),
+            ("طريقة التسليم (يدوي / تلقائي)", lambda p: "تلقائي" if (p.variants.exists() and p.variants.first().delivery_type == "keys") else "يدوي"),
+            ("الوصف", lambda p: p.description or ""),
         ]
         return export_to_excel(products, "Products", columns)
 

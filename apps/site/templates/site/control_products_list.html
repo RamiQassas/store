@@ -83,13 +83,10 @@
         <a href="?export=excel" class="btn btn-outline btn-sm">
             <i class="fas fa-file-excel ml-2"></i> تصدير Excel
         </a>
-        <button onclick="document.getElementById('import-file-input').click()" class="btn btn-outline btn-sm">
-            <i class="fas fa-file-import ml-2"></i> استيراد
+        <button type="button" onclick="openProductImportModal()" class="btn btn-outline btn-sm border-cyan-500/40 text-cyan-400 hover:bg-cyan-500 hover:text-slate-950 font-bold transition flex items-center gap-1.5 shadow-sm" title="استيراد منتجات رقمية أو مادية من ملف Excel">
+            <i class="fas fa-file-import text-cyan-400"></i>
+            <span>استيراد منتجات (Excel)</span>
         </button>
-        <form id="import-form" method="post" enctype="multipart/form-data" action="{% url 'control_product_import' %}" class="hidden">
-            {% csrf_token %}
-            <input type="file" id="import-file-input" name="file" onchange="document.getElementById('import-form').submit()">
-        </form>
         {% if request.store %}
         <a href="{% url 'merchant_import_raqamiyat_products' %}" class="btn btn-outline btn-sm border-cyan/40 text-cyan hover:bg-cyan hover:text-slate-950 font-bold transition" onclick="return confirm('هل تريد استيراد ومزامنة أحدث منتجات رقميات إلى متجرك الآن؟');">
             <i class="fas fa-cloud-arrow-down ml-2"></i> استيراد منتجات رقميات
@@ -98,6 +95,86 @@
         <a href="{% url 'control_product_create' %}" class="btn btn-primary btn-sm">
             <i class="fas fa-plus ml-2"></i> إضافة منتج جديد
         </a>
+    </div>
+</div>
+
+{# ── Product Import Modal ── #}
+<div id="product-import-modal" style="display:none;position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,0.85);backdrop-filter:blur(8px);align-items:center;justify-content:center;padding:1rem;">
+    <div style="background:#0f172a;border:1.5px solid rgba(34,211,238,0.3);border-radius:1.25rem;padding:1.5rem;max-width:34rem;width:100%;box-shadow:0 30px 60px rgba(0,0,0,0.6);">
+        <!-- Modal header -->
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem;border-bottom:1px solid rgba(255,255,255,0.08);padding-bottom:.75rem;">
+            <div style="display:flex;align-items:center;gap:.65rem;">
+                <div style="width:2.25rem;height:2.25rem;border-radius:50%;background:rgba(34,211,238,0.15);display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+                    <i class="fas fa-file-excel" style="color:#22d3ee;font-size:1rem;"></i>
+                </div>
+                <div>
+                    <h3 style="font-size:.95rem;font-weight:900;color:#fff;margin:0;">استيراد المنتجات تلقائياً إلى الكتالوج</h3>
+                    <p style="font-size:.75rem;color:#94a3b8;margin:0;">إضافة منتجات جديدة أو تحديث قائمة عبر Excel (.xlsx)</p>
+                </div>
+            </div>
+            <button type="button" onclick="closeProductImportModal()" style="color:#94a3b8;background:none;border:none;cursor:pointer;font-size:1.1rem;">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+
+        <!-- Instructions & Required Info Box -->
+        <div style="background:rgba(34,211,238,0.05);border:1px solid rgba(34,211,238,0.2);border-radius:.85rem;padding:.9rem;margin-bottom:1.1rem;">
+            <div style="display:flex;align-items:center;gap:.45rem;color:#22d3ee;font-size:.8rem;font-weight:800;margin-bottom:.5rem;">
+                <i class="fas fa-info-circle"></i>
+                <span>المعلومات الأساسية الواجب توفرها قبل الاستيراد:</span>
+            </div>
+            <ul style="margin:0;padding-right:1.2rem;font-size:.78rem;color:#cbd5e1;line-height:1.6;">
+                <li><strong style="color:#38bdf8;">نوع المنتج (*):</strong> حدد <span class="badge badge-sm badge-info">رقمي</span> (شحن، بطاقات، اشتراكات) أو <span class="badge badge-sm badge-success">مادي</span> (أجهزة، ملحقات، توصيل ومخزون).</li>
+                <li><strong style="color:#38bdf8;">اسم المنتج (*):</strong> الاسم الرسمي الذي سيظهر للعملاء في المتجر.</li>
+                <li><strong style="color:#38bdf8;">القسم / التصنيف (*):</strong> اسم القسم (يتم إنشاؤه تلقائياً إن لم يكن موجوداً).</li>
+                <li><strong style="color:#38bdf8;">سعر البيع (*):</strong> سعر البيع الأساسي للباقة أو المنتج بالعملة المعتمدة.</li>
+                <li><span style="color:#94a3b8;">بيانات اختيارية:</span> التكلفة، سعر الجملة، سعر VIP، الكمية المتوفرة، رمز التخزين SKU، والوصف.</li>
+            </ul>
+        </div>
+
+        <!-- Template Download Banner -->
+        <div style="display:flex;align-items:center;justify-content:space-between;background:rgba(255,255,255,0.03);border:1px dashed rgba(255,255,255,0.15);border-radius:.85rem;padding:.75rem 1rem;margin-bottom:1.2rem;">
+            <div style="display:flex;align-items:center;gap:.6rem;">
+                <i class="fas fa-file-download text-emerald-400 text-lg"></i>
+                <div>
+                    <div style="font-size:.8rem;font-weight:800;color:#fff;">تحميل قالب Excel الجاهز</div>
+                    <div style="font-size:.7rem;color:#94a3b8;">يحتوي على أعمدة منسقة وأمثلة واقعية للمنتجات الرقمية والمادية</div>
+                </div>
+            </div>
+            <a href="{% url 'control_product_import_template' %}" class="btn btn-sm btn-outline border-emerald-500/50 text-emerald-400 hover:bg-emerald-500 hover:text-slate-950 font-bold transition" style="flex-shrink:0;">
+                <i class="fas fa-download ml-1"></i> تحميل القالب
+            </a>
+        </div>
+
+        <!-- Import Form -->
+        <form id="import-modal-form" method="post" enctype="multipart/form-data" action="{% url 'control_product_import' %}" onsubmit="document.getElementById('btn-submit-import').disabled=true; document.getElementById('btn-submit-import').innerHTML='<i class=\'fas fa-spinner fa-spin ml-1\'></i> جاري الاستيراد...';">
+            {% csrf_token %}
+            <div style="margin-bottom:1rem;">
+                <label style="display:block;font-size:.75rem;color:#94a3b8;font-weight:700;margin-bottom:.4rem;">
+                    نوع المنتج الافتراضي (إذا لم يُحدد في سطر الملف):
+                </label>
+                <select name="default_product_type" style="width:100%;background:#020617;border:1.5px solid rgba(255,255,255,0.1);border-radius:.75rem;padding:.6rem .85rem;font-size:.825rem;color:#fff;outline:none;">
+                    <option value="digital">منتج رقمي (Digital) - بطاقات، شحن ألعاب، اشتراكات</option>
+                    <option value="physical">منتج مادي (Physical) - أجهزة، إكسسوارات، بضائع ملموسة</option>
+                </select>
+            </div>
+
+            <div style="margin-bottom:1.25rem;">
+                <label style="display:block;font-size:.75rem;color:#94a3b8;font-weight:700;margin-bottom:.4rem;">
+                    اختر ملف Excel (.xlsx / .xls):
+                </label>
+                <input type="file" name="file" accept=".xlsx,.xls,.csv" required id="modal-import-file-input" style="width:100%;background:#020617;border:1.5px solid rgba(255,255,255,0.1);border-radius:.75rem;padding:.5rem .85rem;font-size:.825rem;color:#94a3b8;outline:none;">
+            </div>
+
+            <div style="display:flex;justify-content:flex-end;gap:.5rem;border-top:1px solid rgba(255,255,255,0.08);padding-top:.85rem;">
+                <button type="button" onclick="closeProductImportModal()" style="padding:.5rem 1rem;border-radius:.65rem;font-size:.75rem;font-weight:700;color:#94a3b8;background:rgba(255,255,255,0.05);border:none;cursor:pointer;">
+                    إلغاء
+                </button>
+                <button type="submit" id="btn-submit-import" style="padding:.5rem 1.25rem;border-radius:.65rem;font-size:.75rem;font-weight:900;color:#000;background:#22d3ee;border:none;cursor:pointer;display:flex;align-items:center;gap:.4rem;">
+                    <i class="fas fa-file-import"></i> بدء الاستيراد الآن
+                </button>
+            </div>
+        </form>
     </div>
 </div>
 
@@ -1688,7 +1765,16 @@ window.submitTransferVariant = function() {
         btn.disabled = false;
         btn.innerHTML = origHtml;
         showToast('خطأ في الاتصال: ' + err, true);
-    });
+};
+
+window.openProductImportModal = function() {
+    var modal = document.getElementById('product-import-modal');
+    if (modal) modal.style.display = 'flex';
+};
+
+window.closeProductImportModal = function() {
+    var modal = document.getElementById('product-import-modal');
+    if (modal) modal.style.display = 'none';
 };
 
 })();

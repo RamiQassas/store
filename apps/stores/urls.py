@@ -139,6 +139,7 @@ urlpatterns = [
     path("merchant/products/<uuid:product_pk>/variants/create/", site_views.control_variant_create, name="control_variant_create"),
     path("merchant/products/<uuid:product_pk>/variants/create/alias/", site_views.control_variant_create, name="merchant_variant_create"),
     path("merchant/products/import/", site_views.control_product_import, name="control_product_import"),
+    path("merchant/products/import/template/", site_views.control_product_import_template, name="control_product_import_template"),
     path("merchant/products/import-raqamiyat/", merchant_views.merchant_import_raqamiyat_products, name="merchant_import_raqamiyat_products"),
     path("merchant/products/reorder-bulk-ajax/", site_views.control_products_reorder_bulk_ajax, name="control_products_reorder_bulk_ajax"),
     path("merchant/products/reorder-ajax/", site_views.control_product_reorder_ajax, name="control_product_reorder_ajax"),

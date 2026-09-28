@@ -150,6 +150,7 @@ urlpatterns = [
     path("control/products/reorder-bulk-ajax/", views.control_products_reorder_bulk_ajax, name="control_products_reorder_bulk_ajax"),
     path("control/apicontrol/", views.control_apicontrol_dashboard, name="control_apicontrol_dashboard"),
     path("control/products/import/", views.control_product_import, name="control_product_import"),
+    path("control/products/import/template/", views.control_product_import_template, name="control_product_import_template"),
     path("control/products/<uuid:product_pk>/variants/create/", views.control_variant_create, name="control_variant_create"),
     path("control/variants/<uuid:pk>/edit/", views.control_variant_edit, name="control_variant_edit"),
     path("control/variants/<uuid:pk>/keys/", views.control_variant_keys, name="control_variant_keys"),
