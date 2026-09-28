@@ -85,11 +85,11 @@ KNOWN_APPS_REGISTRY = [
 
     # ── 4. البطاقات الإلكترونية ─────────────────────────────────────────────────
     ("البطاقات الإلكترونية", "بطاقات آبل آيتونز (Apple iTunes)", ["itunes", "ايتونز", "آيتونز", "apple"]),
-    ("البطاقات الإلكترونية", "بطاقات بلايستيشن (PlayStation Store)", ["playstation", "بلايستيشن", "psn", "ps "]),
+    ("البطاقات الإلكترونية", "بطاقات بلايستيشن (PlayStation Store)", ["playstation", "بلايستيشن", "psn", "ps kuwait", "ps uae", "ps ksa", "ps usa", "ps uk", "ps canada", "ps fransa", "ps oman", "ps qatar", "ps italy", "ps japan"]),
     ("البطاقات الإلكترونية", "بطاقات جوجل بلاي (Google Play)", ["google play", "جوجل بلاي"]),
-    ("البطاقات الإلكترونية", "كروت روبلوكس (Roblox Cards)", ["roblex cards", "roblox card"]),
+    ("البطاقات الإلكترونية", "بطاقات روبلوكس (Roblox Cards)", ["roblex", "roblox card", "roblex cards", "roblex usa", "roblex canada", "roblex uae", "كروت روبلوكس", "بطاقات روبلوكس"]),
     ("البطاقات الإلكترونية", "بطاقات ستيم (Steam Wallet)", ["steam", "ستيم"]),
-    ("البطاقات الإلكترونية", "بطاقات ريزر جولد (Razer Gold)", ["razer gold", "ريزر جولد"]),
+    ("البطاقات الإلكترونية", "بطاقات ريزر جولد (Razer Gold)", ["razer gold", "ريزر جولد", "razer", "ريزر"]),
     ("البطاقات الإلكترونية", "بطاقات فيزا مسبقة الدفع (Visa Cards)", ["visa", "فيزا"]),
 
     # ── 5. خدمات التلفاز والبث ─────────────────────────────────────────────────
@@ -244,18 +244,31 @@ class AlkasrMapperService:
         except Exception:
             pass
 
-        # 1. Match from Known Registry
+        # 1. SPECIAL CASE: ROBLOX / ROBLEX Gift Cards vs In-Game
+        if any(w in combined for w in ("roblox", "roblex", "robux", "روبلوكس", "روبلكس")):
+            if any(w in combined for w in ("card", "cards", "كارت", "كروت", "بطاق", "usa", "canada", "uae", "$", "dollar", "دولار")) or any("بطاق" in a.lower() for a in cat_ancestors):
+                return "البطاقات الإلكترونية", "بطاقات روبلوكس (Roblox Cards)"
+            else:
+                return "قسم الألعاب", "روبلوكس (Roblox)"
+
+        # 2. Match from Known Registry
         for section, app_name, keywords in KNOWN_APPS_REGISTRY:
             if any(kw.lower() in combined for kw in keywords):
                 return section, app_name
 
-        # 2. Check for intermediate/server names to skip
+        # 3. Check for intermediate/server names to skip
         # e.g. "سيرفر 1", "تومتيك", "يدوي" should NOT be app names
-        GENERIC_TIER_WORDS = ("سيرفر", "server", "تومتيك", "يدوي", "اوتوماتيك", "باقة", "package", "tier")
+        GENERIC_TIER_WORDS = (
+            "سيرفر", "server", "تومتيك", "يدوي", "اوتوماتيك", "باقة", "package", 
+            "tier", "شحن الألعاب", "الألعاب", "شحن", "قسم الألعاب", "قسم الدردشة",
+            "قسم الأرصدة", "البطاقات الالكترونية", "السوشيال ميديا (خدمات )",
+            "خدمات التلفاز", "الأرقام والحسابات", "الذكاء الاصطناعي", "قسم التصميم",
+            "اشتراكات vpn"
+        )
         candidate_app = ""
         for name in cat_ancestors:
             clean_n = name.strip()
-            if not any(w in clean_n.lower() for w in GENERIC_TIER_WORDS) and clean_n not in ("شحن الألعاب", "الألعاب", "شحن"):
+            if not any(w in clean_n.lower() for w in GENERIC_TIER_WORDS) and len(clean_n) > 2:
                 candidate_app = clean_n
                 break
 
@@ -267,25 +280,49 @@ class AlkasrMapperService:
                     if parent_pp and parent_pp.name:
                         candidate_app = parent_pp.name
 
-        # 3. Check category hierarchy keywords
-        if any(k in combined for k in ("ألعاب", "game", "steam", "شحن", "شدة", "شدات", "uc", "gem", "diamond")):
-            return "قسم الألعاب", candidate_app
-        if any(k in combined for k in ("دردشة", "شات", "chat", "live", "لايف", "بث")):
-            return "قسم الدردشة والتطبيقات", candidate_app
-        if any(k in combined for k in ("رصيد", "اتصالات", "ليرات", "فواتير")):
-            return "قسم الأرصدة والاتصالات", candidate_app
-        if any(k in combined for k in ("بطاقة", "كارت", "card", "gift")):
-            return "البطاقات الإلكترونية", candidate_app
-        if any(k in combined for k in ("vpn", "بروكسي")):
-            return "اشتراكات VPN", candidate_app
-        if any(k in combined for k in ("تلفاز", "tv", "بث", "iptv")):
-            return "خدمات التلفاز والبث", candidate_app
-        if any(k in combined for k in ("متابعين", "لايكات", "مشاهدات", "سوشيال")):
+        # 4. STRICT HEURISTIC CLASSIFICATION (Specific services evaluated first, NO "شحن" in games!)
+        # Social Media Services (Check first to avoid any leakage!)
+        if any(k in combined for k in ("تيك توك", "tiktok", "انستغرام", "انستقرام", "instagram", "فيسبوك", "فيس بوك", "facebook", "تويتر", "twitter", " x ", "يوتيوب", "youtube", "تيليجرام", "تليجرام", "telegram", "متابعين", "لايكات", "مشاهدات", "سوشيال", "social")):
             return "السوشيال ميديا", candidate_app
 
-        # Default fallback
-        fallback_section = "قسم الألعاب" if any(k in combined for k in ("uc", "gem", "شدة", "لعبة")) else "قسم الدردشة والتطبيقات"
-        return fallback_section, candidate_app
+        # Telecom & Balance
+        if any(k in combined for k in ("تروكسل", "turkcell", "تليكوم", "telekom", "فودافون", "vodafone", "سيريتل", "syriatel", "mtn", "رصيد", "ليرات", "فواتير", "باقات شهرية", "باقات اسبوعية")):
+            return "قسم الأرصدة والاتصالات", candidate_app
+
+        # Gift Cards
+        if any(k in combined for k in ("بطاقة", "بطاقات", "كارت", "كروت", "card", "gift", "itunes", "playstation", "psn", "google play", "steam", "razer")):
+            return "البطاقات الإلكترونية", candidate_app
+
+        # VPN
+        if any(k in combined for k in ("vpn", "بروكسي", "proxy")):
+            return "اشتراكات VPN", candidate_app
+
+        # TV & Streaming
+        if any(k in combined for k in ("نتفلكس", "netflix", "شاهد", "shahid", "iptv", "تلفاز", "tv", "بث")):
+            return "خدمات التلفاز والبث", candidate_app
+
+        # AI Tools
+        if any(k in combined for k in ("ذكاء", "ai", "gemini", "chatgpt", "gpt", "perplexity", "gamma", "leonardo")):
+            return "الذكاء الاصطناعي", candidate_app
+
+        # Software & Design
+        if any(k in combined for k in ("تصميم", "كانفا", "canva", "picsart", "flaticon", "فوتوشوب", "برامج")):
+            return "برامج وتصميم", candidate_app
+
+        # Numbers & Accounts
+        if any(k in combined for k in ("أرقام", "ارقام", "حسابات", "number", "account")):
+            return "الأرقام والحسابات", candidate_app
+
+        # Chat & Live Applications
+        if any(k in combined for k in ("دردشة", "شات", "chat", "live", "لايف", "بيجو", "لايكي", "بوبو", "ميكو", "ماسات", "كوينز")):
+            return "قسم الدردشة والتطبيقات", candidate_app
+
+        # Games (Strict: NO generic "شحن" keyword!)
+        if any(k in combined for k in ("ألعاب", "game", "games", "لعبة", "steam", "شدة", "شدات", "uc", "diamond")):
+            return "قسم الألعاب", candidate_app
+
+        # Default fallback is Chat & Applications, NEVER games!
+        return "قسم الدردشة والتطبيقات", candidate_app
 
     @staticmethod
     def build_form_schema(raw_params: list, app_name: str) -> dict:
@@ -470,7 +507,17 @@ class AlkasrMapperService:
 
                     sku_val = f"PRV-{self.profile.id}-{pkg_pid}"[:80]
                     is_active = bool(pp.is_active and pp.local_is_active)
-                    v_name = (pp.local_name or pp.name)[:120]
+                    raw_v_name = (pp.local_name or pp.name or f"باقة {pkg_pid}").strip()
+                    cat_hint = (pp.provider_category_name or (pp.category.name if pp.category else "") or "").strip()
+                    
+                    # Normalize Arabic to detect generic section names
+                    clean_hint = cat_hint.replace("أ", "ا").replace("إ", "ا").replace("آ", "ا").lower()
+                    is_generic = any(g in clean_hint for g in ("قسم", "شحن", "العاب", "دردشة", "ارصدة", "بطاقات", "سوشيال", "تلفاز", "خدمات", "services", "category"))
+
+                    if cat_hint and not is_generic and cat_hint.lower() not in raw_v_name.lower() and cat_hint.lower() not in app_name.lower():
+                        v_name = f"{raw_v_name} ({cat_hint})"[:120]
+                    else:
+                        v_name = raw_v_name[:120]
 
                     v_meta = {
                         "qty_type": qty_type,
