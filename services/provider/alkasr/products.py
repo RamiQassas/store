@@ -189,6 +189,11 @@ class AlkasrProductService:
 
             base_price = item.get("base_price") or cost_price
             category_img = str(item.get("category_img") or item.get("category_image") or item.get("img") or item.get("image") or "").strip()
+            if category_img and category_img.lower() not in ("null", "none", ""):
+                if not category_img.startswith("http"):
+                    category_img = f"https://api.alkasr-vip.com/{category_img.lstrip('/')}"
+            else:
+                category_img = ""
 
             params = item.get("params") or item.get("parameters") or item.get("fields") or []
 

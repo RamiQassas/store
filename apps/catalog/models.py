@@ -155,6 +155,11 @@ class Product(TimeStampedModel):
     def starting_price(self):
         return self.base_price
 
+    @property
+    def image_url(self):
+        from apps.catalog.image_caching import get_product_image_url
+        return get_product_image_url(self)
+
     def save(self, *args, **kwargs):
         if self.track_inventory and self.quantity > 0 and self.is_out_of_stock:
             self.is_out_of_stock = False

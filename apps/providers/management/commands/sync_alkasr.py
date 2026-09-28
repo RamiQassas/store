@@ -69,14 +69,33 @@ class Command(BaseCommand):
 
             if do_reset:
                 self.stdout.write("  Resetting legacy catalog items for provider 'alkasr'...")
-                # Delete Alkasr variants and products
-                v_del, _ = ProductVariant.objects.filter(sku__startswith=f"PRV-{profile.id}-").delete()
-                p_del, _ = Product.objects.filter(api_provider="alkasr").delete()
+                from django.db.models import Q
+                from apps.orders.models import OrderItem
+
+                # Delete or deactivate all legacy Alkasr products
+                prods_to_clean = Product.objects.filter(
+                    Q(api_provider="alkasr") |
+                    Q(variants__sku__startswith=f"PRV-{profile.id}-") |
+                    Q(name__in=["ROBLOX 10$", "ROBLOX 25$", "ROBLOX 50$", "ROBLOX", "Tik tok"])
+                ).distinct()
+
+                p_del = 0
+                for p in prods_to_clean:
+                    if not OrderItem.objects.filter(variant__product=p).exists():
+                        p.variants.all().delete()
+                        p.delete()
+                        p_del += 1
+                    else:
+                        p.is_active = False
+                        p.is_out_of_stock = True
+                        p.variants.all().update(is_active=False, is_temporarily_disabled=True)
+                        p.save(update_fields=["is_active", "is_out_of_stock"])
+
                 # Clean empty non-standard categories
                 std_names = [name for name, _ in STANDARD_MAIN_SECTIONS]
                 c_del, _ = Category.objects.filter(products__isnull=True).exclude(name__in=std_names).delete()
                 self.stdout.write(self.style.SUCCESS(
-                    f"  Reset done: deleted {p_del} products, {v_del} variants, {c_del} empty categories."
+                    f"  Reset done: cleaned {p_del} obsolete products, {c_del} empty categories."
                 ))
                 # Now re-map
                 mapper = AlkasrMapperService(profile)

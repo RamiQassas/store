@@ -358,9 +358,15 @@ class AlkasrSyncService:
         if raw_img and raw_img.lower() not in ("null", "none"):
             if not raw_img.startswith("http"):
                 raw_img = f"https://api.alkasr-vip.com/{raw_img.lstrip('/')}"
+            updated_fields = []
             if product_obj.local_seo_keywords != raw_img:
                 product_obj.local_seo_keywords = raw_img
-                product_obj.save(update_fields=["local_seo_keywords"])
+                updated_fields.append("local_seo_keywords")
+            if product_obj.provider_category_img != raw_img:
+                product_obj.provider_category_img = raw_img
+                updated_fields.append("provider_category_img")
+            if updated_fields:
+                product_obj.save(update_fields=updated_fields)
 
         ProviderProductParameter.objects.filter(product=product_obj).delete()
         raw_params = (

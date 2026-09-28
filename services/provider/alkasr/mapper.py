@@ -13,7 +13,7 @@ from decimal import Decimal
 from typing import Optional, List, Dict, Any, Tuple
 
 from django.db import transaction
-from django.db.models import Exists, OuterRef
+from django.db.models import Exists, OuterRef, Q
 
 logger = logging.getLogger("provider.alkasr.mapper")
 
@@ -34,6 +34,7 @@ STANDARD_MAIN_SECTIONS = [
 # Canonical App & Game Definitions: (Section, Display Name, Matching Keywords)
 KNOWN_APPS_REGISTRY = [
     # ── 1. قسم الألعاب ──────────────────────────────────────────────────────────
+    ("قسم الألعاب", "ببجي تركيا (PUBG Turkey)", ["pupg turkey", "pubg turkey", "ببجي تركيا"]),
     ("قسم الألعاب", "ببجي موبايل (PUBG Mobile)", ["pubg", "ببجي", "uc", "شدة", "شدات"]),
     ("قسم الألعاب", "فري فاير (Free Fire)", ["free fire", "فري فاير", "ff ", "جواهر"]),
     ("قسم الألعاب", "روبلوكس (Roblox)", ["roblox", "روبلوكس", "robux"]),
@@ -47,9 +48,9 @@ KNOWN_APPS_REGISTRY = [
     ("قسم الألعاب", "فالورانت (Valorant)", ["valorant", "فالورانت"]),
     ("قسم الألعاب", "ليغ أوف ليجيندز (League of Legends)", ["league of legends", "lol rp"]),
     ("قسم الألعاب", "أونور أوف كينغز (Honor of Kings)", ["honor of kings"]),
-    ("قسم الألعاب", "يلا لودو (Yalla Ludo)", ["yalla ludo", "يلا لودو"]),
 
     # ── 2. قسم الدردشة والتطبيقات ──────────────────────────────────────────────
+    ("قسم الدردشة والتطبيقات", "يلا لودو (Yalla Ludo)", ["yalla ludo", "يلا لودو"]),
     ("قسم الدردشة والتطبيقات", "بيجو لايف (BIGO LIVE)", ["bigo", "بيجو"]),
     ("قسم الدردشة والتطبيقات", "توب توب (TopTop)", ["toptop", "توب توب"]),
     ("قسم الدردشة والتطبيقات", "لايكي (Likee)", ["likee", "لايكي"]),
@@ -317,9 +318,10 @@ class AlkasrMapperService:
         if any(k in combined for k in ("دردشة", "شات", "chat", "live", "لايف", "بيجو", "لايكي", "بوبو", "ميكو", "ماسات", "كوينز")):
             return "قسم الدردشة والتطبيقات", candidate_app
 
-        # Games (Strict: NO generic "شحن" keyword!)
-        if any(k in combined for k in ("ألعاب", "game", "games", "لعبة", "steam", "شدة", "شدات", "uc", "diamond")):
-            return "قسم الألعاب", candidate_app
+        # Games (Strict: Only confirmed games, NEVER arbitrary services or diamonds!)
+        if any(k in combined for k in ("pubg", "ببجي", "free fire", "فري فاير", "jawaker", "جواكر", "roblox", "روبلوكس", "ألعاب", "games", "لعبة")):
+            if not any(k in combined for k in ("سوشيال", "social", "دردشة", "chat", "لايف", "live", "فولو", "متابعين", "لايكات", "مشاهدات", "كارت", "بطاق", "card")):
+                return "قسم الألعاب", candidate_app
 
         # Default fallback is Chat & Applications, NEVER games!
         return "قسم الدردشة والتطبيقات", candidate_app
@@ -625,6 +627,47 @@ class AlkasrMapperService:
                 is_active=False,
                 is_out_of_stock=True
             )
+
+        # 5. Clean up Obsolete / Standalone Package Products & Orphaned Alkasr Products
+        with transaction.atomic():
+            from apps.orders.models import OrderItem
+            from apps.catalog.models import Category
+            
+            canonical_names = set(app_name[:160] for (_, app_name) in grouped_by_app.keys())
+            
+            # Find any product associated with this provider whose name is NOT in canonical_names
+            # e.g. "ROBLOX 10$", "ROBLOX 25$", "ROBLOX 50$", "ROBLOX", "سيرفر 1", "تومتيك", etc.
+            obsolete_candidates = Product.objects.filter(
+                Q(api_provider=provider_code) |
+                Q(variants__sku__startswith=f"PRV-{self.profile.id}-") |
+                Q(name__in=["ROBLOX 10$", "ROBLOX 25$", "ROBLOX 50$", "ROBLOX", "Tik tok"]),
+                store=self.store
+            ).exclude(name__in=canonical_names).distinct()
+
+            deleted_prods_cnt = 0
+            deactivated_prods_cnt = 0
+            for old_p in obsolete_candidates:
+                has_orders = OrderItem.objects.filter(variant__product=old_p).exists()
+                if not has_orders:
+                    old_p.variants.all().delete()
+                    old_p.delete()
+                    deleted_prods_cnt += 1
+                else:
+                    old_p.is_active = False
+                    old_p.is_out_of_stock = True
+                    old_p.variants.all().update(is_active=False, is_temporarily_disabled=True)
+                    old_p.save(update_fields=["is_active", "is_out_of_stock"])
+                    deactivated_prods_cnt += 1
+
+            stats["obsolete_products_deleted"] = deleted_prods_cnt
+            stats["obsolete_products_deactivated"] = deactivated_prods_cnt
+
+            # Clean empty non-standard categories
+            std_cat_names = [name for name, _ in STANDARD_MAIN_SECTIONS]
+            Category.objects.filter(
+                store=self.store,
+                products__isnull=True
+            ).exclude(name__in=std_cat_names).delete()
 
         return stats
 

@@ -255,20 +255,40 @@ def get_product_image_url(product, depth=0, allow_db=True):
     if not product:
         return static(DEFAULT_FALLBACK_SVG)
 
-    # 1. Direct product media fields
+    p_name = getattr(product, 'name', '')
+    is_api = getattr(product, 'is_api_product', False) or bool(getattr(product, 'api_provider', None))
+
+    # 1. For API products, prioritize official brand static SVG or official metadata image
+    if is_api:
+        brand_asset = match_brand_static_asset(p_name)
+        if brand_asset:
+            return brand_asset
+
+        try:
+            meta = getattr(product, 'metadata', None)
+            if isinstance(meta, dict):
+                for k in ('image_url', 'image', 'icon_url', 'icon', 'artworkUrl512', 'artworkUrl100', 'logo_url', 'logo'):
+                    v = meta.get(k)
+                    u = _extract_url_from_field(v)
+                    if u:
+                        return u
+        except Exception:
+            pass
+
+    # 2. Direct product media fields (for custom uploaded products, or fallback for API products)
     for attr in ('image', 'thumbnail', 'cover_image'):
         val = getattr(product, attr, None)
         u = _extract_url_from_field(val)
         if u:
             return u
 
-    # 2. High-resolution brand static SVG matching by product name (instant in-memory)
-    p_name = getattr(product, 'name', '')
-    brand_asset = match_brand_static_asset(p_name)
-    if brand_asset:
-        return brand_asset
+    # 3. High-resolution brand static SVG matching for non-API products if no image uploaded
+    if not is_api:
+        brand_asset = match_brand_static_asset(p_name)
+        if brand_asset:
+            return brand_asset
 
-    # 3. Product metadata (image_url, icon_url, artworkUrl512, etc.)
+    # 4. Product metadata fallback for non-API products
     try:
         meta = getattr(product, 'metadata', None)
         if isinstance(meta, dict):
