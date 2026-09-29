@@ -9269,12 +9269,12 @@ def control_apicontrol_dashboard(request):
                     from apps.stores.services import import_raqamiyat_products_for_store
 
                     def on_progress(current, total, item_name, created, updated):
-                        pct = int((current / max(total, 1)) * 100) if total > 0 else 50
+                        pct = int((current / max(total, 1)) * 90) if total > 0 else 50
                         prog = {
                             "status": "running",
                             "total": total,
                             "current": current,
-                            "percent": min(pct, 99),
+                            "percent": min(pct, 90),
                             "product_name": f"يتم استيراد: {item_name}",
                             "created": created,
                             "updated": updated
