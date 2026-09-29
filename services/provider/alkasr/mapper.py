@@ -34,114 +34,144 @@ STANDARD_MAIN_SECTIONS = [
 # Canonical App & Game Definitions: (Section, Display Name, Matching Keywords)
 KNOWN_APPS_REGISTRY = [
     # ── 1. قسم الألعاب ──────────────────────────────────────────────────────────
-    ("قسم الألعاب", "ببجي تركيا (PUBG Turkey)", ["pupg turkey", "pubg turkey", "ببجي تركيا"]),
-    ("قسم الألعاب", "ببجي موبايل (PUBG Mobile)", ["pubg", "ببجي", "uc", "شدة", "شدات"]),
-    ("قسم الألعاب", "فري فاير (Free Fire)", ["free fire", "فري فاير", "ff ", "جواهر"]),
+    ("قسم الألعاب", "ببجي تركيا (PUBG Turkey)", ["pupg turkey", "pubg turkey", "ببجي تركيا", "ببجي تركي"]),
+    ("قسم الألعاب", "ببجي موبايل (PUBG Mobile)", ["pubg mobile", "pubg", "pupg", "ببجي موبايل", "ببجي العالمية", "ببجي عالمية", "ببجي"]),
+    ("قسم الألعاب", "فري فاير (Free Fire)", ["free fire", "freefire", "فري فاير", "فريفاير"]),
     ("قسم الألعاب", "روبلوكس (Roblox)", ["roblox", "roblex", "robux", "روبلوكس", "روبلكس", "كروت روبلوكس", "بطاقات روبلوكس"]),
-    ("قسم الألعاب", "جواكر (Jawaker)", ["jawaker", "جواكر", "توكنز"]),
-    ("قسم الألعاب", "كلاش أوف كلانس (Clash of Clans)", ["clash of clans", "كلاش اوف كلانس", "كلاش أوف"]),
+    ("قسم الألعاب", "جواكر (Jawaker)", ["jawaker", "جواكر"]),
+    ("قسم الألعاب", "كلاش أوف كلانس (Clash of Clans)", ["clash of clans", "كلاش اوف كلانس", "كلاش أوف كلانس", "كلاش كلانس"]),
     ("قسم الألعاب", "كلاش رويال (Clash Royale)", ["clash royale", "كلاش رويال"]),
-    ("قسم الألعاب", "موبايل ليجندز (Mobile Legends)", ["mobile legends", "موبايل ليجند", "موبايل ليجندز"]),
-    ("قسم الألعاب", "براول ستارز (Brawl Stars)", ["brawl stars", "براول ستارز"]),
-    ("قسم الألعاب", "إي إيه سبورتس إف سي (EA Sports FC)", ["ea sports fc", "ea fc", "fifa", "فيفا"]),
-    ("قسم الألعاب", "كول أوف ديوتي موبايل (Call of Duty Mobile)", ["call of duty", "cod mobile", "كول اوف ديوتي"]),
-    ("قسم الألعاب", "فالورانت (Valorant)", ["valorant", "فالورانت"]),
-    ("قسم الألعاب", "ليغ أوف ليجيندز (League of Legends)", ["league of legends", "lol rp"]),
-    ("قسم الألعاب", "أونور أوف كينغز (Honor of Kings)", ["honor of kings"]),
+    ("قسم الألعاب", "موبايل ليجندز (Mobile Legends)", ["mobile legends", "موبايل ليجند", "موبايل ليجندز", "موبايل ليجيندز"]),
+    ("قسم الألعاب", "براول ستارز (Brawl Stars)", ["brawl stars", "براول ستارز", "براول ستار"]),
+    ("قسم الألعاب", "إي إيه سبورتس إف سي (EA Sports FC)", ["ea sports fc", "ea sports", "ea fc", "fifa mobile", "fifa", "فيفا"]),
+    ("قسم الألعاب", "كول أوف ديوتي موبايل (Call of Duty Mobile)", ["call of duty", "cod mobile", "كول اوف ديوتي", "كول أوف ديوتي", "كود موبايل"]),
+    ("قسم الألعاب", "فالورانت (Valorant)", ["valorant", "فالورانت", "فالورنت"]),
+    ("قسم الألعاب", "ليغ أوف ليجيندز (League of Legends)", ["league of legends", "lol rp", "ليج اوف ليجيندز", "ليغ اوف ليجيندز"]),
+    ("قسم الألعاب", "أونور أوف كينغز (Honor of Kings)", ["honor of kings", "اونور اوف كينغز", "أنور أوف كينغز"]),
 
     # ── 2. قسم الدردشة والتطبيقات ──────────────────────────────────────────────
-    ("قسم الدردشة والتطبيقات", "تيك توك شحن عملات (TikTok Coins)", ["عملات تيك توك", "شحن تيك توك", "تيك توك عملات", "tiktok coin", "tiktok coins"]),
+    ("قسم الدردشة والتطبيقات", "تيك توك شحن عملات (TikTok Coins)", ["عملات تيك توك", "شحن تيك توك", "تيك توك عملات", "تيك توك كوينز", "tiktok coin", "tiktok coins", "tiktok balance"]),
     ("قسم الدردشة والتطبيقات", "يلا لودو (Yalla Ludo)", ["yalla ludo", "يلا لودو"]),
-    ("قسم الدردشة والتطبيقات", "بيجو لايف (BIGO LIVE)", ["bigo", "بيجو"]),
+    ("قسم الدردشة والتطبيقات", "بيجو لايف (BIGO LIVE)", ["bigo live", "bigo", "بيجو لايف", "بيجو"]),
     ("قسم الدردشة والتطبيقات", "توب توب (TopTop)", ["toptop", "توب توب"]),
     ("قسم الدردشة والتطبيقات", "لايكي (Likee)", ["likee", "لايكي"]),
-    ("قسم الدردشة والتطبيقات", "بوبو لايف (Poppo Live)", ["poppo", "بوبو"]),
-    ("قسم الدردشة والتطبيقات", "ميكو لايف (MICO Live)", ["mico", "ميكو"]),
-    ("قسم الدردشة والتطبيقات", "إيمو شات (IMO Chat)", ["imo", "إيمو", "ايمو"]),
+    ("قسم الدردشة والتطبيقات", "بوبو لايف (Poppo Live)", ["poppo live", "poppo", "بوبو لايف"]),
+    ("قسم الدردشة والتطبيقات", "ميكو لايف (MICO Live)", ["mico live", "mico", "ميكو لايف", "ميكو"]),
+    ("قسم الدردشة والتطبيقات", "إيمو شات (IMO Chat)", ["imo chat", "imo live", "imo", "إيمو شات", "إيمو", "ايمو شات", "ايمو"]),
     ("قسم الدردشة والتطبيقات", "يلا لايف (Yalla Live)", ["yalla live", "يلا لايف"]),
-    ("قسم الدردشة والتطبيقات", "ميو لايف (Meyo Live)", ["meyo", "ميو"]),
-    ("قسم الدردشة والتطبيقات", "هاي كات (Hi Cat)", ["hi cat", "هاي كات"]),
+    ("قسم الدردشة والتطبيقات", "ميو لايف (Meyo Live)", ["meyo live", "meyo", "ميو لايف", "ميو"]),
+    ("قسم الدردشة والتطبيقات", "هاي كات (Hi Cat)", ["hi cat", "hicat", "هاي كات"]),
     ("قسم الدردشة والتطبيقات", "ليف يو (LivU)", ["livu", "ليف يو"]),
-    ("قسم الدردشة والتطبيقات", "آزار (Azar Chat)", ["azar", "ازار", "آزار"]),
-    ("قسم الدردشة والتطبيقات", "سول ستار (Soul Star)", ["soul star", "سول ستار", "soulstar"]),
+    ("قسم الدردشة والتطبيقات", "آزار (Azar Chat)", ["azar chat", "azar", "ازار", "آزار"]),
+    ("قسم الدردشة والتطبيقات", "سول ستار (Soul Star)", ["soul star", "soulstar", "سول ستار"]),
     ("قسم الدردشة والتطبيقات", "سول تشيل (SoulChill)", ["soulchill", "soul chill", "سول تشيل", "سوشيل"]),
     ("قسم الدردشة والتطبيقات", "فور فن (4Fun)", ["4fun", "فور فن"]),
-    ("قسم الدردشة والتطبيقات", "يويو شات (YoYo Chat)", ["yoyo", "يويو"]),
-    ("قسم الدردشة والتطبيقات", "أهلاً شات (Ahlan Chat)", ["ahlan", "اهلا"]),
-    ("قسم الدردشة والتطبيقات", "زينة لايف (Xena Live)", ["xena", "زينة لايف"]),
-    ("قسم الدردشة والتطبيقات", "هابي شات (Habi Chat)", ["habi", "habby", "هابي"]),
-    ("قسم الدردشة والتطبيقات", "أيومي (Ayome)", ["ayome", "ايومي"]),
-    ("قسم الدردشة والتطبيقات", "هيا شات (Hiya Chat)", ["hiya", "هيا شات"]),
-    ("قسم الدردشة والتطبيقات", "بوبو شات (Bobo Chat)", ["bobo", "بوبو"]),
+    ("قسم الدردشة والتطبيقات", "يويو شات (YoYo Chat)", ["yoyo chat", "yoyo", "يويو شات", "يويو"]),
+    ("قسم الدردشة والتطبيقات", "أهلاً شات (Ahlan Chat)", ["ahlan chat", "ahlan", "أهلاً شات", "اهلا شات", "أهلا شات"]),
+    ("قسم الدردشة والتطبيقات", "زينة لايف (Xena Live)", ["xena live", "xena", "زينة لايف"]),
+    ("قسم الدردشة والتطبيقات", "هابي شات (Habi Chat)", ["habi chat", "habi", "habby", "هابي شات", "هابي"]),
+    ("قسم الدردشة والتطبيقات", "أيومي (Ayome)", ["ayome", "ايومي", "أيومي"]),
+    ("قسم الدردشة والتطبيقات", "هيا شات (Hiya Chat)", ["hiya chat", "hiya", "هيا شات"]),
+    ("قسم الدردشة والتطبيقات", "بوبو شات (Bobo Chat)", ["bobo chat", "bobo", "بوبو شات"]),
     ("قسم الدردشة والتطبيقات", "شاميت (Chamet)", ["chamet", "شاميت"]),
-    ("قسم الدردشة والتطبيقات", "تانجو لايف (Tango Live)", ["tango live", "تانجو"]),
-    ("قسم الدردشة والتطبيقات", "أومي تي في (OmeTV)", ["ometv", "اومي"]),
+    ("قسم الدردشة والتطبيقات", "تانجو لايف (Tango Live)", ["tango live", "تانجو لايف"]),
+    ("قسم الدردشة والتطبيقات", "أومي تي في (OmeTV)", ["ometv", "اومي تي في", "أومي تي في"]),
 
     # ── 3. قسم الأرصدة والاتصالات ──────────────────────────────────────────────
-    ("قسم الأرصدة والاتصالات", "تروكسل تركيا (Turkcell TR)", ["turkcell", "تروكسل"]),
-    ("قسم الأرصدة والاتصالات", "ترك تليكوم (Turk Telekom)", ["turk telekom", "ترك تليكوم", "تليكوم"]),
-    ("قسم الأرصدة والاتصالات", "فودافون تركيا (Vodafone TR)", ["vodafone", "فودافون"]),
-    ("قسم الأرصدة والاتصالات", "سيريتل سوريا (Syriatel)", ["syriatel", "سيريتل"]),
-    ("قسم الأرصدة والاتصالات", "إم تي إن سوريا (MTN Syria)", ["mtn", "ام تي ان"]),
-    ("قسم الأرصدة والاتصالات", "سلام تليكوم (Selam Telekom)", ["selam", "سلام تليكوم"]),
+    ("قسم الأرصدة والاتصالات", "تروكسل تركيا (Turkcell TR)", ["turkcell", "تروكسل", "توركسل"]),
+    ("قسم الأرصدة والاتصالات", "ترك تليكوم (Turk Telekom)", ["turk telekom", "ترك تليكوم", "ترك تيليكوم", "تليكوم تركيا"]),
+    ("قسم الأرصدة والاتصالات", "فودافون تركيا (Vodafone TR)", ["vodafone", "فودافون تركيا", "فودافون"]),
+    ("قسم الأرصدة والاتصالات", "سيريتل سوريا (Syriatel)", ["syriatel", "سيريتل", "سيرياتل"]),
+    ("قسم الأرصدة والاتصالات", "إم تي إن سوريا (MTN Syria)", ["mtn syria", "mtn", "ام تي ان", "إم تي إن"]),
+    ("قسم الأرصدة والاتصالات", "سلام تليكوم (Selam Telekom)", ["selam telekom", "selam", "سلام تليكوم"]),
 
     # ── 4. البطاقات الإلكترونية ─────────────────────────────────────────────────
-    ("البطاقات الإلكترونية", "بطاقات آبل آيتونز (Apple iTunes)", ["itunes", "ايتونز", "آيتونز", "apple"]),
-    ("البطاقات الإلكترونية", "بطاقات بلايستيشن (PlayStation Store)", ["playstation", "بلايستيشن", "psn", "ps kuwait", "ps uae", "ps ksa", "ps usa", "ps uk", "ps canada", "ps fransa", "ps oman", "ps qatar", "ps italy", "ps japan"]),
-    ("البطاقات الإلكترونية", "بطاقات جوجل بلاي (Google Play)", ["google play", "جوجل بلاي"]),
-    ("البطاقات الإلكترونية", "بطاقات ستيم (Steam Wallet)", ["steam", "ستيم"]),
+    ("البطاقات الإلكترونية", "بطاقات آبل آيتونز (Apple iTunes)", ["apple itunes", "itunes", "ايتونز", "آيتونز", "بطاقات ابل", "بطاقات آبل"]),
+    ("البطاقات الإلكترونية", "بطاقات بلايستيشن (PlayStation Store)", ["playstation", "بلايستيشن", "psn", "بلاي ستيشن"]),
+    ("البطاقات الإلكترونية", "بطاقات جوجل بلاي (Google Play)", ["google play", "جوجل بلاي", "غوغل بلاي"]),
+    ("البطاقات الإلكترونية", "بطاقات ستيم (Steam Wallet)", ["steam wallet", "steam", "ستيم"]),
     ("البطاقات الإلكترونية", "بطاقات ريزر جولد (Razer Gold)", ["razer gold", "ريزر جولد", "razer", "ريزر"]),
-    ("البطاقات الإلكترونية", "بطاقات فيزا مسبقة الدفع (Visa Cards)", ["visa", "فيزا"]),
+    ("البطاقات الإلكترونية", "بطاقات فيزا مسبقة الدفع (Visa Cards)", ["visa card", "visa", "فيزا"]),
 
     # ── 5. خدمات التلفاز والبث ─────────────────────────────────────────────────
-    ("خدمات التلفاز والبث", "نتفلكس (Netflix)", ["netflix", "نتفلكس"]),
-    ("خدمات التلفاز والبث", "شاهد VIP (Shahid VIP)", ["shahid", "شاهد"]),
-    ("خدمات التلفاز والبث", "زين تي في (Zain TV)", ["zain tv", "زين تي"]),
-    ("خدمات التلفاز والبث", "بركات تي في (Barakat TV)", ["barakat tv", "بركات"]),
-    ("خدمات التلفاز والبث", "شامنا تي في (Shamna TV)", ["shamna", "شامنا"]),
+    ("خدمات التلفاز والبث", "نتفلكس (Netflix)", ["netflix", "نتفلكس", "نتفليكس"]),
+    ("خدمات التلفاز والبث", "شاهد VIP (Shahid VIP)", ["shahid vip", "shahid", "شاهد vip", "شاهد"]),
+    ("خدمات التلفاز والبث", "زين تي في (Zain TV)", ["zain tv", "زين تي في", "زين tv"]),
+    ("خدمات التلفاز والبث", "بركات تي في (Barakat TV)", ["barakat tv", "بركات تي في", "بركات tv"]),
+    ("خدمات التلفاز والبث", "شامنا تي في (Shamna TV)", ["shamna tv", "شامنا تي في", "شامنا tv"]),
     ("خدمات التلفاز والبث", "تانجو برو (Tango Pro)", ["tango pro", "تانجو برو"]),
 
     # ── 6. اشتراكات VPN ────────────────────────────────────────────────────────
-    ("اشتراكات VPN", "إكسبريس في بي ان (ExpressVPN)", ["express vpn", "expressvpn"]),
-    ("اشتراكات VPN", "نورد في بي ان (NordVPN)", ["nord vpn", "nordvpn"]),
-    ("اشتراكات VPN", "بروتون في بي ان (ProtonVPN)", ["proton vpn", "protonvpn"]),
-    ("اشتراكات VPN", "سيرف شارك (Surfshark VPN)", ["surfshark"]),
-    ("اشتراكات VPN", "لاغو فاست (LagoFast Game Booster)", ["lagofast"]),
-    ("اشتراكات VPN", "أدجارد في بي ان (ADguard VPN)", ["adguard"]),
-    ("اشتراكات VPN", "سايبر غوست (CyberGhost VPN)", ["cyber ghost", "cyberghost"]),
-    ("اشتراكات VPN", "برايفت انترنت اكسس (PIA VPN)", ["pia vpn"]),
-    ("اشتراكات VPN", "هوت سبوت شيلد (Hotspot Shield)", ["hotspot"]),
-    ("اشتراكات VPN", "تنل بير (TunnelBear VPN)", ["tunnelbear", "tunnelbar"]),
-    ("اشتراكات VPN", "ويند سكرايب (Windscribe VPN)", ["windscribe"]),
-    ("اشتراكات VPN", "بيور في بي ان (PureVPN)", ["pure vpn", "purevpn"]),
-    ("اشتراكات VPN", "آي بي فانيش (IPVanish VPN)", ["ipvanish"]),
+    ("اشتراكات VPN", "إكسبريس في بي ان (ExpressVPN)", ["express vpn", "expressvpn", "اكسبريس"]),
+    ("اشتراكات VPN", "نورد في بي ان (NordVPN)", ["nord vpn", "nordvpn", "نورد"]),
+    ("اشتراكات VPN", "بروتون في بي ان (ProtonVPN)", ["proton vpn", "protonvpn", "بروتون"]),
+    ("اشتراكات VPN", "سيرف شارك (Surfshark VPN)", ["surfshark", "سيرف شارك"]),
+    ("اشتراكات VPN", "لاغو فاست (LagoFast Game Booster)", ["lagofast", "لاغو فاست"]),
+    ("اشتراكات VPN", "أدجارد في بي ان (ADguard VPN)", ["adguard", "أدجارد", "ادجارد"]),
+    ("اشتراكات VPN", "سايبر غوست (CyberGhost VPN)", ["cyberghost", "cyber ghost", "سايبر غوست"]),
+    ("اشتراكات VPN", "برايفت انترنت اكسس (PIA VPN)", ["pia vpn", "private internet access"]),
+    ("اشتراكات VPN", "هوت سبوت شيلد (Hotspot Shield)", ["hotspot shield", "hotspot", "هوت سبوت"]),
+    ("اشتراكات VPN", "تنل بير (TunnelBear VPN)", ["tunnelbear", "tunnelbar", "تنل بير"]),
+    ("اشتراكات VPN", "ويند سكرايب (Windscribe VPN)", ["windscribe", "ويند سكرايب"]),
+    ("اشتراكات VPN", "بيور في بي ان (PureVPN)", ["pure vpn", "purevpn", "بيور"]),
+    ("اشتراكات VPN", "آي بي فانيش (IPVanish VPN)", ["ipvanish", "آي بي فانيش"]),
     ("اشتراكات VPN", "زوغ في بي ان (Zoog VPN)", ["zoog vpn", "zoog"]),
-    ("اشتراكات VPN", "بلانيت في بي ان (Planet VPN)", ["planet vpn"]),
-    ("اشتراكات VPN", "بروسك في بي ان (Browsec VPN)", ["browsec"]),
-    ("اشتراكات VPN", "أوبن في بي ان (OpenVPN)", ["open vpn", "openvpn"]),
+    ("اشتراكات VPN", "بلانيت في بي ان (Planet VPN)", ["planet vpn", "بلانيت"]),
+    ("اشتراكات VPN", "بروسك في بي ان (Browsec VPN)", ["browsec", "بروسك"]),
+    ("اشتراكات VPN", "أوبن في بي ان (OpenVPN)", ["open vpn", "openvpn", "اوبن في بي ان"]),
 
     # ── 7. الذكاء الاصطناعي ───────────────────────────────────────────────────
-    ("الذكاء الاصطناعي", "جيميني برو (Gemini Pro AI)", ["gemini", "جيميني"]),
-    ("الذكاء الاصطناعي", "بيربلكسيتي برو (Perplexity Pro)", ["perplexity"]),
-    ("الذكاء الاصطناعي", "غاما برو (Gamma AI Pro)", ["gamma"]),
-    ("الذكاء الاصطناعي", "ليوناردو (Leonardo AI)", ["leonardo"]),
+    ("الذكاء الاصطناعي", "جيميني برو (Gemini Pro AI)", ["gemini pro", "gemini", "جيميني برو", "جيميني"]),
+    ("الذكاء الاصطناعي", "شات جي بي تي (ChatGPT Plus / OpenAI)", ["chatgpt", "gpt-4", "gpt", "openai", "شات جي بي تي"]),
+    ("الذكاء الاصطناعي", "بيربلكسيتي برو (Perplexity Pro)", ["perplexity", "بيربلكسيتي"]),
+    ("الذكاء الاصطناعي", "غاما برو (Gamma AI Pro)", ["gamma ai", "gamma", "غاما برو", "جاما"]),
+    ("الذكاء الاصطناعي", "ليوناردو (Leonardo AI)", ["leonardo ai", "leonardo", "ليوناردو"]),
 
     # ── 8. برامج وتصميم ───────────────────────────────────────────────────────
     ("برامج وتصميم", "كانفا برو (Canva Pro)", ["canva", "كانفا"]),
-    ("برامج وتصميم", "بيكس آرت (PicsArt Gold)", ["picsart", "بيكس"]),
-    ("برامج وتصميم", "فلات آيكون (Flaticon Access)", ["flaticon"]),
+    ("برامج وتصميم", "بيكس آرت (PicsArt Gold)", ["picsart", "بيكس آرت", "بيكسارت"]),
+    ("برامج وتصميم", "فلات آيكون (Flaticon Access)", ["flaticon", "فلات ايكون", "فلات آيكون"]),
 
     # ── 9. السوشيال ميديا ──────────────────────────────────────────────────────
-    ("السوشيال ميديا", "خدمات تيك توك (TikTok Services)", ["متابعين تيك توك", "لايكات تيك توك", "مشاهدات تيك توك", "خدمات تيك توك", "سيرفر تيك توك", "تيك توك", "tiktok"]),
-    ("السوشيال ميديا", "خدمات انستغرام (Instagram Services)", ["انستغرام", "انستقرام", "instagram"]),
-    ("السوشيال ميديا", "خدمات فيسبوك (Facebook Services)", ["فيس بوك", "فيسبوك", "facebook"]),
-    ("السوشيال ميديا", "خدمات إكس تويتر (Twitter / X Services)", ["تويتر", "twitter", " x "]),
-    ("السوشيال ميديا", "خدمات يوتيوب (YouTube Services)", ["يوتيوب", "youtube"]),
+    ("السوشيال ميديا", "خدمات تيك توك (TikTok Services)", ["tiktok services", "متابعين تيك توك", "لايكات تيك توك", "مشاهدات تيك توك", "خدمات تيك توك", "سيرفر تيك توك", "دعم تيك توك"]),
+    ("السوشيال ميديا", "خدمات انستغرام (Instagram Services)", ["instagram services", "انستغرام", "انستقرام", "instagram"]),
+    ("السوشيال ميديا", "خدمات فيسبوك (Facebook Services)", ["facebook services", "فيس بوك", "فيسبوك", "facebook"]),
+    ("السوشيال ميديا", "خدمات إكس تويتر (Twitter / X Services)", ["twitter services", "تويتر", "twitter", "منصة x", "x platform"]),
+    ("السوشيال ميديا", "خدمات يوتيوب (YouTube Services)", ["youtube services", "يوتيوب", "youtube"]),
+    ("السوشيال ميديا", "خدمات تيليجرام (Telegram Services)", ["telegram services", "خدمات تيليجرام", "أعضاء تيليجرام", "مشاهدات تيليجرام", "متابعين تيليجرام"]),
 
     # ── 10. الأرقام والحسابات ──────────────────────────────────────────────────
-    ("الأرقام والحسابات", "تفعيل أرقام واتساب (WhatsApp Numbers)", ["ارقام واتساب", "أرقام واتساب", "رقم واتساب", "تفعيل واتساب", "واتساب"]),
-    ("الأرقام والحسابات", "تليجرام بريميوم (Telegram Premium)", ["telegram premium", "تليجرام بريميوم", "تيليجرام بريميوم", "تلغرام بريميوم", "تليجرام", "تيليجرام", "تلغرام"]),
+    ("الأرقام والحسابات", "تفعيل أرقام واتساب (WhatsApp Numbers)", ["ارقام واتساب", "أرقام واتساب", "رقم واتساب", "تفعيل واتساب", "واتساب ارقام"]),
+    ("الأرقام والحسابات", "تليجرام بريميوم (Telegram Premium)", ["telegram premium", "تليجرام بريميوم", "تيليجرام بريميوم", "تلغرام بريميوم", "اشتراك تيليجرام"]),
 ]
+
+
+def _match_keyword(kw: str, text: str) -> bool:
+    """Matches keyword strictly without accidental substring false positives."""
+    kw_clean = kw.lower().strip()
+    text_clean = text.lower()
+    if not kw_clean or not text_clean:
+        return False
+    if len(kw_clean) <= 4:
+        # Require word boundary for short abbreviations like 'pubg', 'fifa', 'mtn', 'imo', 'bobo', 'psn'
+        pattern = r'(?i)(?:^|[\s_/\-\(\)\[\],.:;])' + re.escape(kw_clean) + r'(?:$|[\s_/\-\(\)\[\],.:;])'
+        return bool(re.search(pattern, text_clean))
+    return kw_clean in text_clean
+
+
+def _clean_candidate_app_name(raw_name: str) -> str:
+    """Cleans server prefixes, tiers, and package numbers from candidate app names."""
+    if not raw_name:
+        return "خدمة عامة"
+    cleaned = raw_name.strip()
+    # Remove leading server / tier prefixes (e.g. "سيرفر 1 - ", "Server 2 | ")
+    cleaned = re.sub(r'^(?:سيرفر|server|tier|باقة|قسم)\s*\d*\s*[\-–—|:/]\s*', '', cleaned, flags=re.IGNORECASE)
+    # Remove package quantities from candidate app name (e.g. " - 100 ماسة", " - 500 Coins")
+    cleaned = re.sub(r'[\(\[\{].*?[\)\]\}]', '', cleaned)
+    cleaned = re.sub(r'\s*[\-–—|:/]\s*(?:باقة|سيرفر|server|tier|\d+).*$', '', cleaned, flags=re.IGNORECASE)
+    cleaned = re.sub(r'\s*\b\d+\s*(?:ماسة|جوهرة|شدة|كوينز|عملة|روبوكس|توكنز|نقطة|ليرة|دولار|uc|diamonds|coins|robux|gems|usd|\$|syp|tl)\b.*$', '', cleaned, flags=re.IGNORECASE)
+    cleaned = cleaned.strip(' -–—|:/')
+    return cleaned if len(cleaned) >= 2 else raw_name.strip()
 
 
 class AlkasrMapperService:
@@ -263,7 +293,7 @@ class AlkasrMapperService:
 
         # 1. Match from Known Canonical Apps Registry
         for section, app_name, keywords in KNOWN_APPS_REGISTRY:
-            if any(kw.lower() in combined for kw in keywords):
+            if any(_match_keyword(kw, combined) for kw in keywords):
                 return section, app_name
 
         # 3. Check for intermediate/server names to skip
@@ -289,6 +319,8 @@ class AlkasrMapperService:
                     parent_pp = ProviderProduct.objects.filter(profile=self.profile, remote_id=str(pp.remote_parent_id)).first()
                     if parent_pp and parent_pp.name:
                         candidate_app = parent_pp.name
+
+        candidate_app = _clean_candidate_app_name(candidate_app)
 
         # 4. STRICT HEURISTIC CLASSIFICATION (Specific services evaluated first, NO "شحن" in games!)
         # Social Media Services (Check first to avoid any leakage!)
