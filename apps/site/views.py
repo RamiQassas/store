@@ -1931,17 +1931,20 @@ def catalog(request):
         view_type = "products"
 
     if q:
-        q_filter = (
-            Q(name__icontains=q) |
-            Q(description__icontains=q) |
-            Q(variants__name__icontains=q) |
-            Q(category__name__icontains=q)
-        )
-        for w in q.split():
-            if len(w) > 1:
-                q_filter |= Q(name__icontains=w) | Q(variants__name__icontains=w)
-        products = products.filter(q_filter).distinct()
-        view_type = "products"
+        if q.lower() == "all":
+            view_type = "products"
+        else:
+            q_filter = (
+                Q(name__icontains=q) |
+                Q(description__icontains=q) |
+                Q(variants__name__icontains=q) |
+                Q(category__name__icontains=q)
+            )
+            for w in q.split():
+                if len(w) > 1:
+                    q_filter |= Q(name__icontains=w) | Q(variants__name__icontains=w)
+            products = products.filter(q_filter).distinct()
+            view_type = "products"
 
     if sort == "price_low":
         products = products.order_by("variants__price")
@@ -5033,17 +5036,18 @@ def control_products_list(request):
     view_mode = request.GET.get('view', 'list')
 
     if q:
-        q_filter = (
-            Q(name__icontains=q) |
-            Q(category__name__icontains=q) |
-            Q(id__icontains=q) |
-            Q(variants__sku__icontains=q) |
-            Q(variants__name__icontains=q)
-        )
-        for w in q.split():
-            if len(w) > 1:
-                q_filter |= Q(name__icontains=w) | Q(variants__name__icontains=w)
-        products = products.filter(q_filter).distinct()
+        if q.lower() != "all":
+            q_filter = (
+                Q(name__icontains=q) |
+                Q(category__name__icontains=q) |
+                Q(id__icontains=q) |
+                Q(variants__sku__icontains=q) |
+                Q(variants__name__icontains=q)
+            )
+            for w in q.split():
+                if len(w) > 1:
+                    q_filter |= Q(name__icontains=w) | Q(variants__name__icontains=w)
+            products = products.filter(q_filter).distinct()
 
     if request.GET.get("export") == "excel":
         from decimal import Decimal
