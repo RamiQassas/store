@@ -76,9 +76,11 @@ KNOWN_APPS_REGISTRY = [
     ("قسم الدردشة والتطبيقات", "شاميت (Chamet)", ["chamet", "شاميت"]),
     ("قسم الدردشة والتطبيقات", "تانجو لايف (Tango Live)", ["tango live", "تانجو لايف"]),
     ("قسم الدردشة والتطبيقات", "أومي تي في (OmeTV)", ["ometv", "اومي تي في", "أومي تي في"]),
+    ("قسم الدردشة والتطبيقات", "بوتا (BOTA)", ["bota", "بوتا"]),
+    ("قسم الدردشة والتطبيقات", "بوتيم (Botim)", ["botim", "بوتيم"]),
 
     # ── 3. قسم الأرصدة والاتصالات ──────────────────────────────────────────────
-    ("قسم الأرصدة والاتصالات", "تروكسل تركيا (Turkcell TR)", ["turkcell", "تروكسل", "توركسل"]),
+    ("قسم الأرصدة والاتصالات", "تروكسل تركيا (Turkcell TR)", ["turkcell", "تروكسل", "توركسل", "aylık paketler", "aylik"]),
     ("قسم الأرصدة والاتصالات", "ترك تليكوم (Turk Telekom)", ["turk telekom", "ترك تليكوم", "ترك تيليكوم", "تليكوم تركيا"]),
     ("قسم الأرصدة والاتصالات", "فودافون تركيا (Vodafone TR)", ["vodafone", "فودافون تركيا", "فودافون"]),
     ("قسم الأرصدة والاتصالات", "سيريتل سوريا (Syriatel)", ["syriatel", "سيريتل", "سيرياتل"]),
@@ -94,6 +96,8 @@ KNOWN_APPS_REGISTRY = [
     ("البطاقات الإلكترونية", "بطاقات فيزا مسبقة الدفع (Visa Cards)", ["visa card", "visa", "فيزا"]),
 
     # ── 5. خدمات التلفاز والبث ─────────────────────────────────────────────────
+    ("خدمات التلفاز والبث", "ديزني بلس (Disney+)", ["disney", "ديزني"]),
+    ("خدمات التلفاز والبث", "أو إس إن بلس (OSN+)", ["osn", "او اس ان", "أو إس إن"]),
     ("خدمات التلفاز والبث", "نتفلكس (Netflix)", ["netflix", "نتفلكس", "نتفليكس"]),
     ("خدمات التلفاز والبث", "شاهد VIP (Shahid VIP)", ["shahid vip", "shahid", "شاهد vip", "شاهد"]),
     ("خدمات التلفاز والبث", "زين تي في (Zain TV)", ["zain tv", "زين تي في", "زين tv"]),
@@ -135,7 +139,7 @@ KNOWN_APPS_REGISTRY = [
     # ── 9. السوشيال ميديا ──────────────────────────────────────────────────────
     ("السوشيال ميديا", "خدمات تيك توك (TikTok Services)", ["tiktok services", "متابعين تيك توك", "لايكات تيك توك", "مشاهدات تيك توك", "خدمات تيك توك", "سيرفر تيك توك", "دعم تيك توك"]),
     ("السوشيال ميديا", "خدمات انستغرام (Instagram Services)", ["instagram services", "انستغرام", "انستقرام", "instagram"]),
-    ("السوشيال ميديا", "خدمات فيسبوك (Facebook Services)", ["facebook services", "فيس بوك", "فيسبوك", "facebook"]),
+    ("السوشيال ميديا", "خدمات فيسبوك (Facebook Services)", ["facebook services", "فيس بوك", "فيسبوك", "facebook", "auto reply"]),
     ("السوشيال ميديا", "خدمات إكس تويتر (Twitter / X Services)", ["twitter services", "تويتر", "twitter", "منصة x", "x platform"]),
     ("السوشيال ميديا", "خدمات يوتيوب (YouTube Services)", ["youtube services", "يوتيوب", "youtube"]),
     ("السوشيال ميديا", "خدمات تيليجرام (Telegram Services)", ["telegram services", "خدمات تيليجرام", "أعضاء تيليجرام", "مشاهدات تيليجرام", "متابعين تيليجرام"]),
@@ -573,7 +577,7 @@ class AlkasrMapperService:
                         qty_type = "fixed"
 
                     sku_val = f"PRV-{self.profile.id}-{pkg_pid}"[:80]
-                    is_active = bool(pp.is_active and pp.local_is_active)
+                    is_active = bool(pp.local_is_active if pp.local_is_active is not None else True)
                     raw_v_name = (pp.local_name or pp.name or f"باقة {pkg_pid}").strip()
                     cat_hint = (pp.provider_category_name or (pp.category.name if pp.category else "") or "").strip()
                     
@@ -656,10 +660,10 @@ class AlkasrMapperService:
                 except Exception:
                     pass
 
-        # 4. Soft-disable Stale Variants & Products
+        # 4. Soft-disable Stale Variants & Ensure Canonical Products are Active
         with transaction.atomic():
             active_provider_pids = set()
-            for p in products_qs.filter(is_active=True):
+            for p in products_qs:
                 try:
                     active_provider_pids.add(int(p.remote_id))
                 except (ValueError, TypeError):
@@ -690,24 +694,20 @@ class AlkasrMapperService:
                 is_out_of_stock=False
             )
 
-            # Products with NO active variants -> inactive & out of stock
+            # Ensure all canonical products created or updated in this run are active
+            canonical_names = set(app_name[:160] for (_, app_name) in grouped_by_app.keys())
             Product.objects.filter(
                 store=self.store,
-                api_provider=provider_code
-            ).annotate(has_active=Exists(active_vars)).filter(has_active=False).update(
-                is_active=False,
-                is_out_of_stock=True
-            )
+                api_provider=provider_code,
+                name__in=canonical_names
+            ).update(is_active=True, is_out_of_stock=False)
 
-        # 5. Clean up Obsolete / Standalone Package Products & Orphaned Alkasr Products
+        # 5. Clean up Obsolete Products & Consolidate Legacy Categories
         with transaction.atomic():
             from apps.orders.models import OrderItem
             from apps.catalog.models import Category
             
-            canonical_names = set(app_name[:160] for (_, app_name) in grouped_by_app.keys())
-            
             # Find any product associated with this provider whose name is NOT in canonical_names
-            # e.g. "ROBLOX 10$", "ROBLOX 25$", "ROBLOX 50$", "ROBLOX", "سيرفر 1", "تومتيك", etc.
             obsolete_candidates = Product.objects.filter(
                 Q(api_provider=provider_code) |
                 Q(variants__sku__startswith=f"PRV-{self.profile.id}-") |
@@ -732,6 +732,35 @@ class AlkasrMapperService:
 
             stats["obsolete_products_deleted"] = deleted_prods_cnt
             stats["obsolete_products_deactivated"] = deactivated_prods_cnt
+
+            # Merge legacy/duplicate category names into the standard sections
+            CATEGORY_ALIASES = {
+                "شحن الألعاب": "قسم الألعاب",
+                "الألعاب": "قسم الألعاب",
+                "ألعاب": "قسم الألعاب",
+                "شحن التطبيقات": "قسم الدردشة والتطبيقات",
+                "تطبيقات ودردشة": "قسم الدردشة والتطبيقات",
+                "اتصالات ورصيد": "قسم الأرصدة والاتصالات",
+                "رصيد وباقات": "قسم الأرصدة والاتصالات",
+                "بطاقات رقمية": "البطاقات الإلكترونية",
+                "بطاقات الكترونية": "البطاقات الإلكترونية",
+                "البطاقات الالكترونية": "البطاقات الإلكترونية",
+                "خدمات التلفزيون والبث": "خدمات التلفاز والبث",
+                "تلفزيون وبث": "خدمات التلفاز والبث",
+                "أرقام وحسابات": "الأرقام والحسابات",
+                "ارقام وحسابات": "الأرقام والحسابات",
+                "ترويج ودعم السوشيال ميديا": "السوشيال ميديا",
+                "سوشيال ميديا": "السوشيال ميديا",
+                "تحويلات مالية": "البطاقات الإلكترونية",
+            }
+
+            for old_name, target_name in CATEGORY_ALIASES.items():
+                old_cats = Category.objects.filter(store=self.store, name=old_name)
+                target_cat = self._get_catalog_category(target_name)
+                for oc in old_cats:
+                    if oc.id != target_cat.id:
+                        Product.objects.filter(category=oc).update(category=target_cat)
+                        oc.delete()
 
             # Clean empty non-standard categories
             std_cat_names = [name for name, _ in STANDARD_MAIN_SECTIONS]
