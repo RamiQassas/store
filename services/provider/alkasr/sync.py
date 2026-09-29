@@ -306,17 +306,25 @@ class AlkasrSyncService:
                 disabled_count = disabled_qs.filter(is_active=True).count()
                 disabled_qs.update(is_active=False, local_is_active=False, sync_status="stale")
 
-            # Automatically map ProviderProducts to store catalog Product & ProductVariant
-            self._set_cache(progress_key, {
-                "status": "running", "total": total_items, "current": total_items,
-                "percent": 95, "created": created_count, "updated": updated_count,
-                "disabled": disabled_count, "product_name": "جاري تنظيم الأقسام وتعيين الباقات في الكتالوج..."
-            }, timeout=600)
+            def mapper_callback(curr_grp, total_grps, app_name, pct):
+                self._set_cache(progress_key, {
+                    "status": "running", "total": total_items, "current": total_items,
+                    "percent": pct, "created": created_count, "updated": updated_count,
+                    "disabled": disabled_count, "product_name": f"جاري تعيين الكتالوج: {app_name}"
+                }, timeout=600)
+                if progress_callback:
+                    try:
+                        progress_callback(total_items, total_items, f"تنظيم: {app_name}", created_count, updated_count)
+                    except Exception:
+                        pass
 
             try:
                 from .mapper import AlkasrMapperService
                 groups_filter = selected_group_names if selected_group_names else None
-                AlkasrMapperService(self.profile).map_all_to_catalog(selected_group_names=groups_filter)
+                AlkasrMapperService(self.profile).map_all_to_catalog(
+                    selected_group_names=groups_filter,
+                    progress_callback=mapper_callback
+                )
             except Exception as map_err:
                 logger.warning(f"Catalog mapping warning for profile {self.profile}: {map_err}")
 

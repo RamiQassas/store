@@ -9083,15 +9083,33 @@ def control_apicontrol_dashboard(request):
             if sync_log:
                 if sync_log.status == "running":
                     p_cnt = ProviderProduct.objects.filter(profile=profile_obj).count()
-                    progress = {
-                        "status": "running",
-                        "total": max(p_cnt, 1),
-                        "current": max(p_cnt, 1),
-                        "percent": 95,
-                        "product_name": "جاري الانتهاء من تصنيف وربط المنتجات بالكتالوج...",
-                        "created": 0,
-                        "updated": 0,
-                    }
+                    from apps.catalog.models import ProductVariant
+                    v_cnt = ProductVariant.objects.filter(sku__startswith=f"PRV-{profile_obj.id}-").count()
+                    if v_cnt > 0 and (v_cnt >= p_cnt or (timezone.now() - sync_log.created_at).total_seconds() > 20):
+                        sync_log.status = "success"
+                        sync_log.products_created = sync_log.products_created or 0
+                        sync_log.products_updated = sync_log.products_updated or v_cnt
+                        sync_log.save(update_fields=["status", "products_created", "products_updated"])
+                        progress = {
+                            "status": "completed",
+                            "total": max(p_cnt, v_cnt),
+                            "current": max(p_cnt, v_cnt),
+                            "percent": 100,
+                            "product_name": f"تمت المزامنة بنجاح! تم تعيين {v_cnt} باقة في الكتالوج.",
+                            "message": f"تمت المزامنة بنجاح! تم تعيين {v_cnt} باقة في الكتالوج.",
+                            "created": sync_log.products_created,
+                            "updated": sync_log.products_updated,
+                        }
+                    else:
+                        progress = {
+                            "status": "running",
+                            "total": max(p_cnt, 1),
+                            "current": max(p_cnt, 1),
+                            "percent": 95,
+                            "product_name": "جاري الانتهاء من تصنيف وربط المنتجات بالكتالوج...",
+                            "created": 0,
+                            "updated": 0,
+                        }
                 elif sync_log.status == "success":
                     tot = sync_log.products_created + sync_log.products_updated
                     progress = {

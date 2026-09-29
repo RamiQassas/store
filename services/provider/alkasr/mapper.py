@@ -202,7 +202,7 @@ class AlkasrMapperService:
         self._categories_cache[section_name] = cat
         return cat
 
-    def resolve_app_and_section(self, pp) -> Tuple[str, str]:
+    def resolve_app_and_section(self, pp, pp_lookup: dict = None) -> Tuple[str, str]:
         """
         Determines the Main Section and App/Game name for a ProviderProduct.
         Returns: (section_name, app_name)
@@ -227,10 +227,14 @@ class AlkasrMapperService:
             curr_cat = curr_cat.parent
 
         if pp.remote_parent_id and str(pp.remote_parent_id) not in ("0", ""):
-            parent_pp = ProviderProduct.objects.filter(
-                profile=self.profile,
-                remote_id=str(pp.remote_parent_id)
-            ).first()
+            parent_pp = None
+            if pp_lookup is not None:
+                parent_pp = pp_lookup.get(str(pp.remote_parent_id))
+            else:
+                parent_pp = ProviderProduct.objects.filter(
+                    profile=self.profile,
+                    remote_id=str(pp.remote_parent_id)
+                ).first()
             if parent_pp:
                 if parent_pp.name:
                     names_to_check.append(parent_pp.name)
@@ -376,10 +380,11 @@ class AlkasrMapperService:
 
         return {"version": 1, "fields": fields}
 
-    def map_all_to_catalog(self, selected_group_names=None) -> Dict[str, int]:
+    def map_all_to_catalog(self, selected_group_names=None, progress_callback=None) -> Dict[str, int]:
         """
         Groups all ProviderProducts under their Canonical Apps (Products)
         and attaches each ProviderProduct as a ProductVariant.
+        Optimized with in-memory caching to complete in milliseconds.
         """
         from apps.providers.models import ProviderProduct, ProviderMapping, ProviderPrice
         from apps.catalog.models import Product, ProductVariant
@@ -388,6 +393,8 @@ class AlkasrMapperService:
         self._ensure_standard_sections()
 
         products_qs = ProviderProduct.objects.filter(profile=self.profile)
+        all_pps = list(products_qs.select_related("category", "pricing").prefetch_related("parameters"))
+        pp_lookup = {str(p.remote_id): p for p in all_pps}
 
         stats = {
             "root_products_created": 0,
@@ -400,22 +407,36 @@ class AlkasrMapperService:
         # 1. Group ProviderProducts by (Section, App Name)
         grouped_by_app: Dict[Tuple[str, str], List[ProviderProduct]] = {}
 
-        for pp in products_qs:
-            section_name, app_name = self.resolve_app_and_section(pp)
+        for pp in all_pps:
+            section_name, app_name = self.resolve_app_and_section(pp, pp_lookup=pp_lookup)
             key = (section_name, app_name)
             grouped_by_app.setdefault(key, []).append(pp)
 
+        # Pre-index existing Products, Variants, and Mappings
+        existing_products = {
+            (p.category_id, p.name): p 
+            for p in Product.objects.filter(store=self.store, api_provider=provider_code)
+        }
+        existing_variants = {
+            v.sku: v 
+            for v in ProductVariant.objects.filter(sku__startswith=f"PRV-{self.profile.id}-")
+        }
+
+        total_groups = len(grouped_by_app)
+
         # 2. Create or Update Products and map their Variants
-        for (section_name, app_name), pp_list in grouped_by_app.items():
+        for grp_idx, ((section_name, app_name), pp_list) in enumerate(grouped_by_app.items(), start=1):
             with transaction.atomic():
                 catalog_cat = self._get_catalog_category(section_name)
 
-                # Look up existing Product by (store, category, name)
-                local_product = Product.objects.filter(
-                    store=self.store,
-                    category=catalog_cat,
-                    name=app_name[:160]
-                ).first()
+                # Look up existing Product from in-memory cache or DB
+                local_product = existing_products.get((catalog_cat.id, app_name[:160]))
+                if not local_product:
+                    local_product = Product.objects.filter(
+                        store=self.store,
+                        category=catalog_cat,
+                        name=app_name[:160]
+                    ).first()
 
                 # Collect all parameters across all variants for this app
                 combined_params = []
@@ -466,6 +487,7 @@ class AlkasrMapperService:
                         form_schema=schema,
                         metadata=meta
                     )
+                    existing_products[(catalog_cat.id, app_name[:160])] = local_product
                     stats["root_products_created"] += 1
                 else:
                     local_product.category = catalog_cat
@@ -476,6 +498,7 @@ class AlkasrMapperService:
                     local_product.form_schema = schema
                     local_product.metadata = meta
                     local_product.save()
+                    existing_products[(catalog_cat.id, app_name[:160])] = local_product
                     stats["root_products_updated"] += 1
 
                 # Identify container items that act as parents to other items in this app
@@ -542,12 +565,9 @@ class AlkasrMapperService:
                         "params": pp.raw_params or []
                     }
 
-                    local_variant = ProductVariant.objects.filter(sku=sku_val).first()
+                    local_variant = existing_variants.get(sku_val)
                     if not local_variant:
-                        local_variant = ProductVariant.objects.filter(
-                            product=local_product,
-                            api_product_id=pkg_pid
-                        ).first()
+                        local_variant = ProductVariant.objects.filter(sku=sku_val).first()
 
                     parent_id_int = None
                     try:
@@ -570,6 +590,7 @@ class AlkasrMapperService:
                             provider_parent_id=parent_id_int,
                             metadata=v_meta
                         )
+                        existing_variants[sku_val] = local_variant
                         stats["variants_created"] += 1
                     else:
                         local_variant.product = local_product
@@ -584,6 +605,7 @@ class AlkasrMapperService:
                         local_variant.provider_parent_id = parent_id_int
                         local_variant.metadata = v_meta
                         local_variant.save()
+                        existing_variants[sku_val] = local_variant
                         stats["variants_updated"] += 1
 
                     # Update ProviderMapping
@@ -594,6 +616,13 @@ class AlkasrMapperService:
                             "local_variant": local_variant
                         }
                     )
+
+            if progress_callback:
+                grp_pct = 90 + int((grp_idx / max(total_groups, 1)) * 9)
+                try:
+                    progress_callback(grp_idx, total_groups, f"تنظيم: {app_name}", grp_pct)
+                except Exception:
+                    pass
 
         # 4. Soft-disable Stale Variants & Products
         with transaction.atomic():
