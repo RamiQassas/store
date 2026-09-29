@@ -18,6 +18,7 @@ from .constants import (
     ENDPOINT_PRODUCTS,
     ENDPOINT_NEW_ORDER,
     ENDPOINT_CHECK_ORDER,
+    ERROR_CODES,
 )
 from .exceptions import (
     AlkasrAPIException,
@@ -165,7 +166,13 @@ class AlkasrClient:
             data = response.json()
         except ValueError:
             record_transaction_log(self.profile, endpoint, method, json_data or params, response.text, response.status_code, duration_ms, False, "INVALID_JSON", "Invalid JSON from provider")
-            raise AlkasrAPIException(f"Invalid JSON response from provider (HTTP {response.status_code}): {response.text[:200]}")
+            if response.status_code in ERROR_CODES:
+                msg = ERROR_CODES[response.status_code]
+            elif response.status_code == 403:
+                msg = "تم رفض الطلب من جدار حماية المزود (Cloudflare 403 Forbidden). يرجى مراجعة إعدادات IP المصرح له."
+            else:
+                msg = f"استجابة غير صالحة من سيرفر المزود (HTTP {response.status_code}): {response.text[:150]}"
+            raise AlkasrAPIException(msg, code=response.status_code, raw_response={"http_status": response.status_code, "body": response.text[:300]})
 
         # Extract provider code / status
         if isinstance(data, list):

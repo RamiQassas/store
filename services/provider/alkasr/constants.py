@@ -30,6 +30,13 @@ ERROR_CODES = {
     123: "IP Not Allowed / عنوان IP غير مصرح له",
     130: "Provider Under Maintenance / المزود في حالة صيانة",
     500: "Provider Internal Error / خطأ داخلي في سيرفر المزود",
+    502: "Bad Gateway / بوابة المزود غير متوفرة حالياً",
+    503: "Service Unavailable / خدمة المزود غير متاحة مؤقتاً",
+    504: "Gateway Timeout / انتهت مهلة الاتصال بسيرفر المزود",
+    520: "Web Server Returned Unknown Error / سيرفر المزود أرجع استجابة غير متوقعة",
+    521: "سيرفر المزود (الكاسر VIP) متوقف مؤقتاً أو تحت الصيانة من طرفهم (Cloudflare 521: Web Server Is Down)",
+    522: "Connection Timed Out / تعذر الوصول لسيرفر المزود (مهلة الاتصال انتهت)",
+    524: "A Timeout Occurred / استغرق سيرفر المزود وقتاً أطول من المعتاد للاستجابة",
 }
 
 # Order Status Mapping (Provider status -> Internal System Status)
