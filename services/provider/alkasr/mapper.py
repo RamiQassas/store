@@ -708,6 +708,14 @@ class AlkasrMapperService:
                 products__isnull=True
             ).exclude(name__in=std_cat_names).delete()
 
+        # Invalidate home and catalog page caches so products appear immediately
+        from django.core.cache import cache
+        cache.delete("home_page_ctx_v2_global")
+        cache.delete("home_page_ctx_v2")
+        if self.store:
+            cache.delete(f"home_page_ctx_v2_{self.store.id}")
+            cache.delete(f"home_page_ctx_v2_{getattr(self.store, 'subdomain', '')}")
+
         return stats
 
     @classmethod

@@ -9435,20 +9435,35 @@ def control_apicontrol_dashboard(request):
                         total = res.get("total", 0) if isinstance(res, dict) else 0
                         created = res.get("created", 0) if isinstance(res, dict) else 0
                         updated = res.get("updated", 0) if isinstance(res, dict) else 0
+                        msg = res.get("message") if isinstance(res, dict) else None
+
+                        # Invalidate home and catalog caches
+                        cache.delete("home_page_ctx_v2_global")
+                        cache.delete("home_page_ctx_v2")
+
+                        if not msg:
+                            msg = f"تمت المزامنة بنجاح! تم استيراد {created} منتج جديد وتحديث {updated} منتج." if total > 0 else "تم تحديث وتنظيم الكتالوج بنجاح."
 
                         cache.set(f"sync_progress_{profile_id}", {
                             "status": "completed",
-                            "total": total,
-                            "current": total,
+                            "total": max(total, created + updated),
+                            "current": max(total, created + updated),
                             "percent": 100,
-                            "product_name": f"تمت المزامنة بنجاح! تم استيراد {created} منتج جديد وتحديث {updated} منتج.",
-                            "message": f"تمت المزامنة بنجاح! تم استيراد {created} منتج جديد وتحديث {updated} منتج.",
+                            "product_name": msg,
+                            "message": msg,
                             "created": created,
                             "updated": updated
                         }, timeout=600)
                 except Exception as e:
                     import logging
                     logging.getLogger(__name__).exception(f"Background sync failed for profile {profile_id}: {e}")
+                    
+                    # Even on exception, attempt to map existing DB products
+                    try:
+                        from services.provider.alkasr.mapper import AlkasrMapperService
+                        AlkasrMapperService(p_obj).map_all_to_catalog()
+                    except Exception:
+                        pass
                     cache.set(f"sync_progress_{profile_id}", {
                         "status": "failed",
                         "total": 0,
