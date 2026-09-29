@@ -9075,6 +9075,32 @@ def control_apicontrol_dashboard(request):
         if not progress and store:
             progress = _safe_cache_get(f"sync_progress_store_{store.id}")
 
+        # Auto-resolve stale running state in cache if current >= total or percent >= 99
+        if progress and progress.get("status") == "running":
+            cur = progress.get("current", 0)
+            tot = progress.get("total", 0)
+            pct = progress.get("percent", 0)
+            if (tot > 0 and cur >= tot) or pct >= 99:
+                from apps.providers.models import ProviderSyncLog
+                recent_cutoff = timezone.now() - timedelta(minutes=10)
+                s_log = ProviderSyncLog.objects.filter(profile=profile_obj, created_at__gte=recent_cutoff).order_by('-created_at').first() if profile_obj else None
+                if not s_log or s_log.status == "success" or (timezone.now() - s_log.created_at).total_seconds() > 10:
+                    done_total = max(tot, cur, 1)
+                    progress = {
+                        "status": "completed",
+                        "total": done_total,
+                        "current": done_total,
+                        "percent": 100,
+                        "product_name": f"تمت المزامنة بنجاح! تم استيراد وتحديث {done_total} منتج.",
+                        "message": f"تمت المزامنة بنجاح! تم استيراد وتحديث {done_total} منتج.",
+                        "created": progress.get("created", 0),
+                        "updated": progress.get("updated", done_total)
+                    }
+                    if profile_obj:
+                        cache.set(f"sync_progress_{profile_obj.id}", progress, timeout=600)
+                    if integration:
+                        cache.set(f"sync_progress_{integration.id}", progress, timeout=600)
+
         # If cache missed or idle across worker processes, check Database ProviderSyncLog fallback
         if (not progress or progress.get("status") == "idle") and profile_obj:
             from apps.providers.models import ProviderSyncLog, ProviderProduct
@@ -9085,7 +9111,7 @@ def control_apicontrol_dashboard(request):
                     p_cnt = ProviderProduct.objects.filter(profile=profile_obj).count()
                     from apps.catalog.models import ProductVariant
                     v_cnt = ProductVariant.objects.filter(sku__startswith=f"PRV-{profile_obj.id}-").count()
-                    if v_cnt > 0 and (v_cnt >= p_cnt or (timezone.now() - sync_log.created_at).total_seconds() > 20):
+                    if v_cnt > 0 and (v_cnt >= p_cnt or (timezone.now() - sync_log.created_at).total_seconds() > 10):
                         sync_log.status = "success"
                         sync_log.products_created = sync_log.products_created or 0
                         sync_log.products_updated = sync_log.products_updated or v_cnt

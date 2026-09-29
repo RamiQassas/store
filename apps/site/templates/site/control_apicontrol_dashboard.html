@@ -1320,7 +1320,9 @@
             const name = data.product_name || (data.status === 'failed' ? (data.error || 'فشل الاتصال') : '');
             const status = data.status || 'idle';
 
-            if (status === 'running') {
+            if (status === 'completed' || percent >= 100 || (total > 0 && current >= total && percent >= 95)) {
+                renderSyncCompleted(data);
+            } else if (status === 'running') {
                 if (percent > 0) {
                     document.getElementById('sync-percent-text').innerText = percent + '%';
                     document.getElementById('sync-progress-bar').style.width = percent + '%';
@@ -1328,8 +1330,6 @@
                 if (total > 0) document.getElementById('sync-total-count').innerText = total;
                 if (current > 0) document.getElementById('sync-current-count').innerText = current;
                 if (name) document.getElementById('sync-current-product').innerText = name;
-            } else if (status === 'completed' || percent >= 100) {
-                renderSyncCompleted(data);
             } else if (status === 'failed') {
                 renderSyncFailed(data);
             }
