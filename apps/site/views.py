@@ -9059,6 +9059,8 @@ def control_apicontrol_dashboard(request):
     if request.GET.get("action") == "get_sync_progress" or request.GET.get("sync_progress") == "1":
         from django.core.cache import cache
         from django.http import JsonResponse
+        from django.utils import timezone
+        from datetime import timedelta
         def _safe_cache_get(k):
             try:
                 return cache.get(k)
@@ -9072,6 +9074,47 @@ def control_apicontrol_dashboard(request):
             progress = _safe_cache_get(f"sync_progress_{integration.id}")
         if not progress and store:
             progress = _safe_cache_get(f"sync_progress_store_{store.id}")
+
+        # If cache missed or idle across worker processes, check Database ProviderSyncLog fallback
+        if (not progress or progress.get("status") == "idle") and profile_obj:
+            from apps.providers.models import ProviderSyncLog, ProviderProduct
+            recent_cutoff = timezone.now() - timedelta(minutes=10)
+            sync_log = ProviderSyncLog.objects.filter(profile=profile_obj, created_at__gte=recent_cutoff).order_by('-created_at').first()
+            if sync_log:
+                if sync_log.status == "running":
+                    p_cnt = ProviderProduct.objects.filter(profile=profile_obj).count()
+                    progress = {
+                        "status": "running",
+                        "total": max(p_cnt, 1),
+                        "current": max(p_cnt, 1),
+                        "percent": 95,
+                        "product_name": "جاري الانتهاء من تصنيف وربط المنتجات بالكتالوج...",
+                        "created": 0,
+                        "updated": 0,
+                    }
+                elif sync_log.status == "success":
+                    tot = sync_log.products_created + sync_log.products_updated
+                    progress = {
+                        "status": "completed",
+                        "total": tot,
+                        "current": tot,
+                        "percent": 100,
+                        "product_name": f"تمت المزامنة بنجاح! تم استيراد {sync_log.products_created} وتحديث {sync_log.products_updated} منتج.",
+                        "message": f"تم استيراد {sync_log.products_created} وتحديث {sync_log.products_updated} منتج بنجاح.",
+                        "created": sync_log.products_created,
+                        "updated": sync_log.products_updated,
+                    }
+                elif sync_log.status == "failed":
+                    progress = {
+                        "status": "failed",
+                        "total": 0,
+                        "current": 0,
+                        "percent": 0,
+                        "product_name": sync_log.error_message or "فشل الاتصال بالمزود",
+                        "error": sync_log.error_message or "فشل الاتصال بالمزود",
+                        "created": 0,
+                        "updated": 0,
+                    }
 
         if not progress:
             store_prods_count = Product.all_objects.filter(store=store).count() if store else 0
@@ -9345,13 +9388,6 @@ def control_apicontrol_dashboard(request):
 
                         res = ProviderManager.sync_catalog(p_obj, selected_group_names=selected_groups, progress_callback=on_progress)
                         
-                        try:
-                            from apps.providers.alkasr.mapper import AlkasrMapperService
-                            AlkasrMapperService(p_obj).map_all_to_catalog(selected_group_names=selected_groups)
-                        except Exception as map_err:
-                            import logging
-                            logging.getLogger(__name__).warning(f"Mapper call warning after sync: {map_err}")
-
                         total = res.get("total", 0) if isinstance(res, dict) else 0
                         created = res.get("created", 0) if isinstance(res, dict) else 0
                         updated = res.get("updated", 0) if isinstance(res, dict) else 0
@@ -9362,6 +9398,7 @@ def control_apicontrol_dashboard(request):
                             "current": total,
                             "percent": 100,
                             "product_name": f"تمت المزامنة بنجاح! تم استيراد {created} منتج جديد وتحديث {updated} منتج.",
+                            "message": f"تمت المزامنة بنجاح! تم استيراد {created} منتج جديد وتحديث {updated} منتج.",
                             "created": created,
                             "updated": updated
                         }, timeout=600)

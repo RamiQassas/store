@@ -1316,17 +1316,19 @@
 
             const total = data.total || 0;
             const current = data.current || 0;
-            const percent = data.percent || 0;
-            const name = data.product_name || (data.status === 'failed' ? (data.error || 'فشل الاتصال') : 'جاري استيراد المنتجات...');
+            const percent = data.percent !== undefined ? data.percent : 0;
+            const name = data.product_name || (data.status === 'failed' ? (data.error || 'فشل الاتصال') : '');
             const status = data.status || 'idle';
 
-            document.getElementById('sync-percent-text').innerText = percent + '%';
-            document.getElementById('sync-progress-bar').style.width = percent + '%';
-            document.getElementById('sync-total-count').innerText = total;
-            document.getElementById('sync-current-count').innerText = current;
-            document.getElementById('sync-current-product').innerText = name;
-
-            if (status === 'completed' || (total > 0 && current >= total && status !== 'running')) {
+            if (status === 'running') {
+                if (percent > 0) {
+                    document.getElementById('sync-percent-text').innerText = percent + '%';
+                    document.getElementById('sync-progress-bar').style.width = percent + '%';
+                }
+                if (total > 0) document.getElementById('sync-total-count').innerText = total;
+                if (current > 0) document.getElementById('sync-current-count').innerText = current;
+                if (name) document.getElementById('sync-current-product').innerText = name;
+            } else if (status === 'completed' || percent >= 100) {
                 renderSyncCompleted(data);
             } else if (status === 'failed') {
                 renderSyncFailed(data);
