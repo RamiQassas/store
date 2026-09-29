@@ -9375,12 +9375,12 @@ def control_apicontrol_dashboard(request):
                         }, timeout=600)
 
                         def on_progress(current, total, item_name, created, updated):
-                            pct = int((current / max(total, 1)) * 100) if total > 0 else 50
+                            pct = int((current / max(total, 1)) * 90) if total > 0 else 50
                             cache.set(f"sync_progress_{profile_id}", {
                                 "status": "running",
                                 "total": total,
                                 "current": current,
-                                "percent": min(pct, 99),
+                                "percent": min(pct, 90),
                                 "product_name": f"يتم استيراد: {item_name}",
                                 "created": created,
                                 "updated": updated

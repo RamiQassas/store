@@ -288,7 +288,7 @@ class AlkasrSyncService:
                                 )
 
                 # Update Cache Progress
-                pct = int((index / total_items) * 100) if total_items > 0 else 100
+                pct = int((index / total_items) * 90) if total_items > 0 else 90
                 self._set_cache(progress_key, {
                     "status": "running", "total": total_items, "current": index,
                     "percent": pct, "created": created_count, "updated": updated_count,
@@ -307,6 +307,12 @@ class AlkasrSyncService:
                 disabled_qs.update(is_active=False, local_is_active=False, sync_status="stale")
 
             # Automatically map ProviderProducts to store catalog Product & ProductVariant
+            self._set_cache(progress_key, {
+                "status": "running", "total": total_items, "current": total_items,
+                "percent": 95, "created": created_count, "updated": updated_count,
+                "disabled": disabled_count, "product_name": "جاري تنظيم الأقسام وتعيين الباقات في الكتالوج..."
+            }, timeout=600)
+
             try:
                 from .mapper import AlkasrMapperService
                 groups_filter = selected_group_names if selected_group_names else None
@@ -326,10 +332,13 @@ class AlkasrSyncService:
             result_data = {
                 "status": "completed",
                 "total": total_items,
+                "current": total_items,
                 "created": created_count,
                 "updated": updated_count,
                 "disabled": disabled_count,
-                "percent": 100
+                "percent": 100,
+                "product_name": f"تمت المزامنة بنجاح! تم استيراد وتحديث {created_count + updated_count} منتج.",
+                "message": f"تمت المزامنة بنجاح! تم استيراد وتحديث {created_count + updated_count} منتج."
             }
             self._set_cache(progress_key, result_data, timeout=600)
             return result_data
