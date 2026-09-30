@@ -103,8 +103,8 @@ def version_view(request):
     return JsonResponse({
         "status": "online",
         "commit": get_local_commit_sha(),
-        "provider_products_count": ProviderProduct.all_objects.count(),
-        "provider_products_active": ProviderProduct.all_objects.filter(is_active=True).count(),
+        "provider_products_count": ProviderProduct.objects.count(),
+        "provider_products_active": ProviderProduct.objects.filter(is_active=True).count(),
         "products_all_count": Product.all_objects.count(),
         "products_active_count": Product.all_objects.filter(is_active=True).count(),
         "products_store_null_active": Product.all_objects.filter(store__isnull=True, is_active=True).count(),
