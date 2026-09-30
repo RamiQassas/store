@@ -193,11 +193,38 @@ def trigger_remap_catalog(request):
     )
     if not is_authorized:
         return JsonResponse({"detail": "Authentication required."}, status=403)
+    from apps.catalog.models import Product, Category
+    from apps.common.tenant_utils import bypass_tenant_filter
+    from django.core.cache import cache
+
+    # Quick fix: reassign platform products and categories to store=None
+    fix_stores = request.GET.get("fix_stores") == "1" or request.POST.get("fix_stores") == "1" or request.GET.get("fix") == "1"
+    if fix_stores:
+        with bypass_tenant_filter():
+            p_cnt = Product.all_objects.filter(api_provider='alkasr', store__isnull=False).update(store=None)
+            c_cnt = Category.all_objects.filter(store__isnull=False).update(store=None)
+            cache.delete("home_page_ctx_v2_global")
+            cache.delete("home_page_ctx_v2")
+            return JsonResponse({"status": "ok", "fixed_products": p_cnt, "fixed_categories": c_cnt})
+
+    is_async = request.GET.get("async") == "1" or request.POST.get("async") == "1"
+    do_sync = request.GET.get("sync") == "1" or request.POST.get("sync") == "1"
+
+    if is_async:
+        def _bg_remap():
+            try:
+                from django.core.management import call_command
+                call_command("remap_alkasr_catalog", sync=do_sync)
+            except Exception as e:
+                import logging
+                logging.getLogger(__name__).error(f"Async remap error: {e}")
+        threading.Thread(target=_bg_remap, daemon=True).start()
+        return JsonResponse({"status": "accepted", "message": "Remap started in background thread."})
+
     from django.core.management import call_command
     import io
     out = io.StringIO()
     try:
-        do_sync = request.GET.get("sync") == "1" or request.POST.get("sync") == "1"
         call_command("remap_alkasr_catalog", sync=do_sync, stdout=out)
         return JsonResponse({"status": "ok", "output": out.getvalue()[:3000]})
     except Exception as e:

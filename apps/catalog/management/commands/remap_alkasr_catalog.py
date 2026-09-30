@@ -52,6 +52,12 @@ class Command(BaseCommand):
             return
 
         for profile in profiles:
+            # If this is the main platform profile (store is None), ensure its products have store=None
+            if profile.store is None:
+                fixed_p = Product.all_objects.filter(api_provider='alkasr', store__isnull=False).update(store=None)
+                if fixed_p:
+                    self.stdout.write(self.style.SUCCESS(f'Reassigned {fixed_p} platform products to store=None.'))
+
             # Live sync if requested or if no products exist yet for this profile
             if do_sync or not ProviderProduct.objects.filter(profile=profile).exists():
                 self.stdout.write(f'Syncing live catalog from provider for {profile.provider_name} (ID: {profile.id})...')

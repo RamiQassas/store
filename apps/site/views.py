@@ -10342,8 +10342,8 @@ def control_system_updates(request):
                 cache.delete("auto_deploy_paused")
                 cache.delete("github_remote_master_sha")
                 
-                cmd = "git config --global --add safe.directory '*' && git fetch origin master && git reset --hard origin/master && python manage.py migrate --noinput && python manage.py collectstatic --noinput"
-                proc = subprocess.run(cmd, shell=True, cwd=str(settings.BASE_DIR), capture_output=True, text=True, timeout=120)
+                cmd = "git config --global --add safe.directory '*' && git fetch origin master && git reset --hard origin/master && python manage.py migrate --noinput && python manage.py remap_alkasr_catalog && python manage.py collectstatic --noinput"
+                proc = subprocess.run(cmd, shell=True, cwd=str(settings.BASE_DIR), capture_output=True, text=True, timeout=240)
                 if proc.returncode == 0:
                     messages.success(request, "تم تحديث النظام بنجاح إلى أحدث إصدار من Master. جاري إعادة تشغيل الخادم فوراً لتطبيق التغييرات...")
                     from apps.common.auto_deploy import restart_process_soon
