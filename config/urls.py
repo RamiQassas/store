@@ -207,6 +207,26 @@ def trigger_remap_catalog(request):
             cache.delete("home_page_ctx_v2")
             return JsonResponse({"status": "ok", "fixed_products": p_cnt, "fixed_categories": c_cnt})
 
+    # Rebrand products with authentic images and Raqamiyat hallmark badge
+    rebrand = request.GET.get("rebrand") == "1" or request.POST.get("rebrand") == "1"
+    if rebrand:
+        q_filter = request.GET.get("q") or request.POST.get("q")
+        force_flag = request.GET.get("force") != "0"
+        def _bg_rebrand():
+            try:
+                from django.core.management import call_command
+                kwargs = {"force": force_flag}
+                if q_filter:
+                    kwargs["query"] = q_filter
+                call_command("cache_product_images", **kwargs)
+                cache.delete("home_page_ctx_v2_global")
+                cache.delete("home_page_ctx_v2")
+            except Exception as e:
+                import logging
+                logging.getLogger(__name__).error(f"Async rebrand error: {e}")
+        threading.Thread(target=_bg_rebrand, daemon=True).start()
+        return JsonResponse({"status": "accepted", "message": "Rebranding started in background thread."})
+
     is_async = request.GET.get("async") == "1" or request.POST.get("async") == "1"
     do_sync = request.GET.get("sync") == "1" or request.POST.get("sync") == "1"
 

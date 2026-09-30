@@ -276,22 +276,26 @@ def _extract_url_from_field(val):
 def get_product_image_url(product, depth=0, allow_db=True):
     """
     Multi-tier intelligent image resolution for catalog products:
-    1. High-resolution authentic brand static SVG matching (0ms in-memory, 100% accurate).
+    1. Direct product media fields: image, thumbnail, cover_image (Highest Priority!
+       This ensures the studio-branded card with authentic artwork + Raqamiyat verified badge is always displayed).
     2. Product metadata image URLs (Alkasr/Tafa3ol/SMM official API banner/icon fields).
-    3. Direct product media: image, thumbnail, cover_image.
-    4. Category image / brand matching.
-    5. (If allow_db) Check gallery, linked ProviderProduct, or parent product.
+    3. Category image.
+    4. Database fallbacks (gallery, linked ProviderProduct, or parent product).
+    5. Curated authentic brand static assets (only as safe fallback if no product image exists).
     6. High-end Raqamiyat brand luxury SVG fallback.
     """
     if not product:
         return static(DEFAULT_FALLBACK_SVG)
 
-    p_name = getattr(product, 'name', '')
-
-    # 1. ALWAYS check authentic brand vector SVG first (Guarantees zero random mismatches for famous apps/games/cards)
-    brand_asset = match_brand_static_asset(p_name)
-    if brand_asset:
-        return brand_asset
+    # 1. ALWAYS PRIORITIZE actual product image file if present!
+    try:
+        for attr in ('image', 'thumbnail', 'cover_image'):
+            val = getattr(product, attr, None)
+            u = _extract_url_from_field(val)
+            if u:
+                return u
+    except Exception:
+        pass
 
     # 2. Check product metadata image fields (official provider banner / artwork)
     try:
@@ -305,28 +309,14 @@ def get_product_image_url(product, depth=0, allow_db=True):
     except Exception:
         pass
 
-    # 3. Direct product media fields (for custom uploaded products)
-    try:
-        for attr in ('image', 'thumbnail', 'cover_image'):
-            val = getattr(product, attr, None)
-            u = _extract_url_from_field(val)
-            if u:
-                return u
-    except Exception:
-        pass
-
-    # 4. Category image & category brand matching
+    # 3. Category image
     cat = getattr(product, 'category', None)
     if cat:
         u = _extract_url_from_field(getattr(cat, 'image', None))
         if u:
             return u
-        cat_name = getattr(cat, 'name', '')
-        cat_asset = match_brand_static_asset(cat_name)
-        if cat_asset:
-            return cat_asset
 
-    # 5. Database fallbacks (only if allow_db is True)
+    # 4. Database fallbacks (only if allow_db is True)
     if allow_db:
         # Check gallery images
         try:
@@ -363,6 +353,12 @@ def get_product_image_url(product, depth=0, allow_db=True):
                         return parent_img
             except Exception:
                 pass
+
+    # 5. Fallback: try authentic brand static asset only if no real image exists
+    p_name = getattr(product, 'name', '')
+    brand_asset = match_brand_static_asset(p_name)
+    if brand_asset:
+        return brand_asset
 
     # 6. Fallback to official Raqamiyat high-tech luxury brand emblem
     return static(DEFAULT_FALLBACK_SVG)

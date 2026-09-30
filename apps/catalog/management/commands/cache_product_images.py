@@ -17,10 +17,19 @@ class Command(BaseCommand):
             action='store_true',
             help='Force re-branding and caching even if product already has an image.',
         )
+        parser.add_argument(
+            '--query',
+            type=str,
+            default=None,
+            help='Filter products by name keyword.',
+        )
 
     def handle(self, *args, **options):
         force = options.get('force', False)
+        query = options.get('query')
         products = Product.all_objects.all()
+        if query:
+            products = products.filter(name__icontains=query)
         total = products.count()
         self.stdout.write(f'Scanning {total} products for image caching...')
 

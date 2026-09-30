@@ -294,44 +294,180 @@ def extract_search_query(product_name):
     return clean_ar or product_name
 
 
-def fetch_image_from_itunes(query, required_keywords=None):
+KNOWN_APP_BUNDLES = {
+    # Games
+    "pubg": ("com.tencent.ig", "us"),
+    "ببجي": ("com.tencent.ig", "us"),
+    "free fire": ("com.dts.freefireth", "us"),
+    "freefire": ("com.dts.freefireth", "us"),
+    "فري فاير": ("com.dts.freefireth", "us"),
+    "roblox": ("com.roblox.robloxmobile", "us"),
+    "روبلوكس": ("com.roblox.robloxmobile", "us"),
+    "روبلكس": ("com.roblox.robloxmobile", "us"),
+    "clash of clans": ("com.supercell.magic", "us"),
+    "كلاش أوف كلانس": ("com.supercell.magic", "us"),
+    "كلاش اوف كلانس": ("com.supercell.magic", "us"),
+    "clash royale": ("com.supercell.scroll", "us"),
+    "كلاش رويال": ("com.supercell.scroll", "us"),
+    "brawl stars": ("com.supercell.laser", "us"),
+    "براول ستارز": ("com.supercell.laser", "us"),
+    "hay day": ("com.supercell.soil", "us"),
+    "هاي داي": ("com.supercell.soil", "us"),
+    "call of duty": ("com.activision.callofduty.shooter", "us"),
+    "cod": ("com.activision.callofduty.shooter", "us"),
+    "كول أوف ديوتي": ("com.activision.callofduty.shooter", "us"),
+    "ea fc": ("com.ea.gp.fifamobile", "us"),
+    "ea sports fc": ("com.ea.gp.fifamobile", "us"),
+    "fifa": ("com.ea.gp.fifamobile", "us"),
+    "فيفا": ("com.ea.gp.fifamobile", "us"),
+    "jawaker": ("com.jawaker.jawaker", "sa"),
+    "جواكر": ("com.jawaker.jawaker", "sa"),
+    "yalla ludo": ("com.yalla.yallaludo", "sa"),
+    "يلا لودو": ("com.yalla.yallaludo", "sa"),
+    "weplay": ("com.wejoy.weplay", "us"),
+    "وي بلاي": ("com.wejoy.weplay", "us"),
+    "toptop": ("com.topfun.toptop", "us"),
+    "توب توب": ("com.topfun.toptop", "us"),
+    "bigo": ("sg.bigo.live", "us"),
+    "بيجو": ("sg.bigo.live", "us"),
+    "likee": ("video.like", "us"),
+    "لايكي": ("video.like", "us"),
+    "poppo": ("com.vshow.poppo", "us"),
+    "بوبو": ("com.vshow.poppo", "us"),
+    "chamet": ("com.hkfuliao.chamet", "us"),
+    "شاميت": ("com.hkfuliao.chamet", "us"),
+    "steam": ("com.valvesoftware.Steam", "us"),
+    "ستيم": ("com.valvesoftware.Steam", "us"),
+    "playstation": ("com.playstation.PlayStationApp", "us"),
+    "بلايستيشن": ("com.playstation.PlayStationApp", "us"),
+    "xbox": ("com.microsoft.xbox", "us"),
+    "اكس بوكس": ("com.microsoft.xbox", "us"),
+
+    # Streaming & Media
+    "netflix": ("com.netflix.Netflix", "us"),
+    "نتفلكس": ("com.netflix.Netflix", "us"),
+    "نتفليكس": ("com.netflix.Netflix", "us"),
+    "shahid": ("net.mbc.shahid-iphone", "sa"),
+    "شاهد": ("net.mbc.shahid-iphone", "sa"),
+    "spotify": ("com.spotify.client", "us"),
+    "سبوتيفاي": ("com.spotify.client", "us"),
+    "youtube": ("com.google.ios.youtube", "us"),
+    "يوتيوب": ("com.google.ios.youtube", "us"),
+
+    # Social & Chat
+    "tiktok": ("com.zhiliaoapp.musically", "us"),
+    "تيك توك": ("com.zhiliaoapp.musically", "us"),
+    "telegram": ("ph.telegra.Telegraph", "us"),
+    "تليجرام": ("ph.telegra.Telegraph", "us"),
+    "تيليجرام": ("ph.telegra.Telegraph", "us"),
+    "تلغرام": ("ph.telegra.Telegraph", "us"),
+    "whatsapp": ("net.whatsapp.WhatsApp", "us"),
+    "واتساب": ("net.whatsapp.WhatsApp", "us"),
+    "snapchat": ("com.toyopagroup.picaboo", "us"),
+    "سناب شات": ("com.toyopagroup.picaboo", "us"),
+    "discord": ("com.hammerandchisel.discord", "us"),
+    "دسكورد": ("com.hammerandchisel.discord", "us"),
+
+    # AI & Productivity
+    "chatgpt": ("com.openai.chat", "us"),
+    "شات جي بي تي": ("com.openai.chat", "us"),
+    "canva": ("com.canva.Canva", "us"),
+    "كانفا": ("com.canva.Canva", "us"),
+    "picsart": ("com.picsart.studio", "us"),
+    "بيكس آرت": ("com.picsart.studio", "us"),
+}
+
+
+def fetch_image_from_bundle(bundle_id, country="us"):
+    """
+    Fetches the official, authentic 512x512 app artwork directly via Apple Store bundle ID lookup.
+    Guarantees 100% genuine studio assets for games and mobile apps.
+    """
+    if not bundle_id:
+        return None
+    for c in (country, "us", "sa"):
+        try:
+            url = f"https://itunes.apple.com/lookup?bundleId={bundle_id}&country={c}"
+            resp = requests.get(url, timeout=3.5, headers={"User-Agent": "Mozilla/5.0"})
+            if resp.status_code == 200:
+                data = resp.json()
+                results = data.get("results", [])
+                if results:
+                    img_url = results[0].get("artworkUrl512") or results[0].get("artworkUrl100")
+                    if img_url:
+                        img_url = img_url.replace("100x100bb", "512x512bb")
+                        img_resp = requests.get(img_url, timeout=4.0, headers={"User-Agent": "Mozilla/5.0"})
+                        if img_resp.status_code == 200 and len(img_resp.content) > 1000:
+                            return Image.open(io.BytesIO(img_resp.content)).convert("RGBA")
+        except Exception as e:
+            logger.debug("Bundle fetch error for %s (%s): %s", bundle_id, c, e)
+    return None
+
+
+def fetch_image_from_itunes(query, required_keywords=None, countries=("us", "sa")):
     """
     Searches Apple App Store API for the query and downloads the official 512x512 app icon.
-    Validates that the returned app name or bundle matches the intended app keyword
-    to prevent unrelated random images from being used.
+    Validates that the returned app name or bundle matches the intended app keyword.
+    Searches both US and SA stores for maximum regional coverage.
+    """
+    if not query:
+        return None
+    for country in countries:
+        try:
+            url = f"https://itunes.apple.com/search?term={urllib.parse.quote(query)}&entity=software&limit=5&country={country}"
+            resp = requests.get(url, timeout=3.5, headers={"User-Agent": "iTunes/12.11.3 (Windows; Microsoft Windows 10 x64) AppleWebKit/537.36"})
+            if resp.status_code == 200:
+                data = resp.json()
+                results = data.get("results", [])
+                if results:
+                    target_words = [w.lower() for w in (required_keywords or query).split() if len(w) > 2 and w.lower() not in ("mobile", "points", "diamonds", "coins", "live", "chat", "vpn", "app")]
+                    chosen = None
+                    for candidate in results:
+                        tname = candidate.get("trackName", "").lower()
+                        bundle = candidate.get("bundleId", "").lower()
+                        if not target_words or any(w in tname or w in bundle for w in target_words):
+                            chosen = candidate
+                            break
+                    
+                    if not chosen and not required_keywords:
+                        chosen = results[0]
+
+                    if chosen:
+                        img_url = chosen.get("artworkUrl512") or chosen.get("artworkUrl100")
+                        if img_url:
+                            img_url = img_url.replace("100x100bb", "512x512bb")
+                            img_resp = requests.get(img_url, timeout=4.0, headers={"User-Agent": "Mozilla/5.0"})
+                            if img_resp.status_code == 200 and len(img_resp.content) > 1000:
+                                return Image.open(io.BytesIO(img_resp.content)).convert("RGBA")
+        except Exception as e:
+            logger.debug("iTunes search error for query '%s' (%s): %s", query, country, e)
+    return None
+
+
+def fetch_image_from_google_play(query):
+    """
+    Google Play Store fallback: scrapes high-resolution 512x512 app icon for Android apps.
     """
     if not query:
         return None
     try:
-        url = f"https://itunes.apple.com/search?term={urllib.parse.quote(query)}&entity=software&limit=3"
-        resp = requests.get(url, timeout=3.0, headers={"User-Agent": "iTunes/12.11.3 (Windows; Microsoft Windows 10 x64) AppleWebKit/537.36"})
+        url = f"https://play.google.com/store/search?q={urllib.parse.quote(query)}&c=apps"
+        headers = {
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+            "Accept-Language": "en-US,en;q=0.9"
+        }
+        resp = requests.get(url, headers=headers, timeout=4.0)
         if resp.status_code == 200:
-            data = resp.json()
-            results = data.get("results", [])
-            if results:
-                target_words = [w.lower() for w in (required_keywords or query).split() if len(w) > 2 and w.lower() not in ("mobile", "points", "diamonds", "coins", "live", "chat", "vpn", "app")]
-                chosen = None
-                for candidate in results:
-                    tname = candidate.get("trackName", "").lower()
-                    bundle = candidate.get("bundleId", "").lower()
-                    if not target_words or any(w in tname or w in bundle for w in target_words):
-                        chosen = candidate
-                        break
-                
-                # If no strict keyword match, only accept candidate if required_keywords wasn't explicitly given
-                if not chosen and not required_keywords:
-                    chosen = results[0]
-
-                if chosen:
-                    img_url = chosen.get("artworkUrl512") or chosen.get("artworkUrl100")
-                    if img_url:
-                        img_url = img_url.replace("100x100bb", "512x512bb")
-                        img_resp = requests.get(img_url, timeout=3.0, headers={"User-Agent": "Mozilla/5.0"})
-                        if img_resp.status_code == 200:
-                            return Image.open(io.BytesIO(img_resp.content)).convert("RGBA")
+            matches = re.findall(r'(https://play-lh\.googleusercontent\.com/[a-zA-Z0-9_\-=]+)', resp.text)
+            if matches:
+                img_url = matches[0].split('=')[0] + "=s512"
+                img_resp = requests.get(img_url, timeout=4.0, headers={"User-Agent": "Mozilla/5.0"})
+                if img_resp.status_code == 200 and len(img_resp.content) > 1000:
+                    return Image.open(io.BytesIO(img_resp.content)).convert("RGBA")
     except Exception as e:
-        logger.debug("iTunes search error for query '%s': %s", query, e)
+        logger.debug("Google Play search error for '%s': %s", query, e)
     return None
+
 
 def fetch_image_from_domain(product_name):
     """
@@ -342,7 +478,7 @@ def fetch_image_from_domain(product_name):
         if key in p_lower:
             try:
                 url = f"https://t2.gstatic.com/faviconV2?client=SOCIAL&type=FAVICON&fallback_opts=TYPE,SIZE,URL&url=http://{domain}&size=256"
-                resp = requests.get(url, timeout=2.0, headers={"User-Agent": "Mozilla/5.0"})
+                resp = requests.get(url, timeout=2.5, headers={"User-Agent": "Mozilla/5.0"})
                 if resp.status_code == 200 and len(resp.content) > 500:
                     img = Image.open(io.BytesIO(resp.content)).convert("RGBA")
                     if img.width >= 48 and img.height >= 48:
@@ -354,19 +490,29 @@ def fetch_image_from_domain(product_name):
 
 def search_and_download_logo(product_name):
     """
-    Multi-source verified official logo search:
-    1. Google High-Res Brand Domain API (Known Domains)
-    2. iTunes App Store Official Icon Search with relevance verification
-    3. iTunes App Store Official Icon Search (broad keyword)
+    Multi-source verified authentic official logo search:
+    1. Exact Curated Bundle ID Lookup (Apple App Store 512x512 - PUBG, Free Fire, Roblox, Shahid, etc.)
+    2. Google High-Res Brand Domain API (Known Domains)
+    3. iTunes App Store API Search (with keyword relevance & regional SA/US fallback)
+    4. Google Play Store 512x512 Icon Search fallback
     """
-    # 1. Known Domain Brand Logo
+    p_lower = (product_name or "").lower()
+
+    # 1. Exact Curated Bundle Lookup (Guarantees 100% authentic game/app artwork)
+    for key, (bundle_id, country) in KNOWN_APP_BUNDLES.items():
+        if key in p_lower:
+            img = fetch_image_from_bundle(bundle_id, country=country)
+            if img:
+                return img
+
+    # 2. Known Domain Brand Logo
     img = fetch_image_from_domain(product_name)
     if img:
         return img
 
     query = extract_search_query(product_name)
 
-    # 2. iTunes App Store API with keyword relevance check
+    # 3. iTunes App Store Search (US & SA)
     img = fetch_image_from_itunes(query, required_keywords=query)
     if img:
         return img
@@ -381,6 +527,11 @@ def search_and_download_logo(product_name):
         img = fetch_image_from_itunes(first_word, required_keywords=first_word)
         if img:
             return img
+
+    # 4. Google Play Store Search fallback
+    img = fetch_image_from_google_play(query)
+    if img:
+        return img
 
     return None
 
