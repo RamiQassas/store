@@ -96,8 +96,8 @@ KNOWN_APPS_REGISTRY = [
     ("البطاقات الإلكترونية", "بطاقات فيزا مسبقة الدفع (Visa Cards)", ["visa card", "visa", "فيزا"]),
 
     # ── 5. خدمات التلفاز والبث ─────────────────────────────────────────────────
-    ("خدمات التلفاز والبث", "ديزني بلس (Disney+)", ["disney", "ديزني"]),
-    ("خدمات التلفاز والبث", "أو إس إن بلس (OSN+)", ["osn", "او اس ان", "أو إس إن"]),
+    ("خدمات التلفاز والبث", "ديزني بلس (Disney+)", ["disney", "ديزني", "+disney", "disney+"]),
+    ("خدمات التلفاز والبث", "أو إس إن بلس (OSN+)", ["osn", "او اس ان", "أو إس إن", "+osn", "osn+"]),
     ("خدمات التلفاز والبث", "نتفلكس (Netflix)", ["netflix", "نتفلكس", "نتفليكس"]),
     ("خدمات التلفاز والبث", "شاهد VIP (Shahid VIP)", ["shahid vip", "shahid", "شاهد vip", "شاهد"]),
     ("خدمات التلفاز والبث", "زين تي في (Zain TV)", ["zain tv", "زين تي في", "زين tv"]),
@@ -803,7 +803,7 @@ class AlkasrMapperService:
         with transaction.atomic():
             for v in qs:
                 # If variant parent does not match Product.api_product_id
-                if not v.product or v.product.api_product_id != v.provider_parent_id:
+                if not v.product:
                     correct_parent = Product.objects.filter(
                         api_provider="alkasr",
                         api_product_id=v.provider_parent_id
@@ -811,19 +811,19 @@ class AlkasrMapperService:
 
                     if correct_parent:
                         v.product = correct_parent
-                        v.save(update_fields=["product", "updated_at"])
+                        v.is_active = True
+                        v.is_temporarily_disabled = False
+                        v.save(update_fields=["product", "is_active", "is_temporarily_disabled", "updated_at"])
                         reassigned_count += 1
-                    else:
-                        v.is_active = False
-                        v.is_temporarily_disabled = True
-                        v.save(update_fields=["is_active", "is_temporarily_disabled", "updated_at"])
-                        deactivated_count += 1
+                elif not v.is_active:
+                    # Restore valid variant activation
+                    v.is_active = True
+                    v.is_temporarily_disabled = False
+                    v.save(update_fields=["is_active", "is_temporarily_disabled", "updated_at"])
+                    reassigned_count += 1
 
         logger.info(
-            "Cleanup completed: %d variants reassigned to correct parent, %d orphaned variants deactivated.",
-            reassigned_count, deactivated_count
+            "Cleanup completed: %d variants checked/reassigned.",
+            reassigned_count
         )
-        return {
-            "reassigned_count": reassigned_count,
-            "deactivated_count": deactivated_count
-        }
+        return {"reassigned_count": reassigned_count, "deactivated_count": 0}

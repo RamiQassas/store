@@ -52,20 +52,21 @@ class Command(BaseCommand):
             return
 
         for profile in profiles:
-            if not ProviderProduct.objects.filter(profile=profile).exists():
-                self.stdout.write(f'Skipping profile with no products: {profile.provider_name} (ID: {profile.id})')
-                continue
-            
-            self.stdout.write(f'Processing profile: {profile.provider_name} (ID: {profile.id})...')
-
-            # Optional live sync
-            if do_sync:
+            # Live sync if requested or if no products exist yet for this profile
+            if do_sync or not ProviderProduct.objects.filter(profile=profile).exists():
+                self.stdout.write(f'Syncing live catalog from provider for {profile.provider_name} (ID: {profile.id})...')
                 try:
                     from services.provider.manager import ProviderManager
                     ProviderManager.sync_catalog(profile)
                     self.stdout.write(self.style.SUCCESS('Synced live availability and category tree from Alkasr.'))
                 except Exception as e:
                     self.stdout.write(self.style.ERROR(f'Sync error: {e}'))
+
+            if not ProviderProduct.objects.filter(profile=profile).exists():
+                self.stdout.write(f'Skipping profile with no products: {profile.provider_name} (ID: {profile.id})')
+                continue
+            
+            self.stdout.write(f'Processing profile: {profile.provider_name} (ID: {profile.id})...')
 
             # Map all products to canonical catalog
             mapper = AlkasrMapperService(profile)
