@@ -112,22 +112,18 @@ class Command(BaseCommand):
                     }
                     p.save(update_fields=['form_schema'])
 
-            # Smart branding
-            from apps.catalog.smart_branding import apply_branding_to_product
-            branded_count = 0
-            target_prods = Product.objects.filter(is_active=True)
-            if not do_brand:
-                target_prods = target_prods.filter(Q(image='') | Q(image__isnull=True))
-
-            for prod in target_prods:
-                try:
-                    if apply_branding_to_product(prod, force=do_brand):
-                        branded_count += 1
-                except Exception as b_err:
-                    self.stdout.write(self.style.WARNING(f'Branding error for {prod.name}: {b_err}'))
-
-            if branded_count > 0:
-                self.stdout.write(self.style.SUCCESS(f'Successfully applied smart branding to {branded_count} products.'))
+            # Smart branding (only when explicitly requested via --brand)
+            if do_brand:
+                from apps.catalog.smart_branding import apply_branding_to_product
+                branded_count = 0
+                for prod in Product.objects.filter(is_active=True):
+                    try:
+                        if apply_branding_to_product(prod, force=True):
+                            branded_count += 1
+                    except Exception as b_err:
+                        self.stdout.write(self.style.WARNING(f'Branding error for {prod.name}: {b_err}'))
+                if branded_count > 0:
+                    self.stdout.write(self.style.SUCCESS(f'Successfully applied smart branding to {branded_count} products.'))
 
             total_cats = Category.objects.count()
             total_prods = Product.objects.filter(api_provider='alkasr').count()
