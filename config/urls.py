@@ -100,6 +100,9 @@ def version_view(request):
     from apps.providers.models import ProviderProfile, ProviderProduct
     from apps.common.auto_deploy import get_local_commit_sha
 
+    from django.db import models
+    stores_info = list(Product.all_objects.values('store', 'store__name', 'store__subdomain').annotate(cnt=models.Count('id')))
+    profiles_info = list(ProviderProfile.all_objects.values('id', 'provider_name', 'store_id', 'store__name', 'store__subdomain'))
     return JsonResponse({
         "status": "online",
         "commit": get_local_commit_sha(),
@@ -112,6 +115,8 @@ def version_view(request):
         "variants_active": ProductVariant.objects.filter(is_active=True).count(),
         "categories_count": Category.all_objects.count(),
         "categories_active": Category.all_objects.filter(is_active=True).count(),
+        "stores_breakdown": stores_info,
+        "profiles_breakdown": profiles_info,
     })
 
 
