@@ -109,11 +109,13 @@ class PaymeraClient:
         if not self.terminal_id:
             raise PaymeraError("Paymera Terminal ID is not configured.")
 
-        # Ensure amount is clean integer without decimals
-        clean_amount = round(float(amount), 2)
+        # Ensure amount is clean integer without decimals (Syrian Liras do not support fractions)
+        clean_amount = float(amount)
         if clean_amount <= 0:
             raise PaymeraError(f"Invalid payment amount: {clean_amount}")
-        final_amount = int(clean_amount) if clean_amount == int(clean_amount) else clean_amount
+        final_amount = int(round(clean_amount))
+        if final_amount <= 0:
+            final_amount = 1
 
         url = f"{self.base_url}/api/create-payment"
         # Sanitize notes: remove characters like '#' and quotes that trigger Cloudflare WAF SQLi blocks

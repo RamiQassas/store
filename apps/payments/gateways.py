@@ -102,10 +102,14 @@ class PaymeraGateway(BasePaymentGateway):
             else:
                 syp_amount = deposit.amount
 
+        clean_syp = int(round(float(syp_amount)))
+        if clean_syp <= 0:
+            clean_syp = 1
+
         notes = f"Deposit {deposit.id} for user {deposit.user.email}"
         try:
             res = client.create_payment(
-                amount=round(float(syp_amount), 2),
+                amount=clean_syp,
                 callback_url=callback_url,
                 trigger_url=trigger_url,
                 notes=notes,
@@ -116,7 +120,7 @@ class PaymeraGateway(BasePaymentGateway):
                 deposit.metadata = {}
             deposit.metadata["paymera_url"] = res["url"]
             deposit.metadata["paymera_payment_id"] = res["payment_id"]
-            deposit.metadata["syp_amount"] = round(float(syp_amount), 2)
+            deposit.metadata["syp_amount"] = clean_syp
             deposit.save(update_fields=["gateway_payment_id", "metadata"])
             return res
         except PaymeraError as err:
@@ -177,9 +181,11 @@ class PaymeraGateway(BasePaymentGateway):
 
         if syp_currency:
             syp_val = syp_currency.from_base(exact_usd, "deposit")
-            charge_amount = round(float(syp_val), 2)
+            charge_amount = int(round(float(syp_val)))
         else:
-            charge_amount = round(float(exact_usd), 2)
+            charge_amount = int(round(float(exact_usd)))
+        if charge_amount <= 0:
+            charge_amount = 1
 
         notes = f"Order {order.number} for {order.customer.email}"
         try:
@@ -194,7 +200,7 @@ class PaymeraGateway(BasePaymentGateway):
                 order.metadata = {}
             order.metadata["gateway_payment_id"] = res["payment_id"]
             order.metadata["paymera_url"] = res["url"]
-            order.metadata["gateway_charge_amount"] = float(charge_amount)
+            order.metadata["gateway_charge_amount"] = int(charge_amount)
             order.metadata["gateway_charge_currency"] = "SYP"
             order.metadata["payment_provider"] = self.code
             order.save(update_fields=["metadata"])
