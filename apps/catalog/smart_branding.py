@@ -17,10 +17,28 @@ except ImportError:
     get_display = lambda t: t
 
 ASSETS_DIR = os.path.join(os.path.dirname(__file__), "assets")
+BRANDS_DIR = os.path.join(ASSETS_DIR, "brands")
 MASTER_BADGE_PATH = os.path.join(ASSETS_DIR, "raqamiyat_master_badge.png")
 EMBLEM_PATH = os.path.join(ASSETS_DIR, "raqamiyat_emblem.png")
 
 logger = logging.getLogger(__name__)
+
+KNOWN_LOCAL_BRANDS = {
+    "syriatel": "syriatel.png",
+    "سيريتل": "syriatel.png",
+    "سيرياتل": "syriatel.png",
+    "mtn": "mtn.png",
+    "ام تي ان": "mtn.png",
+    "إم تي إن": "mtn.png",
+    "turkcell": "turkcell.png",
+    "تروكسل": "turkcell.png",
+    "turk telekom": "turktelekom.png",
+    "ترك تليكوم": "turktelekom.png",
+    "تليكوم تركيا": "turktelekom.png",
+    "vodafone": "vodafone.png",
+    "فودافون": "vodafone.png",
+}
+
 
 
 
@@ -375,7 +393,34 @@ KNOWN_APP_BUNDLES = {
     "كانفا": ("com.canva.Canva", "us"),
     "picsart": ("com.picsart.studio", "us"),
     "بيكس آرت": ("com.picsart.studio", "us"),
+    # Telecom & Utilities
+    "turkcell": ("com.turkcell.CSI", "tr"),
+    "تروكسل": ("com.turkcell.CSI", "tr"),
+    "turk telekom": ("com.avea.onlineislemler", "tr"),
+    "تليكوم": ("com.avea.onlineislemler", "tr"),
+    "ترك تليكوم": ("com.avea.onlineislemler", "tr"),
+    "vodafone": ("com.vodafone.yanimda", "tr"),
+    "فودافون": ("com.vodafone.yanimda", "tr"),
 }
+
+
+def fetch_local_brand_asset(product_name):
+    """
+    Checks the local curated pristine offline brand directory (assets/brands).
+    Provides 100% authentic, razor-sharp 512x512 official logos with zero network latency.
+    """
+    if not product_name or not os.path.isdir(BRANDS_DIR):
+        return None
+    p_lower = product_name.lower()
+    for kw, filename in KNOWN_LOCAL_BRANDS.items():
+        if kw in p_lower:
+            filepath = os.path.join(BRANDS_DIR, filename)
+            if os.path.exists(filepath):
+                try:
+                    return Image.open(filepath).convert("RGBA")
+                except Exception as e:
+                    logger.debug("Failed opening brand asset %s: %s", filepath, e)
+    return None
 
 
 def fetch_image_from_bundle(bundle_id, country="us"):
@@ -385,7 +430,7 @@ def fetch_image_from_bundle(bundle_id, country="us"):
     """
     if not bundle_id:
         return None
-    for c in (country, "us", "sa"):
+    for c in (country, "us", "sa", "tr"):
         try:
             url = f"https://itunes.apple.com/lookup?bundleId={bundle_id}&country={c}"
             resp = requests.get(url, timeout=3.5, headers={"User-Agent": "Mozilla/5.0"})
@@ -404,11 +449,42 @@ def fetch_image_from_bundle(bundle_id, country="us"):
     return None
 
 
-def fetch_image_from_itunes(query, required_keywords=None, countries=("us", "sa")):
+def fetch_image_from_wikimedia(query):
+    """
+    Searches Wikipedia / Wikimedia for official company/service logos (SVG/PNG).
+    Strictly filters out photos of buildings, headquarters, or generic landscapes.
+    """
+    if not query:
+        return None
+    try:
+        headers = {
+            "User-Agent": "RaqamiyatStore/2.0 (admin@raqamiyatapp.com)",
+            "Referer": "https://en.wikipedia.org/"
+        }
+        url = f"https://en.wikipedia.org/w/api.php?action=query&titles={urllib.parse.quote(query)}&prop=pageimages&format=json&pithumbsize=500"
+        resp = requests.get(url, headers=headers, timeout=3.5)
+        if resp.status_code == 200:
+            data = resp.json()
+            pages = data.get("query", {}).get("pages", {})
+            for pid, pdata in pages.items():
+                pimg = str(pdata.get("pageimage", "")).lower()
+                # Ensure the page image is actually a logo, icon, symbol, or crest
+                if any(k in pimg for k in ("logo", "icon", "symbol", "crest", "emblem")):
+                    thumb_url = pdata.get("thumbnail", {}).get("source")
+                    if thumb_url:
+                        img_resp = requests.get(thumb_url, headers=headers, timeout=4.0)
+                        if img_resp.status_code == 200 and len(img_resp.content) > 1000:
+                            return Image.open(io.BytesIO(img_resp.content)).convert("RGBA")
+    except Exception as e:
+        logger.debug("Wikimedia search error for '%s': %s", query, e)
+    return None
+
+
+def fetch_image_from_itunes(query, required_keywords=None, countries=("us", "sa", "tr", "ae", "gb")):
     """
     Searches Apple App Store API for the query and downloads the official 512x512 app icon.
     Validates that the returned app name or bundle matches the intended app keyword.
-    Searches both US and SA stores for maximum regional coverage.
+    Searches US, SA, TR, AE, and GB stores for maximum regional coverage.
     """
     if not query:
         return None
@@ -447,6 +523,7 @@ def fetch_image_from_itunes(query, required_keywords=None, countries=("us", "sa"
 def fetch_image_from_google_play(query):
     """
     Google Play Store fallback: scrapes high-resolution 512x512 app icon for Android apps.
+    Strictly verifies 1:1 square aspect ratio to prevent grabbing promotional landscape banners.
     """
     if not query:
         return None
@@ -458,12 +535,24 @@ def fetch_image_from_google_play(query):
         }
         resp = requests.get(url, headers=headers, timeout=4.0)
         if resp.status_code == 200:
-            matches = re.findall(r'(https://play-lh\.googleusercontent\.com/[a-zA-Z0-9_\-=]+)', resp.text)
-            if matches:
-                img_url = matches[0].split('=')[0] + "=s512"
-                img_resp = requests.get(img_url, timeout=4.0, headers={"User-Agent": "Mozilla/5.0"})
-                if img_resp.status_code == 200 and len(img_resp.content) > 1000:
-                    return Image.open(io.BytesIO(img_resp.content)).convert("RGBA")
+            # Find URLs specifically formatted with square dimensions (=s...)
+            square_matches = re.findall(r'(https://play-lh\.googleusercontent\.com/[a-zA-Z0-9_\-=]+)=s\d+', resp.text)
+            candidates = square_matches if square_matches else re.findall(r'(https://play-lh\.googleusercontent\.com/[a-zA-Z0-9_\-=]+)', resp.text)
+            for m in candidates[:6]:
+                # Exclude obvious non-icon banners with w...-h...
+                if "=w" in m and "-h" in m:
+                    continue
+                base_img_url = m.split('=')[0]
+                img_url = f"{base_img_url}=s512"
+                try:
+                    img_resp = requests.get(img_url, timeout=4.0, headers={"User-Agent": "Mozilla/5.0"})
+                    if img_resp.status_code == 200 and len(img_resp.content) > 1000:
+                        pil_img = Image.open(io.BytesIO(img_resp.content)).convert("RGBA")
+                        # STRICT CHECK: App icons MUST be 1:1 square (width == height)
+                        if abs(pil_img.width - pil_img.height) <= 4 and pil_img.width >= 120:
+                            return pil_img
+                except Exception:
+                    continue
     except Exception as e:
         logger.debug("Google Play search error for '%s': %s", query, e)
     return None
@@ -491,28 +580,40 @@ def fetch_image_from_domain(product_name):
 def search_and_download_logo(product_name):
     """
     Multi-source verified authentic official logo search:
-    1. Exact Curated Bundle ID Lookup (Apple App Store 512x512 - PUBG, Free Fire, Roblox, Shahid, etc.)
-    2. Google High-Res Brand Domain API (Known Domains)
-    3. iTunes App Store API Search (with keyword relevance & regional SA/US fallback)
-    4. Google Play Store 512x512 Icon Search fallback
+    1. Curated Offline Brand Asset (Instant 100% match for Syriatel, MTN, etc.)
+    2. Exact Curated Bundle ID Lookup (Apple App Store 512x512 - PUBG, Free Fire, Roblox, etc.)
+    3. Official Wikimedia / Wikipedia Brand Vector Logo API
+    4. iTunes App Store API Search (with keyword relevance & regional SA/US/TR fallback)
+    5. Google High-Res Brand Domain API (Known Domains)
+    6. Verified Square Google Play Store 512x512 Icon Search fallback
     """
     p_lower = (product_name or "").lower()
 
-    # 1. Exact Curated Bundle Lookup (Guarantees 100% authentic game/app artwork)
+    # 1. Curated Local Brand Asset (0 latency, 100% exact match)
+    img = fetch_local_brand_asset(product_name)
+    if img:
+        return img
+
+    # 2. Exact Curated Bundle Lookup (Guarantees 100% authentic game/app artwork)
     for key, (bundle_id, country) in KNOWN_APP_BUNDLES.items():
         if key in p_lower:
             img = fetch_image_from_bundle(bundle_id, country=country)
             if img:
                 return img
 
-    # 2. Known Domain Brand Logo
+    # 3. Known Domain Brand Logo
     img = fetch_image_from_domain(product_name)
     if img:
         return img
 
     query = extract_search_query(product_name)
 
-    # 3. iTunes App Store Search (US & SA)
+    # 4. Wikimedia / Wikipedia Official Brand Logo Search
+    img = fetch_image_from_wikimedia(query)
+    if img:
+        return img
+
+    # 5. iTunes App Store Search (US, SA, TR, AE, GB)
     img = fetch_image_from_itunes(query, required_keywords=query)
     if img:
         return img
@@ -528,12 +629,13 @@ def search_and_download_logo(product_name):
         if img:
             return img
 
-    # 4. Google Play Store Search fallback
+    # 6. Google Play Store Search fallback (strictly verified square icons only)
     img = fetch_image_from_google_play(query)
     if img:
         return img
 
     return None
+
 
 
 def create_squircle_mask(size, radius):
@@ -709,7 +811,20 @@ def compose_branded_card(logo_img, product_name, store_name=None, width=600, hei
         card.paste(tile, (ix, iy), tile)
     else:
         # Full squircle masked app icon
-        logo_resized = logo_img.copy().convert("RGBA").resize((icon_size, icon_size), Image.Resampling.LANCZOS)
+        w_orig, h_orig = logo_img.size
+        aspect = w_orig / h_orig if h_orig else 1.0
+        if 0.88 <= aspect <= 1.14:
+            logo_resized = logo_img.copy().convert("RGBA").resize((icon_size, icon_size), Image.Resampling.LANCZOS)
+        else:
+            # Aspect-fit on clean background tile to preserve true proportions
+            logo_fit = logo_img.copy().convert("RGBA")
+            inner_pad = int(icon_size * 0.84)
+            logo_fit.thumbnail((inner_pad, inner_pad), Image.Resampling.LANCZOS)
+            logo_resized = Image.new("RGBA", (icon_size, icon_size), (255, 255, 255, 255))
+            lx = (icon_size - logo_fit.width) // 2
+            ly = (icon_size - logo_fit.height) // 2
+            logo_resized.paste(logo_fit, (lx, ly), logo_fit)
+
         mask = create_squircle_mask(icon_size, corner_radius)
 
         squircle_box = Image.new("RGBA", (icon_size, icon_size), (0, 0, 0, 0))
