@@ -251,11 +251,59 @@ def trigger_remap_catalog(request):
         return JsonResponse({"status": "error", "error": str(e)}, status=500)
 
 
+def platform_logo_view(request, variant="horizontal"):
+    """
+    Directly serves the official Raqamiyat platform logo.
+    Guaranteed 200 OK without relying on Nginx static volume collections.
+    Supports ?type=square or /logo-square.jpg for square icon,
+    and /logo.jpg, /logo-horizontal.jpg for horizontal corporate logo.
+    """
+    import os
+    from django.conf import settings
+    from django.http import HttpResponse, Http404
+
+    req_type = request.GET.get("type", "").lower()
+    is_square = (variant == "square" or req_type == "square")
+
+    filename = "raqamiyat_logo_square.jpg" if is_square else "raqamiyat_logo_horizontal.jpg"
+
+    candidate_paths = [
+        os.path.join(settings.BASE_DIR, "apps", "site", "static", "site", "img", filename),
+        os.path.join(settings.BASE_DIR, "media", filename),
+        os.path.join(settings.BASE_DIR, "staticfiles", "site", "img", filename),
+        os.path.join("/var/www/staticfiles/site/img", filename),
+        os.path.join("/app/apps/site/static/site/img", filename),
+    ]
+
+    for p in candidate_paths:
+        if os.path.isfile(p):
+            try:
+                with open(p, "rb") as f:
+                    content = f.read()
+                resp = HttpResponse(content, content_type="image/jpeg")
+                resp["Cache-Control"] = "public, max-age=31536000, immutable"
+                resp["Access-Control-Allow-Origin"] = "*"
+                return resp
+            except Exception:
+                pass
+
+    raise Http404("Logo file not found")
+
+
 from apps.common.auto_deploy import github_auto_deploy_view
 
 urlpatterns = [
     path("robots.txt", robots_txt),
     path("sitemap.xml", sitemap_xml_view, name="sitemap_xml"),
+    path("logo/", platform_logo_view, {"variant": "horizontal"}, name="platform_logo_default"),
+    path("logo.jpg", platform_logo_view, {"variant": "horizontal"}, name="platform_logo_jpg"),
+    path("logo.png", platform_logo_view, {"variant": "horizontal"}, name="platform_logo_png"),
+    path("logo-horizontal.jpg", platform_logo_view, {"variant": "horizontal"}, name="platform_logo_horizontal"),
+    path("logo-square.jpg", platform_logo_view, {"variant": "square"}, name="platform_logo_square"),
+    path("raqamiyat-logo.jpg", platform_logo_view, {"variant": "horizontal"}, name="platform_logo_alt"),
+    path("static/site/img/raqamiyat_logo_official.jpg", platform_logo_view, {"variant": "horizontal"}, name="static_official_logo_fallback"),
+    path("static/site/img/raqamiyat_logo_horizontal.jpg", platform_logo_view, {"variant": "horizontal"}, name="static_horizontal_logo_fallback"),
+    path("static/site/img/raqamiyat_logo_square.jpg", platform_logo_view, {"variant": "square"}, name="static_square_logo_fallback"),
     path("api/version/", version_view, name="version_view"),
     path("api/debug-products/", debug_provider_products, name="debug_provider_products"),
     path("api/alkasr-raw/", alkasr_raw_products, name="alkasr_raw_products"),
@@ -274,6 +322,7 @@ urlpatterns = [
     path('accounts/', include('allauth.urls')),
     path("media/<path:path>", protected_media, name="protected_media"),
 ]
+
 
 handler404 = "apps.site.seo_views.custom_404_view"
 handler500 = "apps.site.seo_views.custom_500_view"
