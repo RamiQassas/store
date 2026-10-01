@@ -127,11 +127,12 @@ class PaymeraClient:
             "amount": final_amount,
             "callbackURL": callback_url,
             "triggerURL": trigger_url,
-            "savedCards": "1" if saved_cards else "0",
             "notes": clean_notes,
         }
-        if saved_cards and app_user:
-            payload["appUser"] = str(app_user)
+        if saved_cards:
+            payload["savedCards"] = 1
+            if app_user:
+                payload["appUser"] = str(app_user)
 
         logger.info(f"Paymera create_payment request to {url} with amount={final_amount}, terminal={self.terminal_id}")
 
