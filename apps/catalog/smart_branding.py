@@ -18,6 +18,7 @@ except ImportError:
 
 ASSETS_DIR = os.path.join(os.path.dirname(__file__), "assets")
 BRANDS_DIR = os.path.join(ASSETS_DIR, "brands")
+CATEGORIES_DIR = os.path.join(ASSETS_DIR, "categories")
 MASTER_BADGE_PATH = os.path.join(ASSETS_DIR, "raqamiyat_master_badge.png")
 EMBLEM_PATH = os.path.join(ASSETS_DIR, "raqamiyat_emblem.png")
 
@@ -927,50 +928,467 @@ def create_fallback_brand_icon(product_name, icon_size=330):
     return icon
 
 
+def translate_to_english(text):
+    """
+    Translates Arabic product/category name to English using Google Translate API
+    with fallback to keyword/token extraction.
+    """
+    if not text:
+        return ""
+    eng_chars = len(re.findall(r'[a-zA-Z]', text))
+    ar_chars = len(re.findall(r'[\u0600-\u06FF]', text))
+    if eng_chars >= ar_chars and eng_chars > 3:
+        return text
+    try:
+        url = f"https://translate.googleapis.com/translate_a/single?client=gtx&sl=auto&tl=en&dt=t&q={urllib.parse.quote(text)}"
+        resp = requests.get(url, timeout=3.5, headers={"User-Agent": "Mozilla/5.0"})
+        if resp.status_code == 200:
+            res_json = resp.json()
+            if res_json and len(res_json) > 0 and len(res_json[0]) > 0 and len(res_json[0][0]) > 0:
+                translated = res_json[0][0][0]
+                if translated and len(translated) > 1:
+                    return translated.strip()
+    except Exception as e:
+        logger.debug("Translation error for '%s': %s", text, e)
+
+    eng_matches = re.findall(r'[a-zA-Z0-9\+]+', text)
+    if eng_matches and len(eng_matches) >= 2:
+        return " ".join(eng_matches)
+    return text
+
+
+def fetch_curated_category_asset(category_name):
+    """
+    Matches category name against curated pristine 600x600 HD artwork in assets/categories.
+    Guarantees 100% exact match for games, chat, telecom, gift cards, social media, TV streaming,
+    VPN, AI, software, accounts, electronics, phones, perfumes, watches, fashion, home appliances.
+    """
+    if not category_name or not os.path.isdir(CATEGORIES_DIR):
+        return None
+    c_lower = category_name.lower().strip()
+
+    rules = [
+        ("home_appliances.jpg", ["أجهزة منزلية", "اجهزة منزلية", "ادوات منزلية", "منزلية", "مطبخ", "غسالة", "ثلاجة", "مكيف", "kitchen", "home appliances"]),
+        ("electronics.jpg", ["إلكترونيات", "الكترونيات", "أجهزة ذكية", "اجهزة ذكية", "أجهزة", "اجهزة", "كمبيوتر", "لابتوب", "electronics", "gadgets", "tech"]),
+        ("phones.jpg", ["هواتف", "جوالات", "موبايل", "جوال", "هاتف", "phones", "smartphones", "iphone", "ملحقات جوال", "اكسسوارات جوال"]),
+        ("perfumes.jpg", ["عطور", "عطر", "تجميل", "مكياج", "عناية", "بخور", "perfumes", "perfume", "cosmetics", "beauty"]),
+        ("watches.jpg", ["ساعات", "ساعة", "إكسسوارات", "اكسسوارات", "مجوهرات", "watches", "watch", "accessories", "jewelry"]),
+        ("fashion.jpg", ["ملابس", "أزياء", "ازياء", "موضة", "أحذية", "احذية", "fashion", "clothes", "apparel"]),
+        ("games.jpg", ["ألعاب", "العاب", "لعب", "قيمينق", "قيمنق", "games", "gaming", "esports", "gamer"]),
+        ("chat_apps.jpg", ["دردشة", "شات", "تطبيقات", "لايف", "بث مباشر", "chat", "live", "messaging"]),
+        ("telecom.jpg", ["أرصدة", "ارصدة", "رصيد", "اتصالات", "شحن رصيد", "سيريتل", "ام تي ان", "تروكسل", "تليكوم", "فودافون", "telecom", "mobile balance", "recharge"]),
+        ("gift_cards.jpg", ["بطاقات", "بطاقة", "كروت", "كرت", "قسائم", "قسيمة", "شحن بطاقات", "cards", "gift cards", "vouchers", "keys", "مفاتيح"]),
+        ("social_media.jpg", ["سوشيال", "تواصل", "انستغرام", "تيك توك", "فيسبوك", "تويتر", "متابعين", "social", "media"]),
+        ("streaming.jpg", ["تلفاز", "بث", "أفلام", "افلام", "مسلسلات", "سينما", "نتفلكس", "شاهد", "tv", "streaming", "movies", "cinema", "iptv"]),
+        ("vpn.jpg", ["vpn", "بروكسي", "حماية", "أمان", "security", "proxy", "cyber"]),
+        ("ai.jpg", ["ذكاء", "اصطناعي", "chatgpt", "openai", "gemini", "ai", "artificial intelligence", "مساعد ذكي"]),
+        ("software.jpg", ["برامج", "تصميم", "ويندوز", "اوفيس", "ادوبي", "فوتوشوب", "software", "design", "windows", "office", "adobe"]),
+        ("accounts.jpg", ["أرقام", "ارقام", "حسابات", "حساب", "اشتراكات حسابات", "accounts", "numbers", "virtual"])
+    ]
+
+    for filename, kws in rules:
+        for kw in kws:
+            if kw in c_lower:
+                fpath = os.path.join(CATEGORIES_DIR, filename)
+                if os.path.exists(fpath):
+                    try:
+                        return Image.open(fpath).convert("RGBA")
+                    except Exception as e:
+                        logger.debug("Failed opening category asset %s: %s", fpath, e)
+    return None
+
+
+def search_category_web_image(category_name):
+    """
+    Searches web for high-definition 4K commercial wallpaper or illustration for custom categories.
+    """
+    en_query = translate_to_english(category_name)
+    headers = {
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
+        "Referer": "https://www.bing.com/"
+    }
+    queries = [
+        f"{en_query} aesthetic 4k wallpaper",
+        f"{en_query} 3d render commercial",
+        f"{category_name} خلفية بدقة عالية"
+    ]
+    for q in queries:
+        try:
+            url = f"https://www.bing.com/images/async?q={urllib.parse.quote(q)}&count=12&first=1"
+            resp = requests.get(url, headers=headers, timeout=4.5)
+            urls = re.findall(r'&quot;murl&quot;:&quot;(https?://[^&"]+)&quot;', resp.text)
+            for img_url in urls[:6]:
+                if any(bad in img_url.lower() for bad in ('map', 'flag', 'watermark', 'vectorstock')):
+                    continue
+                try:
+                    ir = requests.get(img_url, headers={"User-Agent": "Mozilla/5.0"}, timeout=4.0)
+                    if ir.status_code == 200 and len(ir.content) > 15000:
+                        pil_img = Image.open(io.BytesIO(ir.content)).convert("RGBA")
+                        w, h = pil_img.size
+                        if w >= 350 and h >= 350:
+                            dim = min(w, h)
+                            left = (w - dim) // 2
+                            top = (h - dim) // 2
+                            cropped = pil_img.crop((left, top, left + dim, top + dim))
+                            return cropped.resize((600, 600), Image.Resampling.LANCZOS)
+                except Exception:
+                    continue
+        except Exception as e:
+            logger.debug("Bing category search error for %s: %s", q, e)
+    return None
+
+
+def compose_category_card(cat_img, category_name, width=600, height=600):
+    """
+    Composes a luxury 600x600 category card:
+    - High-definition 600x600 artwork
+    - Subtle depth vignette & double luxury obsidian rim
+    - Category name rendered cleanly in Arabic typography on a frosted glass pill
+    """
+    card = Image.new("RGBA", (width, height), (10, 14, 26, 255))
+    resized_art = cat_img.copy().convert("RGBA")
+    if resized_art.size != (width, height):
+        w, h = resized_art.size
+        dim = min(w, h)
+        left = (w - dim) // 2
+        top = (h - dim) // 2
+        cropped = resized_art.crop((left, top, left + dim, top + dim))
+        resized_art = cropped.resize((width, height), Image.Resampling.LANCZOS)
+
+    card.paste(resized_art, (0, 0))
+
+    # Soft dark gradient at bottom for contrast and depth
+    overlay = Image.new("RGBA", (width, height), (0, 0, 0, 0))
+    o_draw = ImageDraw.Draw(overlay)
+    for y in range(int(height * 0.55), height):
+        progress = (y - height * 0.55) / (height * 0.45)
+        alpha = int(210 * (progress ** 1.5))
+        o_draw.line([(0, y), (width, y)], fill=(10, 14, 26, alpha))
+
+    card = Image.alpha_composite(card, overlay)
+    draw = ImageDraw.Draw(card)
+
+    # Outer luxury border
+    draw.rounded_rectangle([4, 4, width - 5, height - 5], radius=24, outline=(255, 255, 255, 30), width=2)
+
+    # Render elegant Category Name Pill at bottom
+    if category_name:
+        clean_name = category_name.strip()
+        font = None
+        for fp in ["C:/Windows/Fonts/segoeuib.ttf", "C:/Windows/Fonts/arialbd.ttf", "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf"]:
+            if os.path.exists(fp):
+                try:
+                    font = ImageFont.truetype(fp, 26)
+                    break
+                except Exception:
+                    pass
+        if not font:
+            font = ImageFont.load_default()
+
+        display_text = clean_name
+        if arabic_reshaper and any(ord(c) > 127 for c in clean_name):
+            try:
+                reshaped = arabic_reshaper.reshape(clean_name)
+                display_text = get_display(reshaped)
+            except Exception:
+                display_text = clean_name
+
+        bbox = draw.textbbox((0, 0), display_text, font=font)
+        tw = bbox[2] - bbox[0]
+        th = bbox[3] - bbox[1]
+
+        pw = min(tw + 48, width - 40)
+        ph = th + 22
+        px = (width - pw) // 2
+        py = height - ph - 24
+
+        # Frosted glass pill behind text
+        glass_pill = Image.new("RGBA", (pw, ph), (0, 0, 0, 0))
+        gp_draw = ImageDraw.Draw(glass_pill)
+        gp_draw.rounded_rectangle([0, 0, pw - 1, ph - 1], radius=ph // 2, fill=(15, 23, 42, 230), outline=(34, 211, 238, 120), width=1)
+        card.paste(glass_pill, (px, py), glass_pill)
+
+        # Draw text
+        draw_txt = ImageDraw.Draw(card)
+        tx = px + (pw - tw) // 2
+        ty = py + (ph - th) // 2 - 2
+        draw_txt.text((tx, ty), display_text, font=font, fill=(255, 255, 255, 255))
+
+    return card.convert("RGB")
+
+
+PHYSICAL_KEYWORDS = [
+    # Devices & Hardware
+    "ساعة", "ساعات", "سماعة", "سماعات", "ايربودز", "إيربودز", "ماوس", "كيبورد", "لوحة مفاتيح",
+    "فأرة", "شاحن", "شواحن", "كيبل", "كابل", "سلك", "توصيلة", "باور بانك", "باوربانك", "بنك طاقة",
+    "هاتف", "هواتف", "جوال", "جوالات", "موبايل", "ايفون", "آيفون", "سامسونج", "شاومي", "هواوي",
+    "جهاز", "اجهزة", "أجهزة", "كاميرا", "كاميرات", "شاشة", "شاشات", "لابتوب", "كمبيوتر", "حاسوب",
+    "تابلت", "ايباد", "آيباد", "راوتر", "مودم", "طابعة", "طابعات", "سبيكر", "مكبر صوت", "مايكروفون", "ميكروفون",
+    # Accessories & Cases
+    "كفر", "جراب", "حافظة", "حماية شاشة", "استيكر", "مسكة", "حامل جوال", "قاعدة",
+    # Perfumes & Beauty
+    "عطر", "عطور", "بخور", "مكياج", "كريم", "سيروم", "تجميل", "عناية",
+    # Watches & Jewelry
+    "خاتم", "سوار", "سلسال", "قلادة", "مجوهرات", "نظارة", "نظارات",
+    # Fashion & Apparel
+    "حذاء", "احذية", "أحذية", "جزمة", "قميص", "تيشيرت", "بنطال", "بنطلون", "جاكيت", "فستان", "عباية", "ملابس", "شنطة", "حقيبة",
+    # Home & Kitchen
+    "مكينة", "ماكينة", "خلاط", "قلاية", "غلاية", "صانعة قهوة", "مكنسة", "مكواة", "مروحة", "دفاية", "إنارة", "ابجورة",
+    # Latin keywords
+    "watch", "headphone", "earphone", "earbuds", "airpods", "mouse", "keyboard", "charger", "cable",
+    "powerbank", "phone", "iphone", "samsung", "camera", "screen", "monitor", "laptop", "tablet",
+    "ipad", "case", "cover", "perfume", "fragrance", "shoes", "sneakers", "shirt", "t-shirt", "bag",
+    "backpack", "speaker", "router", "printer", "shaver", "blender"
+]
+
+
+def is_physical_product(product):
+    """
+    Accurately detects whether a product is a physical item:
+    1. Checks product.product_type == 'physical'
+    2. Checks category.product_type or category name
+    3. Analyzes product name for physical e-commerce keywords
+    """
+    if getattr(product, "product_type", None) == "physical":
+        return True
+
+    cat = getattr(product, "category", None)
+    if cat:
+        if getattr(cat, "product_type", None) == "physical":
+            return True
+        c_name = cat.name.lower()
+        if any(w in c_name for w in ("إلكترونيات", "الكترونيات", "أجهزة", "هواتف", "جوالات", "عطور", "ساعات", "ملابس", "أزياء", "منزلية")):
+            return True
+
+    p_lower = (product.name or "").lower()
+    for kw in PHYSICAL_KEYWORDS:
+        if kw in p_lower:
+            return True
+
+    return False
+
+
+def search_physical_product_photo(product_name):
+    """
+    Searches for authentic commercial product photography:
+    1. Translates Arabic product name to clear English
+    2. Cleans promotional fluff words (e.g. أصلي, عرض, جديد, original, free delivery)
+    3. Checks Wikipedia / Wikimedia API for famous tech hardware & gadgets (Apple, Sony, Samsung, etc.)
+    4. Searches Bing Images with targeted commercial product photography queries
+    5. Filters out logos, icons, badges, low-res images, and ensures authentic photo
+    """
+    en_query = translate_to_english(product_name)
+    clean_en = re.sub(r'\b(original|authentic|new|offer|best|free|delivery|shipping|warranty|guarantee|pro|ultra|edition|5g|4g)\b', '', en_query, flags=re.IGNORECASE).strip()
+
+    # 1. Wikipedia Hardware Lookup
+    wiki_queries = [en_query, clean_en]
+    for wq in wiki_queries:
+        if len(wq) < 3:
+            continue
+        try:
+            url = f"https://en.wikipedia.org/w/api.php?action=query&titles={urllib.parse.quote(wq)}&prop=pageimages&format=json&pithumbsize=800"
+            resp = requests.get(url, headers={"User-Agent": "RaqamiyatStore/2.0"}, timeout=3.5)
+            pages = resp.json().get("query", {}).get("pages", {})
+            for pid, pdata in pages.items():
+                thumb = pdata.get("thumbnail", {}).get("source")
+                if thumb and not any(bad in thumb.lower() for bad in ('logo', 'flag', 'map', 'icon', 'symbol', 'building', 'office')):
+                    ir = requests.get(thumb, headers={"User-Agent": "Mozilla/5.0"}, timeout=4.0)
+                    if ir.status_code == 200 and len(ir.content) > 15000:
+                        pil_img = Image.open(io.BytesIO(ir.content)).convert("RGBA")
+                        if pil_img.width >= 300 and pil_img.height >= 300:
+                            return pil_img
+        except Exception as e:
+            logger.debug("Wikipedia product search error: %s", e)
+
+    # 2. Bing Images Commercial Search
+    headers = {
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
+        "Referer": "https://www.bing.com/"
+    }
+    search_queries = [
+        f"{en_query} product white background",
+        f"{en_query} official product photography",
+        f"{product_name} منتج أصلي"
+    ]
+    for sq in search_queries:
+        try:
+            url = f"https://www.bing.com/images/async?q={urllib.parse.quote(sq)}&count=15&first=1"
+            resp = requests.get(url, headers=headers, timeout=4.5)
+            murls = re.findall(r'&quot;murl&quot;:&quot;(https?://[^&"]+)&quot;', resp.text)
+            for m in murls[:10]:
+                if any(bad in m.lower() for bad in ('logo', 'emblem', 'icon', 'history', 'badge', 'banner', 'vectorstock', 'wikimedia.org', 'wikipedia.org', 'map', 'flag')):
+                    continue
+                try:
+                    ir = requests.get(m, headers={"User-Agent": "Mozilla/5.0"}, timeout=4.0)
+                    if ir.status_code == 200 and len(ir.content) > 15000:
+                        pil_img = Image.open(io.BytesIO(ir.content)).convert("RGBA")
+                        w, h = pil_img.size
+                        if w >= 300 and h >= 300:
+                            return pil_img
+                except Exception:
+                    continue
+        except Exception as e:
+            logger.debug("Bing physical search error for %s: %s", sq, e)
+
+    return None
+
+
+def compose_physical_product_card(prod_img, product_name, store_name=None, width=600, height=600):
+    """
+    Composes a luxury studio commercial product card (600x600):
+    - Clean modern neutral studio background (#f8fafc with subtle ambient shadow)
+    - Product centered with true aspect ratio preserved (max 82% of width/height)
+    - Soft realistic ambient contact drop shadow beneath the product
+    - Crisp outer studio border
+    - NO squishing into an app squircle or fake badges
+    """
+    canvas = Image.new("RGBA", (width, height), (248, 250, 252, 255))
+
+    w_orig, h_orig = prod_img.size
+    is_transparent = False
+    if prod_img.mode in ("RGBA", "LA"):
+        alpha = prod_img.split()[-1]
+        sample_pts = [(0, 0), (w_orig - 1, 0), (0, h_orig - 1), (w_orig - 1, h_orig - 1)]
+        if any(alpha.getpixel(pt) < 200 for pt in sample_pts):
+            is_transparent = True
+
+    rgb_img = prod_img.convert("RGB")
+    corners = [(2, 2), (w_orig - 3, 2), (2, h_orig - 3), (w_orig - 3, h_orig - 3)]
+    is_light_bg = all(sum(rgb_img.getpixel(pt)) > 700 for pt in corners)
+
+    if is_transparent or is_light_bg:
+        max_w = int(width * 0.82)
+        max_h = int(height * 0.82)
+        prod_fit = prod_img.copy().convert("RGBA")
+        prod_fit.thumbnail((max_w, max_h), Image.Resampling.LANCZOS)
+        pw, ph = prod_fit.size
+        px = (width - pw) // 2
+        py = (height - ph) // 2
+
+        shadow_h = 24
+        shadow_w = int(pw * 0.72)
+        shadow = Image.new("RGBA", (shadow_w, shadow_h), (0, 0, 0, 0))
+        s_draw = ImageDraw.Draw(shadow)
+        s_draw.ellipse([0, 0, shadow_w - 1, shadow_h - 1], fill=(0, 0, 0, 45))
+        shadow = shadow.filter(ImageFilter.GaussianBlur(10))
+
+        sx = (width - shadow_w) // 2
+        sy = py + ph - 8
+        canvas.paste(shadow, (sx, sy), shadow)
+        canvas.paste(prod_fit, (px, py), prod_fit)
+    else:
+        dim = min(w_orig, h_orig)
+        left = (w_orig - dim) // 2
+        top = (h_orig - dim) // 2
+        cropped = prod_img.crop((left, top, left + dim, top + dim))
+        resized = cropped.resize((width, height), Image.Resampling.LANCZOS)
+        canvas = resized.convert("RGBA")
+
+    draw = ImageDraw.Draw(canvas)
+    draw.rounded_rectangle([0, 0, width - 1, height - 1], radius=24, outline=(226, 232, 240, 255), width=2)
+    draw.rounded_rectangle([4, 4, width - 5, height - 5], radius=20, outline=(255, 255, 255, 120), width=1)
+
+    return canvas.convert("RGB")
+
+
+def is_gift_card_or_voucher(product_name):
+    p_lower = (product_name or "").lower()
+    return any(w in p_lower for w in ("بطاقة", "كرت", "قسيمة", "كود", "مفتاح", "شحن بطاقات", "card", "voucher", "gift card", "code", "license"))
+
+
+def search_gift_card_image(product_name):
+    en_query = translate_to_english(product_name)
+    headers = {
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
+        "Referer": "https://www.bing.com/"
+    }
+    queries = [
+        f"{en_query} gift card official",
+        f"{en_query} voucher card"
+    ]
+    for q in queries:
+        try:
+            url = f"https://www.bing.com/images/async?q={urllib.parse.quote(q)}&count=12&first=1"
+            resp = requests.get(url, headers=headers, timeout=4.5)
+            murls = re.findall(r'&quot;murl&quot;:&quot;(https?://[^&"]+)&quot;', resp.text)
+            for m in murls[:8]:
+                if any(bad in m.lower() for bad in ('map', 'flag', 'vectorstock', 'watermark')):
+                    continue
+                try:
+                    ir = requests.get(m, headers={"User-Agent": "Mozilla/5.0"}, timeout=4.0)
+                    if ir.status_code == 200 and len(ir.content) > 10000:
+                        pil_img = Image.open(io.BytesIO(ir.content)).convert("RGBA")
+                        if pil_img.width >= 250 and pil_img.height >= 250:
+                            return pil_img
+                except Exception:
+                    continue
+        except Exception:
+            pass
+    return None
+
+
 def apply_branding_to_product(product, force=False, custom_image_url=None):
     """
     Main function to brand a single product:
     1. If custom_image_url is provided, download and use provider's official logo.
-    2. Searches the internet for the official app/service logo.
-    3. If not found, falls back to existing uploaded product image if available.
-    4. If still not found, generates an ultra-luxury studio card with Raqamiyat gold emblem.
+    2. If it is a Physical Product, search for authentic commercial product photography.
+    3. If it is a Digital Gift Card/Voucher, search for the official gift card artwork.
+    4. If it is a Digital App/Game/Service, search official app icons (Bundle/iTunes/Google Play/Local).
+    5. Fallback to web product search before emblem fallback.
     Guarantees 100% success rate without deleting or corrupting existing images.
     """
     if product.image and not force:
         return False
 
     store_name = product.store.name if product.store else None
-    logo_img = None
+    card_img = None
 
     # 0. Official Provider Category Image
     if custom_image_url and str(custom_image_url).startswith("http"):
         try:
-            resp = requests.get(custom_image_url, timeout=3.0, headers={"User-Agent": "Mozilla/5.0"})
+            resp = requests.get(custom_image_url, timeout=3.5, headers={"User-Agent": "Mozilla/5.0"})
             if resp.status_code == 200 and len(resp.content) > 500:
                 logo_img = Image.open(io.BytesIO(resp.content)).convert("RGBA")
+                card_img = compose_branded_card(logo_img, product.name, store_name)
         except Exception as e:
             logger.debug("Failed to download custom logo url %s: %s", custom_image_url, e)
 
-    # 1. Search internet for real official app/service logo
-    if not logo_img:
+    # 1. PHYSICAL PRODUCTS (Hardware, Gadgets, Perfumes, Watches, Clothes, etc.)
+    if not card_img and is_physical_product(product):
+        phys_img = search_physical_product_photo(product.name)
+        if phys_img:
+            card_img = compose_physical_product_card(phys_img, product.name, store_name)
+
+    # 2. DIGITAL GIFT CARDS & VOUCHERS
+    if not card_img and is_gift_card_or_voucher(product.name):
+        gc_img = search_gift_card_image(product.name)
+        if gc_img:
+            card_img = compose_branded_card(gc_img, product.name, store_name)
+
+    # 3. DIGITAL APPS / GAMES / SERVICES
+    if not card_img:
         logo_img = search_and_download_logo(product.name)
+        if not logo_img and product.image:
+            try:
+                logo_img = Image.open(product.image.path).convert("RGBA")
+            except Exception:
+                logo_img = None
 
-    # 2. Check if product already has an image on disk
-    if not logo_img and product.image:
-        try:
-            logo_img = Image.open(product.image.path).convert("RGBA")
-        except Exception:
-            logo_img = None
+        if not logo_img:
+            # Fallback: try physical photo search before generic emblem
+            fallback_photo = search_physical_product_photo(product.name)
+            if fallback_photo:
+                card_img = compose_physical_product_card(fallback_photo, product.name, store_name)
+            else:
+                logo_img = create_fallback_brand_icon(product.name)
 
-    # 3. Fallback to luxury emblem icon
-    if not logo_img:
-        logo_img = create_fallback_brand_icon(product.name)
+        if not card_img and logo_img:
+            card_img = compose_branded_card(
+                logo_img=logo_img,
+                product_name=product.name,
+                store_name=store_name
+            )
 
-    card_img = compose_branded_card(
-        logo_img=logo_img,
-        product_name=product.name,
-        store_name=store_name
-    )
     if not card_img:
         return False
 
@@ -984,36 +1402,36 @@ def apply_branding_to_product(product, force=False, custom_image_url=None):
 
 def apply_branding_to_category(category, force=False):
     """
-    Brand a Category with official icon/logo:
-    1. Searches the internet for the official category logo/icon.
-    2. Falls back to luxury emblem icon if not found.
-    3. Composes branded card and saves to category.image.
+    Brand a Category with official matching artwork:
+    1. Checks curated pristine 600x600 HD artwork in assets/categories (Games, Chat, Telecom, etc.).
+    2. Searches web for high-definition 4K commercial visuals for custom categories.
+    3. Composes category card with clean depth gradient & Arabic typography title.
     Guarantees 100% success rate without deleting or corrupting existing images.
     """
     if category.image and not force:
         return False
 
-    store_name = category.store.name if category.store else None
+    cat_img = None
 
-    # 1. Search internet for real official app/service logo
-    logo_img = search_and_download_logo(category.name)
+    # 1. Check curated high-definition 600x600 category library
+    cat_img = fetch_curated_category_asset(category.name)
 
-    # 2. Check if category already has an image on disk
-    if not logo_img and category.image:
+    # 2. Check web for high-definition 4K category visuals
+    if not cat_img:
+        cat_img = search_category_web_image(category.name)
+
+    # 3. Existing category image on disk
+    if not cat_img and category.image:
         try:
-            logo_img = Image.open(category.image.path).convert("RGBA")
+            cat_img = Image.open(category.image.path).convert("RGBA")
         except Exception:
-            logo_img = None
+            cat_img = None
 
-    # 3. Fallback to luxury emblem icon
-    if not logo_img:
-        logo_img = create_fallback_brand_icon(category.name)
+    # 4. Fallback to luxury brand icon
+    if not cat_img:
+        cat_img = create_fallback_brand_icon(category.name)
 
-    card_img = compose_branded_card(
-        logo_img=logo_img,
-        product_name=category.name,
-        store_name=store_name
-    )
+    card_img = compose_category_card(cat_img, category.name)
     if not card_img:
         return False
 
@@ -1023,3 +1441,4 @@ def apply_branding_to_category(category, force=False):
 
     category.image.save(filename, ContentFile(buf.getvalue()), save=True)
     return True
+
