@@ -99,7 +99,7 @@
 </div>
 
 {# ── Product Import Modal ── #}
-<div id="product-import-modal" style="display:none;position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,0.85);backdrop-filter:blur(8px);align-items:center;justify-content:center;padding:1rem;">
+<div id="product-import-modal" onclick="if(event.target === this) closeProductImportModal()" style="display:none;position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,0.85);backdrop-filter:blur(8px);align-items:center;justify-content:center;padding:1rem;">
     <div style="background:#0f172a;border:1.5px solid rgba(34,211,238,0.3);border-radius:1.25rem;padding:1.5rem;max-width:34rem;width:100%;box-shadow:0 30px 60px rgba(0,0,0,0.6);">
         <!-- Modal header -->
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem;border-bottom:1px solid rgba(255,255,255,0.08);padding-bottom:.75rem;">
@@ -1765,6 +1765,7 @@ window.submitTransferVariant = function() {
         btn.disabled = false;
         btn.innerHTML = origHtml;
         showToast('خطأ في الاتصال: ' + err, true);
+    });
 };
 
 window.openProductImportModal = function() {
