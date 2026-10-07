@@ -1557,27 +1557,58 @@ body.is-native-app .rq-section-link {
   <div class="rq-ambient-aura"></div>
 
   <!-- ═══════════════════════════════════════════════════════════════
-       1. HERO SECTION — Modern Split Spotlight
+       1. HERO SECTION — Modern Interactive Multi-Action Showcase
        ═══════════════════════════════════════════════════════════════ -->
   <section class="rq-hero-section">
     <div class="rq-container">
       <div class="rq-hero-layout">
         
-        <!-- Right Column: Brand Copy & Omni Search -->
+        <!-- Right Column: Brand Copy & Interactive Discovery Hub -->
         <div class="rq-hero-content">
           <div class="rq-meta-pill">
             <span class="rq-pulse-dot"></span>
-            <span>بنية تحتية رقمية سحابية موحدة • ترخيص معتمد</span>
+            <span>بنية رقمية موحدة • تسليم آلي 100% • ترخيص معتمد</span>
           </div>
 
           <h1 class="rq-hero-title">
-            الجيل القادم من <br>
-            <span class="rq-gradient-text">التجارة الرقمية السحابية</span>
+            بوابتك الرقمية الذكية <br>
+            <span class="rq-gradient-text">للشحن والاشتراكات الفورية</span>
           </h1>
 
           <p class="rq-hero-desc">
-            منظومتك الشاملة للوصول الفوري إلى أرقى الاشتراكات السحابية، التراخيص البرمجية، بطاقات الألعاب والتسوق الدولية ببروتوكول تسليم مؤتمت وأمان مصرفي فائق.
+            المنصة الأولى المعتمدة للوصول الفوري لأحدث الاشتراكات السحابية، شدات وبطاقات الألعاب، البرمجيات التخصصية، ومحافظ رقمية متعددة العملات بتسليم تلقائي وأمان مصرفي فائق.
           </p>
+
+          <!-- Interactive User Action Cluster (App Download + Auth/Dashboard) -->
+          <div class="flex flex-wrap items-center gap-3 mb-6">
+            {% if FEATURES.feature_app_download %}
+            <a href="{% url 'download_android_apk' %}" class="inline-flex items-center gap-2.5 px-5 py-3 rounded-2xl bg-gradient-to-r from-cyan-500 via-teal-400 to-emerald-400 hover:brightness-110 text-slate-950 font-black text-sm shadow-xl shadow-cyan-500/20 transition-all hover:scale-105 active:scale-95">
+              <i class="fab fa-android text-lg"></i>
+              <span>تحميل تطبيق رقميات (APK)</span>
+              <span class="px-2 py-0.5 rounded-full bg-slate-950/20 text-slate-950 text-[10px] font-bold">مجاناً</span>
+            </a>
+            {% endif %}
+
+            {% if not user.is_authenticated %}
+            <a href="{% url 'site_register' %}" class="inline-flex items-center gap-2 px-4 py-3 rounded-2xl bg-amber-400/10 hover:bg-amber-400/20 border border-amber-400/30 text-amber-300 font-black text-sm transition-all hover:border-amber-400">
+              <i class="fas fa-user-plus text-xs"></i>
+              <span>إنشاء حساب جديد</span>
+            </a>
+            <a href="{% url 'site_login' %}" class="inline-flex items-center gap-2 px-4 py-3 rounded-2xl bg-white/5 hover:bg-white/10 border border-white/10 text-slate-200 font-bold text-sm transition-all">
+              <i class="fas fa-arrow-right-to-bracket text-xs"></i>
+              <span>تسجيل الدخول</span>
+            </a>
+            {% else %}
+            <a href="{% url 'dashboard' %}" class="inline-flex items-center gap-2 px-5 py-3 rounded-2xl bg-indigo-500/20 hover:bg-indigo-500/30 border border-indigo-500/40 text-indigo-300 font-black text-sm transition-all">
+              <i class="fas fa-circle-user text-sm"></i>
+              <span>لوحة التحكم الشخصية</span>
+            </a>
+            <a href="{% url 'dashboard_wallet' %}" class="inline-flex items-center gap-2 px-4 py-3 rounded-2xl bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/30 text-emerald-300 font-bold text-sm transition-all">
+              <i class="fas fa-wallet text-xs"></i>
+              <span>المحفظة والرصيد</span>
+            </a>
+            {% endif %}
+          </div>
 
           <!-- Omni Search Dock -->
           <form action="{% url 'catalog' %}" method="get" class="rq-omni-search" id="rq-hero-search-form">
@@ -1595,7 +1626,7 @@ body.is-native-app .rq-section-link {
             <span class="rq-tag-label"><i class="fas fa-bolt text-amber-400"></i> وصول سريع:</span>
             <a href="{% url 'catalog' %}?q=Canva" class="rq-tag-chip">Canva Pro سحابي</a>
             <a href="{% url 'catalog' %}?q=VPN" class="rq-tag-chip">اشتراكات VPN</a>
-            <a href="{% url 'catalog' %}?q=Ayome" class="rq-tag-chip">Ayome شات</a>
+            <a href="{% url 'catalog' %}?q=PUBG" class="rq-tag-chip">شدات ببجي</a>
             <a href="{% url 'catalog' %}?q=بطاقات" class="rq-tag-chip">بطاقات رقمية</a>
             {% if not is_tenant %}
             <a href="{% url 'stores_directory' %}" class="rq-tag-chip text-indigo-400 font-bold">دليل المتاجر ⟵</a>
