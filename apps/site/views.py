@@ -6343,7 +6343,7 @@ def download_android_apk(request):
     Direct download redirect for the compiled Raqamiyat Android APK.
     Always points to the latest release package.
     """
-    apk_url = "https://github.com/RamiQassas/store/releases/download/v2.0.0-apk/Raqamiyat-v2.0.0.apk"
+    apk_url = "https://github.com/RamiQassas/store/releases/download/v2.0.0-apk/Raqamiyat-Release.apk"
     return redirect(apk_url)
 
 
