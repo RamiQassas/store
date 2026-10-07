@@ -1660,9 +1660,78 @@
       document.addEventListener('DOMContentLoaded', syncCsrfTokens);
       window.addEventListener('pageshow', syncCsrfTokens);
 
+      // Unified Offline Transaction Guard & Anti-Duplicate Protector
+      const SENSITIVE_PATTERNS = [
+          '/orders/', '/deposits/', '/withdrawals/', '/transfer/', '/recharge/',
+          '/buy/', '/checkout/', '/payment/', '/change-password/', '/change-email/'
+      ];
+
+      function isSensitiveAction(actionUrl) {
+          if (!actionUrl) return false;
+          const urlStr = actionUrl.toLowerCase();
+          return SENSITIVE_PATTERNS.some(function(p) { return urlStr.includes(p); });
+      }
+
+      function getOperationArabicName(actionUrl) {
+          const u = (actionUrl || '').toLowerCase();
+          if (u.includes('deposit') || u.includes('recharge')) return 'شحن الرصيد / الإيداع';
+          if (u.includes('withdraw')) return 'سحب الرصيد';
+          if (u.includes('transfer')) return 'تحويل الأموال';
+          if (u.includes('order') || u.includes('buy') || u.includes('checkout')) return 'تأكيد الطلب والشراء';
+          if (u.includes('password') || u.includes('email')) return 'تعديل بيانات الحساب والأمان';
+          return 'العملية المالية';
+      }
+
       document.addEventListener('submit', function(e) {
           if (e.target && e.target.tagName === 'FORM') {
               syncCsrfTokens();
+
+              const form = e.target;
+              const action = form.getAttribute('action') || window.location.pathname;
+
+              if (isSensitiveAction(action) && form.method.toLowerCase() === 'post') {
+                  const isOnline = (window.RaqamiyatNative && typeof window.RaqamiyatNative.isOnline === 'function')
+                      ? window.RaqamiyatNative.isOnline()
+                      : navigator.onLine;
+
+                  if (!isOnline) {
+                      e.preventDefault();
+                      e.stopImmediatePropagation();
+                      const opName = getOperationArabicName(action);
+
+                      if (window.RaqamiyatNative && typeof window.RaqamiyatNative.showOfflineTransactionAlert === 'function') {
+                          window.RaqamiyatNative.showOfflineTransactionAlert(opName);
+                      } else {
+                          alert('⚠️ لا يوجد اتصال بالإنترنت\nعملية ' + opName + ' تحتاج إلى اتصال فعال بالإنترنت لحماية وتأكيد رصيدك وحسابك بأمان. يرجى التحقق من اتصالك والمحاولة مرة أخرى.');
+                      }
+                      return false;
+                  }
+
+                  // Anti-duplicate protection: prevent double submission
+                  if (form.dataset.submitting === 'true') {
+                      e.preventDefault();
+                      return false;
+                  }
+                  form.dataset.submitting = 'true';
+
+                  // Generate idempotency key if not present
+                  if (!form.querySelector('input[name="idempotency_key"]')) {
+                      const idempInput = document.createElement('input');
+                      idempInput.type = 'hidden';
+                      idempInput.name = 'idempotency_key';
+                      idempInput.value = 'txn_' + Date.now() + '_' + Math.random().toString(36).substring(2, 9);
+                      form.appendChild(idempInput);
+                  }
+
+                  const submitBtn = form.querySelector('button[type="submit"], input[type="submit"]');
+                  if (submitBtn) {
+                      submitBtn.disabled = true;
+                      if (submitBtn.tagName === 'BUTTON') {
+                          submitBtn.setAttribute('data-original-html', submitBtn.innerHTML);
+                          submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin ml-1"></i> جاري المعالجة بأمان...';
+                      }
+                  }
+              }
           }
       }, true);
   })();

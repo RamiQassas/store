@@ -2,24 +2,27 @@
 <RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="#030712">
+    android:background="#0a0a0f">
 
-    <!-- Offline Status Indicator Banner -->
+    <!-- Connectivity Status Banner (Animated Slide In/Out) -->
     <LinearLayout
-        android:id="@+id/offline_banner"
+        android:id="@+id/connectivity_banner"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_alignParentTop="true"
-        android:background="#0e7490"
-        android:padding="8dp"
+        android:background="#b45309"
+        android:paddingVertical="7dp"
+        android:paddingHorizontal="14dp"
         android:gravity="center"
+        android:elevation="12dp"
         android:orientation="horizontal"
         android:visibility="gone">
 
         <TextView
+            android:id="@+id/banner_text"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="⚡ أنت تتصفح بدون إنترنت • البيانات والمنتجات مخزنة وتعمل بسلاسة"
+            android:text="⚠️ أنت تتصفح بدون إنترنت • يتم عرض البيانات المخزنة محلياً"
             android:textColor="#FFFFFF"
             android:textSize="11sp"
             android:textStyle="bold" />
@@ -29,13 +32,15 @@
         android:id="@+id/page_progress"
         style="?android:attr/progressBarStyleHorizontal"
         android:layout_width="match_parent"
-        android:layout_height="3dp"
-        android:layout_below="@id/offline_banner"
+        android:layout_height="2.5dp"
+        android:layout_below="@id/connectivity_banner"
         android:indeterminate="false"
         android:max="100"
         android:progressDrawable="@android:color/holo_blue_bright"
+        android:elevation="10dp"
         android:visibility="gone" />
 
+    <!-- Main Content Area with SwipeRefreshLayout -->
     <androidx.swiperefreshlayout.widget.SwipeRefreshLayout
         android:id="@+id/swipe_refresh"
         android:layout_width="match_parent"
@@ -45,7 +50,120 @@
         <WebView
             android:id="@+id/main_webview"
             android:layout_width="match_parent"
-            android:layout_height="match_parent" />
+            android:layout_height="match_parent"
+            android:background="#0a0a0f" />
     </androidx.swiperefreshlayout.widget.SwipeRefreshLayout>
+
+    <!-- Custom Native Offline Fallback View (Shown only on catastrophic failure) -->
+    <LinearLayout
+        android:id="@+id/native_error_view"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:background="#0a0a0f"
+        android:gravity="center"
+        android:orientation="vertical"
+        android:padding="32dp"
+        android:visibility="gone"
+        android:elevation="8dp">
+
+        <ImageView
+            android:layout_width="72dp"
+            android:layout_height="72dp"
+            android:src="@mipmap/ic_launcher"
+            android:layout_marginBottom="16dp" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="تعذر الاتصال بالخادم"
+            android:textColor="#FFFFFF"
+            android:textSize="18sp"
+            android:textStyle="bold"
+            android:layout_marginBottom="8dp" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="يبدو أنك غير متصل بالإنترنت حالياً. يمكنك تصفح المنتجات والخدمات المحفوظة محلياً، أو إعادة المحاولة فور توفر الشبكة."
+            android:textColor="#94A3B8"
+            android:textSize="13sp"
+            android:gravity="center"
+            android:layout_marginBottom="24dp" />
+
+        <LinearLayout
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center">
+
+            <Button
+                android:id="@+id/btn_retry_connection"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="إعادة المحاولة 🔄"
+                android:textColor="#000000"
+                android:backgroundTint="#06B6D4"
+                android:textSize="12sp"
+                android:textStyle="bold"
+                android:paddingHorizontal="20dp"
+                android:layout_marginEnd="10dp" />
+
+            <Button
+                android:id="@+id/btn_browse_cached"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="الكتالوج المحفوظ 📦"
+                android:textColor="#FFFFFF"
+                android:backgroundTint="#1E293B"
+                android:textSize="12sp"
+                android:paddingHorizontal="16dp" />
+        </LinearLayout>
+    </LinearLayout>
+
+    <!-- Luxury Native Splash Screen Overlay -->
+    <RelativeLayout
+        android:id="@+id/splash_overlay"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:background="#0a0a0f"
+        android:elevation="20dp">
+
+        <LinearLayout
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_centerInParent="true"
+            android:gravity="center"
+            android:orientation="vertical">
+
+            <ImageView
+                android:layout_width="86dp"
+                android:layout_height="86dp"
+                android:src="@mipmap/ic_launcher"
+                android:layout_marginBottom="14dp" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="رقميات | Raqamiyat"
+                android:textColor="#D4A853"
+                android:textSize="20sp"
+                android:textStyle="bold"
+                android:letterSpacing="0.04"
+                android:layout_marginBottom="4dp" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="بوابتك المتكاملة للخدمات والمنتجات"
+                android:textColor="#64748B"
+                android:textSize="11sp"
+                android:layout_marginBottom="24dp" />
+
+            <ProgressBar
+                android:layout_width="28dp"
+                android:layout_height="28dp"
+                android:indeterminateTint="#06B6D4" />
+        </LinearLayout>
+    </RelativeLayout>
 
 </RelativeLayout>

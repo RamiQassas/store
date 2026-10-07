@@ -62,8 +62,20 @@ self.addEventListener('fetch', function(event) {
     // Only handle HTTP/HTTPS requests
     if (!url.protocol.startsWith('http')) return;
 
-    // Skip POST, PUT, DELETE requests (handled via background sync if offline)
+    // Safe non-GET request handling (Never perform financial/mutation operations offline)
     if (request.method !== 'GET') {
+        event.respondWith(
+            fetch(request).catch(function() {
+                return new Response(JSON.stringify({
+                    success: false,
+                    error: "offline",
+                    message: "لا يوجد اتصال بالإنترنت. هذه العملية تحتاج إلى اتصال فعال بالإنترنت لحماية حسابك وتأكيد العملية بأمان، يرجى التحقق من اتصالك والمحاولة مجدداً."
+                }), {
+                    status: 503,
+                    headers: { 'Content-Type': 'application/json; charset=utf-8' }
+                });
+            })
+        );
         return;
     }
 

@@ -103,8 +103,19 @@
                     </span>
                 </div>
 
+                <!-- Dual Preview Tabs (Original vs Processed) -->
+                <div id="preview-tab-bar" class="absolute top-3 inset-x-3 flex items-center justify-center gap-2 z-20 hidden">
+                    <button type="button" id="tab-processed-btn" class="px-3 py-1.5 rounded-xl bg-cyan text-black font-black text-xs shadow-lg transition-all" onclick="switchPreviewTab('processed')">
+                        <i class="fas fa-wand-magic-sparkles ml-1"></i> معالجة الاستوديو (Processed)
+                    </button>
+                    <button type="button" id="tab-original-btn" class="px-3 py-1.5 rounded-xl bg-black/60 hover:bg-black/90 text-slate-300 font-bold text-xs backdrop-blur-md transition-all" onclick="switchPreviewTab('original')">
+                        <i class="fas fa-image ml-1"></i> الأصلية (Original)
+                    </button>
+                </div>
+
                 <!-- Captured / Processed Image Preview Canvas/IMG -->
                 <img id="studio-preview-img" class="absolute inset-0 w-full h-full object-contain bg-white hidden" alt="Studio Preview">
+                <img id="studio-original-img" class="absolute inset-0 w-full h-full object-contain bg-black hidden" alt="Original Image">
 
                 <!-- Processing Overlay -->
                 <div id="processing-overlay" class="absolute inset-0 bg-slate-950/85 backdrop-blur-md flex flex-col items-center justify-center gap-3 z-30 hidden">
@@ -127,19 +138,24 @@
                         <span>التقاط صورة المنتج</span>
                     </button>
 
-                    <!-- Native File/Gallery Trigger -->
-                    <label for="native-file-input" class="w-11 h-11 rounded-2xl bg-black/60 hover:bg-black/90 text-white backdrop-blur-md flex items-center justify-center border border-white/10 transition-all shadow-lg cursor-pointer" title="اختيار صورة من الهاتف">
+                    <!-- Native File/Gallery Trigger (Supports single and multiple selection) -->
+                    <label for="native-file-input" class="w-11 h-11 rounded-2xl bg-black/60 hover:bg-black/90 text-white backdrop-blur-md flex items-center justify-center border border-white/10 transition-all shadow-lg cursor-pointer" title="اختيار من المعرض أو كاميرا الهاتف">
                         <i class="fas fa-images text-sm"></i>
-                        <input type="file" id="native-file-input" accept="image/*" capture="environment" class="hidden">
+                        <input type="file" id="native-file-input" accept="image/*" multiple class="hidden">
                     </label>
                 </div>
             </div>
 
             <!-- Retake & Download / Reset Controls -->
-            <div id="post-capture-controls" class="flex items-center justify-between gap-3 bg-slate-900/40 p-3 rounded-2xl border border-white/5 hidden">
-                <button type="button" id="retake-btn" class="btn btn-outline text-xs px-4 py-2 rounded-xl text-slate-300 hover:text-white">
-                    <i class="fas fa-redo ml-1"></i> إعادة التقاط
-                </button>
+            <div id="post-capture-controls" class="flex flex-wrap items-center justify-between gap-3 bg-slate-900/40 p-3 rounded-2xl border border-white/5 hidden">
+                <div class="flex items-center gap-2">
+                    <button type="button" id="retake-btn" class="btn btn-outline text-xs px-3.5 py-2 rounded-xl text-slate-300 hover:text-white">
+                        <i class="fas fa-redo ml-1"></i> إعادة التقاط
+                    </button>
+                    <button type="button" id="reprocess-btn" class="btn btn-outline text-xs px-3.5 py-2 rounded-xl text-cyan hover:bg-cyan/10">
+                        <i class="fas fa-wand-magic ml-1"></i> إعادة المعالجة
+                    </button>
+                </div>
                 <div class="text-[11px] text-emerald-400 font-bold flex items-center gap-1.5">
                     <i class="fas fa-check-circle"></i> تم التقاط ومعالجة الصورة بنجاح
                 </div>
@@ -224,11 +240,28 @@
                     </button>
                 </div>
 
-                <!-- Final Submit / Apply Button -->
-                <button type="button" id="apply-studio-image-btn" disabled class="w-full py-3.5 rounded-2xl bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 disabled:opacity-40 disabled:pointer-events-none text-black font-black text-sm flex items-center justify-center gap-2 shadow-xl transition-all">
-                    <i class="fas fa-cloud-arrow-up text-base"></i>
-                    <span>حفظ وتعيين للمنتج فوراً</span>
-                </button>
+                <!-- Offline Queue Indicator -->
+                <div id="offline-queue-box" class="p-3 rounded-2xl bg-amber-500/10 border border-amber-500/30 flex items-center justify-between hidden">
+                    <div class="text-[11px] text-amber-300 font-bold">
+                        <i class="fas fa-wifi-slash ml-1"></i> بانتظار الاتصال: تم حفظ الصورة محلياً
+                    </div>
+                    <button type="button" id="retry-offline-upload-btn" class="px-2.5 py-1 bg-amber-500 text-black text-[10px] font-black rounded-lg">
+                        إعادة المحاولة
+                    </button>
+                </div>
+
+                <!-- Final Submit / Apply Buttons -->
+                <div class="space-y-2">
+                    <button type="button" id="apply-studio-image-btn" disabled class="w-full py-3.5 rounded-2xl bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 disabled:opacity-40 disabled:pointer-events-none text-black font-black text-sm flex items-center justify-center gap-2 shadow-xl transition-all">
+                        <i class="fas fa-cloud-arrow-up text-base"></i>
+                        <span>حفظ وتعيين للمنتج فوراً</span>
+                    </button>
+                    
+                    <button type="button" id="apply-and-next-btn" disabled class="w-full py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 disabled:opacity-40 disabled:pointer-events-none text-cyan font-bold text-xs flex items-center justify-center gap-1.5 border border-cyan/20 transition-all">
+                        <span>اعتماد والانتقال للمنتج التالي</span>
+                        <i class="fas fa-forward-step mr-1"></i>
+                    </button>
+                </div>
             </div>
         </div>
 
@@ -321,9 +354,46 @@
         reader.readAsDataURL(file);
     });
 
+    var originalImgEl = document.getElementById('studio-original-img');
+    var previewTabBar = document.getElementById('preview-tab-bar');
+    var tabProcessedBtn = document.getElementById('tab-processed-btn');
+    var tabOriginalBtn = document.getElementById('tab-original-btn');
+    var reprocessBtn = document.getElementById('reprocess-btn');
+    var applyAndNextBtn = document.getElementById('apply-and-next-btn');
+    var offlineQueueBox = document.getElementById('offline-queue-box');
+    var retryOfflineBtn = document.getElementById('retry-offline-upload-btn');
+
+    // Dual Preview Switcher
+    window.switchPreviewTab = function(tab) {
+        if (tab === 'original') {
+            if (originalImgEl) originalImgEl.classList.remove('hidden');
+            if (previewImgEl) previewImgEl.classList.add('hidden');
+            if (tabOriginalBtn) {
+                tabOriginalBtn.classList.remove('bg-black/60', 'text-slate-300');
+                tabOriginalBtn.classList.add('bg-cyan', 'text-black', 'font-black');
+            }
+            if (tabProcessedBtn) {
+                tabProcessedBtn.classList.remove('bg-cyan', 'text-black', 'font-black');
+                tabProcessedBtn.classList.add('bg-black/60', 'text-slate-300');
+            }
+        } else {
+            if (previewImgEl) previewImgEl.classList.remove('hidden');
+            if (originalImgEl) originalImgEl.classList.add('hidden');
+            if (tabProcessedBtn) {
+                tabProcessedBtn.classList.remove('bg-black/60', 'text-slate-300');
+                tabProcessedBtn.classList.add('bg-cyan', 'text-black', 'font-black');
+            }
+            if (tabOriginalBtn) {
+                tabOriginalBtn.classList.remove('bg-cyan', 'text-black', 'font-black');
+                tabOriginalBtn.classList.add('bg-black/60', 'text-slate-300');
+            }
+        }
+    };
+
     // Send Image to Studio Processing Endpoint
     function processCapturedImage(base64Data) {
         processingOverlay.classList.remove('hidden');
+        if (originalImgEl) originalImgEl.src = base64Data;
         
         var fd = new FormData();
         fd.append('image_base64', base64Data);
@@ -342,10 +412,13 @@
                 processedDataUrl = data.preview_url;
                 previewImgEl.src = processedDataUrl;
                 previewImgEl.classList.remove('hidden');
+                if (originalImgEl) originalImgEl.classList.add('hidden');
                 videoEl.classList.add('hidden');
                 document.getElementById('viewfinder-guides').classList.add('hidden');
                 document.getElementById('viewfinder-box').classList.add('hidden');
+                previewTabBar.classList.remove('hidden');
                 postCaptureControls.classList.remove('hidden');
+                switchPreviewTab('processed');
                 updateApplyButtonState();
                 showToast(data.message || 'تمت معالجة صورة المنتج بنجاح!');
             } else {
@@ -358,9 +431,20 @@
         });
     }
 
+    // Reprocess Button
+    if (reprocessBtn) {
+        reprocessBtn.addEventListener('click', function() {
+            if (capturedDataUrl) {
+                processCapturedImage(capturedDataUrl);
+            }
+        });
+    }
+
     // Retake Button
     retakeBtn.addEventListener('click', function() {
         previewImgEl.classList.add('hidden');
+        if (originalImgEl) originalImgEl.classList.add('hidden');
+        previewTabBar.classList.add('hidden');
         videoEl.classList.remove('hidden');
         document.getElementById('viewfinder-guides').classList.remove('hidden');
         document.getElementById('viewfinder-box').classList.remove('hidden');
@@ -415,14 +499,55 @@
     };
 
     function updateApplyButtonState() {
-        applyBtn.disabled = !(processedDataUrl && selectedProductId);
+        var ready = !!(processedDataUrl && selectedProductId);
+        applyBtn.disabled = !ready;
+        if (applyAndNextBtn) applyAndNextBtn.disabled = !ready;
     }
 
-    // Final Apply / Save Button Click
-    applyBtn.addEventListener('click', function() {
+    function selectNextProductInList() {
+        var visibleCards = Array.from(document.querySelectorAll('.product-item-card')).filter(function(c) {
+            return c.style.display !== 'none';
+        });
+        var currentIndex = visibleCards.findIndex(function(c) {
+            return c.getAttribute('data-id') === selectedProductId;
+        });
+        if (currentIndex >= 0 && currentIndex + 1 < visibleCards.length) {
+            var nextCard = visibleCards[currentIndex + 1];
+            selectTargetProduct(
+                nextCard.getAttribute('data-id'),
+                nextCard.getAttribute('data-name'),
+                ''
+            );
+            nextCard.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        }
+    }
+
+    function saveProductStudioImage(isNextWorkflow) {
         if (!processedDataUrl || !selectedProductId) return;
-        
+
+        var isOffline = (window.RaqamiyatNative && !window.RaqamiyatNative.isOnline()) || !navigator.onLine;
+        if (isOffline) {
+            // Save payload to local storage for offline resilience
+            var pendingItem = {
+                product_id: selectedProductId,
+                image_base64: processedDataUrl,
+                isolate_white: optIsolateWhite.checked,
+                add_hallmark: optAddHallmark.checked,
+                timestamp: Date.now()
+            };
+            localStorage.setItem('raqamiyat_studio_pending', JSON.stringify(pendingItem));
+            if (offlineQueueBox) offlineQueueBox.classList.remove('hidden');
+
+            if (window.RaqamiyatNative) {
+                window.RaqamiyatNative.showOfflineTransactionAlert("رفع وتحديث صورة المنتج");
+            } else {
+                showToast('أنت غير متصل بالإنترنت: تم حفظ الصورة محلياً على هاتفك، اضغط لإعادة المحاولة عند توفر الشبكة.', true);
+            }
+            return;
+        }
+
         applyBtn.disabled = true;
+        if (applyAndNextBtn) applyAndNextBtn.disabled = true;
         var origHtml = applyBtn.innerHTML;
         applyBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> جاري الحفظ وتعيين الصورة...';
 
@@ -441,11 +566,22 @@
         .then(function(data) {
             applyBtn.disabled = false;
             applyBtn.innerHTML = origHtml;
+            if (applyAndNextBtn) applyAndNextBtn.disabled = false;
+
             if (data.status === 'success') {
                 showToast(data.message || 'تم تحديث صورة المنتج في المتجر بنجاح!');
-                setTimeout(function() {
-                    window.location.href = '{% url "control_products_list" %}';
-                }, 1200);
+                localStorage.removeItem('raqamiyat_studio_pending');
+                if (offlineQueueBox) offlineQueueBox.classList.add('hidden');
+
+                if (isNextWorkflow) {
+                    // Rapid batch workflow: move to next product, reset camera
+                    selectNextProductInList();
+                    retakeBtn.click();
+                } else {
+                    setTimeout(function() {
+                        window.location.href = '{% url "control_products_list" %}';
+                    }, 1200);
+                }
             } else {
                 showToast(data.message || 'فشل تحديث صورة المنتج', true);
             }
@@ -453,8 +589,33 @@
         .catch(function(err) {
             applyBtn.disabled = false;
             applyBtn.innerHTML = origHtml;
+            if (applyAndNextBtn) applyAndNextBtn.disabled = false;
             showToast('خطأ في الاتصال: ' + err, true);
         });
+    }
+
+    applyBtn.addEventListener('click', function() {
+        saveProductStudioImage(false);
+    });
+
+    if (applyAndNextBtn) {
+        applyAndNextBtn.addEventListener('click', function() {
+            saveProductStudioImage(true);
+        });
+    }
+
+    if (retryOfflineBtn) {
+        retryOfflineBtn.addEventListener('click', function() {
+            saveProductStudioImage(false);
+        });
+    }
+
+    window.addEventListener('online', function() {
+        var pending = localStorage.getItem('raqamiyat_studio_pending');
+        if (pending && offlineQueueBox) {
+            offlineQueueBox.classList.remove('hidden');
+            showToast('تم استعادة الاتصال بالإنترنت! يمكنك الضغط على إعادة المحاولة لرفع الصورة المحفوظة.', false);
+        }
     });
 
     // Start on load if mediaDevices available

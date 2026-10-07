@@ -35,8 +35,9 @@ jobs:
       - name: Prepare APK Files
         run: |
           mkdir -p release_apk
-          cp android/app/build/outputs/apk/release/app-release.apk release_apk/Raqamiyat-v2.0.0.apk
           cp android/app/build/outputs/apk/release/app-release.apk release_apk/Raqamiyat-Release.apk
+          cp android/app/build/outputs/apk/release/app-release.apk release_apk/Raqamiyat-v2.1.0.apk
+          cp android/app/build/outputs/apk/release/app-release.apk release_apk/Raqamiyat-v2.0.0.apk
           cp android/app/build/outputs/apk/debug/app-debug.apk release_apk/Raqamiyat-Debug.apk
 
       - name: Upload APK Artifacts
@@ -51,15 +52,16 @@ jobs:
         if: github.ref == 'refs/heads/master'
         with:
           tag_name: v2.0.0-apk
-          name: Raqamiyat Android App v2.0.0 (Samsung One UI & Android 15+ Compatible)
+          name: Raqamiyat Android App v2.1.0 (Professional Production Release)
           body: |
-            ### تطبيق رقميات للأندرويد - Raqamiyat Android APK (v2.0.0) 📱⚡
+            ### تطبيق رقميات للأندرويد الاحترافي - Raqamiyat Android App (v2.1.0) 📱⚡
             
-            - **نسخة موثقة وموقعة رسمياً (Signed Release)**: متوافقة تماماً مع أحدث إصدارات سامسونج **Samsung Galaxy S26 Ultra / One UI 9** وأنظمة أندرويد الحديثة (Android 14, 15, 16).
-            - **تحديثات لحظية ومباشرة من الموقع**: أي تعديل تقوم به على الموقع يظهر فورا في التطبيق.
-            - **وضع عدم الاتصال (Offline-First)**: تصفح المنتجات المادية والشراء بدون إنترنت.
-            - **استوديو التصوير السريع**: تصوير المنتجات من كاميرا الهاتف وعزل الخلفية البيضاء (#ffffff) مع ختم رقميات.
-            - **دعم الإشعارات الفورية والتكامل الكامل**.
+            - **نسخة الإنتاج الموقعة والمعتمدة رسمياً (Signed Release)**: متوافقة 100% مع أحدث أجهزة سامسونج **Samsung Galaxy S26 Ultra / One UI 9** وأنظمة أندرويد الحديثة (Android 14, 15, 16).
+            - **إصلاح كامل لتجاوب صفحة الخدمات (Services Page Responsive Fix)**: ظهور كامل ومتناسق في منتصف الشاشة لكافة قياسات شاشات أندرويد.
+            - **محرك الأوفلاين الذكي والتخزين المحلي (Local-First Reading)**: تصفح المنتجات والأسعار والتصنيفات والصور بالكامل بدون إنترنت.
+            - **حماية المعاملات والعمليات الحساسة (Server-Authoritative Transactions)**: منع العمليات المالية (شراء، شحن، سحب، تحويل) عند غياب الإنترنت مع حظر العمليات المكررة (Idempotency Key).
+            - **كشف الاتصال الحقيقي بالإنترنت (Connectivity Manager)**: تنبيهات فورية ذكية عند انقطاع واستعادة الاتصال.
+            - **استوديو التصوير السريع المتطور (Product Studio)**: تصوير ومعالجة دفعات المنتجات مع عزل أبيض `#ffffff`، ختم رقميات، ومعاينة مزدوجة (Original vs Processed).
           files: release_apk/*.apk
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
