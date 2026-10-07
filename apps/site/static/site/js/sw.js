@@ -207,7 +207,19 @@ self.addEventListener('push', function(event) {
         };
 
         event.waitUntil(
-            self.registration.showNotification(title, options)
+            Promise.all([
+                self.registration.showNotification(title, options),
+                self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then(function(clientList) {
+                    clientList.forEach(function(client) {
+                        client.postMessage({
+                            type: 'PUSH_NOTIFICATION',
+                            title: title,
+                            body: options.body,
+                            url: options.data.url
+                        });
+                    });
+                })
+            ])
         );
     } catch (err) {
         console.error('ServiceWorker push notification error:', err);

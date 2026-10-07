@@ -110,3 +110,14 @@ if (window.isUserAuthenticated) {
         setTimeout(registerPush, 2000); // Delay to not block main thread
     });
 }
+
+// Native Android Bridge Push Sync
+if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.addEventListener('message', (event) => {
+        if (event.data && event.data.type === 'PUSH_NOTIFICATION') {
+            if (window.RaqamiyatNative && typeof window.RaqamiyatNative.triggerNativeNotification === 'function') {
+                window.RaqamiyatNative.triggerNativeNotification(event.data.title || 'رقميات', event.data.body || 'إشعار جديد');
+            }
+        }
+    });
+}

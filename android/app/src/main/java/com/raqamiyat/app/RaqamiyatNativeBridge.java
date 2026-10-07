@@ -116,8 +116,29 @@ public class RaqamiyatNativeBridge {
     }
 
     @JavascriptInterface
+    public void triggerNativeNotification(final String title, final String message) {
+        mainHandler.post(() -> {
+            if (activity == null || activity.isFinishing()) return;
+            try {
+                androidx.core.app.NotificationCompat.Builder builder = new androidx.core.app.NotificationCompat.Builder(activity, "raqamiyat_notifications")
+                        .setSmallIcon(R.mipmap.ic_launcher)
+                        .setContentTitle(title != null ? title : "رقميات | تنبيه جديد")
+                        .setContentText(message != null ? message : "لديك إشعار جديد في حسابك")
+                        .setPriority(androidx.core.app.NotificationCompat.PRIORITY_HIGH)
+                        .setAutoCancel(true);
+
+                android.app.NotificationManager manager = (android.app.NotificationManager) activity.getSystemService(Context.NOTIFICATION_SERVICE);
+                if (manager != null) {
+                    manager.notify((int) System.currentTimeMillis(), builder.build());
+                }
+            } catch (Exception ignored) {
+            }
+        });
+    }
+
+    @JavascriptInterface
     public String getAppVersion() {
-        return "2.2.0";
+        return "2.3.0";
     }
 }
 

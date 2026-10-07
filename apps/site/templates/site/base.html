@@ -764,13 +764,70 @@
     .drawer-link i { width: 24px; text-align: center; font-size: 1.2rem; }
     .drawer-link.active { background: rgba(212, 168, 83, 0.1); color: var(--gold); }
 
-    /* Floating Cyber-Glass Controller Dock (Bottom Bar) */
+    /* ══════════════════════════════════════════════════════════
+       NATIVE APP EXCLUSIVE LUXURY THEMING (body.is-native-app)
+       Creates a distinct, native-app UI feel radically different from web
+       ══════════════════════════════════════════════════════════ */
     body.is-native-app .mobile-nav-bar,
-    body.is-native-app #top-app-download-ribbon {
+    body.is-native-app #top-app-download-ribbon,
+    body.is-native-app #home-native-app-section,
+    body.is-native-app .announcement-bar,
+    body.is-native-app header.desktop-header {
         display: none !important;
     }
+
+    body.is-native-app {
+        background-color: #030712 !important;
+        -webkit-user-select: none;
+        user-select: none;
+        -webkit-tap-highlight-color: transparent;
+    }
+
     body.is-native-app .shell {
-        padding-bottom: 0.5rem !important;
+        padding-top: 0.25rem !important;
+        padding-bottom: 70px !important;
+    }
+
+    body.is-native-app .mobile-header {
+        background: rgba(3, 7, 18, 0.95) !important;
+        backdrop-filter: blur(20px) !important;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.06) !important;
+        padding: 0.65rem 1rem !important;
+    }
+
+    /* Transform cards into tactile native touch surfaces */
+    body.is-native-app .rq-service-card,
+    body.is-native-app .product-card,
+    body.is-native-app .panel,
+    body.is-native-app .wallet-hero,
+    body.is-native-app .side-card {
+        border-radius: 24px !important;
+        border: 1px solid rgba(255, 255, 255, 0.06) !important;
+        background: rgba(15, 23, 42, 0.8) !important;
+        box-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.7) !important;
+        transition: transform 0.15s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.15s ease !important;
+    }
+
+    body.is-native-app .rq-service-card:active,
+    body.is-native-app .product-card:active,
+    body.is-native-app .qa-btn:active {
+        transform: scale(0.97) !important;
+    }
+
+    /* Native App Button styling - tactile pill ergonomics */
+    body.is-native-app .btn,
+    body.is-native-app .btn-primary,
+    body.is-native-app .btn-premium,
+    body.is-native-app .rq-omni-submit {
+        border-radius: 18px !important;
+        font-weight: 850 !important;
+        box-shadow: 0 4px 14px rgba(6, 182, 212, 0.25) !important;
+        letter-spacing: -0.01em !important;
+    }
+
+    body.is-native-app .btn:active,
+    body.is-native-app .btn-primary:active {
+        transform: scale(0.95) !important;
     }
 
     .mobile-nav-bar {

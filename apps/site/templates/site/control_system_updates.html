@@ -177,22 +177,25 @@
                 </button>
             </form>
 
-            <!-- Toggle Auto-Deploy Pause -->
+            <!-- Toggle Auto-Deploy Pause / Active -->
             <form method="POST">
                 {% csrf_token %}
                 <input type="hidden" name="action" value="toggle_pause">
                 {% if is_paused %}
-                <button type="submit" class="px-3.5 py-2.5 bg-amber-500/15 border border-amber-500/30 hover:bg-amber-500/25 text-amber-300 font-bold text-xs rounded-xl flex items-center gap-2 transition-all">
+                <button type="submit" class="px-4 py-2.5 bg-slate-800 border border-amber-500/40 hover:bg-slate-700 text-amber-300 font-black text-xs rounded-xl flex items-center gap-2 shadow-lg transition-all" title="اضغط لتفعيل التحديث التلقائي الفوري من GitHub بدون تدخل">
+                    <span class="w-2 h-2 rounded-full bg-amber-400"></span>
                     <i class="fas fa-play"></i>
-                    <span>استئناف التحديث التلقائي</span>
+                    <span>تفعيل التحديث التلقائي (غير مفعل حالياً)</span>
                 </button>
                 {% else %}
-                <button type="submit" class="px-3.5 py-2.5 bg-slate-800 border border-slate-700 hover:bg-slate-700 text-slate-300 font-bold text-xs rounded-xl flex items-center gap-2 transition-all">
-                    <i class="fas fa-pause"></i>
-                    <span>إيقاف التحديث التلقائي مؤقتاً</span>
+                <button type="submit" class="px-4 py-2.5 bg-gradient-to-r from-emerald-500/20 to-teal-500/20 border border-emerald-500/40 hover:border-emerald-400 text-emerald-300 font-black text-xs rounded-xl flex items-center gap-2 shadow-lg shadow-emerald-500/10 transition-all" title="التحديث التلقائي يعمل: أي تحديث يصل إلى GitHub يتم تطبيقه فوراً دون تدخل أو تأكيد">
+                    <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+                    <i class="fas fa-bolt text-amber-400"></i>
+                    <span>التحديث التلقائي نشط (Auto-Sync ON)</span>
                 </button>
                 {% endif %}
             </form>
+
             <!-- Restart Server Process -->
             <form method="POST" onsubmit="return confirm('هل تريد إعادة تشغيل حاوية خادم التطبيق الآن؟ سيتم تطبيق أي كود مسحوب من المستودع.');">
                 {% csrf_token %}

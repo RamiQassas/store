@@ -1431,6 +1431,126 @@
     padding: 0.35rem 0.45rem;
   }
 }
+
+/* ══════════════════════════════════════════════════════════
+   NATIVE APP EXCLUSIVE VIEW (body.is-native-app)
+   App-native experience with stories, compact search, and tactile cards
+   ══════════════════════════════════════════════════════════ */
+body.is-native-app .rq-hero-section {
+  padding: 0.75rem 0 1rem !important;
+}
+
+body.is-native-app .rq-meta-pill,
+body.is-native-app .rq-hero-desc,
+body.is-native-app .rq-protocol-section,
+body.is-native-app .rq-metrics-bar,
+body.is-native-app .rq-merchant-banner,
+body.is-native-app .rq-section-tag {
+  display: none !important;
+}
+
+body.is-native-app .rq-hero-layout {
+  display: block !important;
+}
+
+body.is-native-app .rq-hero-title {
+  font-size: 1.35rem !important;
+  margin-bottom: 0.75rem !important;
+  line-height: 1.25 !important;
+}
+
+body.is-native-app .rq-omni-search {
+  background: rgba(15, 23, 42, 0.95) !important;
+  border: 1px solid rgba(255, 255, 255, 0.12) !important;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4) !important;
+  border-radius: 18px !important;
+  padding: 0.45rem 0.85rem !important;
+  flex-direction: row !important;
+  align-items: center !important;
+}
+
+body.is-native-app .rq-omni-submit {
+  display: none !important;
+}
+
+body.is-native-app .rq-omni-input {
+  font-size: 0.88rem !important;
+  padding: 0.45rem 0 !important;
+}
+
+/* Native Stories / Category Pills Row */
+body.is-native-app .rq-categories-matrix {
+  display: flex !important;
+  overflow-x: auto !important;
+  scroll-snap-type: x mandatory !important;
+  -webkit-overflow-scrolling: touch !important;
+  gap: 0.65rem !important;
+  padding-bottom: 0.5rem !important;
+  margin-bottom: 1.5rem !important;
+  scrollbar-width: none !important;
+}
+
+body.is-native-app .rq-categories-matrix::-webkit-scrollbar {
+  display: none !important;
+}
+
+body.is-native-app .rq-category-tile {
+  flex: 0 0 auto !important;
+  width: 78px !important;
+  padding: 0.65rem 0.25rem !important;
+  border-radius: 18px !important;
+  scroll-snap-align: start !important;
+  background: rgba(15, 23, 42, 0.7) !important;
+  border: 1px solid rgba(255, 255, 255, 0.08) !important;
+}
+
+body.is-native-app .rq-category-icon-box {
+  width: 42px !important;
+  height: 42px !important;
+  border-radius: 14px !important;
+  margin-bottom: 0.35rem !important;
+}
+
+body.is-native-app .rq-category-label {
+  font-size: 0.7rem !important;
+  white-space: nowrap !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  max-width: 70px !important;
+}
+
+body.is-native-app .rq-category-count {
+  display: none !important;
+}
+
+/* Spotlight card in native app - compact featured banner */
+body.is-native-app .rq-spotlight-wrapper {
+  margin-top: 1rem !important;
+  margin-bottom: 1rem !important;
+}
+
+body.is-native-app .rq-spotlight-card {
+  padding: 0.85rem !important;
+  border-radius: 20px !important;
+}
+
+body.is-native-app .rq-spotlight-media {
+  height: 140px !important;
+  border-radius: 14px !important;
+  margin-bottom: 0.75rem !important;
+}
+
+body.is-native-app .rq-section-head {
+  margin-bottom: 0.85rem !important;
+}
+
+body.is-native-app .rq-section-title {
+  font-size: 1.15rem !important;
+}
+
+body.is-native-app .rq-section-link {
+  font-size: 0.75rem !important;
+}
 </style>
 
 <div class="rq-viewport">
