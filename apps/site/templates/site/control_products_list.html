@@ -610,7 +610,10 @@ window.closeProductImportModal = function() {
                     {% endif %}
                 </div>
                 
-                <div class="mt-auto pt-3 border-t border-white/5 flex gap-2">
+                <div class="mt-auto pt-3 border-t border-white/5 flex flex-wrap gap-2">
+                    <a href="{% url 'control_camera_studio' %}?product_id={{ p.id }}" class="btn btn-sm btn-primary bg-gradient-to-r from-amber-400 to-orange-500 hover:from-amber-300 hover:to-orange-400 text-black font-black !py-1.5 !text-[10px] flex items-center gap-1 border-0 shadow-md" title="تصوير استوديو سريع لهذا المنتج">
+                        <i class="fas fa-camera"></i> تصوير
+                    </a>
                     <a href="{% url 'control_product_edit' p.id %}" class="flex-grow btn btn-sm btn-outline !py-1.5 !text-[10px]">
                         تعديل شامل
                     </a>
@@ -792,6 +795,11 @@ window.closeProductImportModal = function() {
                     </td>
                     <td class="p-4 text-left">
                         <div class="flex justify-end gap-2">
+                            <a href="{% url 'control_camera_studio' %}?product_id={{ p.id }}"
+                               class="btn btn-sm btn-primary bg-gradient-to-r from-amber-400 to-orange-500 hover:from-amber-300 hover:to-orange-400 text-black font-black text-[10px] py-1 px-2.5 flex items-center gap-1 border-0 shadow-md"
+                               title="تصوير استوديو سريع ومباشر">
+                                <i class="fas fa-camera"></i> استوديو
+                            </a>
                             <button type="button" onclick="generateSingleProductAiImage('{{ p.id }}', this)"
                                     class="btn btn-sm btn-outline text-[10px] py-1 px-2.5 text-cyan hover:bg-cyan hover:text-black transition flex items-center gap-1"
                                     title="توليد صورة أيقونة احترافية (بحث ذكي)">

@@ -765,6 +765,13 @@
     .drawer-link.active { background: rgba(212, 168, 83, 0.1); color: var(--gold); }
 
     /* Floating Cyber-Glass Controller Dock (Bottom Bar) */
+    body.is-native-app .mobile-nav-bar {
+        display: none !important;
+    }
+    body.is-native-app .shell {
+        padding-bottom: 0.5rem !important;
+    }
+
     .mobile-nav-bar {
         position: fixed;
         bottom: 12px;
@@ -1231,6 +1238,9 @@
           <a href="{% url 'catalog' %}" class="drawer-link {% if request.resolver_match.url_name == 'catalog' %}active{% endif %}">
               <i class="fas fa-boxes-stacked"></i> الكتالوج
           </a>
+          <a href="{% url 'download_android_apk' %}" class="drawer-link text-cyan {% if request.resolver_match.url_name == 'download_android_apk' %}active{% endif %}">
+              <i class="fab fa-android text-emerald-400"></i> تحميل تطبيق رقميات (APK)
+          </a>
 
           {% if user.is_authenticated %}
           <div class="h-px bg-white/5 my-4"></div>
@@ -1306,6 +1316,10 @@
           <a href="{% url 'stores_directory' %}" class="{% if request.resolver_match.url_name == 'stores_directory' %}active{% endif %}">المتاجر</a>
           {% endif %}
           <a href="{% url 'catalog' %}" class="{% if request.resolver_match.url_name == 'catalog' %}active{% endif %}">الخدمات</a>
+          <a href="{% url 'download_android_apk' %}" class="{% if request.resolver_match.url_name == 'download_android_apk' %}active{% endif %} text-cyan hover:text-cyan font-bold flex items-center gap-1.5" title="تحميل تطبيق الأندرويد">
+              <i class="fab fa-android text-emerald-400"></i>
+              <span>التطبيق</span>
+          </a>
           {% if user.is_authenticated %}
              <a href="{% url 'dashboard' %}" class="{% if request.resolver_match.url_name == 'dashboard' %}active{% endif %}">حسابي</a>
              <a href="{% url 'dashboard_orders' %}" class="{% if request.resolver_match.url_name == 'dashboard_orders' %}active{% endif %}">طلباتي</a>
@@ -1459,6 +1473,9 @@
                 <h4 class="font-black text-xs uppercase tracking-widest text-white mb-6">روابط سريعة</h4>
                 <div class="stack gap-4 text-sm text-slate-500">
                     <a href="{% url 'catalog' %}" class="hover:text-cyan transition-colors">تصفح الخدمات</a>
+                    <a href="{% url 'download_android_apk' %}" class="text-cyan font-bold hover:text-cyan-300 transition-colors flex items-center gap-1.5">
+                        <i class="fab fa-android text-emerald-400"></i> تطبيق رقميات (Android)
+                    </a>
                     {% if not user.is_authenticated %}
                     <a href="{% url 'site_login' %}" class="hover:text-cyan transition-colors">تسجيل الدخول</a>
                     <a href="{% url 'site_register' %}" class="hover:text-cyan transition-colors">إنشاء حساب</a>
@@ -1630,9 +1647,15 @@
       }
   </script>
   {% endif %}
-  <!-- Global CSRF Token Auto-Sync (Prevents 403 on stale tab, back button, or rotated token) -->
+  <!-- Global CSRF Token Auto-Sync & Native App Detection -->
   <script>
   (function() {
+      // Auto-detect native app environment to streamline UI
+      if (window.RaqamiyatNative || navigator.userAgent.indexOf('RaqamiyatAndroid') !== -1) {
+          document.documentElement.classList.add('is-native-app');
+          document.body.classList.add('is-native-app');
+      }
+
       function getCookie(name) {
           let cookieValue = null;
           if (document.cookie && document.cookie !== '') {

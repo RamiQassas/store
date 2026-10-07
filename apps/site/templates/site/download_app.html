@@ -1,0 +1,123 @@
+{% extends "site/base.html" %}
+{% load static %}
+
+{% block title %}تحميل تطبيق رقميات للأندرويد | Raqamiyat APK{% endblock %}
+
+{% block content %}
+<div class="container mx-auto px-4 py-12 max-w-4xl" dir="rtl">
+    <!-- Header Hero Banner -->
+    <div class="relative overflow-hidden rounded-3xl bg-gradient-to-br from-slate-900 via-slate-950 to-cyan-950/40 border border-cyan-500/30 p-8 sm:p-12 text-center shadow-2xl backdrop-blur-2xl mb-10">
+        <div class="absolute -top-24 -right-24 w-72 h-72 bg-cyan-500/10 rounded-full blur-3xl pointer-events-none"></div>
+        <div class="absolute -bottom-24 -left-24 w-72 h-72 bg-amber-500/10 rounded-full blur-3xl pointer-events-none"></div>
+
+        <div class="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-cyan-500/10 border border-cyan-500/30 text-cyan-400 text-xs font-black tracking-wide mb-6">
+            <i class="fab fa-android text-sm"></i>
+            <span>الإصدار الرسمي للهواتف الذكية • v2.3.0</span>
+        </div>
+
+        <div class="w-24 h-24 mx-auto mb-6 rounded-3xl bg-gradient-to-tr from-cyan-500 to-amber-400 p-0.5 shadow-2xl shadow-cyan-500/20">
+            <div class="w-full h-full bg-slate-950 rounded-[22px] flex items-center justify-center overflow-hidden">
+                <i class="fas fa-bolt text-4xl text-amber-400"></i>
+            </div>
+        </div>
+
+        <h1 class="text-3xl sm:text-5xl font-black text-white tracking-tight mb-4 leading-tight">
+            تطبيق <span class="text-transparent bg-clip-text bg-gradient-to-r from-amber-400 via-yellow-200 to-cyan-400">رقميات</span> للأندرويد
+        </h1>
+        <p class="text-slate-300 text-sm sm:text-base max-w-xl mx-auto leading-relaxed mb-8">
+            تجربة تسوق وشحن وإدارة استثنائية مع دعم التصفح بدون إنترنت، استوديو تصوير المنتجات، والإشعارات المباشرة لجميع الخدمات.
+        </p>
+
+        <!-- Direct Download Action Buttons -->
+        <div class="flex flex-col sm:flex-row items-center justify-center gap-4 max-w-md mx-auto">
+            <a href="{% url 'download_android_apk' %}?direct=1" id="main-download-btn" class="w-full sm:w-auto flex-1 py-4 px-8 rounded-2xl bg-gradient-to-r from-cyan-400 to-cyan-500 hover:from-cyan-300 hover:to-cyan-400 text-black font-black text-base flex items-center justify-center gap-3 shadow-2xl shadow-cyan-500/30 transition-all hover:scale-105 active:scale-95">
+                <i class="fas fa-download text-lg"></i>
+                <span>تحميل مباشر (APK)</span>
+            </a>
+            <a href="https://github.com/RamiQassas/store/releases" target="_blank" class="w-full sm:w-auto py-4 px-6 rounded-2xl bg-slate-800/80 hover:bg-slate-700/80 text-white font-bold text-sm flex items-center justify-center gap-2 border border-white/10 transition-all">
+                <i class="fab fa-github"></i>
+                <span>منصة التوزيع البديلة</span>
+            </a>
+        </div>
+
+        <div class="mt-4 text-xs text-slate-400 flex items-center justify-center gap-4 flex-wrap">
+            <span><i class="fas fa-shield-halved text-emerald-400 ml-1"></i> آمن ومفحوص 100%</span>
+            <span><i class="fas fa-microchip text-cyan-400 ml-1"></i> متوافق مع Android 8.0 حتى 15 (One UI 7/9)</span>
+            <span><i class="fas fa-file-zipper text-amber-400 ml-1"></i> الحجم: ~4.6 ميغابايت</span>
+        </div>
+    </div>
+
+    <!-- App Highlights Bento Grid -->
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">
+        <div class="bg-slate-900/60 border border-white/10 rounded-3xl p-6 backdrop-blur-xl">
+            <div class="w-12 h-12 rounded-2xl bg-cyan-500/10 border border-cyan-500/30 flex items-center justify-center text-cyan-400 text-xl mb-4">
+                <i class="fas fa-camera"></i>
+            </div>
+            <h3 class="text-base font-bold text-white mb-2">استوديو المنتجات الذكي</h3>
+            <p class="text-xs text-slate-400 leading-relaxed">
+                التقط صور منتجاتك بكاميرا هاتفك مع خيار عزل الخلفية البيضاء الاحترافية ووضع ختم رقميات وتعيين الصورة للمنتج بضغطة واحدة.
+            </p>
+        </div>
+
+        <div class="bg-slate-900/60 border border-white/10 rounded-3xl p-6 backdrop-blur-xl">
+            <div class="w-12 h-12 rounded-2xl bg-amber-500/10 border border-amber-500/30 flex items-center justify-center text-amber-400 text-xl mb-4">
+                <i class="fas fa-wifi-slash"></i>
+            </div>
+            <h3 class="text-base font-bold text-white mb-2">تصفح بدون إنترنت (Offline)</h3>
+            <p class="text-xs text-slate-400 leading-relaxed">
+                تصفح الكتالوج والمنتجات والأسعار حتى عند انقطاع الاتصال بفضل المحرك المحلي للتخزين والتحقق الأمني الذكي.
+            </p>
+        </div>
+
+        <div class="bg-slate-900/60 border border-white/10 rounded-3xl p-6 backdrop-blur-xl">
+            <div class="w-12 h-12 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center text-emerald-400 text-xl mb-4">
+                <i class="fas fa-bell"></i>
+            </div>
+            <h3 class="text-base font-bold text-white mb-2">إشعارات فورية وتكامل كامل</h3>
+            <p class="text-xs text-slate-400 leading-relaxed">
+                تحديثات فورية لحالة طلباتك، شحن الرصيد، وصول خدمات جديدة، مع دعم تسجيل الدخول الآمن والتنقل السريع.
+            </p>
+        </div>
+    </div>
+
+    <!-- Installation Guide 3 Simple Steps -->
+    <div class="bg-slate-900/40 border border-white/10 rounded-3xl p-6 sm:p-8 backdrop-blur-xl">
+        <h2 class="text-lg font-black text-white mb-6 flex items-center gap-2">
+            <i class="fas fa-circle-question text-cyan-400"></i>
+            <span>طريقة تثبيت التطبيق على هاتفك بثلاث خطوات:</span>
+        </h2>
+
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div class="flex items-start gap-4">
+                <div class="w-8 h-8 rounded-full bg-cyan-500/20 text-cyan-400 border border-cyan-500/40 flex items-center justify-center font-black text-sm flex-shrink-0">
+                    1
+                </div>
+                <div>
+                    <h4 class="text-sm font-bold text-white mb-1">حمّل ملف التطبيق</h4>
+                    <p class="text-xs text-slate-400 leading-relaxed">اضغط على زر "تحميل مباشر" أعلاه وانتظر اكتمال تنزيل الملف بهاتفك.</p>
+                </div>
+            </div>
+
+            <div class="flex items-start gap-4">
+                <div class="w-8 h-8 rounded-full bg-cyan-500/20 text-cyan-400 border border-cyan-500/40 flex items-center justify-center font-black text-sm flex-shrink-0">
+                    2
+                </div>
+                <div>
+                    <h4 class="text-sm font-bold text-white mb-1">السماح بالتثبيت</h4>
+                    <p class="text-xs text-slate-400 leading-relaxed">عند الضغط على الملف، اختر "السماح بالتثبيت من هذا المصدر" (Chrome أو متصفحك).</p>
+                </div>
+            </div>
+
+            <div class="flex items-start gap-4">
+                <div class="w-8 h-8 rounded-full bg-cyan-500/20 text-cyan-400 border border-cyan-500/40 flex items-center justify-center font-black text-sm flex-shrink-0">
+                    3
+                </div>
+                <div>
+                    <h4 class="text-sm font-bold text-white mb-1">ابدأ الاستخدام فوراً</h4>
+                    <p class="text-xs text-slate-400 leading-relaxed">اضغط تثبيت (Install) وافتح التطبيق للتمتع بجميع المزايا وحسابك جاهز.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -284,6 +284,94 @@
     </div>
 </div>
 
+<!-- ==========================================
+     INTERACTIVE POST-CAPTURE PRODUCT SELECTION MODAL
+     Appears immediately after photo capture/upload
+     asking: "أي منتج تريد تعيين هذه الصورة له؟"
+     ========================================== -->
+<div id="post-capture-modal" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md hidden transition-all">
+    <div class="bg-slate-900 border border-cyan/40 rounded-3xl max-w-lg w-full p-5 sm:p-6 shadow-2xl relative space-y-4 max-h-[90vh] flex flex-col">
+        <!-- Modal Header -->
+        <div class="flex items-center justify-between pb-3 border-b border-white/10">
+            <div class="flex items-center gap-2.5">
+                <div class="w-10 h-10 rounded-2xl bg-cyan/20 border border-cyan/40 flex items-center justify-center text-cyan">
+                    <i class="fas fa-camera-viewfinder text-lg"></i>
+                </div>
+                <div>
+                    <h3 class="text-base font-black text-white">أي منتج تريد تعيين هذه الصورة له؟</h3>
+                    <p class="text-[11px] text-slate-400">اختر المنتج المستهدف للربط الفوري أو ابحث بالاسم</p>
+                </div>
+            </div>
+            <button type="button" onclick="closePostCaptureModal()" class="w-8 h-8 rounded-full bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white flex items-center justify-center transition-colors">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+
+        <!-- Captured Image Thumbnail Preview -->
+        <div class="flex items-center gap-3 p-3 rounded-2xl bg-slate-950/60 border border-white/10">
+            <img id="modal-captured-preview-img" class="w-16 h-16 rounded-xl object-contain bg-black border border-white/10" alt="Preview">
+            <div class="flex-1 min-w-0">
+                <span class="text-[10px] text-cyan font-black block uppercase tracking-wider">تم التقاط الصورة بنجاح 📸</span>
+                <span id="modal-target-summary" class="text-xs font-bold text-white block truncate">اختر المنتج من القائمة بالأسفل لربط الصورة به فوراً</span>
+                <div class="flex items-center gap-2 mt-1">
+                    <span class="text-[10px] text-emerald-400 font-semibold"><i class="fas fa-check-circle"></i> جاهزة للمعالجة الفورية</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Instant Filter Search Box -->
+        <div class="relative">
+            <i class="fas fa-search absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 text-xs"></i>
+            <input type="text" id="modal-product-search-input" placeholder="ابحث عن اسم المنتج (مثال: Denmen, كابل, شاحن...)" class="w-full text-xs pr-9 pl-3 py-2.5 bg-slate-950/80 border border-white/15 rounded-xl text-white placeholder-slate-500 focus:border-cyan focus:ring-1 focus:ring-cyan transition-all">
+        </div>
+
+        <!-- Scrollable Products Selection List -->
+        <div id="modal-product-select-list" class="flex-1 overflow-y-auto space-y-2 pr-1 max-h-56 custom-scrollbar">
+            {% for p in products %}
+            <div class="modal-product-item flex items-center justify-between p-2.5 rounded-xl bg-slate-800/60 border border-white/5 hover:border-cyan/50 hover:bg-slate-800 cursor-pointer transition-all" data-id="{{ p.id }}" data-name="{{ p.name }}" data-category="{{ p.category }}" onclick="onModalSelectProduct('{{ p.id }}', '{{ p.name|escapejs }}', '{{ p.image_url|default:'' }}')">
+                <div class="flex items-center gap-2.5 overflow-hidden">
+                    <div class="w-10 h-10 rounded-lg bg-slate-950 overflow-hidden flex-shrink-0 border border-white/10 flex items-center justify-center">
+                        {% if p.image_url %}
+                        <img src="{{ p.image_url }}" class="w-full h-full object-cover">
+                        {% else %}
+                        <i class="fas fa-box text-slate-600 text-xs"></i>
+                        {% endif %}
+                    </div>
+                    <div class="truncate">
+                        <div class="text-xs font-bold text-white truncate">{{ p.name }}</div>
+                        <div class="text-[9px] text-cyan/80 font-semibold truncate">{{ p.category }}</div>
+                    </div>
+                </div>
+                <div class="modal-select-indicator w-6 h-6 rounded-full border border-white/20 flex items-center justify-center text-xs text-cyan flex-shrink-0"></div>
+            </div>
+            {% endfor %}
+        </div>
+
+        <!-- Studio Options in Modal -->
+        <div class="grid grid-cols-2 gap-2 pt-1 border-t border-white/10">
+            <label class="flex items-center gap-2 p-2 rounded-xl bg-slate-950/50 border border-white/5 cursor-pointer text-[11px] text-slate-300">
+                <input type="checkbox" id="modal-opt-white" checked class="accent-cyan w-4 h-4 rounded">
+                <span>عزل استوديو أبيض</span>
+            </label>
+            <label class="flex items-center gap-2 p-2 rounded-xl bg-slate-950/50 border border-white/5 cursor-pointer text-[11px] text-slate-300">
+                <input type="checkbox" id="modal-opt-hallmark" checked class="accent-cyan w-4 h-4 rounded">
+                <span>ختم رقميات الرسمي</span>
+            </label>
+        </div>
+
+        <!-- Modal Action Buttons -->
+        <div class="flex items-center gap-2 pt-2">
+            <button type="button" id="modal-confirm-apply-btn" disabled onclick="modalConfirmAssignment()" class="flex-1 py-3 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 disabled:opacity-40 disabled:pointer-events-none text-black font-black text-xs sm:text-sm flex items-center justify-center gap-2 shadow-lg transition-all">
+                <i class="fas fa-check-circle"></i>
+                <span>تعيين وحفظ للمنتج المختار</span>
+            </button>
+            <button type="button" onclick="closePostCaptureModal()" class="px-4 py-3 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-bold transition-colors">
+                متابعة في الاستوديو
+            </button>
+        </div>
+    </div>
+</div>
+
 <script>
     var currentStream = null;
     var facingMode = "environment";
@@ -509,7 +597,14 @@
 
     function handleIncomingImage(dataUrl) {
         capturedDataUrl = dataUrl;
-        processCapturedImage(dataUrl);
+        
+        // Show post-capture modal if no target product selected yet
+        if (!selectedProductId) {
+            openPostCaptureModal(dataUrl);
+        } else {
+            // Already targeted from product list, process directly
+            processCapturedImage(dataUrl);
+        }
     }
 
     if (directCameraInput) {
@@ -802,6 +897,130 @@
             showToast('تم استعادة الاتصال بالإنترنت! يمكنك الضغط على إعادة المحاولة لرفع الصورة المحفوظة.', false);
         }
     });
+
+    // ============================================
+    // POST-CAPTURE MODAL HANDLERS ("أي منتج تريد تعيين هذه الصورة له؟")
+    // ============================================
+    var postCaptureModal = document.getElementById('post-capture-modal');
+    var modalPreviewImg = document.getElementById('modal-captured-preview-img');
+    var modalSearchInput = document.getElementById('modal-product-search-input');
+    var modalTargetSummary = document.getElementById('modal-target-summary');
+    var modalConfirmBtn = document.getElementById('modal-confirm-apply-btn');
+    var modalOptWhite = document.getElementById('modal-opt-white');
+    var modalOptHallmark = document.getElementById('modal-opt-hallmark');
+    var tempModalProductId = null;
+
+    window.openPostCaptureModal = function(dataUrl) {
+        if (!postCaptureModal) return;
+        if (modalPreviewImg) modalPreviewImg.src = dataUrl;
+        postCaptureModal.classList.remove('hidden');
+        if (modalSearchInput) {
+            modalSearchInput.value = '';
+            modalSearchInput.focus();
+            // Reset visible list
+            document.querySelectorAll('.modal-product-item').forEach(function(el) {
+                el.style.display = 'flex';
+            });
+        }
+    };
+
+    window.closePostCaptureModal = function() {
+        if (!postCaptureModal) return;
+        postCaptureModal.classList.add('hidden');
+        // If image was captured, process it in main studio canvas
+        if (capturedDataUrl && !processedDataUrl) {
+            processCapturedImage(capturedDataUrl);
+        }
+    };
+
+    window.onModalSelectProduct = function(pid, name, img) {
+        tempModalProductId = pid;
+        document.querySelectorAll('.modal-product-item').forEach(function(item) {
+            var ind = item.querySelector('.modal-select-indicator');
+            if (item.getAttribute('data-id') === pid) {
+                item.classList.add('border-cyan', 'bg-cyan/20');
+                if (ind) ind.innerHTML = '<i class="fas fa-check text-cyan"></i>';
+            } else {
+                item.classList.remove('border-cyan', 'bg-cyan/20');
+                if (ind) ind.innerHTML = '';
+            }
+        });
+        if (modalTargetSummary) {
+            modalTargetSummary.textContent = 'المنتج المختار: ' + name;
+        }
+        if (modalConfirmBtn) modalConfirmBtn.disabled = false;
+        
+        // Also select on background right-column list
+        selectTargetProduct(pid, name, img);
+    };
+
+    window.modalConfirmAssignment = function() {
+        if (!tempModalProductId) return;
+        
+        // Sync checkboxes
+        if (optIsolateWhite && modalOptWhite) optIsolateWhite.checked = modalOptWhite.checked;
+        if (optAddHallmark && modalOptHallmark) optAddHallmark.checked = modalOptHallmark.checked;
+
+        postCaptureModal.classList.add('hidden');
+        
+        // Start processing and automatically save once ready
+        if (processingStatusText) processingStatusText.textContent = 'جاري معالجة وحفظ الصورة للمنتج المختار...';
+        processingOverlay.classList.remove('hidden');
+
+        var fd = new FormData();
+        fd.append('image_base64', capturedDataUrl);
+        fd.append('product_id', tempModalProductId);
+        fd.append('isolate_white', modalOptWhite.checked ? 'true' : 'false');
+        fd.append('add_hallmark', modalOptHallmark.checked ? 'true' : 'false');
+
+        var controller = new AbortController();
+        var timeoutId = setTimeout(function() { controller.abort(); }, 25000);
+
+        fetch('{% url "control_camera_studio_process_ajax" %}', {
+            method: 'POST',
+            headers: { 'X-CSRFToken': getCsrf() },
+            body: fd,
+            signal: controller.signal
+        })
+        .then(function(r) {
+            if (!r.ok) throw new Error('فشل استجابة الخادم كود (' + r.status + ')');
+            return r.json();
+        })
+        .then(function(data) {
+            if (data.status === 'success') {
+                showToast(data.message || 'تم تعيين وحفظ صورة المنتج بنجاح! 🎉');
+                setTimeout(function() {
+                    window.location.href = '{% url "control_products_list" %}';
+                }, 1000);
+            } else {
+                showToast(data.message || 'فشلت المعالجة والحفظ', true);
+            }
+        })
+        .catch(function(err) {
+            var msg = (err.name === 'AbortError') ? 'انتهت المهلة أثناء حفظ الصورة' : ('خطأ: ' + err.message);
+            showToast(msg, true);
+        })
+        .finally(function() {
+            clearTimeout(timeoutId);
+            processingOverlay.classList.add('hidden');
+        });
+    };
+
+    // Modal Search Live Filter
+    if (modalSearchInput) {
+        modalSearchInput.addEventListener('input', function(e) {
+            var q = e.target.value.toLowerCase().trim();
+            document.querySelectorAll('.modal-product-item').forEach(function(card) {
+                var name = (card.getAttribute('data-name') || '').toLowerCase();
+                var cat = (card.getAttribute('data-category') || '').toLowerCase();
+                if (name.includes(q) || cat.includes(q)) {
+                    card.style.display = 'flex';
+                } else {
+                    card.style.display = 'none';
+                }
+            });
+        });
+    }
 
     // Start on load if mediaDevices available
     if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {

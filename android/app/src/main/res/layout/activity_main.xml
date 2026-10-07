@@ -45,7 +45,8 @@
         android:id="@+id/swipe_refresh"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:layout_below="@id/page_progress">
+        android:layout_below="@id/page_progress"
+        android:layout_above="@id/native_bottom_navigation">
 
         <WebView
             android:id="@+id/main_webview"
@@ -53,6 +54,161 @@
             android:layout_height="match_parent"
             android:background="#0a0a0f" />
     </androidx.swiperefreshlayout.widget.SwipeRefreshLayout>
+
+    <!-- Native Mobile Ergonomic Bottom Navigation Bar -->
+    <LinearLayout
+        android:id="@+id/native_bottom_navigation"
+        android:layout_width="match_parent"
+        android:layout_height="58dp"
+        android:layout_alignParentBottom="true"
+        android:background="#030712"
+        android:orientation="horizontal"
+        android:gravity="center"
+        android:paddingVertical="4dp"
+        android:elevation="14dp">
+
+        <!-- 1. الرئيسية -->
+        <LinearLayout
+            android:id="@+id/nav_item_home"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1"
+            android:gravity="center"
+            android:clickable="true"
+            android:focusable="true"
+            android:background="?android:attr/selectableItemBackground"
+            android:orientation="vertical">
+
+            <TextView
+                android:id="@+id/nav_icon_home"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="🏠"
+                android:textSize="18sp" />
+
+            <TextView
+                android:id="@+id/nav_text_home"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="الرئيسية"
+                android:textColor="#D4A853"
+                android:textSize="10sp"
+                android:textStyle="bold" />
+        </LinearLayout>
+
+        <!-- 2. الخدمات -->
+        <LinearLayout
+            android:id="@+id/nav_item_catalog"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1"
+            android:gravity="center"
+            android:clickable="true"
+            android:focusable="true"
+            android:background="?android:attr/selectableItemBackground"
+            android:orientation="vertical">
+
+            <TextView
+                android:id="@+id/nav_icon_catalog"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="⚡"
+                android:textSize="18sp" />
+
+            <TextView
+                android:id="@+id/nav_text_catalog"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="الخدمات"
+                android:textColor="#94A3B8"
+                android:textSize="10sp" />
+        </LinearLayout>
+
+        <!-- 3. استوديو التصوير -->
+        <LinearLayout
+            android:id="@+id/nav_item_studio"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1"
+            android:gravity="center"
+            android:clickable="true"
+            android:focusable="true"
+            android:background="?android:attr/selectableItemBackground"
+            android:orientation="vertical">
+
+            <TextView
+                android:id="@+id/nav_icon_studio"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="📷"
+                android:textSize="18sp" />
+
+            <TextView
+                android:id="@+id/nav_text_studio"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="استوديو"
+                android:textColor="#06B6D4"
+                android:textSize="10sp"
+                android:textStyle="bold" />
+        </LinearLayout>
+
+        <!-- 4. طلباتي -->
+        <LinearLayout
+            android:id="@+id/nav_item_orders"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1"
+            android:gravity="center"
+            android:clickable="true"
+            android:focusable="true"
+            android:background="?android:attr/selectableItemBackground"
+            android:orientation="vertical">
+
+            <TextView
+                android:id="@+id/nav_icon_orders"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="📦"
+                android:textSize="18sp" />
+
+            <TextView
+                android:id="@+id/nav_text_orders"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="طلباتي"
+                android:textColor="#94A3B8"
+                android:textSize="10sp" />
+        </LinearLayout>
+
+        <!-- 5. حسابي -->
+        <LinearLayout
+            android:id="@+id/nav_item_account"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1"
+            android:gravity="center"
+            android:clickable="true"
+            android:focusable="true"
+            android:background="?android:attr/selectableItemBackground"
+            android:orientation="vertical">
+
+            <TextView
+                android:id="@+id/nav_icon_account"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="👤"
+                android:textSize="18sp" />
+
+            <TextView
+                android:id="@+id/nav_text_account"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="حسابي"
+                android:textColor="#94A3B8"
+                android:textSize="10sp" />
+        </LinearLayout>
+    </LinearLayout>
 
     <!-- Custom Native Offline Fallback View (Shown only on catastrophic failure) -->
     <LinearLayout

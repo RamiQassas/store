@@ -123,6 +123,7 @@ public class MainActivity extends AppCompatActivity implements ConnectivityHelpe
         setupWebView();
         setupErrorView();
         setupSwipeRefresh();
+        setupBottomNavigation();
         checkAndRequestPermissions();
 
         connectivityHelper.startMonitoring();
@@ -211,6 +212,8 @@ public class MainActivity extends AppCompatActivity implements ConnectivityHelpe
                     isInitialPageLoaded = true;
                     dismissSplashOverlay();
                 }
+
+                updateBottomNavigationActiveTab(url);
 
                 super.onPageFinished(view, url);
             }
@@ -346,6 +349,61 @@ public class MainActivity extends AppCompatActivity implements ConnectivityHelpe
             nativeErrorView.setVisibility(View.GONE);
             webView.loadUrl(CATALOG_URL);
         });
+    }
+
+    private void setupBottomNavigation() {
+        View navHome = findViewById(R.id.nav_item_home);
+        View navCatalog = findViewById(R.id.nav_item_catalog);
+        View navStudio = findViewById(R.id.nav_item_studio);
+        View navOrders = findViewById(R.id.nav_item_orders);
+        View navAccount = findViewById(R.id.nav_item_account);
+
+        if (navHome != null) {
+            navHome.setOnClickListener(v -> webView.loadUrl(BASE_URL));
+        }
+        if (navCatalog != null) {
+            navCatalog.setOnClickListener(v -> webView.loadUrl("https://raqamiyatapp.com/catalog/"));
+        }
+        if (navStudio != null) {
+            navStudio.setOnClickListener(v -> webView.loadUrl("https://raqamiyatapp.com/control/camera-studio/"));
+        }
+        if (navOrders != null) {
+            navOrders.setOnClickListener(v -> webView.loadUrl("https://raqamiyatapp.com/dashboard/orders/"));
+        }
+        if (navAccount != null) {
+            navAccount.setOnClickListener(v -> webView.loadUrl("https://raqamiyatapp.com/dashboard/"));
+        }
+    }
+
+    private void updateBottomNavigationActiveTab(String url) {
+        if (url == null) return;
+        TextView textHome = findViewById(R.id.nav_text_home);
+        TextView textCatalog = findViewById(R.id.nav_text_catalog);
+        TextView textStudio = findViewById(R.id.nav_text_studio);
+        TextView textOrders = findViewById(R.id.nav_text_orders);
+        TextView textAccount = findViewById(R.id.nav_text_account);
+
+        int colorInactive = 0xFF94A3B8;
+        int colorActiveGold = 0xFFD4A853;
+        int colorActiveCyan = 0xFF06B6D4;
+
+        if (textHome != null) textHome.setTextColor(colorInactive);
+        if (textCatalog != null) textCatalog.setTextColor(colorInactive);
+        if (textStudio != null) textStudio.setTextColor(colorInactive);
+        if (textOrders != null) textOrders.setTextColor(colorInactive);
+        if (textAccount != null) textAccount.setTextColor(colorInactive);
+
+        if (url.contains("/control/camera-studio/")) {
+            if (textStudio != null) textStudio.setTextColor(colorActiveCyan);
+        } else if (url.contains("/catalog/")) {
+            if (textCatalog != null) textCatalog.setTextColor(colorActiveGold);
+        } else if (url.contains("/dashboard/orders/")) {
+            if (textOrders != null) textOrders.setTextColor(colorActiveGold);
+        } else if (url.contains("/dashboard/") || url.contains("/accounts/")) {
+            if (textAccount != null) textAccount.setTextColor(colorActiveGold);
+        } else if (url.equals(BASE_URL) || url.equals("https://raqamiyatapp.com") || url.endsWith("raqamiyatapp.com/")) {
+            if (textHome != null) textHome.setTextColor(colorActiveGold);
+        }
     }
 
     private void dismissSplashOverlay() {

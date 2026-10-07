@@ -6194,12 +6194,28 @@ def control_camera_studio(request):
             "name": p.name,
             "category": p.category.name if p.category else "بدون قسم",
             "image_url": p.image.url if p.image else "",
+            "price": float(p.price) if hasattr(p, "price") and p.price else 0.0,
         })
+
+    target_product_id = request.GET.get('product_id', '').strip()
+    selected_product = None
+    if target_product_id:
+        target_p = products_qs.filter(id=target_product_id).first()
+        if target_p:
+            selected_product = {
+                "id": str(target_p.id),
+                "name": target_p.name,
+                "category": target_p.category.name if target_p.category else "بدون قسم",
+                "image_url": target_p.image.url if target_p.image else "",
+                "price": float(target_p.price) if hasattr(target_p, "price") and target_p.price else 0.0,
+            }
     
     context = {
         "products": products_list,
         "categories": categories,
-        "total_products": len(products_list)
+        "total_products": len(products_list),
+        "target_product_id": target_product_id,
+        "selected_product": selected_product,
     }
     return render(request, "site/control_camera_studio.html", context)
 
@@ -6340,11 +6356,32 @@ def api_offline_catalog(request):
 
 def download_android_apk(request):
     """
-    Direct download redirect for the compiled Raqamiyat Android APK.
-    Always points to the latest release package.
+    Direct download and landing page for the compiled Raqamiyat Android APK.
+    If ?direct=1 is provided or direct download is requested, streams local APK file.
+    Otherwise renders the dedicated download landing page with installation guide.
     """
-    apk_url = "https://github.com/RamiQassas/store/releases/download/v2.0.0-apk/Raqamiyat-Release.apk"
-    return redirect(apk_url)
+    import os
+    from django.http import FileResponse, Http404
+    from django.conf import settings
+
+    direct = request.GET.get("direct") == "1" or request.headers.get("accept", "").startswith("application/vnd.android.package-archive")
+    local_apk_path = os.path.join(settings.MEDIA_ROOT, "apk", "Raqamiyat-Release.apk")
+
+    if direct:
+        if os.path.exists(local_apk_path):
+            response = FileResponse(
+                open(local_apk_path, "rb"),
+                content_type="application/vnd.android.package-archive",
+                as_attachment=True,
+                filename="Raqamiyat-Release.apk"
+            )
+            response["Content-Length"] = os.path.getsize(local_apk_path)
+            return response
+        else:
+            # Fallback to GitHub Release asset
+            return redirect("https://github.com/RamiQassas/store/releases/download/v2.0.0-apk/Raqamiyat-Release.apk")
+
+    return render(request, "site/download_app.html")
 
 
 def control_product_delete(request, pk):
