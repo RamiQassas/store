@@ -1,0 +1,14 @@
+<resources>
+    <style name="Theme.RaqamiyatApp" parent="Theme.MaterialComponents.DayNight.NoActionBar">
+        <item name="colorPrimary">#06B6D4</item>
+        <item name="colorPrimaryVariant">#0891B2</item>
+        <item name="colorOnPrimary">#000000</item>
+        <item name="android:statusBarColor">#030712</item>
+        <item name="android:navigationBarColor">#030712</item>
+        <item name="android:windowBackground">#030712</item>
+    </style>
+    <style name="Theme.RaqamiyatApp.NoActionBar" parent="Theme.RaqamiyatApp">
+        <item name="windowActionBar">false</item>
+        <item name="windowNoTitle">true</item>
+    </style>
+</resources>

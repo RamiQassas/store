@@ -1,22 +1,51 @@
 {
-  "name": "Raqamiyat",
-  "short_name": "Raqamiyat",
-  "description": "Digital products and wallet services marketplace.",
+  "name": "رقميات | Raqamiyat Store",
+  "short_name": "رقميات",
+  "description": "منصة رقميات المتكاملة للتجارة والمنتجات المادية والرقمية والمحفظة واستوديو التصوير الذكي.",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",
-  "orientation": "portrait",
+  "orientation": "portrait-primary",
   "dir": "rtl",
   "lang": "ar",
-  "background_color": "#07111f",
-  "theme_color": "#0f766e",
-  "categories": ["shopping", "finance", "utilities"],
+  "background_color": "#030712",
+  "theme_color": "#06b6d4",
+  "categories": ["shopping", "business", "productivity", "utilities"],
   "icons": [
     {
       "src": "/static/site/img/app-icon.svg",
       "sizes": "any",
       "type": "image/svg+xml",
       "purpose": "any maskable"
+    },
+    {
+      "src": "/static/site/img/raqamiyat_logo_square.jpg",
+      "sizes": "512x512",
+      "type": "image/jpeg",
+      "purpose": "any"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "استوديو تصوير المنتجات 📸",
+      "short_name": "استوديو التصوير",
+      "description": "التقاط صور المنتجات المادية وعزلها بخلفية بيضاء وختم رقميات فوراً",
+      "url": "/control/camera-studio/",
+      "icons": [{ "src": "/static/site/img/app-icon.svg", "sizes": "any" }]
+    },
+    {
+      "name": "كتالوج المنتجات",
+      "short_name": "المنتجات",
+      "description": "تصفح وشراء المنتجات",
+      "url": "/catalog/",
+      "icons": [{ "src": "/static/site/img/app-icon.svg", "sizes": "any" }]
+    },
+    {
+      "name": "لوحة التحكم",
+      "short_name": "التحكم",
+      "description": "إدارة المتجر والطلبات",
+      "url": "/control/",
+      "icons": [{ "src": "/static/site/img/app-icon.svg", "sizes": "any" }]
     }
   ]
 }

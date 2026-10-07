@@ -6169,6 +6169,175 @@ def control_products_bulk_ai_branding(request):
 def control_products_bulk_ai_branding_progress(request):
     data = _read_bulk_branding_progress(str(request.user.id))
     return JsonResponse(data)
+
+
+@support_required
+def control_camera_studio(request):
+    """
+    Renders the mobile-first Quick Camera Studio:
+    Allows merchant to snap photos of physical products directly with their phone camera,
+    applies pure white background isolation (#ffffff) and official Raqamiyat hallmark badge,
+    and assigns directly to any existing store product or creates a new product.
+    """
+    store = getattr(request, "store", None)
+    if store:
+        products_qs = Product.objects.filter(store=store).select_related('category').order_by('name')
+        categories = Category.objects.filter(store=store).order_by('name')
+    else:
+        products_qs = Product.objects.filter(store__isnull=True).select_related('category').order_by('name')
+        categories = Category.objects.filter(store__isnull=True).order_by('name')
+    
+    products_list = []
+    for p in products_qs:
+        products_list.append({
+            "id": str(p.id),
+            "name": p.name,
+            "category": p.category.name if p.category else "بدون قسم",
+            "image_url": p.image.url if p.image else "",
+        })
+    
+    context = {
+        "products": products_list,
+        "categories": categories,
+        "total_products": len(products_list)
+    }
+    return render(request, "site/control_camera_studio.html", context)
+
+
+@support_required
+def control_camera_studio_process_ajax(request):
+    """
+    Receives raw mobile camera snapshot (File or Base64),
+    applies professional studio white background isolation and Raqamiyat hallmark,
+    and updates the selected product image immediately.
+    """
+    if request.method != "POST":
+        return JsonResponse({"status": "error", "message": "Method not allowed"}, status=405)
+    
+    import base64
+    from apps.catalog.studio_camera import process_camera_product_snapshot
+    from django.core.files.base import ContentFile
+    from django.utils.text import slugify
+
+    image_file = request.FILES.get("image")
+    image_base64 = request.POST.get("image_base64")
+    isolate_white = request.POST.get("isolate_white", "true").lower() in ("true", "1", "yes")
+    add_hallmark = request.POST.get("add_hallmark", "true").lower() in ("true", "1", "yes")
+    product_id = request.POST.get("product_id", "").strip()
+
+    if not image_file and not image_base64:
+        return JsonResponse({"status": "error", "message": "لم يتم إرسال أي صورة"}, status=400)
+
+    try:
+        if image_file:
+            raw_bytes = image_file.read()
+        else:
+            if "," in image_base64:
+                image_base64 = image_base64.split(",", 1)[1]
+            raw_bytes = base64.b64decode(image_base64)
+
+        store = getattr(request, "store", None)
+        store_name = store.name if store else "Raqamiyat"
+
+        processed_bytes = process_camera_product_snapshot(
+            raw_bytes,
+            isolate_white=isolate_white,
+            add_hallmark=add_hallmark,
+            target_size=800,
+            store_name=store_name
+        )
+
+        if product_id:
+            product = Product.all_objects.filter(id=product_id).first()
+            if not product:
+                return JsonResponse({"status": "error", "message": "المنتج المحدد غير موجود"}, status=404)
+            
+            filename = f"{slugify(product.name) or 'camera_prod'}_{str(product.id)[:8]}_studio.jpg"
+            product.image.save(filename, ContentFile(processed_bytes), save=True)
+
+            return JsonResponse({
+                "status": "success",
+                "message": f"تمت معالجة وتعيين صورة الاستوديو للمنتج '{product.name}' بنجاح!",
+                "image_url": product.image.url,
+                "product_id": str(product.id),
+                "product_name": product.name
+            })
+        
+        # Return processed preview
+        preview_b64 = "data:image/jpeg;base64," + base64.b64encode(processed_bytes).decode("utf-8")
+        return JsonResponse({
+            "status": "success",
+            "message": "تمت معالجة الصورة بنجاح على خلفية استوديو بيضاء وبشعار رقميات!",
+            "preview_url": preview_b64
+        })
+
+    except Exception as e:
+        logger.exception("Error processing camera snapshot: %s", e)
+        return JsonResponse({"status": "error", "message": f"حدث خطأ أثناء معالجة الصورة: {str(e)}"}, status=500)
+
+
+def api_offline_catalog(request):
+    """
+    Returns complete catalog data in a lightweight format for ServiceWorker
+    offline caching and Android App offline browsing.
+    """
+    import time
+    from django.core.cache import cache
+    cache_key = "api_offline_catalog_data"
+    cached_data = cache.get(cache_key)
+    if cached_data:
+        return JsonResponse(cached_data, safe=False)
+
+    store = getattr(request, "store", None)
+    if store:
+        products_qs = Product.objects.filter(store=store, is_active=True).select_related('category').prefetch_related('variants')
+        categories_qs = Category.objects.filter(store=store, is_active=True)
+    else:
+        products_qs = Product.objects.filter(store__isnull=True, is_active=True).select_related('category').prefetch_related('variants')
+        categories_qs = Category.objects.filter(store__isnull=True, is_active=True)
+
+    categories_list = []
+    for cat in categories_qs:
+        categories_list.append({
+            "id": str(cat.id),
+            "name": cat.name,
+            "image": cat.image.url if cat.image else None,
+            "product_type": getattr(cat, "product_type", "physical")
+        })
+
+    products_list = []
+    for p in products_qs:
+        variants_list = []
+        for v in p.variants.all():
+            variants_list.append({
+                "id": str(v.id),
+                "name": v.name,
+                "price": float(v.price) if v.price else 0.0,
+                "is_active": getattr(v, "is_active", True)
+            })
+        products_list.append({
+            "id": str(p.id),
+            "name": p.name,
+            "category_id": str(p.category_id) if p.category_id else None,
+            "category_name": p.category.name if p.category else "",
+            "image": p.image.url if p.image else None,
+            "price": float(p.price) if hasattr(p, "price") and p.price else 0.0,
+            "product_type": getattr(p, "product_type", "physical"),
+            "is_out_of_stock": getattr(p, "is_out_of_stock", False),
+            "variants": variants_list
+        })
+
+    data = {
+        "version": "2.0.0",
+        "timestamp": time.time(),
+        "categories": categories_list,
+        "products": products_list,
+        "total_products": len(products_list)
+    }
+    cache.set(cache_key, data, 300)
+    return JsonResponse(data, safe=False)
+
+
 def control_product_delete(request, pk):
     product = get_object_or_404(Product, pk=pk)
     product.delete()

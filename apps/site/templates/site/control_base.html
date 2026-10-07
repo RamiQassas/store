@@ -248,8 +248,11 @@
             <a href="{% url 'control_orders_list' %}" class="admin-nav-link {% if 'order' in request.path %}active{% endif %}">
                 <i class="fas fa-receipt"></i> سجل الطلبات
             </a>
-            <a href="{% url 'control_products_list' %}" class="admin-nav-link {% if 'product' in request.path and 'category' not in request.path and 'employees' not in request.path and 'pages' not in request.path %}active{% endif %}">
-                <i class="fas fa-box"></i> إدارة الخدمات
+            <a href="{% url 'control_products_list' %}" class="admin-nav-link {% if 'product' in request.path and 'category' not in request.path and 'employees' not in request.path and 'pages' not in request.path and 'camera-studio' not in request.path %}active{% endif %}">
+                <i class="fas fa-box"></i> إدارة الخدمات والمنتجات
+            </a>
+            <a href="{% url 'control_camera_studio' %}" class="admin-nav-link text-cyan font-black {% if 'camera-studio' in request.path %}active{% endif %}">
+                <i class="fas fa-camera-retro text-amber-400"></i> استوديو تصوير المنتجات 📸
             </a>
             <a href="{% url 'control_categories_list' %}" class="admin-nav-link {% if 'category' in request.path %}active{% endif %}">
                 <i class="fas fa-folder-tree"></i> تصنيفات المنتجات

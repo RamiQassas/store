@@ -1124,16 +1124,17 @@ def compose_category_card(cat_img, category_name, width=600, height=600):
 PHYSICAL_KEYWORDS = [
     # Devices, Cables & Hardware
     "وصلة", "وصله", "كيبل", "كابل", "سلك", "توصيلة", "شاحن", "شواحن", "راس شاحن", "شاحن سيارة", "شاحن جداري",
-    "قابس", "محول", "ادابتر", "ادابتور", "باور بانك", "باوربانك", "بنك طاقة", "بطارية متنقلة",
-    "ساعة", "ساعات", "سماعة", "سماعات", "ايربودز", "إيربودز", "اير بودز", "ماوس", "كيبورد", "لوحة مفاتيح",
+    "قابس", "محول", "ادابتر", "ادابتور", "باور بانك", "باوربانك", "بنك طاقة", "بطارية متنقلة", "بطارية", "بطاريات",
+    "ساعة", "ساعات", "سماعة", "سماعات", "ايربودز", "إيربودز", "اير بودز", "هيدفون", "هيتفون", "ماوس", "كيبورد", "لوحة مفاتيح",
     "فأرة", "هاتف", "هواتف", "جوال", "جوالات", "موبايل", "ايفون", "آيفون", "سامسونج", "شاومي", "هواوي",
     "جهاز", "اجهزة", "أجهزة", "كاميرا", "كاميرات", "شاشة", "شاشات", "لابتوب", "كمبيوتر", "حاسوب",
-    "تابلت", "ايباد", "آيباد", "راوتر", "مودم", "طابعة", "طابعات", "سبيكر", "مكبر صوت", "مايكروفون", "ميكروفون",
+    "تابلت", "ايباد", "آيباد", "راوتر", "مودم", "طابعة", "طابعات", "سبيكر", "سبيكرات", "مكبر صوت", "مايكروفون", "ميكروفون",
+    "دونجل", "دونغل", "انترنت", "قطع انترنت", "تمديد", "ممدد", "تحويلة", "تحويلات", "ذاكرة", "ذواكر", "فلاشة", "فلاش",
     # Hardware Brands & Connectors
-    "انكر", "أنكر", "بيسوس", "جويروم", "لدنيو", "ريماكس", "اورايمو", "يوجرين", "بلكن", "هوكو",
-    "تايب سي", "تايب-سي", "لايتنينج", "يو اس بي", "مايكرو",
+    "انكر", "أنكر", "بيسوس", "جويروم", "لدنيو", "ريماكس", "اورايمو", "يوجرين", "بلكن", "هوكو", "كوداك", "توشيبا", "دينمن", "جاي ماتكس", "لينك برو",
+    "تايب سي", "تايب-سي", "لايتنينج", "يو اس بي", "مايكرو", "hdmi", "vga", "aux", "chb", "gts", "dp10", "ac600",
     # Accessories & Cases
-    "كفر", "جراب", "حافظة", "حماية شاشة", "استيكر", "مسكة", "حامل جوال", "قاعدة", "ستاند",
+    "كفر", "جراب", "حافظة", "حماية شاشة", "لزقة", "لزقة شاشة", "استيكر", "مسكة", "حامل جوال", "حامل هاتف", "قاعدة", "ستاند", "ستاندات",
     # Perfumes & Beauty
     "عطر", "عطور", "بخور", "مكياج", "كريم", "سيروم", "تجميل", "عناية",
     # Watches & Jewelry
@@ -1147,15 +1148,17 @@ PHYSICAL_KEYWORDS = [
     "powerbank", "phone", "iphone", "samsung", "camera", "screen", "monitor", "laptop", "tablet",
     "ipad", "case", "cover", "perfume", "fragrance", "shoes", "sneakers", "shirt", "t-shirt", "bag",
     "backpack", "speaker", "router", "printer", "shaver", "blender", "type-c", "type c", "lightning",
-    "anker", "baseus", "joyroom", "ugreen", "belkin", "ldnio", "remax", "hoco", "oraimo"
+    "anker", "baseus", "joyroom", "ugreen", "belkin", "ldnio", "remax", "hoco", "oraimo",
+    "kodak", "toshiba", "denmen", "jaymatex", "gts", "link pro", "linkpro", "battery", "batteries",
+    "extender", "adapter", "converter", "dongle", "ethernet", "usb", "aux"
 ]
 
 
 DIGITAL_OVERRIDE_KEYWORDS = (
     "شدة", "شدات", "جوهرة", "جواهر", "ماس", "ماسات", "كوينز", "عملات", "نقاط", "uc", "cp", "diamonds", "coins",
-    "اشتراك", "اشتراكات", "رصيد", "تعبئة", "شحن", "بطاقة", "بطاقات", "كرت", "كروت", "قسيمة", "قسائم", "كود", "اكواد",
-    "حساب", "حسابات", "سيريال", "مفتاح", "مفاتيح", "تفعيل", "رقم امريكي", "رقم وهمي", "ارقام",
-    "gift card", "voucher", "subscription", "license", "key", "account", "recharge", "top up", "topup"
+    "اشتراك", "اشتراكات", "شحن", "بطاقة", "بطاقات", "كرت", "كروت", "قسيمة", "قسائم", "كود", "اكواد",
+    "حساب", "حسابات", "سيريال", "مفتاح", "مفاتيح", "تفعيل", "رقم امريكي", "رقم وهمي",
+    "gift card", "voucher", "subscription", "license", "key", "account", "top up", "topup"
 )
 
 DIGITAL_CATEGORIES = (
@@ -1169,7 +1172,7 @@ def is_physical_product(product):
     Accurately detects whether a product (or product name string) is a physical item:
     1. Digital override check: games, cards, vouchers, and recharge are NEVER physical.
     2. Checks product.product_type == 'physical'
-    3. Checks category.product_type or category name
+    3. Checks category.product_type or category name against known physical categories
     4. Analyzes product name for physical e-commerce keywords
     """
     if not product:
@@ -1201,11 +1204,19 @@ def is_physical_product(product):
     if p_type == "physical":
         return True
 
+    # 3. Known Physical Categories check (matches all merchant categories)
     if cat:
         if getattr(cat, "product_type", None) == "physical":
             return True
         c_name = getattr(cat, "name", "").lower()
-        if any(w in c_name for w in ("إلكترونيات", "الكترونيات", "أجهزة", "اجهزة", "هواتف", "جوالات", "عطور", "ساعات", "ملابس", "أزياء", "ازياء", "منزلية", "ملحقات", "اكسسوارات")):
+        known_phys_cat_terms = (
+            "إلكترونيات", "الكترونيات", "أجهزة", "اجهزة", "هواتف", "جوالات", "عطور", "ساعات",
+            "ملابس", "أزياء", "ازياء", "منزلية", "ملحقات", "اكسسوارات", "اكسسورات",
+            "قطع انترنت", "شواحن", "سماعات", "وصلات", "وصلات شاحن", "ذواكر", "بيوت هواتف",
+            "كفرات", "بطاريات", "باور بانك", "سبيكرات", "كاميرات", "حامل", "حامل هاتف",
+            "لزقة شاشة", "هيدفون", "ستاندات", "ملحقات حاسوب"
+        )
+        if any(w in c_name for w in known_phys_cat_terms):
             return True
 
     for kw in PHYSICAL_KEYWORDS:
@@ -1346,6 +1357,29 @@ ARABIC_PHYSICAL_BRANDS = {
     "انكر": "Anker",
     "أنكر": "Anker",
     "anker": "Anker",
+    "كوداك": "Kodak",
+    "kodak": "Kodak",
+    "توشيبا": "Toshiba",
+    "toshiba": "Toshiba",
+    "دينمن": "Denmen",
+    "denmen": "Denmen",
+    "جاي ماتكس": "Jaymatex",
+    "jaymatex": "Jaymatex",
+    "لينك برو": "Link Pro",
+    "link pro": "Link Pro",
+    "linkpro": "Link Pro",
+    "gts": "GTS",
+    "chb": "CHB",
+    "باناسونيك": "Panasonic",
+    "panasonic": "Panasonic",
+    "دوراسيل": "Duracell",
+    "duracell": "Duracell",
+    "انرجايزر": "Energizer",
+    "energizer": "Energizer",
+    "سانديسك": "SanDisk",
+    "sandisk": "SanDisk",
+    "كينجستون": "Kingston",
+    "kingston": "Kingston",
     "ابل": "Apple",
     "آبل": "Apple",
     "ايفون": "Apple iPhone",
@@ -1404,17 +1438,24 @@ ARABIC_PHYSICAL_BRANDS = {
 }
 
 PHYSICAL_HARDWARE_TYPES = [
+    ('lithium button coin cell battery', ['بطاريات', 'بطارية', '2016', '2025', '2032', 'cr2016', 'cr2025', 'cr2032', 'battery', 'batteries', 'زنك']),
+    ('hdmi extender repeater converter', ['extender', 'hdmi extender', 'ممدد', 'تمديد', 'hd-x02', 'vga converter', 'تحويلات شاشة', 'تحويلة']),
+    ('fast hdmi 4k cable', ['hdmi cable', 'كابل hdmi', 'وصلة hdmi', 'hdmi 4k', 'jaymatex 1m', 'jaymatex 3m', 'jaymatex 5m']),
+    ('portable bluetooth speaker', ['سبيكر', 'سبيكرات', 'مكبر صوت', 'speaker', 'gts', 'gts-1922', 'gts-1797', 'gts-2426']),
+    ('car fm transmitter mp3 player', ['fm mp3', 'fm transmitter', 'mp3 سيارة', 'fm-11', 'fm-12', 'fm-13', 'fm-14', 'fm-15', 'fm-16']),
+    ('wireless wifi usb network adapter', ['usb adapter', 'wifi adapter', 'ac600', 'دونجل', 'قطع انترنت', 'ad01 adapter', 'ad02 adapter']),
+    ('usb flash drive memory card', ['ذاكرة', 'ذواكر', 'فلاشة', 'فلاش', 'memory card', 'micro sd', 'flash drive']),
+    ('phone car mount holder', ['حامل هاتف', 'حامل سيارة', 'ستاند', 'car mount', 'phone holder']),
     ('fast car charger', ['شاحن سيارة', 'شاحن للسيارة', 'car charger']),
     ('fast charging cable', ['وصلة', 'كيبل', 'كابل', 'سلك', 'توصيلة', 'cable', 'cord', 'wire', 'type-c', 'lightning']),
     ('wall charger adapter', ['شاحن', 'راس شاحن', 'شواحن', 'مقبس', 'charger', 'adapter', 'wall charger']),
-    ('portable power bank battery', ['باور بانك', 'باوربانك', 'بطارية متنقلة', 'بنك طاقة', 'power bank', 'powerbank']),
-    ('wireless earbuds headphones', ['سماعة', 'سماعات', 'ايربودز', 'إيربودز', 'بودز', 'earbuds', 'earphones', 'headphones', 'airpods']),
-    ('phone protective case cover', ['كفر', 'جراب', 'كفرات', 'حافظة', 'case', 'cover']),
-    ('tempered glass screen protector', ['حماية شاشة', 'استيكر', 'screen protector', 'glass']),
+    ('portable power bank battery', ['باور بانك', 'باوربانك', 'بطارية متنقلة', 'بنك طاقة', 'power bank', 'powerbank', 'dp10']),
+    ('wireless earbuds headphones', ['سماعة', 'سماعات', 'ايربودز', 'إيربودز', 'بودز', 'earbuds', 'earphones', 'headphones', 'airpods', 'هيدفون', 'هيتفون']),
+    ('phone protective case cover', ['كفر', 'جراب', 'كفرات', 'حافظة', 'case', 'cover', 'بيوت هواتف']),
+    ('tempered glass screen protector', ['حماية شاشة', 'استيكر', 'screen protector', 'glass', 'لزقة شاشة']),
     ('gaming mouse', ['ماوس', 'فأرة', 'mouse']),
     ('mechanical keyboard', ['كيبورد', 'لوحة مفاتيح', 'keyboard']),
     ('smartwatch fitness band', ['ساعة ذكية', 'ساعة', 'smartwatch', 'watch', 'band']),
-    ('bluetooth portable speaker', ['سبيكر', 'مكبر صوت', 'speaker']),
     ('perfume fragrance', ['عطر', 'عطور', 'بخور', 'perfume', 'fragrance']),
 ]
 
