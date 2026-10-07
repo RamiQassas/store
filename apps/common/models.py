@@ -445,3 +445,99 @@ class MetaCampaignSnapshot(TimeStampedModel):
         return f"{self.name} ({self.effective_status})"
 
 
+class SiteFeatureFlag(TimeStampedModel):
+    """
+    Modular Feature Flag system allowing Super Admins / Merchants to show/hide
+    specific features (Transfers, Withdrawals, Recharge Cards, App Download, Sub-stores directory, etc.).
+    """
+    FEATURE_CHOICES = [
+        ("feature_p2p_transfers", "التحويل بين المحافظ (P2P Transfer)"),
+        ("feature_withdrawals", "سحب الرصيد (Withdrawals)"),
+        ("feature_deposits", "شحن الرصيد والإيداع (Deposits)"),
+        ("feature_recharge_cards", "بطاقات الشحن الرقمية (Recharge Cards)"),
+        ("feature_app_download", "تحميل تطبيق الأندرويد (App Download)"),
+        ("feature_sub_stores", "دليل المتاجر الفرعية وSaaS (Stores Directory)"),
+        ("feature_camera_studio", "استوديو تصوير المنتجات (Camera Studio)"),
+        ("feature_kyc_verification", "توثيق الهوية (KYC Verification)"),
+        ("feature_reviews_testimonials", "مراجعات وآراء العملاء (Testimonials)"),
+        ("feature_product_suggestions", "مقترحات العملاء للخدمات (Suggestions)"),
+        ("feature_live_support_chat", "الدعم المباشر والشات (Live Chat)"),
+        ("feature_coupon_discounts", "كوبونات الخصم (Coupons)"),
+    ]
+
+    store = models.ForeignKey(
+        "stores.Store",
+        on_delete=models.CASCADE,
+        null=True,
+        blank=True,
+        related_name="feature_flags",
+        verbose_name="المتجر"
+    )
+    objects = TenantManager()
+    all_objects = models.Manager()
+
+    key = models.CharField(max_length=80, verbose_name="رمز الميزة")
+    name = models.CharField(max_length=150, verbose_name="اسم الميزة")
+    description = models.CharField(max_length=255, blank=True, verbose_name="الوصف")
+    is_enabled = models.BooleanField(default=True, verbose_name="مفعلة وتظهر للعملاء")
+    category = models.CharField(max_length=50, default="عام", verbose_name="القسم")
+
+    class Meta:
+        verbose_name = "مفتاح ميزة (Feature Flag)"
+        verbose_name_plural = "مفاتيح ميزات الموقع (Feature Flags)"
+        unique_together = ("key", "store")
+        ordering = ("category", "name")
+
+    def __str__(self):
+        status = "✅ مفعلة" if self.is_enabled else "❌ معطلة"
+        return f"{self.name} [{status}]"
+
+    @classmethod
+    def is_feature_enabled(cls, key, store=None):
+        """Check if feature is enabled, defaults to True if flag record doesn't exist yet."""
+        try:
+            flag = cls.all_objects.filter(key=key, store=store).first()
+            if flag is not None:
+                return flag.is_enabled
+            # Global fallback if checked for store
+            if store:
+                global_flag = cls.all_objects.filter(key=key, store__isnull=True).first()
+                if global_flag is not None:
+                    return global_flag.is_enabled
+            return True
+        except Exception:
+            return True
+
+    @classmethod
+    def get_all_flags_dict(cls, store=None):
+        """Return a dictionary of all flag states for quick template checks."""
+        defaults = {
+            "feature_p2p_transfers": True,
+            "feature_withdrawals": True,
+            "feature_deposits": True,
+            "feature_recharge_cards": True,
+            "feature_app_download": True,
+            "feature_sub_stores": True,
+            "feature_camera_studio": True,
+            "feature_kyc_verification": True,
+            "feature_reviews_testimonials": True,
+            "feature_product_suggestions": True,
+            "feature_live_support_chat": True,
+            "feature_coupon_discounts": True,
+        }
+        try:
+            flags = cls.all_objects.filter(store=store)
+            for f in flags:
+                defaults[f.key] = f.is_enabled
+            if store:
+                # Inherit global disabled flags
+                global_flags = cls.all_objects.filter(store__isnull=True)
+                for gf in global_flags:
+                    if not gf.is_enabled:
+                        defaults[gf.key] = False
+        except Exception:
+            pass
+        return defaults
+
+
+

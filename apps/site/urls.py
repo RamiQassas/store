@@ -232,6 +232,8 @@ urlpatterns = [
     # Backup & Maintenance
     path("control/backup/", views.control_backup, name="control_backup"),
     path("control/system/updates/", views.control_system_updates, name="control_system_updates"),
+    path("control/features/", views.control_feature_flags, name="control_feature_flags"),
+    path("control/features/toggle-ajax/", views.control_feature_toggle_ajax, name="control_feature_toggle_ajax"),
 
     # Merchant Dashboard fallbacks (for template reverse safety)
     path("control/merchant/", views.control_dashboard, name="merchant_dashboard"),

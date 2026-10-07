@@ -1,0 +1,129 @@
+{% extends "site/control_base.html" %}
+{% load static %}
+
+{% block title %}إدارة وإخفاء ميزات الموقع | Feature Flags{% endblock %}
+
+{% block control_content %}
+<div class="space-y-8">
+    <!-- Header Hero Banner -->
+    <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 p-6 rounded-3xl bg-slate-900/60 border border-white/10 backdrop-blur-xl">
+        <div class="flex items-center gap-4">
+            <div class="w-14 h-14 rounded-2xl bg-gradient-to-tr from-cyan-500/20 to-amber-500/20 border border-cyan-500/30 flex items-center justify-center text-cyan-400 text-2xl shadow-xl">
+                <i class="fas fa-sliders"></i>
+            </div>
+            <div>
+                <h1 class="text-xl sm:text-2xl font-black text-white">إدارة وإخفاء ميزات الموقع (Feature Control)</h1>
+                <p class="text-xs text-slate-400 mt-1">تحكم فوري بإظهار أو إخفاء أي خاصية في المتجر (التحويلات، السحب، بطاقات رقميات، تحميل التطبيق، المتاجر الفرعية...)</p>
+            </div>
+        </div>
+        
+        <div class="flex items-center gap-2">
+            <span class="px-3.5 py-1.5 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-xs font-black flex items-center gap-1.5">
+                <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+                <span>تحديث فوري مباشر (Live Switch)</span>
+            </span>
+        </div>
+    </div>
+
+    <!-- Features Bento Grid -->
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+        {% for f in flags %}
+        <div class="p-5 rounded-3xl bg-slate-900/60 border border-white/10 hover:border-cyan-500/40 backdrop-blur-xl transition-all duration-300 flex flex-col justify-between group shadow-lg" id="card-{{ f.id }}">
+            <div class="space-y-3">
+                <div class="flex items-center justify-between">
+                    <span class="text-[10px] font-black uppercase tracking-wider px-2.5 py-1 rounded-lg bg-white/5 border border-white/10 text-slate-400">
+                        {{ f.category }}
+                    </span>
+                    
+                    <!-- Toggle Switch Button -->
+                    <label class="relative inline-flex items-center cursor-pointer">
+                        <input type="checkbox" class="sr-only peer feature-toggle-input" data-id="{{ f.id }}" data-name="{{ f.name }}" {% if f.is_enabled %}checked{% endif %}>
+                        <div class="w-11 h-6 bg-slate-800 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-gradient-to-r peer-checked:from-emerald-500 peer-checked:to-cyan-500"></div>
+                    </label>
+                </div>
+
+                <div>
+                    <h3 class="text-sm font-black text-white group-hover:text-cyan-400 transition-colors flex items-center gap-2">
+                        {% if 'transfer' in f.key %}<i class="fas fa-exchange-alt text-amber-400"></i>
+                        {% elif 'withdraw' in f.key %}<i class="fas fa-circle-arrow-up text-rose-400"></i>
+                        {% elif 'deposit' in f.key %}<i class="fas fa-circle-arrow-down text-emerald-400"></i>
+                        {% elif 'recharge' in f.key %}<i class="fas fa-gift text-cyan-400"></i>
+                        {% elif 'app_download' in f.key %}<i class="fab fa-android text-emerald-400"></i>
+                        {% elif 'sub_stores' in f.key %}<i class="fas fa-store text-indigo-400"></i>
+                        {% elif 'camera_studio' in f.key %}<i class="fas fa-camera text-yellow-400"></i>
+                        {% elif 'kyc' in f.key %}<i class="fas fa-user-shield text-blue-400"></i>
+                        {% elif 'reviews' in f.key %}<i class="fas fa-comments text-teal-400"></i>
+                        {% elif 'suggestion' in f.key %}<i class="fas fa-lightbulb text-amber-300"></i>
+                        {% elif 'chat' in f.key %}<i class="fas fa-message text-sky-400"></i>
+                        {% elif 'coupon' in f.key %}<i class="fas fa-ticket text-purple-400"></i>
+                        {% else %}<i class="fas fa-gear text-slate-400"></i>
+                        {% endif %}
+                        <span>{{ f.name }}</span>
+                    </h3>
+                    <p class="text-xs text-slate-400 mt-1 leading-relaxed">{{ f.description }}</p>
+                </div>
+            </div>
+
+            <div class="mt-4 pt-3 border-t border-white/5 flex items-center justify-between text-[11px]">
+                <span class="status-badge font-bold flex items-center gap-1.5 {% if f.is_enabled %}text-emerald-400{% else %}text-rose-400{% endif %}">
+                    <span class="w-1.5 h-1.5 rounded-full {% if f.is_enabled %}bg-emerald-400{% else %}bg-rose-400{% endif %}"></span>
+                    <span class="status-text">{% if f.is_enabled %}مفعلة وتظهر للعملاء{% else %}مخفية ومعطلة{% endif %}</span>
+                </span>
+                <span class="text-slate-600 font-mono text-[9px]">{{ f.key }}</span>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+
+<script>
+    document.querySelectorAll('.feature-toggle-input').forEach(function(toggle) {
+        toggle.addEventListener('change', function(e) {
+            var flagId = this.getAttribute('data-id');
+            var flagName = this.getAttribute('data-name');
+            var isChecked = this.checked;
+            var card = document.getElementById('card-' + flagId);
+            var statusBadge = card ? card.querySelector('.status-badge') : null;
+            var statusText = card ? card.querySelector('.status-text') : null;
+
+            fetch('{% url "control_feature_toggle_ajax" %}', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': '{{ csrf_token }}'
+                },
+                body: JSON.stringify({
+                    flag_id: flagId,
+                    is_enabled: isChecked
+                })
+            })
+            .then(function(r) { return r.json(); })
+            .then(function(data) {
+                if (data.status === 'success') {
+                    if (statusBadge && statusText) {
+                        if (isChecked) {
+                            statusBadge.className = 'status-badge font-bold flex items-center gap-1.5 text-emerald-400';
+                            statusBadge.querySelector('span:first-child').className = 'w-1.5 h-1.5 rounded-full bg-emerald-400';
+                            statusText.textContent = 'مفعلة وتظهر للعملاء';
+                        } else {
+                            statusBadge.className = 'status-badge font-bold flex items-center gap-1.5 text-rose-400';
+                            statusBadge.querySelector('span:first-child').className = 'w-1.5 h-1.5 rounded-full bg-rose-400';
+                            statusText.textContent = 'مخفية ومعطلة';
+                        }
+                    }
+                    if (window.showToast) {
+                        showToast(data.message);
+                    }
+                } else {
+                    alert('خطأ: ' + (data.message || 'تعذر تغيير الحالة'));
+                    toggle.checked = !isChecked;
+                }
+            })
+            .catch(function(err) {
+                alert('خطأ في الاتصال: ' + err.message);
+                toggle.checked = !isChecked;
+            });
+        });
+    });
+</script>
+{% endblock %}

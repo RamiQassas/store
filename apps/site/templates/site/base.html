@@ -765,7 +765,8 @@
     .drawer-link.active { background: rgba(212, 168, 83, 0.1); color: var(--gold); }
 
     /* Floating Cyber-Glass Controller Dock (Bottom Bar) */
-    body.is-native-app .mobile-nav-bar {
+    body.is-native-app .mobile-nav-bar,
+    body.is-native-app #top-app-download-ribbon {
         display: none !important;
     }
     body.is-native-app .shell {
@@ -1115,6 +1116,32 @@
   {% endif %}
 </head>
 <body class="{% if request.path|slice:':9' == '/control/' %}is-control{% else %}is-customer{% endif %}">
+  {% if FEATURES.feature_app_download %}
+  <!-- Top App Download Smart Ribbon (Visible to Web Visitors, Hidden in Native App) -->
+  <div id="top-app-download-ribbon" class="bg-gradient-to-r from-slate-950 via-slate-900 to-cyan-950 border-b border-cyan-500/25 py-2 px-3 sm:px-6 flex items-center justify-between text-xs transition-all relative z-50">
+      <div class="flex items-center gap-2 sm:gap-3 overflow-hidden">
+          <div class="w-7 h-7 sm:w-8 sm:h-8 rounded-xl bg-gradient-to-tr from-amber-400 to-cyan-400 p-0.5 flex-shrink-0 shadow-lg shadow-cyan-500/20">
+              <div class="w-full h-full bg-slate-950 rounded-[10px] flex items-center justify-center">
+                  <i class="fas fa-bolt text-xs text-amber-400"></i>
+              </div>
+          </div>
+          <div class="truncate">
+              <span class="font-black text-white text-xs block truncate">تطبيق رقميات الرسمي (Android)</span>
+              <span class="text-[10px] text-slate-400 hidden sm:block">تصفح بدون إنترنت، إشعارات فورية، واستوديو تصوير ذكي</span>
+          </div>
+      </div>
+      <div class="flex items-center gap-2 flex-shrink-0">
+          <a href="{% url 'download_android_apk' %}?direct=1" class="py-1 px-3 sm:px-4 rounded-xl bg-gradient-to-r from-cyan-400 to-emerald-400 hover:brightness-110 text-slate-950 font-black text-[11px] sm:text-xs flex items-center gap-1.5 shadow-md shadow-cyan-500/20 transition-all active:scale-95">
+              <i class="fas fa-cloud-arrow-down text-xs"></i>
+              <span>تحميل التطبيق</span>
+          </a>
+          <button type="button" onclick="document.getElementById('top-app-download-ribbon').style.display='none'" class="text-slate-400 hover:text-white p-1 text-xs" title="إغلاق">
+              <i class="fas fa-times"></i>
+          </button>
+      </div>
+  </div>
+  {% endif %}
+
   {% if active_announcement %}
   <div class="announcement-bar group relative overflow-hidden" style="background: {{ active_announcement.background_color }}; color: {{ active_announcement.text_color }}; padding: 12px; text-align: center; font-size: 13px; position: sticky; top: 0; z-index: 9999; font-weight: 800; border-bottom: 1px solid rgba(255,255,255,0.1);">
     <div class="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000"></div>
@@ -1230,7 +1257,7 @@
           <a href="{% url 'home' %}" class="drawer-link {% if request.resolver_match.url_name == 'home' %}active{% endif %}">
               <i class="fas fa-house"></i> الرئيسية
           </a>
-          {% if not is_tenant %}
+          {% if not is_tenant and FEATURES.feature_sub_stores %}
           <a href="{% url 'stores_directory' %}" class="drawer-link {% if request.resolver_match.url_name == 'stores_directory' %}active{% endif %}">
               <i class="fas fa-store"></i> المتاجر
           </a>
@@ -1238,9 +1265,11 @@
           <a href="{% url 'catalog' %}" class="drawer-link {% if request.resolver_match.url_name == 'catalog' %}active{% endif %}">
               <i class="fas fa-boxes-stacked"></i> الكتالوج
           </a>
+          {% if FEATURES.feature_app_download %}
           <a href="{% url 'download_android_apk' %}" class="drawer-link text-cyan {% if request.resolver_match.url_name == 'download_android_apk' %}active{% endif %}">
               <i class="fab fa-android text-emerald-400"></i> تحميل تطبيق رقميات (APK)
           </a>
+          {% endif %}
 
           {% if user.is_authenticated %}
           <div class="h-px bg-white/5 my-4"></div>
@@ -1312,19 +1341,23 @@
 
         <nav class="nav-links">
           <a href="{% url 'home' %}" class="{% if request.resolver_match.url_name == 'home' %}active{% endif %}">الرئيسية</a>
-          {% if not is_tenant %}
+          {% if not is_tenant and FEATURES.feature_sub_stores %}
           <a href="{% url 'stores_directory' %}" class="{% if request.resolver_match.url_name == 'stores_directory' %}active{% endif %}">المتاجر</a>
           {% endif %}
           <a href="{% url 'catalog' %}" class="{% if request.resolver_match.url_name == 'catalog' %}active{% endif %}">الخدمات</a>
+          {% if FEATURES.feature_app_download %}
           <a href="{% url 'download_android_apk' %}" class="{% if request.resolver_match.url_name == 'download_android_apk' %}active{% endif %} text-cyan hover:text-cyan font-bold flex items-center gap-1.5" title="تحميل تطبيق الأندرويد">
               <i class="fab fa-android text-emerald-400"></i>
               <span>التطبيق</span>
           </a>
+          {% endif %}
           {% if user.is_authenticated %}
              <a href="{% url 'dashboard' %}" class="{% if request.resolver_match.url_name == 'dashboard' %}active{% endif %}">حسابي</a>
              <a href="{% url 'dashboard_orders' %}" class="{% if request.resolver_match.url_name == 'dashboard_orders' %}active{% endif %}">طلباتي</a>
              <a href="{% url 'dashboard_wallet' %}" class="{% if request.resolver_match.url_name == 'dashboard_wallet' %}active{% endif %}">المحفظة</a>
+             {% if FEATURES.feature_live_support_chat %}
              <a href="{% url 'chat_list' %}" class="{% if 'chat' in request.path %}active{% endif %}">الدعم المباشر</a>
+             {% endif %}
              {% if not is_tenant %}
                  {% if user.is_superuser or user.role == "super_admin" or user.role == "admin" %}
                     <a href="{% url 'control_dashboard' %}" class="admin-link">لوحة التحكم</a>
@@ -1473,9 +1506,11 @@
                 <h4 class="font-black text-xs uppercase tracking-widest text-white mb-6">روابط سريعة</h4>
                 <div class="stack gap-4 text-sm text-slate-500">
                     <a href="{% url 'catalog' %}" class="hover:text-cyan transition-colors">تصفح الخدمات</a>
+                    {% if FEATURES.feature_app_download %}
                     <a href="{% url 'download_android_apk' %}" class="text-cyan font-bold hover:text-cyan-300 transition-colors flex items-center gap-1.5">
                         <i class="fab fa-android text-emerald-400"></i> تطبيق رقميات (Android)
                     </a>
+                    {% endif %}
                     {% if not user.is_authenticated %}
                     <a href="{% url 'site_login' %}" class="hover:text-cyan transition-colors">تسجيل الدخول</a>
                     <a href="{% url 'site_register' %}" class="hover:text-cyan transition-colors">إنشاء حساب</a>

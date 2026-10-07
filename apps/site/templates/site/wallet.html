@@ -873,22 +873,30 @@
 
             <!-- ── Quick Actions Grid ── -->
             <div class="quick-actions wallet-reveal">
+                {% if FEATURES.feature_deposits %}
                 <a href="{% url 'dashboard_deposits' %}" class="qa-btn">
                     <div class="qa-icon deposit"><i class="fas fa-arrow-down"></i></div>
                     <span class="qa-label">إيداع</span>
                 </a>
+                {% endif %}
+                {% if FEATURES.feature_withdrawals %}
                 <a href="{% url 'dashboard_withdrawals' %}" class="qa-btn">
                     <div class="qa-icon withdraw"><i class="fas fa-arrow-up"></i></div>
                     <span class="qa-label">سحب</span>
                 </a>
+                {% endif %}
+                {% if FEATURES.feature_p2p_transfers %}
                 <a href="{% url 'dashboard_transfer' %}" class="qa-btn">
                     <div class="qa-icon transfer"><i class="fas fa-exchange-alt"></i></div>
                     <span class="qa-label">تحويل</span>
                 </a>
+                {% endif %}
+                {% if FEATURES.feature_recharge_cards %}
                 <a href="#recharge-section" class="qa-btn highlight">
                     <div class="qa-icon recharge"><i class="fas fa-credit-card"></i></div>
                     <span class="qa-label">شحن بطاقة</span>
                 </a>
+                {% endif %}
             </div>
 
             <!-- ── Stats Scrollable Row ── -->
@@ -1015,6 +1023,7 @@
 
         <!-- ════════ SIDEBAR ════════ -->
         <div class="sidebar-area">
+            {% if FEATURES.feature_recharge_cards %}
             <!-- Recharge Card Form -->
             <div class="side-card wallet-reveal" id="recharge-section">
                 <div class="side-card-title">
@@ -1033,6 +1042,7 @@
                     </button>
                 </form>
             </div>
+            {% endif %}
 
             <!-- Currency Holdings -->
             <div class="side-card wallet-reveal">

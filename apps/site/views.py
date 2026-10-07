@@ -6384,6 +6384,84 @@ def download_android_apk(request):
     return render(request, "site/download_app.html")
 
 
+@admin_required
+def control_feature_flags(request):
+    """
+    Feature Flags Control Center:
+    Allows administrators and store owners to toggle individual features on/off.
+    """
+    from apps.common.models import SiteFeatureFlag
+    store = getattr(request, "store", None)
+
+    # Standard Feature definitions
+    DEFAULT_FEATURES = [
+        ("feature_p2p_transfers", "تحويل الرصيد والمحافظ (P2P)", "إتاحة إرسال وتحويل الرصيد بين حسابات المستخدمين ومحافظهم", "مالية ومحافظ"),
+        ("feature_withdrawals", "سحب الأرباح والرصيد", "تمكين المستخدمين من تقديم طلبات سحب رصيد المحفظة إلى حساباتهم الخارجية", "مالية ومحافظ"),
+        ("feature_deposits", "شحن الرصيد والإيداع", "إظهار خيارات شحن المحفظة والإيداع المالي عبر وسائل الدفع المعتمدة", "مالية ومحافظ"),
+        ("feature_recharge_cards", "بطاقات رقميات وشحن الكود", "تفعيل نظام توليد واستبدال كروت الشحن الرقمية", "مالية ومحافظ"),
+        ("feature_app_download", "تحميل تطبيق رقميات (Android)", "إظهار بنرات وروابط تحميل تطبيق الهاتف الذكي في الشريط العلوي والفوتر", "تطبيقات وتكامل"),
+        ("feature_sub_stores", "دليل المتاجر الفرعية وSaaS", "إظهار دليل المتاجر المستقلة وإمكانية إنشاء متجر جديد على المنصة", "التجارة والـ SaaS"),
+        ("feature_camera_studio", "استوديو تصوير المنتجات الذكي", "إتاحة استوديو الكاميرا وعزل الخلفيات البيضاء في لوحة التحكم", "أدوات التاجر"),
+        ("feature_kyc_verification", "توثيق الهوية (KYC)", "إلزام أو إظهار توثيق الهويات الرسمية ورفع المستندات", "الأمان والامتثال"),
+        ("feature_reviews_testimonials", "مراجعات وآراء العملاء", "عرض ونشر تقييمات العملاء ومراجعاتهم في المتجر", "المحتوى والتفاعل"),
+        ("feature_product_suggestions", "صندوق مقترحات المنتجات", "السماح للعملاء بتقديم مقترحات لطلب خدمات جديدة", "المحتوى والتفاعل"),
+        ("feature_live_support_chat", "الدعم المباشر والشات", "تفعيل زر ونظام المحادثة الفورية مع فريق الدعم", "خدمة العملاء"),
+        ("feature_coupon_discounts", "كوبونات وقسائم الخصم", "إتاحة تطبيق أكواد الخصم الترويجية عند الدفع", "التسويق والمبيعات"),
+    ]
+
+    # Ensure all default flags exist in DB for this store
+    flags_list = []
+    for key, name, desc, cat in DEFAULT_FEATURES:
+        flag, _ = SiteFeatureFlag.all_objects.get_or_create(
+            key=key,
+            store=store,
+            defaults={"name": name, "description": desc, "category": cat, "is_enabled": True}
+        )
+        flags_list.append(flag)
+
+    return render(request, "site/control_feature_flags.html", {
+        "flags": flags_list,
+        "is_tenant": bool(store),
+    })
+
+
+@admin_required
+def control_feature_toggle_ajax(request):
+    """AJAX handler to immediately flip a feature flag state."""
+    from apps.common.models import SiteFeatureFlag
+    if request.method != "POST":
+        return JsonResponse({"status": "error", "message": "طلب غير صالح"}, status=400)
+
+    import json
+    try:
+        data = json.loads(request.body)
+    except Exception:
+        data = request.POST
+
+    flag_id = data.get("flag_id")
+    enabled = data.get("is_enabled")
+    if enabled is None:
+        enabled = data.get("enabled")
+    
+    if str(enabled).lower() in ("true", "1", "on"):
+        is_enabled = True
+    else:
+        is_enabled = False
+
+    store = getattr(request, "store", None)
+    flag = get_object_or_404(SiteFeatureFlag.all_objects, id=flag_id, store=store)
+    flag.is_enabled = is_enabled
+    flag.save(update_fields=["is_enabled", "updated_at"])
+
+    status_str = "تفعيل" if is_enabled else "إخفاء وتعطيل"
+    return JsonResponse({
+        "status": "success",
+        "message": f"تم {status_str} ميزة ({flag.name}) بنجاح وتحديث المتجر فوراً.",
+        "is_enabled": flag.is_enabled,
+        "key": flag.key
+    })
+
+
 def control_product_delete(request, pk):
     product = get_object_or_404(Product, pk=pk)
     product.delete()

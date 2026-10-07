@@ -377,6 +377,8 @@
             <div class="admin-nav-group"><span>الإعدادات والتقارير</span></div>
             <a href="{% url 'control_reports' %}" class="admin-nav-link {% if 'report' in request.path %}active{% endif %}">
                 <i class="fas fa-chart-line"></i> التقارير المالية
+            <a href="{% url 'control_feature_flags' %}" class="admin-nav-link text-cyan font-bold {% if 'control/features' in request.path %}active{% endif %}">
+                <i class="fas fa-toggle-on text-emerald-400"></i> إخفاء وإظهار ميزات الموقع 🎛️
             </a>
             <a href="{% url 'currencies_list' %}" class="admin-nav-link {% if 'currenc' in request.path %}active{% endif %}">
                 <i class="fas fa-coins"></i> ضبط العملات

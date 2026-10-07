@@ -9,7 +9,7 @@ def webpush_settings(request):
     }
 
 def common_context(request):
-    from apps.common.models import Currency, SiteAnnouncement
+    from apps.common.models import Currency, SiteAnnouncement, SiteFeatureFlag
     from apps.accounts.models import KYCRequest
     from apps.notifications.models import Notification
     
@@ -22,10 +22,15 @@ def common_context(request):
     else:
         all_currencies = Currency.all_objects.filter(store__isnull=True, is_active=True).order_by("display_order", "code")
 
+    # Load feature flags for current store/platform
+    features = SiteFeatureFlag.get_all_flags_dict(store=active_store)
+
     context = {
         "ALL_CURRENCIES": all_currencies,
         "PENDING_KYC_COUNT": KYCRequest.objects.filter(status=KYCRequest.Status.PENDING).count() if is_staff else 0,
-        "active_announcement": SiteAnnouncement.all_objects.filter(store=active_store, is_active=True).first()
+        "active_announcement": SiteAnnouncement.all_objects.filter(store=active_store, is_active=True).first(),
+        "FEATURES": features,
+        "features": features,
     }
     
     if user and user.is_authenticated:
