@@ -5016,6 +5016,48 @@ def control_products_list(request):
                 messages.error(request, f"فشل التعديل الجماعي: {str(e)}")
             return redirect("control_products_list")
 
+        elif action == "sync_alkasr_catalog":
+            from apps.providers.models import ProviderProfile
+            from services.provider.alkasr.mapper import AlkasrMapperService
+            from apps.common.tenant_utils import bypass_tenant_filter
+
+            try:
+                with bypass_tenant_filter():
+                    profiles = ProviderProfile.all_objects.filter(is_active=True)
+                    if not profiles.exists():
+                        messages.warning(request, "لم يتم العثور على ملفات تعريف نشطة للمزود الكاسر VIP.")
+                    else:
+                        total_created, total_updated = 0, 0
+                        for prof in profiles:
+                            mapper = AlkasrMapperService(prof)
+                            stats = mapper.map_all_to_catalog()
+                            total_created += stats.get("root_products_created", 0) + stats.get("variants_created", 0)
+                            total_updated += stats.get("root_products_updated", 0) + stats.get("variants_updated", 0)
+                        messages.success(
+                            request,
+                            f"تمت مزامنة واستيراد خدمات الكاسر VIP بنجاح عبر الأقسام العشرة! (تم إنشاء {total_created} عنصر وتحديث {total_updated} عنصر)."
+                        )
+            except Exception as e:
+                logger.exception("Error syncing Alkasr catalog from control: %s", e)
+                messages.error(request, f"حدث خطأ أثناء مزامنة الكتالوج من الكاسر: {str(e)}")
+            return redirect("control_products_list")
+
+        elif action == "import_raqamiyat_for_store" and store:
+            from apps.stores.services import import_raqamiyat_products_for_store
+            try:
+                stats = import_raqamiyat_products_for_store(store)
+                messages.success(
+                    request,
+                    f"تمت مزامنة واستيراد منتجات رقميات بنجاح إلى متجرك! "
+                    f"(الأقسام: {stats['categories_created']} جديد / {stats['categories_updated']} محدث، "
+                    f"المنتجات: {stats['products_created']} جديد / {stats['products_updated']} محدث، "
+                    f"الباقات: {stats['variants_created']} جديد / {stats['variants_updated']} محدث)."
+                )
+            except Exception as e:
+                logger.exception("Error importing Raqamiyat products for store: %s", e)
+                messages.error(request, f"حدث خطأ أثناء استيراد المنتجات: {str(e)}")
+            return redirect("control_products_list")
+
     if store:
         products = Product.all_objects.filter(store=store)
         base_cat_qs = Category.all_objects.filter(store=store)

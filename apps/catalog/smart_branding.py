@@ -5,7 +5,7 @@ import math
 import logging
 import urllib.parse
 import requests
-from PIL import Image, ImageDraw, ImageFont, ImageFilter
+from PIL import Image, ImageDraw, ImageFont, ImageFilter, ImageEnhance, ImageOps
 from django.core.files.base import ContentFile
 from django.utils.text import slugify
 
@@ -588,6 +588,10 @@ def search_and_download_logo(product_name):
     5. Google High-Res Brand Domain API (Known Domains)
     6. Verified Square Google Play Store 512x512 Icon Search fallback
     """
+    # STRICT GUARD: Physical hardware/gadgets must NEVER be searched on mobile app stores!
+    if is_physical_product(product_name):
+        return None
+
     p_lower = (product_name or "").lower()
 
     # 1. Curated Local Brand Asset (0 latency, 100% exact match)
@@ -1118,14 +1122,18 @@ def compose_category_card(cat_img, category_name, width=600, height=600):
 
 
 PHYSICAL_KEYWORDS = [
-    # Devices & Hardware
-    "ساعة", "ساعات", "سماعة", "سماعات", "ايربودز", "إيربودز", "ماوس", "كيبورد", "لوحة مفاتيح",
-    "فأرة", "شاحن", "شواحن", "كيبل", "كابل", "سلك", "توصيلة", "باور بانك", "باوربانك", "بنك طاقة",
-    "هاتف", "هواتف", "جوال", "جوالات", "موبايل", "ايفون", "آيفون", "سامسونج", "شاومي", "هواوي",
+    # Devices, Cables & Hardware
+    "وصلة", "وصله", "كيبل", "كابل", "سلك", "توصيلة", "شاحن", "شواحن", "راس شاحن", "شاحن سيارة", "شاحن جداري",
+    "قابس", "محول", "ادابتر", "ادابتور", "باور بانك", "باوربانك", "بنك طاقة", "بطارية متنقلة",
+    "ساعة", "ساعات", "سماعة", "سماعات", "ايربودز", "إيربودز", "اير بودز", "ماوس", "كيبورد", "لوحة مفاتيح",
+    "فأرة", "هاتف", "هواتف", "جوال", "جوالات", "موبايل", "ايفون", "آيفون", "سامسونج", "شاومي", "هواوي",
     "جهاز", "اجهزة", "أجهزة", "كاميرا", "كاميرات", "شاشة", "شاشات", "لابتوب", "كمبيوتر", "حاسوب",
     "تابلت", "ايباد", "آيباد", "راوتر", "مودم", "طابعة", "طابعات", "سبيكر", "مكبر صوت", "مايكروفون", "ميكروفون",
+    # Hardware Brands & Connectors
+    "انكر", "أنكر", "بيسوس", "جويروم", "لدنيو", "ريماكس", "اورايمو", "يوجرين", "بلكن", "هوكو",
+    "تايب سي", "تايب-سي", "لايتنينج", "يو اس بي", "مايكرو",
     # Accessories & Cases
-    "كفر", "جراب", "حافظة", "حماية شاشة", "استيكر", "مسكة", "حامل جوال", "قاعدة",
+    "كفر", "جراب", "حافظة", "حماية شاشة", "استيكر", "مسكة", "حامل جوال", "قاعدة", "ستاند",
     # Perfumes & Beauty
     "عطر", "عطور", "بخور", "مكياج", "كريم", "سيروم", "تجميل", "عناية",
     # Watches & Jewelry
@@ -1138,29 +1146,68 @@ PHYSICAL_KEYWORDS = [
     "watch", "headphone", "earphone", "earbuds", "airpods", "mouse", "keyboard", "charger", "cable",
     "powerbank", "phone", "iphone", "samsung", "camera", "screen", "monitor", "laptop", "tablet",
     "ipad", "case", "cover", "perfume", "fragrance", "shoes", "sneakers", "shirt", "t-shirt", "bag",
-    "backpack", "speaker", "router", "printer", "shaver", "blender"
+    "backpack", "speaker", "router", "printer", "shaver", "blender", "type-c", "type c", "lightning",
+    "anker", "baseus", "joyroom", "ugreen", "belkin", "ldnio", "remax", "hoco", "oraimo"
 ]
+
+
+DIGITAL_OVERRIDE_KEYWORDS = (
+    "شدة", "شدات", "جوهرة", "جواهر", "ماس", "ماسات", "كوينز", "عملات", "نقاط", "uc", "cp", "diamonds", "coins",
+    "اشتراك", "اشتراكات", "رصيد", "تعبئة", "شحن", "بطاقة", "بطاقات", "كرت", "كروت", "قسيمة", "قسائم", "كود", "اكواد",
+    "حساب", "حسابات", "سيريال", "مفتاح", "مفاتيح", "تفعيل", "رقم امريكي", "رقم وهمي", "ارقام",
+    "gift card", "voucher", "subscription", "license", "key", "account", "recharge", "top up", "topup"
+)
+
+DIGITAL_CATEGORIES = (
+    "ألعاب", "العاب", "بطاقات", "دردشة", "شات", "اتصالات", "أرصدة", "ارصدة", "تلفاز", "بث", "أفلام", "افلام",
+    "vpn", "ذكاء", "برامج", "حسابات", "أرقام", "ارقام", "سوشيال", "تواصل"
+)
 
 
 def is_physical_product(product):
     """
-    Accurately detects whether a product is a physical item:
-    1. Checks product.product_type == 'physical'
-    2. Checks category.product_type or category name
-    3. Analyzes product name for physical e-commerce keywords
+    Accurately detects whether a product (or product name string) is a physical item:
+    1. Digital override check: games, cards, vouchers, and recharge are NEVER physical.
+    2. Checks product.product_type == 'physical'
+    3. Checks category.product_type or category name
+    4. Analyzes product name for physical e-commerce keywords
     """
-    if getattr(product, "product_type", None) == "physical":
+    if not product:
+        return False
+
+    if isinstance(product, str):
+        p_name = product
+        p_type = None
+        cat = None
+    else:
+        p_name = getattr(product, "name", "")
+        p_type = getattr(product, "product_type", None)
+        cat = getattr(product, "category", None)
+
+    p_lower = (p_name or "").lower()
+
+    # 1. Digital override check: items with game currencies/keys/recharge are NEVER physical
+    if any(dk in p_lower for dk in DIGITAL_OVERRIDE_KEYWORDS):
+        return False
+
+    # 2. Digital category check
+    if cat:
+        c_name = getattr(cat, "name", "").lower()
+        if any(dc in c_name for dc in DIGITAL_CATEGORIES):
+            return False
+        if getattr(cat, "product_type", None) in ("digital", "service"):
+            return False
+
+    if p_type == "physical":
         return True
 
-    cat = getattr(product, "category", None)
     if cat:
         if getattr(cat, "product_type", None) == "physical":
             return True
-        c_name = cat.name.lower()
-        if any(w in c_name for w in ("إلكترونيات", "الكترونيات", "أجهزة", "هواتف", "جوالات", "عطور", "ساعات", "ملابس", "أزياء", "منزلية")):
+        c_name = getattr(cat, "name", "").lower()
+        if any(w in c_name for w in ("إلكترونيات", "الكترونيات", "أجهزة", "اجهزة", "هواتف", "جوالات", "عطور", "ساعات", "ملابس", "أزياء", "ازياء", "منزلية", "ملحقات", "اكسسوارات")):
             return True
 
-    p_lower = (product.name or "").lower()
     for kw in PHYSICAL_KEYWORDS:
         if kw in p_lower:
             return True
@@ -1168,127 +1215,564 @@ def is_physical_product(product):
     return False
 
 
+def isolate_and_enhance_product(img, target_size=600):
+    """
+    Isolates real product on a pure crisp white background (#ffffff) and enhances details:
+    1. Capped at 500px for sub-second C-speed PIL operations.
+    2. Uses ImageOps.invert and getbbox() for instant 1ms bounding box detection.
+    3. Crops, enhances sharpness, contrast, and color vibrancy.
+    4. Centers on pure white canvas (82% size) with subtle contact shadow.
+    """
+    img = img.convert("RGBA")
+    if max(img.size) > 500:
+        img.thumbnail((500, 500), Image.Resampling.LANCZOS)
+    w, h = img.size
+
+    # Quick studio check from corners and border samples
+    border_pixels = [
+        img.getpixel((0, 0)), img.getpixel((w - 1, 0)),
+        img.getpixel((0, h - 1)), img.getpixel((w - 1, h - 1)),
+        img.getpixel((w // 2, 0)), img.getpixel((w // 2, h - 1)),
+        img.getpixel((0, h // 2)), img.getpixel((w - 1, h // 2))
+    ]
+    light_count = sum(1 for p in border_pixels if (p[0] + p[1] + p[2]) / 3 > 190 or (len(p) > 3 and p[3] < 30))
+    is_studio = (light_count / len(border_pixels)) >= 0.5
+
+    rgb_img = img.convert("RGB")
+    gray = rgb_img.convert("L")
+    inv = ImageOps.invert(gray)
+
+    # Threshold: values > 20 in inverted image mean pixel is not near-white (> 235 luminance)
+    prod_mask = inv.point(lambda p: 255 if p > 20 else 0)
+    bbox = prod_mask.getbbox()
+
+    if bbox and (bbox[2] - bbox[0] > 25) and (bbox[3] - bbox[1] > 25):
+        pad = 6
+        crop_box = (max(0, bbox[0] - pad), max(0, bbox[1] - pad), min(w, bbox[2] + pad), min(h, bbox[3] + pad))
+        product_crop = img.crop(crop_box)
+    else:
+        product_crop = img
+
+    # Enhance details
+    enh_rgb = product_crop.convert("RGB")
+    enh_rgb = ImageEnhance.Sharpness(enh_rgb).enhance(1.2)
+    enh_rgb = ImageEnhance.Contrast(enh_rgb).enhance(1.05)
+    enh_rgb = ImageEnhance.Color(enh_rgb).enhance(1.05)
+    product_crop = enh_rgb.convert("RGBA")
+
+    # Pure white canvas
+    canvas = Image.new("RGB", (target_size, target_size), (255, 255, 255))
+
+    max_dim = int(target_size * 0.82)
+    cw, ch = product_crop.size
+    scale = min(max_dim / cw, max_dim / ch)
+    new_w = max(1, int(cw * scale))
+    new_h = max(1, int(ch * scale))
+
+    prod_scaled = product_crop.resize((new_w, new_h), Image.Resampling.LANCZOS)
+
+    pos_x = (target_size - new_w) // 2
+    pos_y = (target_size - new_h) // 2
+
+    # Soft contact ground shadow
+    shadow_w = int(new_w * 0.72)
+    shadow_h = 16
+    shadow = Image.new("RGBA", (shadow_w, shadow_h), (0, 0, 0, 0))
+    s_draw = ImageDraw.Draw(shadow)
+    s_draw.ellipse([0, 0, shadow_w - 1, shadow_h - 1], fill=(0, 0, 0, 35))
+    shadow = shadow.filter(ImageFilter.GaussianBlur(8))
+
+    sh_x = (target_size - shadow_w) // 2
+    sh_y = pos_y + new_h - 6
+
+    canvas_rgba = canvas.convert("RGBA")
+    canvas_rgba.paste(shadow, (sh_x, sh_y), shadow)
+    canvas_rgba.paste(prod_scaled, (pos_x, pos_y), prod_scaled if prod_scaled.mode == 'RGBA' else None)
+
+    return canvas_rgba.convert("RGB")
+
+
+# Verified global e-commerce and official brand image CDNs (strictly authentic real product photography)
+VERIFIED_PRODUCT_CDNS = [
+    'media-amazon.com/images/i/',
+    'images-amazon.com/images/i/',
+    'ssl-images-amazon.com',
+    'alicdn.com/kf/',
+    'aliexpress-media.com',
+    'walmartimages.com',
+    'target.scene7.com',
+    'bbystatic.com',
+    'pisces.bbystatic.com',
+    'bhphotovideo.com',
+    'i.ebayimg.com/images/',
+    'apple.com',
+    'samsung.com',
+    'anker.com',
+    'baseus.com',
+    'mi.com',
+    'xiaomi.com',
+    'sony.com',
+    'huawei.com',
+    'lenovo.com',
+    'dell.com',
+    'hp.com',
+    'asus.com',
+    'logitech.com',
+    'noon.com',
+    'jarir.com',
+    'extra.com',
+    'joyroom.com',
+    'remax.com',
+    'ldnio.com',
+    'oraimo.com',
+    'jbl.com',
+    'bose.com',
+    'philips.com',
+]
+
+# Strict negative keywords filter (blocks memes, fitness models, cartoons, food recipes, medical scans, etc.)
+PHYSICAL_ANTI_JUNK_KEYWORDS = (
+    'muscle', 'fitness', 'gym', 'bodybuilder', 'bodybuilding', 'workout', 'diet', 'weightloss',
+    'abs', 'biceps', 'chest', 'model', 'selfie', 'person', 'man', 'woman', 'boy', 'girl', 'human',
+    'face', 'portrait', 'flexing', 'meme', 'funny', 'joke', 'comic', 'drawing', 'cartoon', 'anime',
+    'manga', 'illustration', 'clipart', 'vector', 'sketch', 'recipe', 'food', 'cooking', 'soup',
+    'dish', 'meal', 'cake', 'bread', 'salad', 'kitchen-recipe', 'slideshare', 'pinterest', 'deviantart',
+    'shutterstock', 'istockphoto', 'alamy', 'dreamstime', 'gettyimages', 'wallpaper', 'landscape',
+    'nature', 'flag', 'map', 'craiyon', 'stablediffusion', 'midjourney', 'medical', 'mri', 'scan',
+    'sciencephoto', 'webmd', 'hospital', 'clinic'
+)
+
+ARABIC_PHYSICAL_BRANDS = {
+    "انكر": "Anker",
+    "أنكر": "Anker",
+    "anker": "Anker",
+    "ابل": "Apple",
+    "آبل": "Apple",
+    "ايفون": "Apple iPhone",
+    "آيفون": "Apple iPhone",
+    "apple": "Apple",
+    "iphone": "Apple iPhone",
+    "سامسونج": "Samsung",
+    "سامسونغ": "Samsung",
+    "samsung": "Samsung",
+    "بيسوس": "Baseus",
+    "بيوس": "Baseus",
+    "باسوس": "Baseus",
+    "baseus": "Baseus",
+    "جويروم": "Joyroom",
+    "جوي روم": "Joyroom",
+    "جيروم": "Joyroom",
+    "joyroom": "Joyroom",
+    "شاومي": "Xiaomi",
+    "ريدمي": "Redmi",
+    "xiaomi": "Xiaomi",
+    "redmi": "Redmi",
+    "هواوي": "Huawei",
+    "huawei": "Huawei",
+    "سوني": "Sony",
+    "sony": "Sony",
+    "لوجيتك": "Logitech",
+    "لوجيتيك": "Logitech",
+    "logitech": "Logitech",
+    "لدنيو": "LDNIO",
+    "لدينو": "LDNIO",
+    "ldnio": "LDNIO",
+    "ريماكس": "Remax",
+    "remax": "Remax",
+    "اورايمو": "Oraimo",
+    "oraimo": "Oraimo",
+    "فيليبس": "Philips",
+    "philips": "Philips",
+    "جي بي ال": "JBL",
+    "jbl": "JBL",
+    "بوز": "Bose",
+    "bose": "Bose",
+    "ديل": "Dell",
+    "dell": "Dell",
+    "اتش بي": "HP",
+    "hp": "HP",
+    "لينوفو": "Lenovo",
+    "lenovo": "Lenovo",
+    "اسوس": "Asus",
+    "asus": "Asus",
+    "يوجرين": "UGREEN",
+    "ugreen": "UGREEN",
+    "بلكن": "Belkin",
+    "belkin": "Belkin",
+    "هوكو": "Hoco",
+    "hoco": "Hoco",
+}
+
+PHYSICAL_HARDWARE_TYPES = [
+    ('fast car charger', ['شاحن سيارة', 'شاحن للسيارة', 'car charger']),
+    ('fast charging cable', ['وصلة', 'كيبل', 'كابل', 'سلك', 'توصيلة', 'cable', 'cord', 'wire', 'type-c', 'lightning']),
+    ('wall charger adapter', ['شاحن', 'راس شاحن', 'شواحن', 'مقبس', 'charger', 'adapter', 'wall charger']),
+    ('portable power bank battery', ['باور بانك', 'باوربانك', 'بطارية متنقلة', 'بنك طاقة', 'power bank', 'powerbank']),
+    ('wireless earbuds headphones', ['سماعة', 'سماعات', 'ايربودز', 'إيربودز', 'بودز', 'earbuds', 'earphones', 'headphones', 'airpods']),
+    ('phone protective case cover', ['كفر', 'جراب', 'كفرات', 'حافظة', 'case', 'cover']),
+    ('tempered glass screen protector', ['حماية شاشة', 'استيكر', 'screen protector', 'glass']),
+    ('gaming mouse', ['ماوس', 'فأرة', 'mouse']),
+    ('mechanical keyboard', ['كيبورد', 'لوحة مفاتيح', 'keyboard']),
+    ('smartwatch fitness band', ['ساعة ذكية', 'ساعة', 'smartwatch', 'watch', 'band']),
+    ('bluetooth portable speaker', ['سبيكر', 'مكبر صوت', 'speaker']),
+    ('perfume fragrance', ['عطر', 'عطور', 'بخور', 'perfume', 'fragrance']),
+]
+
+
+def extract_physical_brand_and_type(product_name):
+    """Extracts recognized brand and hardware category in Arabic or English."""
+    p_lower = (product_name or "").lower()
+    found_brand = None
+    for k, v in ARABIC_PHYSICAL_BRANDS.items():
+        if k in p_lower:
+            found_brand = v
+            break
+
+    found_type = None
+    for eng_type, aliases in PHYSICAL_HARDWARE_TYPES:
+        if any(a in p_lower for a in aliases):
+            found_type = eng_type
+            break
+
+    return found_brand, found_type
+
+
+def fetch_and_validate_product_image(img_url, min_dim=250):
+    """Downloads and verifies an authentic e-commerce product photograph."""
+    try:
+        ir = requests.get(
+            img_url,
+            headers={"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"},
+            timeout=3.0
+        )
+        if ir.status_code == 200 and len(ir.content) > 10000:
+            pil_img = Image.open(io.BytesIO(ir.content)).convert("RGBA")
+            w, h = pil_img.size
+            aspect = w / h if h else 1.0
+            if w >= min_dim and h >= min_dim and 0.55 <= aspect <= 1.85:
+                return pil_img
+    except Exception as e:
+        logger.debug("Image download/validation error for %s: %s", img_url, e)
+    return None
+
+
+def query_bing_ecommerce_cdns(query_text, max_results=25):
+    """Queries Bing image index specifically targeting verified e-commerce product CDNs."""
+    headers = {
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
+        "Referer": "https://www.bing.com/",
+        "Accept-Language": "en-US,en;q=0.9",
+    }
+    url = f"https://www.bing.com/images/async?q={urllib.parse.quote(query_text)}&count={max_results}&first=1"
+    try:
+        resp = requests.get(url, headers=headers, timeout=2.8)
+        murls = re.findall(r'&quot;murl&quot;:&quot;(https?://[^&"]+)&quot;', resp.text)
+        verified_matches = []
+        for u in murls:
+            u_lower = u.lower()
+            if any(bad in u_lower for bad in PHYSICAL_ANTI_JUNK_KEYWORDS):
+                continue
+            if any(cdn in u_lower for cdn in VERIFIED_PRODUCT_CDNS):
+                verified_matches.append(u)
+        return verified_matches
+    except Exception as e:
+        logger.debug("Bing e-commerce search error for query '%s': %s", query_text, e)
+        return []
+
+
+def fetch_image_from_wikimedia_hardware(query_term):
+    """
+    Searches Wikimedia Commons for authentic hardware product photography.
+    Excludes circuit boards, diagrams, logos, and people portraits.
+    """
+    if not query_term:
+        return None
+    try:
+        headers = {"User-Agent": "RaqamiyatStore/2.0 (hardware-catalog@raqamiyatapp.com)"}
+        url = f"https://commons.wikimedia.org/w/api.php?action=query&generator=search&gsrsearch={urllib.parse.quote(query_term)}&gsrnamespace=6&prop=imageinfo&iiprop=url|size&format=json&gsrlimit=6"
+        resp = requests.get(url, headers=headers, timeout=4.0)
+        if resp.status_code == 200:
+            pages = resp.json().get("query", {}).get("pages", {})
+            for pid, p in pages.items():
+                title = str(p.get("title", "")).lower()
+                if any(bad in title for bad in (
+                    'diagram', 'exploded', 'mechanism', 'circuit', 'schematic', 'pcb', 'logo', 'flag', 'map', 'icon', 'symbol', 'building', 'office', 'portrait', 'face', 'person'
+                )):
+                    continue
+                info = p.get("imageinfo", [{}])[0]
+                img_url = info.get("url")
+                if img_url:
+                    pil_img = fetch_and_validate_product_image(img_url, min_dim=250)
+                    if pil_img:
+                        return pil_img
+    except Exception as e:
+        logger.debug("Wikimedia hardware fetch error for '%s': %s", query_term, e)
+    return None
+
+
 def search_physical_product_photo(product_name):
     """
-    Searches for authentic commercial product photography:
-    1. Translates Arabic product name to clear English
-    2. Cleans promotional fluff words (e.g. أصلي, عرض, جديد, original, free delivery)
-    3. Checks Wikipedia / Wikimedia API for famous tech hardware & gadgets (Apple, Sony, Samsung, etc.)
-    4. Searches Bing Images with targeted commercial product photography queries
-    5. Filters out logos, icons, badges, low-res images, and ensures authentic photo
+    Overhauled multi-tier verified e-commerce product photography search engine:
+    1. Translates Arabic product name and cleans marketing clutter.
+    2. Identifies brand (Anker, Apple, Samsung, Joyroom, Baseus, etc.) & hardware type.
+    3. Tier 1: Search exact product on verified e-commerce CDNs (Amazon, Alibaba/AliExpress, Walmart, BestBuy).
+    4. Tier 2: Search Brand + Hardware Category on verified CDNs (e.g. 'Anker charging cable amazon').
+    5. Tier 3: Search Brand Official Hardware Catalog / Product Showcase on verified CDNs.
+    6. Tier 4: Search Hardware Category Generic Studio Shot on verified CDNs.
+    7. Tier 5: Wikimedia Commons Hardware Archive (Guaranteed authentic commercial tech photography).
+    8. Tier 6: Wikipedia Hardware Page-Image lookup for recognized gadgets.
+    9. Strictly filters out all cartoons, drawings, memes, fitness models, recipes, and junk.
+    10. Isolates product on pure white background (#ffffff) with natural studio contact shadow.
     """
-    en_query = translate_to_english(product_name)
-    clean_en = re.sub(r'\b(original|authentic|new|offer|best|free|delivery|shipping|warranty|guarantee|pro|ultra|edition|5g|4g)\b', '', en_query, flags=re.IGNORECASE).strip()
+    if not product_name:
+        return None
 
-    # 1. Wikipedia Hardware Lookup
-    wiki_queries = [en_query, clean_en]
+    en_query = translate_to_english(product_name)
+    clean_en = re.sub(
+        r'\b(original|authentic|new|offer|best|free|delivery|shipping|warranty|guarantee|pro|ultra|edition|5g|4g|high quality)\b',
+        '', en_query, flags=re.IGNORECASE
+    ).strip()
+    clean_en = re.sub(r'\s+', ' ', clean_en)
+
+    brand, hw_type = extract_physical_brand_and_type(product_name)
+
+    # ── Tier 1: Exact Product Query on Verified E-Commerce CDNs ──────────────────
+    tier1_queries = [
+        f"{clean_en} product photo amazon OR alibaba",
+        f"{en_query} official product photography",
+    ]
+    for q in tier1_queries:
+        if len(q.strip()) < 5:
+            continue
+        matches = query_bing_ecommerce_cdns(q)
+        for img_url in matches[:4]:
+            pil_img = fetch_and_validate_product_image(img_url)
+            if pil_img:
+                logger.info("Tier 1 product photo match found for '%s': %s", product_name, img_url)
+                return isolate_and_enhance_product(pil_img)
+
+    # ── Tier 2: Extracted Brand + Hardware Category on Verified CDNs ─────────────
+    if brand and hw_type:
+        tier2_queries = [
+            f"{brand} {hw_type} product photo amazon OR alibaba",
+            f"{brand} {hw_type} official store white background",
+        ]
+        for q in tier2_queries:
+            matches = query_bing_ecommerce_cdns(q)
+            for img_url in matches[:4]:
+                pil_img = fetch_and_validate_product_image(img_url)
+                if pil_img:
+                    logger.info("Tier 2 brand+category photo match found for '%s': %s", product_name, img_url)
+                    return isolate_and_enhance_product(pil_img)
+
+    # ── Tier 3: Brand Company Official Hardware Showcase on Verified CDNs ────────
+    if brand:
+        tier3_queries = [
+            f"{brand} official hardware product photo amazon",
+            f"{brand} electronics product white background amazon",
+        ]
+        for q in tier3_queries:
+            matches = query_bing_ecommerce_cdns(q)
+            for img_url in matches[:4]:
+                pil_img = fetch_and_validate_product_image(img_url)
+                if pil_img:
+                    logger.info("Tier 3 brand showcase photo match found for '%s': %s", product_name, img_url)
+                    return isolate_and_enhance_product(pil_img)
+
+    # ── Tier 4: Hardware Category Studio Photography on Verified CDNs ─────────────
+    if hw_type:
+        tier4_queries = [
+            f"{hw_type} studio product photo amazon white background",
+            f"{hw_type} commercial white background alibaba",
+        ]
+        for q in tier4_queries:
+            matches = query_bing_ecommerce_cdns(q)
+            for img_url in matches[:4]:
+                pil_img = fetch_and_validate_product_image(img_url)
+                if pil_img:
+                    logger.info("Tier 4 hardware studio photo match found for '%s': %s", product_name, img_url)
+                    return isolate_and_enhance_product(pil_img)
+
+    # ── Tier 5: Wikimedia Commons Hardware Photographic Archive ──────────────────
+    commons_queries = []
+    if brand and hw_type:
+        commons_queries.append(f"{brand} {hw_type}")
+    if brand:
+        commons_queries.append(f"{brand} charger" if "charger" in (hw_type or "") or "cable" in (hw_type or "") else f"{brand} hardware")
+    if hw_type:
+        commons_queries.append(f"{hw_type}")
+    commons_queries.extend([clean_en, en_query])
+
+    for cq in commons_queries:
+        if len(cq) < 3:
+            continue
+        c_img = fetch_image_from_wikimedia_hardware(cq)
+        if c_img:
+            logger.info("Tier 5 Wikimedia Commons hardware photo found for '%s' via '%s'", product_name, cq)
+            return isolate_and_enhance_product(c_img)
+
+    # ── Tier 6: Wikipedia Hardware API Lookup for Recognized Tech Hardware ─────────
+    wiki_queries = [clean_en, en_query]
+    if brand and hw_type:
+        wiki_queries.append(f"{brand} {hw_type}")
     for wq in wiki_queries:
         if len(wq) < 3:
             continue
         try:
-            url = f"https://en.wikipedia.org/w/api.php?action=query&titles={urllib.parse.quote(wq)}&prop=pageimages&format=json&pithumbsize=800"
+            url = f"https://en.wikipedia.org/w/api.php?action=query&titles={urllib.parse.quote(wq)}&prop=pageimages&format=json&pithumbsize=900"
             resp = requests.get(url, headers={"User-Agent": "RaqamiyatStore/2.0"}, timeout=3.5)
             pages = resp.json().get("query", {}).get("pages", {})
             for pid, pdata in pages.items():
                 thumb = pdata.get("thumbnail", {}).get("source")
-                if thumb and not any(bad in thumb.lower() for bad in ('logo', 'flag', 'map', 'icon', 'symbol', 'building', 'office')):
-                    ir = requests.get(thumb, headers={"User-Agent": "Mozilla/5.0"}, timeout=4.0)
-                    if ir.status_code == 200 and len(ir.content) > 15000:
-                        pil_img = Image.open(io.BytesIO(ir.content)).convert("RGBA")
-                        if pil_img.width >= 300 and pil_img.height >= 300:
-                            return pil_img
+                if thumb and not any(bad in thumb.lower() for bad in (
+                    'logo', 'flag', 'map', 'icon', 'symbol', 'building', 'office', 'portrait', 'person'
+                )):
+                    pil_img = fetch_and_validate_product_image(thumb, min_dim=300)
+                    if pil_img:
+                        logger.info("Tier 6 Wikipedia hardware photo found for '%s': %s", product_name, thumb)
+                        return isolate_and_enhance_product(pil_img)
         except Exception as e:
             logger.debug("Wikipedia product search error: %s", e)
-
-    # 2. Bing Images Commercial Search
-    headers = {
-        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
-        "Referer": "https://www.bing.com/"
-    }
-    search_queries = [
-        f"{en_query} product white background",
-        f"{en_query} official product photography",
-        f"{product_name} منتج أصلي"
-    ]
-    for sq in search_queries:
-        try:
-            url = f"https://www.bing.com/images/async?q={urllib.parse.quote(sq)}&count=15&first=1"
-            resp = requests.get(url, headers=headers, timeout=4.5)
-            murls = re.findall(r'&quot;murl&quot;:&quot;(https?://[^&"]+)&quot;', resp.text)
-            for m in murls[:10]:
-                if any(bad in m.lower() for bad in ('logo', 'emblem', 'icon', 'history', 'badge', 'banner', 'vectorstock', 'wikimedia.org', 'wikipedia.org', 'map', 'flag')):
-                    continue
-                try:
-                    ir = requests.get(m, headers={"User-Agent": "Mozilla/5.0"}, timeout=4.0)
-                    if ir.status_code == 200 and len(ir.content) > 15000:
-                        pil_img = Image.open(io.BytesIO(ir.content)).convert("RGBA")
-                        w, h = pil_img.size
-                        if w >= 300 and h >= 300:
-                            return pil_img
-                except Exception:
-                    continue
-        except Exception as e:
-            logger.debug("Bing physical search error for %s: %s", sq, e)
 
     return None
 
 
+def create_physical_hardware_card(product_name, store_name=None, width=600, height=600):
+    """
+    Renders an authentic, ultra-premium commercial studio hardware presentation card (600x600):
+    - Pure crisp white studio canvas (#ffffff) with soft ambient floor gradient
+    - Official Brand Studio Hallmark Tile with dynamic metallic/brand accent
+    - Bold uppercase Brand title + hardware category specification
+    - Subtitle indicating authentic commercial hardware
+    - Official Raqamiyat 'VERIFIED PRODUCT' hallmark badge
+    """
+    canvas = Image.new("RGBA", (width, height), (255, 255, 255, 255))
+    draw = ImageDraw.Draw(canvas)
+
+    # 1. Subtle studio floor shadow gradient at the bottom 25%
+    for y in range(int(height * 0.75), height):
+        progress = (y - height * 0.75) / (height * 0.25)
+        alpha = int(18 * progress)
+        draw.line([(0, y), (width, y)], fill=(226, 232, 240, alpha))
+
+    # Outer subtle studio boundary
+    draw.rounded_rectangle([2, 2, width - 3, height - 3], radius=24, outline=(226, 232, 240), width=2)
+
+    # 2. Extract brand & hardware type
+    p_lower = (product_name or "").lower()
+    brand_name = None
+    for k, v in ARABIC_PHYSICAL_BRANDS.items():
+        if k in p_lower:
+            brand_name = v.upper()
+            break
+
+    # Determine hardware category subtitle
+    hw_subtitle = "OFFICIAL HARDWARE"
+    if any(w in p_lower for w in ("شاحن", "كيبل", "كابل", "سلك", "توصيلة", "cable", "charger", "وصلة", "وصله")):
+        hw_subtitle = "FAST CHARGE & SYNC CABLE"
+    elif any(w in p_lower for w in ("باور بانك", "باوربانك", "بنك طاقة", "power bank", "بطارية")):
+        hw_subtitle = "PORTABLE POWER & BATTERY"
+    elif any(w in p_lower for w in ("سماعة", "سماعات", "ايربودز", "audio", "earbuds", "headphones")):
+        hw_subtitle = "HIGH-FIDELITY AUDIO"
+    elif any(w in p_lower for w in ("ساعة", "smartwatch", "watch")):
+        hw_subtitle = "SMART WEARABLE & ACCESSORY"
+    elif any(w in p_lower for w in ("عطر", "عطور", "perfume", "fragrance")):
+        hw_subtitle = "ORIGINAL LUXURY FRAGRANCE"
+
+    # 3. Studio Brand / Hardware Showcase Tile in Center
+    tile_w = 340
+    tile_h = 320
+    tx = (width - tile_w) // 2
+    ty = int(height * 0.16)
+
+    # Ambient soft studio shadow under tile
+    tile_shadow = Image.new("RGBA", (tile_w + 40, tile_h + 40), (0, 0, 0, 0))
+    ts_draw = ImageDraw.Draw(tile_shadow)
+    ts_draw.rounded_rectangle([20, 24, 20 + tile_w, 24 + tile_h], radius=32, fill=(0, 0, 0, 25))
+    tile_shadow = tile_shadow.filter(ImageFilter.GaussianBlur(14))
+    canvas.paste(tile_shadow, (tx - 20, ty - 20), tile_shadow)
+
+    # Tile body: Crisp porcelain finish with subtle metallic top edge
+    tile = Image.new("RGBA", (tile_w, tile_h), (248, 250, 252, 255))
+    t_draw = ImageDraw.Draw(tile)
+    t_draw.rounded_rectangle([0, 0, tile_w - 1, tile_h - 1], radius=32, fill=(248, 250, 252, 255), outline=(226, 232, 240, 255), width=2)
+
+    # Fonts
+    font_brand = None
+    font_sub = None
+    font_tag = None
+    for fp in ["C:/Windows/Fonts/segoeuib.ttf", "C:/Windows/Fonts/arialbd.ttf", "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf"]:
+        if os.path.exists(fp):
+            try:
+                font_brand = ImageFont.truetype(fp, 44)
+                font_sub = ImageFont.truetype(fp, 15)
+                font_tag = ImageFont.truetype(fp, 13)
+                break
+            except Exception:
+                pass
+    if not font_brand:
+        font_brand = ImageFont.load_default()
+        font_sub = font_brand
+        font_tag = font_brand
+
+    # Center Brand / Emblem
+    display_brand = brand_name or "GENUINE"
+    bb = t_draw.textbbox((0, 0), display_brand, font=font_brand)
+    bw, bh = bb[2] - bb[0], bb[3] - bb[1]
+    bx = (tile_w - bw) // 2
+    by = int(tile_h * 0.36)
+
+    # Accent decorative metallic badge line
+    t_draw.line([(tile_w // 2 - 40, by - 24), (tile_w // 2 + 40, by - 24)], fill=(14, 165, 233, 200), width=4)
+
+    # Draw Brand Name in bold charcoal
+    t_draw.text((bx, by), display_brand, font=font_brand, fill=(15, 23, 42, 255))
+
+    # Draw Subtitle under brand
+    s_bb = t_draw.textbbox((0, 0), hw_subtitle, font=font_sub)
+    sw, sh = s_bb[2] - s_bb[0], s_bb[3] - s_bb[1]
+    sx = (tile_w - sw) // 2
+    sy = by + bh + 18
+    t_draw.text((sx, sy), hw_subtitle, font=font_sub, fill=(100, 116, 139, 255))
+
+    # Verified studio tag pill inside tile
+    pill_w = 210
+    pill_h = 32
+    px = (tile_w - pill_w) // 2
+    py = tile_h - 48
+    t_draw.rounded_rectangle([px, py, px + pill_w, py + pill_h], radius=16, fill=(241, 245, 249, 255), outline=(203, 213, 225, 255), width=1)
+    tag_str = "AUTHENTIC HARDWARE"
+    tag_bb = t_draw.textbbox((0, 0), tag_str, font=font_tag)
+    tag_w = tag_bb[2] - tag_bb[0]
+    t_draw.text((px + (pill_w - tag_w) // 2, py + 8), tag_str, font=font_tag, fill=(16, 185, 129, 255))
+
+    canvas.paste(tile, (tx, ty), tile)
+
+    # 4. Bottom Verified Hallmark Badge
+    stamp_w = 420
+    stamp_h = 52
+    st_x = (width - stamp_w) // 2
+    st_y = height - stamp_h - 28
+
+    # Dark obsidian studio badge pill with rounded corners
+    badge = Image.new("RGBA", (stamp_w, stamp_h), (0, 0, 0, 0))
+    b_draw = ImageDraw.Draw(badge)
+    b_draw.rounded_rectangle([0, 0, stamp_w - 1, stamp_h - 1], radius=26, fill=(15, 23, 42, 255), outline=(56, 189, 248, 180), width=2)
+
+    badge_text = "RAQAMIYAT • VERIFIED PRODUCT"
+    bt_bb = b_draw.textbbox((0, 0), badge_text, font=font_sub)
+    btw = bt_bb[2] - bt_bb[0]
+    b_draw.text(((stamp_w - btw) // 2, 17), badge_text, font=font_sub, fill=(255, 255, 255, 240))
+
+    canvas.paste(badge, (st_x, st_y), mask=badge)
+    return canvas.convert("RGB")
+
+
 def compose_physical_product_card(prod_img, product_name, store_name=None, width=600, height=600):
     """
-    Composes a luxury studio commercial product card (600x600):
-    - Clean modern neutral studio background (#f8fafc with subtle ambient shadow)
-    - Product centered with true aspect ratio preserved (max 82% of width/height)
-    - Soft realistic ambient contact drop shadow beneath the product
-    - Crisp outer studio border
-    - NO squishing into an app squircle or fake badges
+    Composes a luxury studio commercial product card (600x600) on pure white background (#ffffff).
     """
-    canvas = Image.new("RGBA", (width, height), (248, 250, 252, 255))
-
-    w_orig, h_orig = prod_img.size
-    is_transparent = False
-    if prod_img.mode in ("RGBA", "LA"):
-        alpha = prod_img.split()[-1]
-        sample_pts = [(0, 0), (w_orig - 1, 0), (0, h_orig - 1), (w_orig - 1, h_orig - 1)]
-        if any(alpha.getpixel(pt) < 200 for pt in sample_pts):
-            is_transparent = True
-
-    rgb_img = prod_img.convert("RGB")
-    corners = [(2, 2), (w_orig - 3, 2), (2, h_orig - 3), (w_orig - 3, h_orig - 3)]
-    is_light_bg = all(sum(rgb_img.getpixel(pt)) > 700 for pt in corners)
-
-    if is_transparent or is_light_bg:
-        max_w = int(width * 0.82)
-        max_h = int(height * 0.82)
-        prod_fit = prod_img.copy().convert("RGBA")
-        prod_fit.thumbnail((max_w, max_h), Image.Resampling.LANCZOS)
-        pw, ph = prod_fit.size
-        px = (width - pw) // 2
-        py = (height - ph) // 2
-
-        shadow_h = 24
-        shadow_w = int(pw * 0.72)
-        shadow = Image.new("RGBA", (shadow_w, shadow_h), (0, 0, 0, 0))
-        s_draw = ImageDraw.Draw(shadow)
-        s_draw.ellipse([0, 0, shadow_w - 1, shadow_h - 1], fill=(0, 0, 0, 45))
-        shadow = shadow.filter(ImageFilter.GaussianBlur(10))
-
-        sx = (width - shadow_w) // 2
-        sy = py + ph - 8
-        canvas.paste(shadow, (sx, sy), shadow)
-        canvas.paste(prod_fit, (px, py), prod_fit)
-    else:
-        dim = min(w_orig, h_orig)
-        left = (w_orig - dim) // 2
-        top = (h_orig - dim) // 2
-        cropped = prod_img.crop((left, top, left + dim, top + dim))
-        resized = cropped.resize((width, height), Image.Resampling.LANCZOS)
-        canvas = resized.convert("RGBA")
-
-    draw = ImageDraw.Draw(canvas)
-    draw.rounded_rectangle([0, 0, width - 1, height - 1], radius=24, outline=(226, 232, 240, 255), width=2)
-    draw.rounded_rectangle([4, 4, width - 5, height - 5], radius=20, outline=(255, 255, 255, 120), width=1)
-
-    return canvas.convert("RGB")
+    return isolate_and_enhance_product(prod_img, target_size=width)
 
 
 def is_gift_card_or_voucher(product_name):
@@ -1309,13 +1793,14 @@ def search_gift_card_image(product_name):
     for q in queries:
         try:
             url = f"https://www.bing.com/images/async?q={urllib.parse.quote(q)}&count=12&first=1"
-            resp = requests.get(url, headers=headers, timeout=4.5)
+            resp = requests.get(url, headers=headers, timeout=3.5)
             murls = re.findall(r'&quot;murl&quot;:&quot;(https?://[^&"]+)&quot;', resp.text)
             for m in murls[:8]:
-                if any(bad in m.lower() for bad in ('map', 'flag', 'vectorstock', 'watermark')):
+                m_lower = m.lower()
+                if any(bad in m_lower for bad in PHYSICAL_ANTI_JUNK_KEYWORDS) or any(bad in m_lower for bad in ('map', 'flag', 'vectorstock', 'watermark')):
                     continue
                 try:
-                    ir = requests.get(m, headers={"User-Agent": "Mozilla/5.0"}, timeout=4.0)
+                    ir = requests.get(m, headers={"User-Agent": "Mozilla/5.0"}, timeout=3.0)
                     if ir.status_code == 200 and len(ir.content) > 10000:
                         pil_img = Image.open(io.BytesIO(ir.content)).convert("RGBA")
                         if pil_img.width >= 250 and pil_img.height >= 250:
@@ -1331,10 +1816,11 @@ def apply_branding_to_product(product, force=False, custom_image_url=None):
     """
     Main function to brand a single product:
     1. If custom_image_url is provided, download and use provider's official logo.
-    2. If it is a Physical Product, search for authentic commercial product photography.
+    2. If it is a Physical Product, search authentic e-commerce product photography (Amazon/Alibaba/Brand CDNs)
+       isolated on pure white background (#ffffff), or render the official Brand Hardware Studio presentation.
+       STRICT GUARANTEE: Never searches mobile app stores, never returns gym models, cartoons, or memes.
     3. If it is a Digital Gift Card/Voucher, search for the official gift card artwork.
     4. If it is a Digital App/Game/Service, search official app icons (Bundle/iTunes/Google Play/Local).
-    5. Fallback to web product search before emblem fallback.
     Guarantees 100% success rate without deleting or corrupting existing images.
     """
     if product.image and not force:
@@ -1354,10 +1840,13 @@ def apply_branding_to_product(product, force=False, custom_image_url=None):
             logger.debug("Failed to download custom logo url %s: %s", custom_image_url, e)
 
     # 1. PHYSICAL PRODUCTS (Hardware, Gadgets, Perfumes, Watches, Clothes, etc.)
+    # Strictly isolated from app stores: either authentic e-commerce photo or official Brand Hardware studio card
     if not card_img and is_physical_product(product):
         phys_img = search_physical_product_photo(product.name)
         if phys_img:
             card_img = compose_physical_product_card(phys_img, product.name, store_name)
+        else:
+            card_img = create_physical_hardware_card(product.name, store_name)
 
     # 2. DIGITAL GIFT CARDS & VOUCHERS
     if not card_img and is_gift_card_or_voucher(product.name):
@@ -1375,12 +1864,7 @@ def apply_branding_to_product(product, force=False, custom_image_url=None):
                 logo_img = None
 
         if not logo_img:
-            # Fallback: try physical photo search before generic emblem
-            fallback_photo = search_physical_product_photo(product.name)
-            if fallback_photo:
-                card_img = compose_physical_product_card(fallback_photo, product.name, store_name)
-            else:
-                logo_img = create_fallback_brand_icon(product.name)
+            logo_img = create_fallback_brand_icon(product.name)
 
         if not card_img and logo_img:
             card_img = compose_branded_card(

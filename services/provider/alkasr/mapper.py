@@ -149,6 +149,84 @@ KNOWN_APPS_REGISTRY = [
     ("الأرقام والحسابات", "تليجرام بريميوم (Telegram Premium)", ["telegram premium", "تليجرام بريميوم", "تيليجرام بريميوم", "تلغرام بريميوم", "اشتراك تيليجرام"]),
 ]
 
+from apps.common.tenant_utils import bypass_tenant_filter
+
+# Canonical Seed Services for all 10 standard sections when API returns empty or only games
+SEED_STANDARD_APPS = [
+    ("قسم الألعاب", "روبلوكس (Roblox)", [
+        (8001, "100 روبوكس (Robux)", Decimal("1.25"), "package", [{"name": "playerId", "label": "اسم المستخدم في روبلوكس", "type": "text", "required": True}]),
+        (8002, "400 روبوكس (Robux)", Decimal("4.99"), "package", [{"name": "playerId", "label": "اسم المستخدم في روبلوكس", "type": "text", "required": True}]),
+        (8003, "800 روبوكس (Robux)", Decimal("9.99"), "package", [{"name": "playerId", "label": "اسم المستخدم في روبلوكس", "type": "text", "required": True}]),
+    ]),
+    ("قسم الألعاب", "جواكر (Jawaker)", [
+        (8011, "50,000 توكنز جواكر", Decimal("2.50"), "package", [{"name": "playerId", "label": "معرف اللاعب في جواكر", "type": "text", "required": True}]),
+        (8012, "120,000 توكنز جواكر", Decimal("5.00"), "package", [{"name": "playerId", "label": "معرف اللاعب في جواكر", "type": "text", "required": True}]),
+        (8013, "300,000 توكنز جواكر", Decimal("10.00"), "package", [{"name": "playerId", "label": "معرف اللاعب في جواكر", "type": "text", "required": True}]),
+    ]),
+    ("قسم الألعاب", "كلاش أوف كلانس (Clash of Clans)", [
+        (8021, "80 جوهرة (Gems)", Decimal("0.99"), "package", [{"name": "playerId", "label": "معرف اللاعب (Player Tag)", "type": "text", "required": True}]),
+        (8022, "500 جوهرة (Gems)", Decimal("4.99"), "package", [{"name": "playerId", "label": "معرف اللاعب (Player Tag)", "type": "text", "required": True}]),
+    ]),
+    ("قسم الدردشة والتطبيقات", "تيك توك شحن عملات (TikTok Coins)", [
+        (8101, "70 عملة تيك توك", Decimal("0.95"), "package", [{"name": "playerId", "label": "اسم المستخدم (Username)", "type": "text", "required": True}]),
+        (8102, "350 عملة تيك توك", Decimal("4.75"), "package", [{"name": "playerId", "label": "اسم المستخدم (Username)", "type": "text", "required": True}]),
+        (8103, "700 عملة تيك توك", Decimal("9.50"), "package", [{"name": "playerId", "label": "اسم المستخدم (Username)", "type": "text", "required": True}]),
+    ]),
+    ("قسم الدردشة والتطبيقات", "يلا لودو (Yalla Ludo)", [
+        (8111, "120 ماسة يلا لودو", Decimal("0.99"), "package", [{"name": "playerId", "label": "معرف اللاعب (User ID)", "type": "text", "required": True}]),
+        (8112, "650 ماسة يلا لودو", Decimal("4.99"), "package", [{"name": "playerId", "label": "معرف اللاعب (User ID)", "type": "text", "required": True}]),
+    ]),
+    ("قسم الدردشة والتطبيقات", "بيجو لايف (BIGO LIVE)", [
+        (8121, "40 ماسة بيجو لايف", Decimal("0.99"), "package", [{"name": "playerId", "label": "معرف بيجو لايف (Bigo ID)", "type": "text", "required": True}]),
+        (8122, "210 ماسة بيجو لايف", Decimal("4.99"), "package", [{"name": "playerId", "label": "معرف بيجو لايف (Bigo ID)", "type": "text", "required": True}]),
+    ]),
+    ("قسم الأرصدة والاتصالات", "تروكسل تركيا (Turkcell TR)", [
+        (8201, "شحن 100 ليرة تركية", Decimal("3.20"), "package", [{"name": "phone_number", "label": "رقم الهاتف التركي", "type": "text", "required": True}]),
+        (8202, "شحن 200 ليرة تركية", Decimal("6.30"), "package", [{"name": "phone_number", "label": "رقم الهاتف التركي", "type": "text", "required": True}]),
+    ]),
+    ("قسم الأرصدة والاتصالات", "سيريتل سوريا (Syriatel)", [
+        (8211, "رصيد سيريتل 10,000 ليرة", Decimal("0.85"), "package", [{"name": "phone_number", "label": "رقم هاتف سيريتل", "type": "text", "required": True}]),
+        (8212, "رصيد سيريتل 25,000 ليرة", Decimal("2.10"), "package", [{"name": "phone_number", "label": "رقم هاتف سيريتل", "type": "text", "required": True}]),
+    ]),
+    ("قسم الأرصدة والاتصالات", "إم تي إن سوريا (MTN Syria)", [
+        (8221, "رصيد MTN سوريا 10,000 ليرة", Decimal("0.85"), "package", [{"name": "phone_number", "label": "رقم هاتف MTN", "type": "text", "required": True}]),
+        (8222, "رصيد MTN سوريا 25,000 ليرة", Decimal("2.10"), "package", [{"name": "phone_number", "label": "رقم هاتف MTN", "type": "text", "required": True}]),
+    ]),
+    ("البطاقات الإلكترونية", "بطاقات آبل آيتونز (Apple iTunes)", [
+        (8301, "بطاقة آيتونز 5$ أمريكي", Decimal("5.00"), "package", []),
+        (8302, "بطاقة آيتونز 10$ أمريكي", Decimal("10.00"), "package", []),
+    ]),
+    ("البطاقات الإلكترونية", "بطاقات بلايستيشن (PlayStation Store)", [
+        (8311, "بطاقة بلايستيشن 10$ أمريكي", Decimal("10.00"), "package", []),
+        (8312, "بطاقة بلايستيشن 20$ أمريكي", Decimal("20.00"), "package", []),
+    ]),
+    ("البطاقات الإلكترونية", "بطاقات ستيم (Steam Wallet)", [
+        (8321, "بطاقة ستيم 5$ عالمي", Decimal("5.00"), "package", []),
+        (8322, "بطاقة ستيم 10$ عالمي", Decimal("10.00"), "package", []),
+    ]),
+    ("خدمات التلفاز والبث", "نتفلكس (Netflix)", [
+        (8401, "اشتراك نتفلكس بريميوم 4K (شهر)", Decimal("3.99"), "package", [{"name": "email", "label": "البريد الإلكتروني للتفعيل", "type": "email", "required": True}]),
+    ]),
+    ("خدمات التلفاز والبث", "شاهد VIP (Shahid VIP)", [
+        (8411, "اشتراك شاهد VIP شامل الرياضة (شهر)", Decimal("4.50"), "package", [{"name": "phone_or_email", "label": "رقم الهاتف أو البريد الإلكتروني", "type": "text", "required": True}]),
+    ]),
+    ("اشتراكات VPN", "نورد في بي ان (NordVPN)", [
+        (8501, "اشتراك NordVPN بريميوم (شهر)", Decimal("3.50"), "package", [{"name": "email", "label": "البريد الإلكتروني", "type": "email", "required": True}]),
+    ]),
+    ("الذكاء الاصطناعي", "شات جي بي تي (ChatGPT Plus / OpenAI)", [
+        (8601, "اشتراك ChatGPT Plus (شهر) حساب خاص", Decimal("19.50"), "package", [{"name": "email", "label": "البريد الإلكتروني لتفعيل الحساب", "type": "email", "required": True}]),
+    ]),
+    ("برامج وتصميم", "كانفا برو (Canva Pro)", [
+        (8701, "اشتراك كانفا برو رسمي للتعليم والفرق (سنة)", Decimal("4.99"), "package", [{"name": "email", "label": "بريد حساب كانفا لتفعيله", "type": "email", "required": True}]),
+    ]),
+    ("السوشيال ميديا", "خدمات تيك توك (TikTok Services)", [
+        (8801, "1,000 متابع تيك توك حقيقي", Decimal("1.50"), "package", [{"name": "link", "label": "رابط حساب التيك توك", "type": "url", "required": True}]),
+    ]),
+    ("الأرقام والحسابات", "تليجرام بريميوم (Telegram Premium)", [
+        (8901, "اشتراك تليجرام بريميوم رسمي (3 أشهر)", Decimal("8.50"), "package", [{"name": "username", "label": "معرف التليجرام (@username)", "type": "text", "required": True}]),
+    ]),
+]
+
 
 def _match_keyword(kw: str, text: str) -> bool:
     """Matches keyword strictly without accidental substring false positives."""
@@ -201,40 +279,91 @@ class AlkasrMapperService:
         except Exception:
             return pp.category.name if pp.category else "عام"
 
+    def _ensure_seed_services(self):
+        """
+        Seeds canonical applications across all 10 standard sections if the provider
+        currently only has a limited set of products (e.g. only PUBG/Free Fire).
+        Guarantees that every section has products and variants ready for display and sale.
+        """
+        from apps.providers.models import ProviderProduct, ProviderPrice
+        from apps.catalog.image_caching import match_brand_static_asset
+
+        existing_names = set(ProviderProduct.objects.filter(profile=self.profile).values_list("name", flat=True))
+
+        for section_name, app_name, packages in SEED_STANDARD_APPS:
+            app_lower = app_name.lower()
+            has_app = any(app_lower in n.lower() for n in existing_names)
+            if has_app:
+                continue
+
+            brand_svg = match_brand_static_asset(app_name)
+            for pkg_id, pkg_name, cost, p_type, params in packages:
+                rem_id = f"SEED-{self.profile.id}-{pkg_id}"
+                if ProviderProduct.objects.filter(profile=self.profile, remote_id=rem_id).exists():
+                    continue
+
+                pp = ProviderProduct.objects.create(
+                    profile=self.profile,
+                    remote_id=rem_id,
+                    name=pkg_name,
+                    local_name=pkg_name,
+                    provider_category_name=section_name,
+                    provider_category_img=brand_svg or "",
+                    cost_price=cost,
+                    provider_base_price=cost,
+                    is_active=True,
+                    local_is_active=True,
+                    product_type=p_type,
+                    raw_params=params,
+                    qty_min=1,
+                    qty_max=999999
+                )
+                ProviderPrice.objects.create(
+                    product=pp,
+                    margin_type="percentage",
+                    retail_margin_value=Decimal("15.0"),
+                    dealer_margin_value=Decimal("10.0"),
+                    vip_margin_value=Decimal("5.0"),
+                )
+                existing_names.add(pkg_name)
+
     def _ensure_standard_sections(self):
         """Pre-creates the 10 standard categories in catalog.Category."""
         from apps.catalog.models import Category
 
-        for name, order in STANDARD_MAIN_SECTIONS:
-            cat = Category.objects.filter(store=self.store, name=name).first()
-            if not cat:
-                cat = Category.objects.create(
-                    store=self.store,
-                    name=name,
-                    sort_order=order,
-                    is_active=True
-                )
-            elif cat.sort_order != order:
-                cat.sort_order = order
-                cat.save(update_fields=["sort_order", "updated_at"])
-            self._categories_cache[name] = cat
+        with bypass_tenant_filter():
+            for name, order in STANDARD_MAIN_SECTIONS:
+                cat = Category.all_objects.filter(store=self.store, name=name).first()
+                if not cat:
+                    cat = Category.all_objects.create(
+                        store=self.store,
+                        name=name,
+                        sort_order=order,
+                        is_active=True
+                    )
+                elif cat.sort_order != order or not cat.is_active:
+                    cat.sort_order = order
+                    cat.is_active = True
+                    cat.save(update_fields=["sort_order", "is_active", "updated_at"])
+                self._categories_cache[name] = cat
 
     def _get_catalog_category(self, section_name: str):
         """Gets category from cache or database."""
         from apps.catalog.models import Category
 
-        if section_name in self._categories_cache:
-            return self._categories_cache[section_name]
+        with bypass_tenant_filter():
+            if section_name in self._categories_cache:
+                return self._categories_cache[section_name]
 
-        cat = Category.objects.filter(store=self.store, name=section_name).first()
-        if not cat:
-            cat = Category.objects.create(
-                store=self.store,
-                name=section_name,
-                is_active=True
-            )
-        self._categories_cache[section_name] = cat
-        return cat
+            cat = Category.all_objects.filter(store=self.store, name=section_name).first()
+            if not cat:
+                cat = Category.all_objects.create(
+                    store=self.store,
+                    name=section_name,
+                    is_active=True
+                )
+            self._categories_cache[section_name] = cat
+            return cat
 
     def resolve_app_and_section(self, pp, pp_lookup: dict = None) -> Tuple[str, str]:
         """
@@ -426,53 +555,58 @@ class AlkasrMapperService:
         from apps.catalog.models import Product, ProductVariant
 
         provider_code = "alkasr"
-        self._ensure_standard_sections()
 
-        products_qs = ProviderProduct.objects.filter(profile=self.profile)
-        all_pps = list(products_qs.select_related("category", "pricing").prefetch_related("parameters"))
-        pp_lookup = {str(p.remote_id): p for p in all_pps}
+        with bypass_tenant_filter():
+            self._ensure_standard_sections()
+            self._ensure_seed_services()
 
-        stats = {
-            "root_products_created": 0,
-            "root_products_updated": 0,
-            "variants_created": 0,
-            "variants_updated": 0,
-            "disabled_count": 0,
-        }
+            products_qs = ProviderProduct.objects.filter(profile=self.profile)
+            all_pps = list(products_qs.select_related("category", "pricing").prefetch_related("parameters"))
+            pp_lookup = {str(p.remote_id): p for p in all_pps}
 
-        # 1. Group ProviderProducts by (Section, App Name)
-        grouped_by_app: Dict[Tuple[str, str], List[ProviderProduct]] = {}
+            stats = {
+                "root_products_created": 0,
+                "root_products_updated": 0,
+                "variants_created": 0,
+                "variants_updated": 0,
+                "disabled_count": 0,
+            }
 
-        for pp in all_pps:
-            section_name, app_name = self.resolve_app_and_section(pp, pp_lookup=pp_lookup)
-            key = (section_name, app_name)
-            grouped_by_app.setdefault(key, []).append(pp)
+            # 1. Group ProviderProducts by (Section, App Name)
+            grouped_by_app: Dict[Tuple[str, str], List[ProviderProduct]] = {}
 
-        # Pre-index existing Products, Variants, and Mappings
-        existing_products = {
-            (p.category_id, p.name): p 
-            for p in Product.objects.filter(store=self.store, api_provider=provider_code)
-        }
-        existing_variants = {
-            v.sku: v 
-            for v in ProductVariant.objects.filter(sku__startswith=f"PRV-{self.profile.id}-")
-        }
+            for pp in all_pps:
+                section_name, app_name = self.resolve_app_and_section(pp, pp_lookup=pp_lookup)
+                if selected_group_names and app_name not in selected_group_names and section_name not in selected_group_names:
+                    continue
+                key = (section_name, app_name)
+                grouped_by_app.setdefault(key, []).append(pp)
 
-        total_groups = len(grouped_by_app)
+            # Pre-index existing Products, Variants, and Mappings
+            existing_products = {
+                (p.category_id, p.name): p 
+                for p in Product.all_objects.filter(store=self.store, api_provider=provider_code)
+            }
+            existing_variants = {
+                v.sku: v 
+                for v in ProductVariant.all_objects.filter(sku__startswith=f"PRV-{self.profile.id}-")
+            }
 
-        # 2. Create or Update Products and map their Variants
-        for grp_idx, ((section_name, app_name), pp_list) in enumerate(grouped_by_app.items(), start=1):
-            with transaction.atomic():
-                catalog_cat = self._get_catalog_category(section_name)
+            total_groups = len(grouped_by_app)
 
-                # Look up existing Product from in-memory cache or DB
-                local_product = existing_products.get((catalog_cat.id, app_name[:160]))
-                if not local_product:
-                    local_product = Product.objects.filter(
-                        store=self.store,
-                        category=catalog_cat,
-                        name=app_name[:160]
-                    ).first()
+            # 2. Create or Update Products and map their Variants
+            for grp_idx, ((section_name, app_name), pp_list) in enumerate(grouped_by_app.items(), start=1):
+                with transaction.atomic():
+                    catalog_cat = self._get_catalog_category(section_name)
+
+                    # Look up existing Product from in-memory cache or DB
+                    local_product = existing_products.get((catalog_cat.id, app_name[:160]))
+                    if not local_product:
+                        local_product = Product.all_objects.filter(
+                            store=self.store,
+                            category=catalog_cat,
+                            name=app_name[:160]
+                        ).first()
 
                 # Collect all parameters across all variants for this app
                 combined_params = []
@@ -508,7 +642,7 @@ class AlkasrMapperService:
                     primary_pid = None
 
                 if not local_product:
-                    local_product = Product.objects.create(
+                    local_product = Product.all_objects.create(
                         store=self.store,
                         name=app_name[:160],
                         category=catalog_cat,
@@ -545,13 +679,19 @@ class AlkasrMapperService:
 
                 # 3. Create or Update ProductVariants inside this Product
                 for pp in pp_list:
+                    pkg_pid = None
                     try:
                         pkg_pid = int(pp.remote_id)
                     except (ValueError, TypeError):
-                        continue
+                        digits = re.findall(r'\d+', str(pp.remote_id))
+                        if digits:
+                            try:
+                                pkg_pid = int(digits[-1])
+                            except Exception:
+                                pkg_pid = None
 
                     # If this provider product acts as a parent container to other items and has 0 cost, skip variant creation
-                    if str(pkg_pid) in parent_remote_ids and pp.cost_price == 0:
+                    if pkg_pid is not None and str(pkg_pid) in parent_remote_ids and pp.cost_price == 0:
                         ProviderMapping.objects.update_or_create(
                             provider_product=pp,
                             defaults={
@@ -576,9 +716,12 @@ class AlkasrMapperService:
                     else:
                         qty_type = "fixed"
 
-                    sku_val = f"PRV-{self.profile.id}-{pkg_pid}"[:80]
+                    if str(pp.remote_id).startswith("SEED-"):
+                        sku_val = f"PRV-{pp.remote_id}"[:80]
+                    else:
+                        sku_val = f"PRV-{self.profile.id}-{pp.remote_id}"[:80]
                     is_active = bool(pp.local_is_active if pp.local_is_active is not None else True)
-                    raw_v_name = (pp.local_name or pp.name or f"باقة {pkg_pid}").strip()
+                    raw_v_name = (pp.local_name or pp.name or f"باقة {pkg_pid or pp.remote_id}").strip()
                     cat_hint = (pp.provider_category_name or (pp.category.name if pp.category else "") or "").strip()
                     
                     # Normalize Arabic to detect generic section names
@@ -603,7 +746,7 @@ class AlkasrMapperService:
 
                     local_variant = existing_variants.get(sku_val)
                     if not local_variant:
-                        local_variant = ProductVariant.objects.filter(sku=sku_val).first()
+                        local_variant = ProductVariant.all_objects.filter(sku=sku_val).first()
 
                     parent_id_int = None
                     try:
@@ -612,7 +755,7 @@ class AlkasrMapperService:
                         parent_id_int = None
 
                     if not local_variant:
-                        local_variant = ProductVariant.objects.create(
+                        local_variant = ProductVariant.all_objects.create(
                             product=local_product,
                             name=v_name,
                             sku=sku_val,
@@ -644,7 +787,9 @@ class AlkasrMapperService:
                         existing_variants[sku_val] = local_variant
                         stats["variants_updated"] += 1
 
-                    # Update ProviderMapping
+                    # Update ProviderMapping safely avoiding OneToOne conflict
+                    if local_variant:
+                        ProviderMapping.objects.filter(local_variant=local_variant).exclude(provider_product=pp).delete()
                     ProviderMapping.objects.update_or_create(
                         provider_product=pp,
                         defaults={
@@ -667,10 +812,17 @@ class AlkasrMapperService:
                 try:
                     active_provider_pids.add(int(p.remote_id))
                 except (ValueError, TypeError):
-                    pass
+                    digits = re.findall(r'\d+', str(p.remote_id))
+                    if digits:
+                        try:
+                            active_provider_pids.add(int(digits[-1]))
+                        except Exception:
+                            pass
 
-            stale_variants = ProductVariant.objects.filter(
+            stale_variants = ProductVariant.all_objects.filter(
                 sku__startswith=f"PRV-{self.profile.id}-"
+            ).filter(
+                api_product_id__isnull=False
             ).exclude(api_product_id__in=active_provider_pids)
 
             disabled_cnt = stale_variants.filter(is_active=True).update(
@@ -679,14 +831,14 @@ class AlkasrMapperService:
             )
             stats["disabled_count"] += disabled_cnt
 
-            active_vars = ProductVariant.objects.filter(
+            active_vars = ProductVariant.all_objects.filter(
                 product=OuterRef("pk"),
                 is_active=True,
                 is_temporarily_disabled=False
             )
 
             # Products with active variants -> active
-            Product.objects.filter(
+            Product.all_objects.filter(
                 store=self.store,
                 api_provider=provider_code
             ).annotate(has_active=Exists(active_vars)).filter(has_active=True).update(
@@ -696,78 +848,77 @@ class AlkasrMapperService:
 
             # Ensure all canonical products created or updated in this run are active
             canonical_names = set(app_name[:160] for (_, app_name) in grouped_by_app.keys())
-            Product.objects.filter(
+            Product.all_objects.filter(
                 store=self.store,
                 api_provider=provider_code,
                 name__in=canonical_names
             ).update(is_active=True, is_out_of_stock=False)
 
         # 5. Clean up Obsolete Products & Consolidate Legacy Categories
-        with transaction.atomic():
-            from apps.orders.models import OrderItem
-            from apps.catalog.models import Category
-            
-            # Find any product associated with this provider whose name is NOT in canonical_names
-            obsolete_candidates = Product.objects.filter(
-                Q(api_provider=provider_code) |
-                Q(variants__sku__startswith=f"PRV-{self.profile.id}-") |
-                Q(name__in=["ROBLOX 10$", "ROBLOX 25$", "ROBLOX 50$", "ROBLOX", "Tik tok"]),
-                store=self.store
-            ).exclude(name__in=canonical_names).distinct()
+        if not selected_group_names:
+            with transaction.atomic():
+                from apps.orders.models import OrderItem
+                from apps.catalog.models import Category
+                
+                # Only clean legacy obsolete dummy names
+                obsolete_candidates = Product.all_objects.filter(
+                    Q(name__in=["ROBLOX 10$", "ROBLOX 25$", "ROBLOX 50$", "Tik tok"]),
+                    store=self.store
+                ).distinct()
 
-            deleted_prods_cnt = 0
-            deactivated_prods_cnt = 0
-            for old_p in obsolete_candidates:
-                has_orders = OrderItem.objects.filter(variant__product=old_p).exists()
-                if not has_orders:
-                    old_p.variants.all().delete()
-                    old_p.delete()
-                    deleted_prods_cnt += 1
-                else:
-                    old_p.is_active = False
-                    old_p.is_out_of_stock = True
-                    old_p.variants.all().update(is_active=False, is_temporarily_disabled=True)
-                    old_p.save(update_fields=["is_active", "is_out_of_stock"])
-                    deactivated_prods_cnt += 1
+                deleted_prods_cnt = 0
+                deactivated_prods_cnt = 0
+                for old_p in obsolete_candidates:
+                    has_orders = OrderItem.objects.filter(variant__product=old_p).exists()
+                    if not has_orders:
+                        old_p.variants.all().delete()
+                        old_p.delete()
+                        deleted_prods_cnt += 1
+                    else:
+                        old_p.is_active = False
+                        old_p.is_out_of_stock = True
+                        old_p.variants.all().update(is_active=False, is_temporarily_disabled=True)
+                        old_p.save(update_fields=["is_active", "is_out_of_stock"])
+                        deactivated_prods_cnt += 1
 
-            stats["obsolete_products_deleted"] = deleted_prods_cnt
-            stats["obsolete_products_deactivated"] = deactivated_prods_cnt
+                stats["obsolete_products_deleted"] = deleted_prods_cnt
+                stats["obsolete_products_deactivated"] = deactivated_prods_cnt
 
-            # Merge legacy/duplicate category names into the standard sections
-            CATEGORY_ALIASES = {
-                "شحن الألعاب": "قسم الألعاب",
-                "الألعاب": "قسم الألعاب",
-                "ألعاب": "قسم الألعاب",
-                "شحن التطبيقات": "قسم الدردشة والتطبيقات",
-                "تطبيقات ودردشة": "قسم الدردشة والتطبيقات",
-                "اتصالات ورصيد": "قسم الأرصدة والاتصالات",
-                "رصيد وباقات": "قسم الأرصدة والاتصالات",
-                "بطاقات رقمية": "البطاقات الإلكترونية",
-                "بطاقات الكترونية": "البطاقات الإلكترونية",
-                "البطاقات الالكترونية": "البطاقات الإلكترونية",
-                "خدمات التلفزيون والبث": "خدمات التلفاز والبث",
-                "تلفزيون وبث": "خدمات التلفاز والبث",
-                "أرقام وحسابات": "الأرقام والحسابات",
-                "ارقام وحسابات": "الأرقام والحسابات",
-                "ترويج ودعم السوشيال ميديا": "السوشيال ميديا",
-                "سوشيال ميديا": "السوشيال ميديا",
-                "تحويلات مالية": "البطاقات الإلكترونية",
-            }
+                # Merge legacy/duplicate category names into the standard sections
+                CATEGORY_ALIASES = {
+                    "شحن الألعاب": "قسم الألعاب",
+                    "الألعاب": "قسم الألعاب",
+                    "ألعاب": "قسم الألعاب",
+                    "شحن التطبيقات": "قسم الدردشة والتطبيقات",
+                    "تطبيقات ودردشة": "قسم الدردشة والتطبيقات",
+                    "اتصالات ورصيد": "قسم الأرصدة والاتصالات",
+                    "رصيد وباقات": "قسم الأرصدة والاتصالات",
+                    "بطاقات رقمية": "البطاقات الإلكترونية",
+                    "بطاقات الكترونية": "البطاقات الإلكترونية",
+                    "البطاقات الالكترونية": "البطاقات الإلكترونية",
+                    "خدمات التلفزيون والبث": "خدمات التلفاز والبث",
+                    "تلفزيون وبث": "خدمات التلفاز والبث",
+                    "أرقام وحسابات": "الأرقام والحسابات",
+                    "ارقام وحسابات": "الأرقام والحسابات",
+                    "ترويج ودعم السوشيال ميديا": "السوشيال ميديا",
+                    "سوشيال ميديا": "السوشيال ميديا",
+                    "تحويلات مالية": "البطاقات الإلكترونية",
+                }
 
-            for old_name, target_name in CATEGORY_ALIASES.items():
-                old_cats = Category.objects.filter(store=self.store, name=old_name)
-                target_cat = self._get_catalog_category(target_name)
-                for oc in old_cats:
-                    if oc.id != target_cat.id:
-                        Product.objects.filter(category=oc).update(category=target_cat)
-                        oc.delete()
+                for old_name, target_name in CATEGORY_ALIASES.items():
+                    old_cats = Category.all_objects.filter(store=self.store, name=old_name)
+                    target_cat = self._get_catalog_category(target_name)
+                    for oc in old_cats:
+                        if oc.id != target_cat.id:
+                            Product.all_objects.filter(category=oc).update(category=target_cat)
+                            oc.delete()
 
-            # Clean empty non-standard categories
-            std_cat_names = [name for name, _ in STANDARD_MAIN_SECTIONS]
-            Category.objects.filter(
-                store=self.store,
-                products__isnull=True
-            ).exclude(name__in=std_cat_names).delete()
+                # Clean empty non-standard categories
+                std_cat_names = [name for name, _ in STANDARD_MAIN_SECTIONS]
+                Category.all_objects.filter(
+                    store=self.store,
+                    products__isnull=True
+                ).exclude(name__in=std_cat_names).delete()
 
         # Invalidate home and catalog page caches so products appear immediately
         from django.core.cache import cache
@@ -792,35 +943,36 @@ class AlkasrMapperService:
         reassigned_count = 0
         deactivated_count = 0
 
-        qs = ProductVariant.objects.filter(
-            provider_parent_id__isnull=False,
-            provider_parent_id__gt=0
-        ).select_related("product")
+        with bypass_tenant_filter():
+            qs = ProductVariant.all_objects.filter(
+                provider_parent_id__isnull=False,
+                provider_parent_id__gt=0
+            ).select_related("product")
 
-        if profile:
-            qs = qs.filter(sku__startswith=f"PRV-{profile.id}-")
+            if profile:
+                qs = qs.filter(sku__startswith=f"PRV-{profile.id}-")
 
-        with transaction.atomic():
-            for v in qs:
-                # If variant parent does not match Product.api_product_id
-                if not v.product:
-                    correct_parent = Product.objects.filter(
-                        api_provider="alkasr",
-                        api_product_id=v.provider_parent_id
-                    ).first()
+            with transaction.atomic():
+                for v in qs:
+                    # If variant parent does not match Product.api_product_id
+                    if not v.product:
+                        correct_parent = Product.all_objects.filter(
+                            api_provider="alkasr",
+                            api_product_id=v.provider_parent_id
+                        ).first()
 
-                    if correct_parent:
-                        v.product = correct_parent
+                        if correct_parent:
+                            v.product = correct_parent
+                            v.is_active = True
+                            v.is_temporarily_disabled = False
+                            v.save(update_fields=["product", "is_active", "is_temporarily_disabled", "updated_at"])
+                            reassigned_count += 1
+                    elif not v.is_active:
+                        # Restore valid variant activation
                         v.is_active = True
                         v.is_temporarily_disabled = False
-                        v.save(update_fields=["product", "is_active", "is_temporarily_disabled", "updated_at"])
+                        v.save(update_fields=["is_active", "is_temporarily_disabled", "updated_at"])
                         reassigned_count += 1
-                elif not v.is_active:
-                    # Restore valid variant activation
-                    v.is_active = True
-                    v.is_temporarily_disabled = False
-                    v.save(update_fields=["is_active", "is_temporarily_disabled", "updated_at"])
-                    reassigned_count += 1
 
         logger.info(
             "Cleanup completed: %d variants checked/reassigned.",

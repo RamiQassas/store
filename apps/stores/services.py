@@ -334,9 +334,15 @@ def import_raqamiyat_products_for_store(store, selected_group_names=None, progre
 
                 store_cost = effective_base_cost if effective_base_cost > Decimal("0") else (g_var.cost or Decimal("0"))
 
-                store_var = store_prod.variants.filter(name=g_var.name).first()
+                store_var = ProductVariant.all_objects.filter(product=store_prod, name=g_var.name).first()
                 if not store_var:
-                    store_var = ProductVariant.objects.create(
+                    store_var = ProductVariant.all_objects.filter(product=store_prod, sku=var_sku).first()
+
+                if not store_var:
+                    if ProductVariant.all_objects.filter(sku=var_sku).exists():
+                        import uuid
+                        var_sku = f"{var_sku[:68]}-{uuid.uuid4().hex[:6]}"
+                    store_var = ProductVariant.all_objects.create(
                         product=store_prod,
                         name=g_var.name,
                         sku=var_sku,
@@ -379,6 +385,15 @@ def import_raqamiyat_products_for_store(store, selected_group_names=None, progre
 
                     store_var.save(update_fields=["cost", "is_active", "is_temporarily_disabled", "api_product_id", "price", "wholesale_price", "vip_price", "metadata"])
                     stats["variants_updated"] += 1
+
+        # Invalidate store and catalog caches so newly imported products appear immediately
+        from django.core.cache import cache
+        cache.delete("home_page_ctx_v2_global")
+        cache.delete("home_page_ctx_v2")
+        if hasattr(store, "id") and store.id:
+            cache.delete(f"home_page_ctx_v2_{store.id}")
+        if hasattr(store, "subdomain") and store.subdomain:
+            cache.delete(f"home_page_ctx_v2_{store.subdomain}")
 
     logger.info(f"Imported Raqamiyat products for store '{store.name}' ({store.subdomain}): {stats}")
     return stats

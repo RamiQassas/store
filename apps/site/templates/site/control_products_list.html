@@ -88,9 +88,23 @@
             <span>استيراد منتجات (Excel)</span>
         </button>
         {% if request.store %}
-        <a href="{% url 'merchant_import_raqamiyat_products' %}" class="btn btn-outline btn-sm border-cyan/40 text-cyan hover:bg-cyan hover:text-slate-950 font-bold transition" onclick="return confirm('هل تريد استيراد ومزامنة أحدث منتجات رقميات إلى متجرك الآن؟');">
-            <i class="fas fa-cloud-arrow-down ml-2"></i> استيراد منتجات رقميات
-        </a>
+        <form method="post" action="{% url 'control_products_list' %}" style="display:inline;" onsubmit="return confirm('هل تريد استيراد ومزامنة أحدث منتجات رقميات إلى متجرك الآن؟');">
+            {% csrf_token %}
+            <input type="hidden" name="action" value="import_raqamiyat_for_store">
+            <button type="submit" class="btn btn-outline btn-sm border-cyan/40 text-cyan hover:bg-cyan hover:text-slate-950 font-bold transition flex items-center gap-1.5 shadow-sm" title="استيراد أحدث المنتجات من رقميات إلى متجرك">
+                <i class="fas fa-cloud-arrow-down text-cyan"></i>
+                <span>استيراد منتجات رقميات</span>
+            </button>
+        </form>
+        {% else %}
+        <form method="post" action="{% url 'control_products_list' %}" style="display:inline;" onsubmit="return confirm('هل تريد مزامنة واستيراد كافة خدمات الكاسر VIP وتوزيعها على الأقسام الرئيسية الآن؟');">
+            {% csrf_token %}
+            <input type="hidden" name="action" value="sync_alkasr_catalog">
+            <button type="submit" class="btn btn-outline btn-sm border-cyan/40 text-cyan hover:bg-cyan hover:text-slate-950 font-bold transition flex items-center gap-1.5 shadow-sm" title="استيراد وتحديث المنتجات من مزود الكاسر VIP">
+                <i class="fas fa-cloud-arrow-down text-cyan"></i>
+                <span>استيراد منتجات الكاسر (API)</span>
+            </button>
+        </form>
         {% endif %}
         <a href="{% url 'control_product_create' %}" class="btn btn-primary btn-sm">
             <i class="fas fa-plus ml-2"></i> إضافة منتج جديد
@@ -177,6 +191,16 @@
         </form>
     </div>
 </div>
+<script>
+window.openProductImportModal = function() {
+    var modal = document.getElementById('product-import-modal');
+    if (modal) modal.style.display = 'flex';
+};
+window.closeProductImportModal = function() {
+    var modal = document.getElementById('product-import-modal');
+    if (modal) modal.style.display = 'none';
+};
+</script>
 
 {# ── Quick Move Product to Category Modal ── #}
 <div id="product-change-cat-modal" style="display:none;position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,0.85);backdrop-filter:blur(8px);align-items:center;justify-content:center;padding:1rem;">
