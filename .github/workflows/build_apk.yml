@@ -27,21 +27,23 @@ jobs:
         with:
           gradle-version: '8.2'
 
-      - name: Build Debug APK
+      - name: Build Release and Debug APKs
         run: |
           cd android
-          gradle assembleDebug --stacktrace
+          gradle assembleRelease assembleDebug --stacktrace
 
-      - name: Prepare APK File
+      - name: Prepare APK Files
         run: |
           mkdir -p release_apk
-          cp android/app/build/outputs/apk/debug/app-debug.apk release_apk/Raqamiyat-v2.0.0.apk
+          cp android/app/build/outputs/apk/release/app-release.apk release_apk/Raqamiyat-v2.0.0.apk
+          cp android/app/build/outputs/apk/release/app-release.apk release_apk/Raqamiyat-Release.apk
+          cp android/app/build/outputs/apk/debug/app-debug.apk release_apk/Raqamiyat-Debug.apk
 
-      - name: Upload APK Artifact
+      - name: Upload APK Artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: Raqamiyat-Android-APK
-          path: release_apk/Raqamiyat-v2.0.0.apk
+          name: Raqamiyat-Android-APKs
+          path: release_apk/*.apk
           if-no-files-found: error
 
       - name: Create or Update GitHub Release
@@ -49,14 +51,15 @@ jobs:
         if: github.ref == 'refs/heads/master'
         with:
           tag_name: v2.0.0-apk
-          name: Raqamiyat Android App v2.0.0
+          name: Raqamiyat Android App v2.0.0 (Samsung One UI & Android 15+ Compatible)
           body: |
             ### تطبيق رقميات للأندرويد - Raqamiyat Android APK (v2.0.0) 📱⚡
             
+            - **نسخة موثقة وموقعة رسمياً (Signed Release)**: متوافقة تماماً مع أحدث إصدارات سامسونج **Samsung Galaxy S26 Ultra / One UI 9** وأنظمة أندرويد الحديثة (Android 14, 15, 16).
             - **تحديثات لحظية ومباشرة من الموقع**: أي تعديل تقوم به على الموقع يظهر فورا في التطبيق.
             - **وضع عدم الاتصال (Offline-First)**: تصفح المنتجات المادية والشراء بدون إنترنت.
-            - **استوديو التصوير السريع**: تصوير المنتجات من كاميرا الهاتف وعزل الخلفية البيضاء مع ختم رقميات.
+            - **استوديو التصوير السريع**: تصوير المنتجات من كاميرا الهاتف وعزل الخلفية البيضاء (#ffffff) مع ختم رقميات.
             - **دعم الإشعارات الفورية والتكامل الكامل**.
-          files: release_apk/Raqamiyat-v2.0.0.apk
+          files: release_apk/*.apk
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
