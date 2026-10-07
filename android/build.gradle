@@ -8,6 +8,7 @@ buildscript {
     }
 }
 
+// Raqamiyat Android App Build Configuration v2.0.0
 task clean(type: Delete) {
     delete rootProject.buildDir
 }
