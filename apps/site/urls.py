@@ -144,6 +144,7 @@ urlpatterns = [
     path("control/camera-studio/", views.control_camera_studio, name="control_camera_studio"),
     path("control/camera-studio/process-ajax/", views.control_camera_studio_process_ajax, name="control_camera_studio_process_ajax"),
     path("api/offline-catalog/", views.api_offline_catalog, name="api_offline_catalog"),
+    path("download/app/", views.download_android_apk, name="download_android_apk"),
     path("control/products/bulk-ai-branding/", views.control_products_bulk_ai_branding, name="control_products_bulk_ai_branding"),
     path("control/products/bulk-ai-branding/progress/", views.control_products_bulk_ai_branding_progress, name="control_products_bulk_ai_branding_progress"),
     path("control/products/gallery/<uuid:pk>/delete-ajax/", views.control_gallery_delete_ajax, name="control_gallery_delete_ajax"),

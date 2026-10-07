@@ -6338,6 +6338,15 @@ def api_offline_catalog(request):
     return JsonResponse(data, safe=False)
 
 
+def download_android_apk(request):
+    """
+    Direct download redirect for the compiled Raqamiyat Android APK.
+    Always points to the latest release package.
+    """
+    apk_url = "https://github.com/RamiQassas/store/releases/download/v2.0.0-apk/Raqamiyat-v2.0.0.apk"
+    return redirect(apk_url)
+
+
 def control_product_delete(request, pk):
     product = get_object_or_404(Product, pk=pk)
     product.delete()
