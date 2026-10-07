@@ -38,6 +38,7 @@ import android.widget.Toast;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.browser.customtabs.CustomTabsIntent;
 import androidx.core.app.ActivityCompat;
 import androidx.core.app.NotificationCompat;
 import androidx.core.content.ContextCompat;
@@ -85,12 +86,20 @@ public class MainActivity extends AppCompatActivity implements ConnectivityHelpe
     private ValueCallback<Uri[]> mFilePathCallback;
     private String mCameraPhotoPath;
     private boolean isInitialPageLoaded = false;
+    private boolean isWaitingForGoogleAuth = false;
     private long backPressedTime = 0;
     private final Handler mainHandler = new Handler(Looper.getMainLooper());
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+
+        // Native immersive luxury system bars
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+            getWindow().setStatusBarColor(0xFF030712);
+            getWindow().setNavigationBarColor(0xFF030712);
+        }
+
         setContentView(R.layout.activity_main);
 
         // Initialize Native Views
@@ -167,10 +176,24 @@ public class MainActivity extends AppCompatActivity implements ConnectivityHelpe
             settings.setCacheMode(WebSettings.LOAD_CACHE_ELSE_NETWORK);
         }
 
+        // Disable browser text-selection context menu
+        webView.setOnLongClickListener(v -> true);
+        webView.setHapticFeedbackEnabled(true);
+
         // Register Native JavaScript Bridge
         webView.addJavascriptInterface(nativeBridge, "RaqamiyatNative");
 
         webView.setWebViewClient(new WebViewClient() {
+            @Override
+            public boolean shouldOverrideUrlLoading(WebView view, WebResourceRequest request) {
+                return handleUrlNavigation(request.getUrl().toString());
+            }
+
+            @SuppressWarnings("deprecation")
+            @Override
+            public boolean shouldOverrideUrlLoading(WebView view, String url) {
+                return handleUrlNavigation(url);
+            }
             @Override
             public void onPageStarted(WebView view, String url, Bitmap favicon) {
                 progressBar.setVisibility(View.VISIBLE);
@@ -451,8 +474,89 @@ public class MainActivity extends AppCompatActivity implements ConnectivityHelpe
     }
 
     @Override
+    protected void onResume() {
+        super.onResume();
+        CookieManager.getInstance().flush();
+        if (isWaitingForGoogleAuth) {
+            isWaitingForGoogleAuth = false;
+            // Delay slightly so system auth cookies are flushed and page can reload authenticated
+            mainHandler.postDelayed(() -> {
+                if (webView != null) {
+                    webView.reload();
+                }
+            }, 600);
+        }
+    }
+
+    @Override
+    protected void onNewIntent(Intent intent) {
+        super.onNewIntent(intent);
+        setIntent(intent);
+        if (intent != null && intent.getData() != null) {
+            String url = intent.getData().toString();
+            if (webView != null && url.contains("raqamiyatapp.com")) {
+                CookieManager.getInstance().flush();
+                webView.loadUrl(url);
+            }
+        }
+    }
+
+    private void launchCustomTab(String url) {
+        try {
+            CustomTabsIntent customTabsIntent = new CustomTabsIntent.Builder()
+                    .setShowTitle(true)
+                    .setToolbarColor(0xFF030712)
+                    .build();
+            customTabsIntent.launchUrl(this, Uri.parse(url));
+        } catch (Exception e) {
+            try {
+                Intent browserIntent = new Intent(Intent.ACTION_VIEW, Uri.parse(url));
+                startActivity(browserIntent);
+            } catch (Exception ignored) {
+            }
+        }
+    }
+
+    private boolean handleUrlNavigation(String url) {
+        if (url == null) return false;
+
+        // Google Sign-In & OAuth: Open via Chrome Custom Tabs so Android Google Account Picker shows all device accounts
+        if (url.contains("accounts.google.com") || url.contains("/accounts/google/login/") || url.contains("oauth2")) {
+            isWaitingForGoogleAuth = true;
+            launchCustomTab(url);
+            return true;
+        }
+
+        // WhatsApp, Tel, Mailto protocols
+        if (url.startsWith("whatsapp:") || url.startsWith("tel:") || url.startsWith("mailto:")) {
+            try {
+                Intent intent = new Intent(Intent.ACTION_VIEW, Uri.parse(url));
+                startActivity(intent);
+                return true;
+            } catch (Exception ignored) {
+                return true;
+            }
+        }
+
+        // Internal navigation within Raqamiyat domain stays inside WebView
+        if (url.contains("raqamiyatapp.com")) {
+            return false;
+        }
+
+        // External third-party links open in Custom Tab
+        launchCustomTab(url);
+        return true;
+    }
+
+    @Override
     public void onOpenNativeStudio() {
         webView.loadUrl("https://raqamiyatapp.com/control/camera-studio/");
+    }
+
+    @Override
+    public void onOpenGoogleLogin() {
+        isWaitingForGoogleAuth = true;
+        launchCustomTab("https://raqamiyatapp.com/accounts/google/login/?process=login");
     }
 
     @Override

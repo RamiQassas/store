@@ -677,6 +677,13 @@ def _create_order_atomic(customer, variant_id, quantity=1, fulfillment_data=None
     if locked_keys:
         final_fulfillment["keys"] = [k.key_code for k in locked_keys]
 
+    order_meta = dict(metadata or {})
+    if "client_platform" not in order_meta:
+        if customer and getattr(customer, "is_mobile_app", False):
+            order_meta["client_platform"] = "app"
+        else:
+            order_meta["client_platform"] = "browser"
+
     order = Order.objects.create(
         customer=customer,
         store=order_store,
@@ -686,7 +693,7 @@ def _create_order_atomic(customer, variant_id, quantity=1, fulfillment_data=None
         original_total=subtotal,
         coupon=coupon,
         fulfillment_data=final_fulfillment,
-        metadata=metadata or {},
+        metadata=order_meta,
         shipping_name=shipping_name or "",
         shipping_phone=shipping_phone or "",
         shipping_address=shipping_address or "",

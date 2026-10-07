@@ -62,12 +62,12 @@
             {% for provider_group in provider_list %}
                 {% if provider_group.grouper == 'google' %}
                 {% if is_tenant %}
-                <a href="{{ SSO_GOOGLE_LOGIN_URL }}" class="btn-secondary w-full group">
+                <a href="{{ SSO_GOOGLE_LOGIN_URL }}" onclick="if(window.RaqamiyatNative && window.RaqamiyatNative.openGoogleLogin){ window.RaqamiyatNative.openGoogleLogin(); return false; }" class="btn-secondary w-full group">
                     <img src="https://upload.wikimedia.org/wikipedia/commons/c/c1/Google_%22G%22_logo.svg" class="w-5 h-5 group-hover:scale-110 transition-transform">
                     <span class="text-sm">المتابعة باستخدام Google</span>
                 </a>
                 {% else %}
-                <a href="{% provider_login_url 'google' %}" class="btn-secondary w-full group">
+                <a href="{% provider_login_url 'google' %}" onclick="if(window.RaqamiyatNative && window.RaqamiyatNative.openGoogleLogin){ window.RaqamiyatNative.openGoogleLogin(); return false; }" class="btn-secondary w-full group">
                     <img src="https://upload.wikimedia.org/wikipedia/commons/c/c1/Google_%22G%22_logo.svg" class="w-5 h-5 group-hover:scale-110 transition-transform">
                     <span class="text-sm">المتابعة باستخدام Google</span>
                 </a>

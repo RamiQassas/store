@@ -323,6 +323,15 @@
                                 <i class="fas fa-sliders-h text-[9px]"></i>
                                 <span>معالجة الطلب</span>
                             </a>
+                            {% if order.is_app_order %}
+                            <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg bg-emerald-500/15 border border-emerald-500/30 text-[9px] font-black text-emerald-400" title="تم إنشاء الطلب عبر تطبيق أندرويد رقميات">
+                                <i class="fas fa-mobile-screen-button text-[8px]"></i> تطبيق رقميات
+                            </span>
+                            {% else %}
+                            <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg bg-slate-800 border border-white/5 text-[9px] font-bold text-slate-400" title="تم إنشاء الطلب عبر متصفح ويب">
+                                <i class="fas fa-globe text-[8px]"></i> متصفح ويب
+                            </span>
+                            {% endif %}
                             {% if order.api_order_id %}
                             <span class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-sky-500/10 border border-sky-500/20 text-[9px] font-mono text-sky-300" title="معرف الطلب لدى المزود">
                                 <i class="fas fa-plug text-[8px]"></i> #{{ order.api_order_id }}

@@ -124,9 +124,28 @@ class User(AbstractUser):
         email_parts = email_val.split('@')
         if email_parts and email_parts[0]:
             return email_parts[0]
-        return uname or email_val or "مستخدم"
+    @property
+    def is_mobile_app(self):
+        try:
+            latest_evt = self.security_events.filter(event_type="login").order_by("-created_at").first()
+            if latest_evt and "RaqamiyatAndroid" in (latest_evt.user_agent or ""):
+                return True
+        except Exception:
+            pass
+        try:
+            active_sess = self.device_sessions.filter(is_active=True).first()
+            if active_sess and "RaqamiyatAndroid" in (active_sess.user_agent or ""):
+                return True
+        except Exception:
+            pass
+        return False
 
-    
+    @property
+    def platform_badge(self):
+        if self.is_mobile_app:
+            return {"type": "app", "label": "تطبيق أندرويد", "icon": "fa-mobile-screen-button"}
+        return {"type": "browser", "label": "متصفح ويب", "icon": "fa-globe"}
+
     # Deprecated fields (will keep for migration safety but stop using)
     require_otp_on_login = models.BooleanField(default=True)
     require_otp_on_deposit = models.BooleanField(default=False)

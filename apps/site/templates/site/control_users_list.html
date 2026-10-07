@@ -156,6 +156,17 @@
                             {% else %}
                             <span class="text-[9px] text-slate-600 italic">لا يوجد بيانات</span>
                             {% endif %}
+                            
+                            <!-- Platform Badge (App vs Browser) -->
+                            {% if user.is_mobile_app %}
+                            <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[9px] font-black bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 shadow-sm" title="مستخدم تطبيق رقميات أندرويد">
+                                <i class="fas fa-mobile-screen-button text-[8px]"></i> تطبيق أندرويد
+                            </span>
+                            {% else %}
+                            <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[9px] font-bold bg-slate-800 text-slate-400 border border-white/5" title="مستخدم متصفح الويب">
+                                <i class="fas fa-globe text-[8px]"></i> متصفح ويب
+                            </span>
+                            {% endif %}
                         </div>
                     </td>
                     <td class="p-5">

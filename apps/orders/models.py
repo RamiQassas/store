@@ -121,6 +121,24 @@ class Order(TimeStampedModel):
     def has_physical_products(self):
         return self.items.filter(variant__product__product_type="physical").exists()
 
+    @property
+    def is_app_order(self):
+        meta = self.metadata if isinstance(self.metadata, dict) else {}
+        if meta.get("client_platform") == "app":
+            return True
+        ua = meta.get("user_agent", "")
+        if "RaqamiyatAndroid" in ua:
+            return True
+        if self.customer and getattr(self.customer, "is_mobile_app", False):
+            return True
+        return False
+
+    @property
+    def platform_badge(self):
+        if self.is_app_order:
+            return {"type": "app", "label": "تطبيق رقميات", "icon": "fa-mobile-screen-button"}
+        return {"type": "browser", "label": "متصفح ويب", "icon": "fa-globe"}
+
     class Meta:
         verbose_name = "طلب"
         verbose_name_plural = "الطلبات"

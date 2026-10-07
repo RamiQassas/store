@@ -103,6 +103,12 @@
                     </span>
                 </div>
 
+                <!-- Active Lens Indicator -->
+                <div id="lens-badge" class="absolute top-3 right-3 z-20 px-3 py-1.5 rounded-full bg-black/75 backdrop-blur-md border border-cyan/40 text-[10px] font-bold text-cyan flex items-center gap-1.5 shadow-lg">
+                    <i class="fas fa-camera text-xs"></i>
+                    <span id="lens-name-text">الكاميرا الخلفية الأساسية (1x)</span>
+                </div>
+
                 <!-- Dual Preview Tabs (Original vs Processed) -->
                 <div id="preview-tab-bar" class="absolute top-3 inset-x-3 flex items-center justify-center gap-2 z-20 hidden">
                     <button type="button" id="tab-processed-btn" class="px-3 py-1.5 rounded-xl bg-cyan text-black font-black text-xs shadow-lg transition-all" onclick="switchPreviewTab('processed')">
@@ -127,24 +133,34 @@
                 </div>
 
                 <!-- Camera Controls on bottom of viewfinder -->
-                <div class="absolute bottom-4 inset-x-4 flex items-center justify-between gap-3 z-20">
-                    <button type="button" id="switch-camera-btn" class="w-11 h-11 rounded-2xl bg-black/60 hover:bg-black/90 text-white backdrop-blur-md flex items-center justify-center border border-white/10 transition-all shadow-lg" title="تبديل الكاميرا">
+                <div class="absolute bottom-4 inset-x-4 flex items-center justify-between gap-2 z-20">
+                    <button type="button" id="switch-camera-btn" class="w-12 h-12 rounded-2xl bg-black/70 hover:bg-black/90 text-white backdrop-blur-md flex flex-col items-center justify-center border border-white/10 transition-all shadow-lg active:scale-95" title="تبديل العدسة (أساسية / عريضة / أمامية)">
                         <i class="fas fa-rotate text-sm"></i>
+                        <span class="text-[8px] font-bold text-slate-300 mt-0.5">تبديل</span>
                     </button>
                     
                     <!-- Main Shutter Button -->
-                    <button type="button" id="snap-shutter-btn" class="px-8 py-3.5 rounded-2xl bg-gradient-to-r from-cyan-400 to-cyan-500 hover:from-cyan-300 hover:to-cyan-400 text-black font-black text-sm flex items-center gap-2 shadow-2xl pulse-glow transition-all active:scale-95">
+                    <button type="button" id="snap-shutter-btn" class="flex-1 py-3.5 px-3 rounded-2xl bg-gradient-to-r from-cyan-400 to-cyan-500 hover:from-cyan-300 hover:to-cyan-400 text-black font-black text-xs sm:text-sm flex items-center justify-center gap-2 shadow-2xl pulse-glow transition-all active:scale-95">
                         <i class="fas fa-camera text-base"></i>
-                        <span>التقاط صورة المنتج</span>
+                        <span>التقاط من الشاشة</span>
                     </button>
 
-                    <!-- Native File/Gallery Trigger (Supports single and multiple selection) -->
-                    <label for="native-file-input" class="w-11 h-11 rounded-2xl bg-black/60 hover:bg-black/90 text-white backdrop-blur-md flex items-center justify-center border border-white/10 transition-all shadow-lg cursor-pointer" title="اختيار من المعرض أو كاميرا الهاتف">
+                    <!-- Direct Native Primary Camera Trigger -->
+                    <label for="native-camera-direct-input" class="py-3.5 px-3 rounded-2xl bg-emerald-500 hover:bg-emerald-400 text-black font-black text-xs flex items-center justify-center gap-1.5 shadow-xl transition-all cursor-pointer active:scale-95" title="التقاط بواسطة تطبيق كاميرا الهاتف الأساسية">
+                        <i class="fas fa-camera-retro text-sm"></i>
+                        <span class="hidden sm:inline">كاميرا الهاتف</span>
+                        <input type="file" id="native-camera-direct-input" accept="image/*" capture="environment" class="hidden">
+                    </label>
+
+                    <!-- Native File/Gallery Trigger -->
+                    <label for="native-file-input" class="w-12 h-12 rounded-2xl bg-black/70 hover:bg-black/90 text-white backdrop-blur-md flex flex-col items-center justify-center border border-white/10 transition-all shadow-lg cursor-pointer active:scale-95" title="اختيار من المعرض">
                         <i class="fas fa-images text-sm"></i>
+                        <span class="text-[8px] font-bold text-slate-300 mt-0.5">معرض</span>
                         <input type="file" id="native-file-input" accept="image/*" multiple class="hidden">
                     </label>
                 </div>
             </div>
+
 
             <!-- Retake & Download / Reset Controls -->
             <div id="post-capture-controls" class="flex flex-wrap items-center justify-between gap-3 bg-slate-900/40 p-3 rounded-2xl border border-white/5 hidden">
@@ -274,54 +290,187 @@
     var capturedDataUrl = null;
     var processedDataUrl = null;
     var selectedProductId = null;
+    var availableVideoDevices = [];
+    var currentDeviceIndex = 0;
 
     // Elements
     var videoEl = document.getElementById('studio-video');
     var previewImgEl = document.getElementById('studio-preview-img');
+    var originalImgEl = document.getElementById('studio-original-img');
     var snapBtn = document.getElementById('snap-shutter-btn');
     var switchCamBtn = document.getElementById('switch-camera-btn');
     var retakeBtn = document.getElementById('retake-btn');
     var nativeFileInput = document.getElementById('native-file-input');
+    var directCameraInput = document.getElementById('native-camera-direct-input');
     var applyBtn = document.getElementById('apply-studio-image-btn');
     var processingOverlay = document.getElementById('processing-overlay');
+    var processingStatusText = document.getElementById('processing-status-text');
     var postCaptureControls = document.getElementById('post-capture-controls');
     var searchInput = document.getElementById('product-search-input');
     var optIsolateWhite = document.getElementById('opt-isolate-white');
     var optAddHallmark = document.getElementById('opt-add-hallmark');
+    var previewTabBar = document.getElementById('preview-tab-bar');
+    var tabProcessedBtn = document.getElementById('tab-processed-btn');
+    var tabOriginalBtn = document.getElementById('tab-original-btn');
+    var reprocessBtn = document.getElementById('reprocess-btn');
+    var applyAndNextBtn = document.getElementById('apply-and-next-btn');
+    var offlineQueueBox = document.getElementById('offline-queue-box');
+    var retryOfflineBtn = document.getElementById('retry-offline-upload-btn');
+    var lensNameText = document.getElementById('lens-name-text');
+
+    // High Performance Client-Side Canvas Pre-Compression
+    function compressImageForUpload(fileOrDataUrl, maxWidth, quality) {
+        maxWidth = maxWidth || 1600;
+        quality = quality || 0.88;
+        return new Promise(function(resolve, reject) {
+            var img = new Image();
+            img.onload = function() {
+                try {
+                    var w = img.width;
+                    var h = img.height;
+                    if (w > maxWidth || h > maxWidth) {
+                        if (w > h) {
+                            h = Math.round((h * maxWidth) / w);
+                            w = maxWidth;
+                        } else {
+                            w = Math.round((w * maxWidth) / h);
+                            h = maxWidth;
+                        }
+                    }
+                    var canvas = document.createElement('canvas');
+                    canvas.width = w;
+                    canvas.height = h;
+                    var ctx = canvas.getContext('2d');
+                    ctx.drawImage(img, 0, 0, w, h);
+                    var compressed = canvas.toDataURL('image/jpeg', quality);
+                    resolve(compressed);
+                } catch (err) {
+                    reject(err);
+                }
+            };
+            img.onerror = function() {
+                reject(new Error("تعذر معالجة وقراءة بيانات الصورة"));
+            };
+
+            if (typeof fileOrDataUrl === 'string') {
+                img.src = fileOrDataUrl;
+            } else {
+                var reader = new FileReader();
+                reader.onload = function(e) {
+                    img.src = e.target.result;
+                };
+                reader.onerror = function() {
+                    reject(new Error("تعذر قراءة ملف الصورة من الهاتف"));
+                };
+                reader.readAsDataURL(fileOrDataUrl);
+            }
+        });
+    }
+
+    // Camera Enumeration & Primary Lens Prioritization
+    function enumerateCameras() {
+        if (!navigator.mediaDevices || !navigator.mediaDevices.enumerateDevices) return;
+        navigator.mediaDevices.enumerateDevices().then(function(devices) {
+            var videoDevices = devices.filter(function(d) { return d.kind === 'videoinput'; });
+            if (videoDevices.length > 0) {
+                // Sort cameras: prioritize back cameras, then primary wide (1x) over ultra-wide (0.5x/0.6x)
+                videoDevices.sort(function(a, b) {
+                    var la = (a.label || '').toLowerCase();
+                    var lb = (b.label || '').toLowerCase();
+                    var aBack = la.includes('back') || la.includes('rear') || la.includes('environment') || la.includes('0');
+                    var bBack = lb.includes('back') || lb.includes('rear') || lb.includes('environment') || lb.includes('0');
+                    if (aBack && !bBack) return -1;
+                    if (!aBack && bBack) return 1;
+                    var aUltra = la.includes('ultra') || la.includes('wide 0.') || la.includes('0.5') || la.includes('0.6');
+                    var bUltra = lb.includes('ultra') || lb.includes('wide 0.') || lb.includes('0.5') || lb.includes('0.6');
+                    if (!aUltra && bUltra) return -1;
+                    if (aUltra && !bUltra) return 1;
+                    return 0;
+                });
+                availableVideoDevices = videoDevices;
+                updateLensLabel();
+            }
+        }).catch(function(e) {
+            console.warn('Enumerate devices warning:', e);
+        });
+    }
+
+    function updateLensLabel() {
+        if (!lensNameText) return;
+        if (availableVideoDevices.length > 0 && availableVideoDevices[currentDeviceIndex]) {
+            var label = availableVideoDevices[currentDeviceIndex].label;
+            if (!label) {
+                lensNameText.textContent = (facingMode === 'environment') ? 'الكاميرا الخلفية الأساسية (1x)' : 'الكاميرا الأمامية';
+            } else {
+                var lLower = label.toLowerCase();
+                if (lLower.includes('ultra') || lLower.includes('0.5') || lLower.includes('0.6')) {
+                    lensNameText.textContent = 'عدسة عريضة جداً (Ultra-Wide)';
+                } else if (lLower.includes('front') || lLower.includes('user')) {
+                    lensNameText.textContent = 'الكاميرا الأمامية (سيلفي)';
+                } else {
+                    lensNameText.textContent = 'الكاميرا الخلفية الأساسية (1x)';
+                }
+            }
+        } else {
+            lensNameText.textContent = (facingMode === 'environment') ? 'الكاميرا الخلفية الأساسية (1x)' : 'الكاميرا الأمامية';
+        }
+    }
 
     // Initialize Camera Stream
     function startCamera() {
         if (currentStream) {
             currentStream.getTracks().forEach(function(track) { track.stop(); });
         }
-        var constraints = {
-            video: {
-                facingMode: facingMode,
-                width: { ideal: 1920 },
-                height: { ideal: 1080 }
-            },
-            audio: false
+        var videoConstraints = {
+            width: { ideal: 1920 },
+            height: { ideal: 1080 }
         };
-        navigator.mediaDevices.getUserMedia(constraints)
+        if (availableVideoDevices.length > 0 && availableVideoDevices[currentDeviceIndex] && availableVideoDevices[currentDeviceIndex].deviceId) {
+            videoConstraints.deviceId = { exact: availableVideoDevices[currentDeviceIndex].deviceId };
+        } else {
+            videoConstraints.facingMode = { ideal: facingMode };
+        }
+
+        navigator.mediaDevices.getUserMedia({ video: videoConstraints, audio: false })
             .then(function(stream) {
                 currentStream = stream;
                 videoEl.srcObject = stream;
                 videoEl.play();
                 videoEl.classList.remove('hidden');
                 previewImgEl.classList.add('hidden');
+                if (originalImgEl) originalImgEl.classList.add('hidden');
                 document.getElementById('viewfinder-guides').classList.remove('hidden');
                 document.getElementById('viewfinder-box').classList.remove('hidden');
+                if (availableVideoDevices.length === 0 || !availableVideoDevices[0].label) {
+                    enumerateCameras();
+                }
             })
             .catch(function(err) {
-                console.warn('Direct camera stream error:', err);
-                showToast('تعذر تشغيل كاميرا المتصفح المباشرة، يمكنك استخدام زر المعرض لالتقاط الصورة', true);
+                console.warn('Primary camera stream error, trying fallback:', err);
+                navigator.mediaDevices.getUserMedia({ video: { facingMode: facingMode }, audio: false })
+                    .then(function(stream) {
+                        currentStream = stream;
+                        videoEl.srcObject = stream;
+                        videoEl.play();
+                    })
+                    .catch(function(e) {
+                        showToast('تعذر تشغيل كاميرا المتصفح المباشرة، استخدم زر "كاميرا الهاتف" لالتقاط الصورة بأعلى جودة', true);
+                    });
             });
     }
 
-    // Camera Switch (Rear / Front)
+    // Camera Switch (Cycles through available lenses)
     if (switchCamBtn) {
         switchCamBtn.addEventListener('click', function() {
-            facingMode = (facingMode === "environment") ? "user" : "environment";
+            if (availableVideoDevices.length > 1) {
+                currentDeviceIndex = (currentDeviceIndex + 1) % availableVideoDevices.length;
+                var dev = availableVideoDevices[currentDeviceIndex];
+                var lLower = (dev.label || '').toLowerCase();
+                facingMode = (lLower.includes('front') || lLower.includes('user')) ? 'user' : 'environment';
+            } else {
+                facingMode = (facingMode === "environment") ? "user" : "environment";
+            }
+            updateLensLabel();
             startCamera();
         });
     }
@@ -338,30 +487,44 @@
         var ctx = canvas.getContext('2d');
         ctx.drawImage(videoEl, 0, 0, canvas.width, canvas.height);
         
-        capturedDataUrl = canvas.toDataURL('image/jpeg', 0.95);
-        processCapturedImage(capturedDataUrl);
+        var rawDataUrl = canvas.toDataURL('image/jpeg', 0.92);
+        handleIncomingImage(rawDataUrl);
     });
 
-    // Native File / Camera Input
-    nativeFileInput.addEventListener('change', function(e) {
-        if (!e.target.files || !e.target.files[0]) return;
-        var file = e.target.files[0];
-        var reader = new FileReader();
-        reader.onload = function(evt) {
-            capturedDataUrl = evt.target.result;
-            processCapturedImage(capturedDataUrl);
-        };
-        reader.readAsDataURL(file);
-    });
+    // Handle File Pickers (Native primary camera & Gallery)
+    function handleIncomingFile(file) {
+        if (!file) return;
+        if (processingStatusText) processingStatusText.textContent = 'جاري ضغط وتحسين جودة الصورة...';
+        processingOverlay.classList.remove('hidden');
 
-    var originalImgEl = document.getElementById('studio-original-img');
-    var previewTabBar = document.getElementById('preview-tab-bar');
-    var tabProcessedBtn = document.getElementById('tab-processed-btn');
-    var tabOriginalBtn = document.getElementById('tab-original-btn');
-    var reprocessBtn = document.getElementById('reprocess-btn');
-    var applyAndNextBtn = document.getElementById('apply-and-next-btn');
-    var offlineQueueBox = document.getElementById('offline-queue-box');
-    var retryOfflineBtn = document.getElementById('retry-offline-upload-btn');
+        compressImageForUpload(file, 1600, 0.88)
+            .then(function(compressedData) {
+                handleIncomingImage(compressedData);
+            })
+            .catch(function(err) {
+                processingOverlay.classList.add('hidden');
+                showToast('خطأ أثناء قراءة الصورة: ' + err.message, true);
+            });
+    }
+
+    function handleIncomingImage(dataUrl) {
+        capturedDataUrl = dataUrl;
+        processCapturedImage(dataUrl);
+    }
+
+    if (directCameraInput) {
+        directCameraInput.addEventListener('change', function(e) {
+            if (!e.target.files || !e.target.files[0]) return;
+            handleIncomingFile(e.target.files[0]);
+        });
+    }
+
+    if (nativeFileInput) {
+        nativeFileInput.addEventListener('change', function(e) {
+            if (!e.target.files || !e.target.files[0]) return;
+            handleIncomingFile(e.target.files[0]);
+        });
+    }
 
     // Dual Preview Switcher
     window.switchPreviewTab = function(tab) {
@@ -390,8 +553,9 @@
         }
     };
 
-    // Send Image to Studio Processing Endpoint
+    // Send Image to Studio Processing Endpoint with Timeout Resilience
     function processCapturedImage(base64Data) {
+        if (processingStatusText) processingStatusText.textContent = 'جاري عزل الخلفية وإضافة ختم رقميات...';
         processingOverlay.classList.remove('hidden');
         if (originalImgEl) originalImgEl.src = base64Data;
         
@@ -399,15 +563,23 @@
         fd.append('image_base64', base64Data);
         fd.append('isolate_white', optIsolateWhite.checked ? 'true' : 'false');
         fd.append('add_hallmark', optAddHallmark.checked ? 'true' : 'false');
+
+        var controller = new AbortController();
+        var timeoutId = setTimeout(function() { controller.abort(); }, 25000); // 25s timeout
         
         fetch('{% url "control_camera_studio_process_ajax" %}', {
             method: 'POST',
             headers: { 'X-CSRFToken': getCsrf() },
-            body: fd
+            body: fd,
+            signal: controller.signal
         })
-        .then(function(r) { return r.json(); })
+        .then(function(r) {
+            if (!r.ok) {
+                throw new Error('فشل استجابة الخادم كود (' + r.status + ')');
+            }
+            return r.json();
+        })
         .then(function(data) {
-            processingOverlay.classList.add('hidden');
             if (data.status === 'success') {
                 processedDataUrl = data.preview_url;
                 previewImgEl.src = processedDataUrl;
@@ -426,8 +598,12 @@
             }
         })
         .catch(function(err) {
+            var msg = (err.name === 'AbortError') ? 'انتهت مهلة استجابة الخادم، تم إلغاء العملية تلقائياً' : ('خطأ: ' + err.message);
+            showToast(msg, true);
+        })
+        .finally(function() {
+            clearTimeout(timeoutId);
             processingOverlay.classList.add('hidden');
-            showToast('خطأ في الاتصال بالخادم: ' + err, true);
         });
     }
 
@@ -557,17 +733,22 @@
         fd.append('isolate_white', optIsolateWhite.checked ? 'true' : 'false');
         fd.append('add_hallmark', optAddHallmark.checked ? 'true' : 'false');
 
+        var controller = new AbortController();
+        var timeoutId = setTimeout(function() { controller.abort(); }, 25000);
+
         fetch('{% url "control_camera_studio_process_ajax" %}', {
             method: 'POST',
             headers: { 'X-CSRFToken': getCsrf() },
-            body: fd
+            body: fd,
+            signal: controller.signal
         })
-        .then(function(r) { return r.json(); })
+        .then(function(r) {
+            if (!r.ok) {
+                throw new Error('فشل استجابة الخادم كود (' + r.status + ')');
+            }
+            return r.json();
+        })
         .then(function(data) {
-            applyBtn.disabled = false;
-            applyBtn.innerHTML = origHtml;
-            if (applyAndNextBtn) applyAndNextBtn.disabled = false;
-
             if (data.status === 'success') {
                 showToast(data.message || 'تم تحديث صورة المنتج في المتجر بنجاح!');
                 localStorage.removeItem('raqamiyat_studio_pending');
@@ -587,10 +768,14 @@
             }
         })
         .catch(function(err) {
+            var msg = (err.name === 'AbortError') ? 'انتهت مهلة استجابة الخادم أثناء الحفظ' : ('خطأ في الاتصال: ' + err.message);
+            showToast(msg, true);
+        })
+        .finally(function() {
+            clearTimeout(timeoutId);
             applyBtn.disabled = false;
             applyBtn.innerHTML = origHtml;
             if (applyAndNextBtn) applyAndNextBtn.disabled = false;
-            showToast('خطأ في الاتصال: ' + err, true);
         });
     }
 

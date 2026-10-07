@@ -20,6 +20,7 @@ public class RaqamiyatNativeBridge {
 
     public interface BridgeActionCallback {
         void onOpenNativeStudio();
+        void onOpenGoogleLogin();
         void onTransactionSuccess(String orderId);
     }
 
@@ -97,6 +98,15 @@ public class RaqamiyatNativeBridge {
     }
 
     @JavascriptInterface
+    public void openGoogleLogin() {
+        mainHandler.post(() -> {
+            if (actionCallback != null) {
+                actionCallback.onOpenGoogleLogin();
+            }
+        });
+    }
+
+    @JavascriptInterface
     public void onTransactionSuccess(final String orderId) {
         mainHandler.post(() -> {
             if (actionCallback != null) {
@@ -107,6 +117,7 @@ public class RaqamiyatNativeBridge {
 
     @JavascriptInterface
     public String getAppVersion() {
-        return "2.0.0";
+        return "2.2.0";
     }
 }
+

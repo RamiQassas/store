@@ -665,3 +665,25 @@ textarea { min-height: 120px; resize: vertical; }
   animation: goldShimmer 3s ease infinite;
   font-weight: 800;
 }
+
+/* ── Native App Polish Layer (Removes browser feel) ── */
+* {
+  -webkit-tap-highlight-color: transparent !important;
+}
+
+body {
+  overscroll-behavior-y: contain;
+  -webkit-user-select: none;
+  user-select: none;
+  touch-action: manipulation;
+}
+
+input, textarea, select, [contenteditable="true"], .selectable, pre, code {
+  -webkit-user-select: text !important;
+  user-select: text !important;
+}
+
+* {
+  -webkit-overflow-scrolling: touch;
+}
+

@@ -36,6 +36,7 @@ jobs:
         run: |
           mkdir -p release_apk
           cp android/app/build/outputs/apk/release/app-release.apk release_apk/Raqamiyat-Release.apk
+          cp android/app/build/outputs/apk/release/app-release.apk release_apk/Raqamiyat-v2.2.0.apk
           cp android/app/build/outputs/apk/release/app-release.apk release_apk/Raqamiyat-v2.1.0.apk
           cp android/app/build/outputs/apk/release/app-release.apk release_apk/Raqamiyat-v2.0.0.apk
           cp android/app/build/outputs/apk/debug/app-debug.apk release_apk/Raqamiyat-Debug.apk
@@ -52,16 +53,18 @@ jobs:
         if: github.ref == 'refs/heads/master'
         with:
           tag_name: v2.0.0-apk
-          name: Raqamiyat Android App v2.1.0 (Professional Production Release)
+          name: Raqamiyat Android App v2.2.0 (Native Studio, Google Account Picker & Admin Visibility)
           body: |
-            ### تطبيق رقميات للأندرويد الاحترافي - Raqamiyat Android App (v2.1.0) 📱⚡
+            ### تطبيق رقميات للأندرويد الاحترافي - Raqamiyat Android App (v2.2.0) 📱⚡
             
-            - **نسخة الإنتاج الموقعة والمعتمدة رسمياً (Signed Release)**: متوافقة 100% مع أحدث أجهزة سامسونج **Samsung Galaxy S26 Ultra / One UI 9** وأنظمة أندرويد الحديثة (Android 14, 15, 16).
-            - **إصلاح كامل لتجاوب صفحة الخدمات (Services Page Responsive Fix)**: ظهور كامل ومتناسق في منتصف الشاشة لكافة قياسات شاشات أندرويد.
+            - **تسجيل الدخول الذكي عبر Google مع منتقي حسابات الجهاز (Google Sign-In with Device Account Picker)**: تكامل كامل عبر Chrome Custom Tabs لإظهار نافذة اختيار حسابات Google المسجلة على الهاتف مباشرة بلمسة واحدة.
+            - **إصلاح استوديو التصوير السريع ومنع التعليق (Camera Studio Pre-Compression & Zero Stalling)**: ضغط فوري للصور محلياً قبل الرفع وتقليص الحجم من 30MB إلى أقل من 350KB، مع مؤقت إيقاف ومؤشرات حالة حية، وحل مشكلة التعليق ("يضل يحمل ولا يكمل") نهائياً.
+            - **اختيار وضبط الكاميرا الأساسية 1x (Primary Physical Lens Selection)**: تمييز الكاميرا الأساسية عن العدسات العريضة، مع زر مخصص لتشغيل كاميرا الهاتف الأساسية بدقة 200MP.
+            - **تمييز التطبيق عن المتصفح في لوحة التحكم (Admin Platform Visibility)**: ظهور شارة تفاعلية واضحة (📱 تطبيق رقميات / 🌐 متصفح ويب) أمام كل مستخدم وكل طلب لدى الإدارة.
+            - **طابع Native حقيقي (True Native Feel)**: إزالة التحديد العرضي للنصوص، خلفية وإطارات داكنة متطابقة، منع تأثيرات الارتداد العشوائي، واستجابة لمس فورية.
             - **محرك الأوفلاين الذكي والتخزين المحلي (Local-First Reading)**: تصفح المنتجات والأسعار والتصنيفات والصور بالكامل بدون إنترنت.
-            - **حماية المعاملات والعمليات الحساسة (Server-Authoritative Transactions)**: منع العمليات المالية (شراء، شحن، سحب، تحويل) عند غياب الإنترنت مع حظر العمليات المكررة (Idempotency Key).
-            - **كشف الاتصال الحقيقي بالإنترنت (Connectivity Manager)**: تنبيهات فورية ذكية عند انقطاع واستعادة الاتصال.
-            - **استوديو التصوير السريع المتطور (Product Studio)**: تصوير ومعالجة دفعات المنتجات مع عزل أبيض `#ffffff`، ختم رقميات، ومعاينة مزدوجة (Original vs Processed).
+            - **حماية المعاملات والعمليات الحساسة (Server-Authoritative Transactions)**: منع العمليات المالية الحساسة عند غياب الإنترنت مع حظر العمليات المكررة (Idempotency Key).
           files: release_apk/*.apk
+
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
