@@ -1,19 +1,48 @@
 {% extends "site/control_base.html" %}
 {% load static site_tags %}
 
-{% block title %}استوديو التصوير السريع للمنتجات المادية | Raqamiyat Studio{% endblock %}
+{% block title %}استوديو تصوير المنتجات الذكي | Raqamiyat Studio{% endblock %}
 
 {% block extra_head %}
 <style>
-    .studio-camera-container {
-        position: relative;
-        background: #030712;
-        border-radius: 24px;
-        overflow: hidden;
-        border: 1.5px solid rgba(6, 182, 212, 0.2);
-        box-shadow: 0 20px 50px rgba(0, 0, 0, 0.7);
+    /* Scoped Camera Studio Styling with Strict Sizing */
+    .studio-root {
+        max-width: 1100px;
+        margin: 0 auto;
+        padding-bottom: 4rem;
+        direction: rtl;
     }
-    .viewfinder-grid {
+
+    .studio-viewfinder {
+        position: relative;
+        width: 100%;
+        max-width: 520px;
+        aspect-ratio: 1 / 1;
+        margin: 0 auto;
+        background: #030712;
+        border-radius: 20px;
+        overflow: hidden;
+        border: 2px solid rgba(6, 182, 212, 0.3);
+        box-shadow: 0 15px 35px rgba(0, 0, 0, 0.6);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .studio-viewfinder video {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+    }
+
+    .studio-viewfinder .preview-img {
+        width: 100%;
+        height: 100%;
+        object-fit: contain;
+        background: #ffffff;
+    }
+
+    .studio-grid-overlay {
         position: absolute;
         inset: 0;
         pointer-events: none;
@@ -23,216 +52,255 @@
         opacity: 0.25;
         border: 1px solid rgba(255, 255, 255, 0.2);
     }
-    .viewfinder-grid > div {
-        border: 0.5px dashed rgba(255, 255, 255, 0.4);
+    .studio-grid-overlay > div {
+        border: 0.5px dashed rgba(255, 255, 255, 0.3);
     }
-    .viewfinder-target {
+
+    .studio-target-box {
         position: absolute;
         top: 50%;
         left: 50%;
         transform: translate(-50%, -50%);
-        width: 65%;
-        height: 65%;
-        border: 2px dashed rgba(6, 182, 212, 0.7);
-        border-radius: 20px;
+        width: 68%;
+        height: 68%;
+        border: 2px dashed rgba(6, 182, 212, 0.8);
+        border-radius: 16px;
         pointer-events: none;
-        box-shadow: 0 0 30px rgba(6, 182, 212, 0.2);
+        box-shadow: 0 0 25px rgba(6, 182, 212, 0.25);
     }
-    .pulse-glow {
-        animation: pulse-ring 2s infinite;
+
+    /* Fixed icon sizing across all devices */
+    .studio-icon {
+        width: 18px !important;
+        height: 18px !important;
+        font-size: 16px !important;
+        display: inline-flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        flex-shrink: 0 !important;
     }
-    @keyframes pulse-ring {
-        0% { box-shadow: 0 0 0 0 rgba(6, 182, 212, 0.5); }
-        70% { box-shadow: 0 0 0 15px rgba(6, 182, 212, 0); }
-        100% { box-shadow: 0 0 0 0 rgba(6, 182, 212, 0); }
+
+    .studio-icon-lg {
+        width: 24px !important;
+        height: 24px !important;
+        font-size: 20px !important;
+        display: inline-flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        flex-shrink: 0 !important;
     }
-    .toggle-switch:checked ~ .toggle-bg {
-        background-color: #06b6d4;
+
+    /* Compact Product Card */
+    .studio-prod-card {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 0.55rem 0.75rem;
+        border-radius: 14px;
+        background: rgba(15, 23, 42, 0.6);
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        cursor: pointer;
+        transition: all 0.2s ease;
     }
-    .toggle-switch:checked ~ .toggle-dot {
-        transform: translateX(100%);
+    .studio-prod-card:hover {
+        background: rgba(30, 41, 59, 0.8);
+        border-color: rgba(6, 182, 212, 0.4);
+    }
+    .studio-prod-card.is-selected {
+        background: rgba(6, 182, 212, 0.15) !important;
+        border-color: #06b6d4 !important;
+        box-shadow: 0 0 15px rgba(6, 182, 212, 0.2);
+    }
+
+    /* Custom Scrollbar */
+    .studio-scroll::-webkit-scrollbar {
+        width: 5px;
+    }
+    .studio-scroll::-webkit-scrollbar-track {
+        background: rgba(0, 0, 0, 0.2);
+    }
+    .studio-scroll::-webkit-scrollbar-thumb {
+        background: rgba(6, 182, 212, 0.3);
+        border-radius: 10px;
     }
 </style>
 {% endblock %}
 
-{% block content %}
-<div class="space-y-6 max-w-6xl mx-auto pb-16">
-    <!-- Header -->
-    <div class="flex flex-wrap items-center justify-between gap-4 bg-slate-900/60 p-6 rounded-3xl border border-white/5 backdrop-blur-xl">
+{% block control_content %}
+<div class="studio-root space-y-6">
+
+    <!-- Header Bar -->
+    <div class="flex flex-wrap items-center justify-between gap-4 p-4 sm:p-5 rounded-2xl bg-slate-900/70 border border-white/10 backdrop-blur-md">
         <div class="space-y-1">
             <div class="flex items-center gap-2">
-                <span class="px-3 py-1 rounded-full text-[10px] font-black bg-cyan/10 text-cyan border border-cyan/20">
-                    <i class="fas fa-camera-retro ml-1"></i> استوديو التصوير المباشر
+                <span class="px-2.5 py-0.5 rounded-full text-[11px] font-black bg-cyan/15 text-cyan border border-cyan/30 flex items-center gap-1.5">
+                    <i class="fas fa-camera-retro studio-icon"></i>
+                    <span>استوديو التصوير المباشر</span>
                 </span>
-                <span class="px-3 py-1 rounded-full text-[10px] font-bold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
-                    <i class="fas fa-magic ml-1"></i> عزل أبيض + ختم رقميات
+                <span class="px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 flex items-center gap-1">
+                    <i class="fas fa-wand-magic-sparkles studio-icon"></i>
+                    <span>عزل أبيض + ختم رقميات</span>
                 </span>
             </div>
-            <h1 class="text-2xl font-black text-white flex items-center gap-2">
-                تصوير ورفع المنتجات المادية السريع
+            <h1 class="text-xl sm:text-2xl font-black text-white">
+                تصوير وتحديث صور المنتجات
             </h1>
             <p class="text-xs text-slate-400">
-                التقط صور منتجاتك المادية (وصلات، شواحن، بطاريات، سبيكرات، كابلات) مباشرة من هاتفك، مع عزل الخلفية بيضاء نقية وإضافة ختم رقميات الرسمي بلمسة واحدة.
+                التقط صور منتجاتك بكاميرا هاتفك أو اختر من المعرض، يتم عزل الخلفية بيضاء نقية وإضافة ختم رقميات الرسمي فوراً مع معاينة فورية قبل الحفظ.
             </p>
         </div>
-        <div class="flex items-center gap-3">
-            <a href="{% url 'control_products_list' %}" class="btn btn-outline text-xs px-4 py-2.5 rounded-xl text-slate-300 hover:text-white">
-                <i class="fas fa-arrow-right ml-1"></i> العودة لإدارة المنتجات
-            </a>
-        </div>
+        <a href="{% url 'control_products_list' %}" class="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-xs font-bold text-slate-300 hover:text-white transition-all">
+            <i class="fas fa-arrow-right studio-icon"></i>
+            <span>العودة لإدارة المنتجات</span>
+        </a>
     </div>
 
-    <!-- Main Grid: Camera & Settings -->
-    <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+    <!-- Main Workflow Grid -->
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
         
-        <!-- Left / Top Column: Camera Viewfinder & Preview (7 cols) -->
+        <!-- Left Column: Camera Viewfinder & Processed Preview (7 cols) -->
         <div class="lg:col-span-7 space-y-4">
-            <div class="studio-camera-container aspect-square max-h-[540px] flex items-center justify-center relative">
-                <!-- Video stream for live camera -->
+            
+            <div class="studio-viewfinder">
+                <!-- Video Stream (Live Camera) -->
                 <video id="studio-video" autoplay playsinline class="w-full h-full object-cover"></video>
-                
-                <!-- Viewfinder overlays -->
-                <div id="viewfinder-guides" class="viewfinder-grid">
+
+                <!-- Grid & Target Guides -->
+                <div id="viewfinder-guides" class="studio-grid-overlay">
                     <div></div><div></div><div></div>
                     <div></div><div></div><div></div>
                     <div></div><div></div><div></div>
                 </div>
-                <div id="viewfinder-box" class="viewfinder-target flex items-center justify-center">
-                    <span class="text-[10px] font-bold text-cyan/70 bg-black/60 px-2 py-0.5 rounded-full">
-                        ضع المنتج المادي هنا
+                <div id="viewfinder-box" class="studio-target-box flex items-center justify-center">
+                    <span class="text-[10px] font-bold text-cyan bg-black/70 px-2.5 py-1 rounded-full border border-cyan/40">
+                        ضع المنتج هنا في المنتصف
                     </span>
                 </div>
 
-                <!-- Active Lens Indicator -->
-                <div id="lens-badge" class="absolute top-3 right-3 z-20 px-3 py-1.5 rounded-full bg-black/75 backdrop-blur-md border border-cyan/40 text-[10px] font-bold text-cyan flex items-center gap-1.5 shadow-lg">
-                    <i class="fas fa-camera text-xs"></i>
-                    <span id="lens-name-text">الكاميرا الخلفية الأساسية (1x)</span>
-                </div>
+                <!-- Dual Preview Images -->
+                <img id="studio-preview-processed" class="preview-img hidden" alt="Processed Product Preview">
+                <img id="studio-preview-original" class="w-full h-full object-contain bg-black hidden" alt="Original Photo">
 
-                <!-- Dual Preview Tabs (Original vs Processed) -->
-                <div id="preview-tab-bar" class="absolute top-3 inset-x-3 flex items-center justify-center gap-2 z-20 hidden">
-                    <button type="button" id="tab-processed-btn" class="px-3 py-1.5 rounded-xl bg-cyan text-black font-black text-xs shadow-lg transition-all" onclick="switchPreviewTab('processed')">
-                        <i class="fas fa-wand-magic-sparkles ml-1"></i> معالجة الاستوديو (Processed)
-                    </button>
-                    <button type="button" id="tab-original-btn" class="px-3 py-1.5 rounded-xl bg-black/60 hover:bg-black/90 text-slate-300 font-bold text-xs backdrop-blur-md transition-all" onclick="switchPreviewTab('original')">
-                        <i class="fas fa-image ml-1"></i> الأصلية (Original)
-                    </button>
-                </div>
-
-                <!-- Captured / Processed Image Preview Canvas/IMG -->
-                <img id="studio-preview-img" class="absolute inset-0 w-full h-full object-contain bg-white hidden" alt="Studio Preview">
-                <img id="studio-original-img" class="absolute inset-0 w-full h-full object-contain bg-black hidden" alt="Original Image">
-
-                <!-- Processing Overlay -->
-                <div id="processing-overlay" class="absolute inset-0 bg-slate-950/85 backdrop-blur-md flex flex-col items-center justify-center gap-3 z-30 hidden">
-                    <div class="w-16 h-16 rounded-2xl bg-cyan/10 border border-cyan/30 flex items-center justify-center text-cyan text-2xl">
-                        <i class="fas fa-wand-magic-sparkles fa-spin"></i>
+                <!-- Processing Spinner Overlay -->
+                <div id="processing-overlay" class="absolute inset-0 bg-slate-950/90 backdrop-blur-md flex flex-col items-center justify-center gap-3 z-30 hidden">
+                    <div class="w-14 h-14 rounded-2xl bg-cyan/15 border border-cyan/40 flex items-center justify-center text-cyan">
+                        <i class="fas fa-wand-magic-sparkles fa-spin studio-icon-lg"></i>
                     </div>
-                    <div class="text-sm font-black text-white" id="processing-status-text">جاري عزل الخلفية وإضافة ختم رقميات...</div>
-                    <div class="text-[11px] text-slate-400">تطبيق لمسات الاستوديو الاحترافي للمنتج المادي</div>
+                    <div class="text-sm font-black text-white" id="processing-status-text">
+                        جاري عزل الخلفية وإضافة ختم رقميات...
+                    </div>
+                    <div class="text-[11px] text-slate-400">تحسين جودة الصورة ونقاء العرض</div>
                 </div>
 
-                <!-- Camera Controls on bottom of viewfinder -->
-                <div class="absolute bottom-4 inset-x-4 flex items-center justify-between gap-2 z-20">
-                    <button type="button" id="switch-camera-btn" class="w-12 h-12 rounded-2xl bg-black/70 hover:bg-black/90 text-white backdrop-blur-md flex flex-col items-center justify-center border border-white/10 transition-all shadow-lg active:scale-95" title="تبديل العدسة (أساسية / عريضة / أمامية)">
-                        <i class="fas fa-rotate text-sm"></i>
-                        <span class="text-[8px] font-bold text-slate-300 mt-0.5">تبديل</span>
+                <!-- Preview Switcher Tabs (Only visible when image is captured) -->
+                <div id="preview-tabs" class="absolute top-3 inset-x-3 flex items-center justify-center gap-2 z-20 hidden">
+                    <button type="button" id="tab-btn-processed" onclick="switchPreviewMode('processed')" class="px-3 py-1.5 rounded-xl bg-cyan text-black font-black text-xs shadow-lg flex items-center gap-1.5 transition-all">
+                        <i class="fas fa-wand-magic-sparkles studio-icon"></i>
+                        <span>معاينة بعد التعديل</span>
                     </button>
-                    
-                    <!-- Main Shutter Button -->
-                    <button type="button" id="snap-shutter-btn" class="flex-1 py-3.5 px-3 rounded-2xl bg-gradient-to-r from-cyan-400 to-cyan-500 hover:from-cyan-300 hover:to-cyan-400 text-black font-black text-xs sm:text-sm flex items-center justify-center gap-2 shadow-2xl pulse-glow transition-all active:scale-95">
-                        <i class="fas fa-camera text-base"></i>
-                        <span>التقاط من الشاشة</span>
+                    <button type="button" id="tab-btn-original" onclick="switchPreviewMode('original')" class="px-3 py-1.5 rounded-xl bg-black/70 hover:bg-black/90 text-slate-300 font-bold text-xs backdrop-blur-md flex items-center gap-1.5 transition-all">
+                        <i class="fas fa-image studio-icon"></i>
+                        <span>الصورة الأصلية</span>
                     </button>
-
-                    <!-- Direct Native Primary Camera Trigger -->
-                    <label for="native-camera-direct-input" class="py-3.5 px-3 rounded-2xl bg-emerald-500 hover:bg-emerald-400 text-black font-black text-xs flex items-center justify-center gap-1.5 shadow-xl transition-all cursor-pointer active:scale-95" title="التقاط بواسطة تطبيق كاميرا الهاتف الأساسية">
-                        <i class="fas fa-camera-retro text-sm"></i>
-                        <span class="hidden sm:inline">كاميرا الهاتف</span>
-                        <input type="file" id="native-camera-direct-input" accept="image/*" capture="environment" class="hidden">
-                    </label>
-
-                    <!-- Native File/Gallery Trigger -->
-                    <label for="native-file-input" class="w-12 h-12 rounded-2xl bg-black/70 hover:bg-black/90 text-white backdrop-blur-md flex flex-col items-center justify-center border border-white/10 transition-all shadow-lg cursor-pointer active:scale-95" title="اختيار من المعرض">
-                        <i class="fas fa-images text-sm"></i>
-                        <span class="text-[8px] font-bold text-slate-300 mt-0.5">معرض</span>
-                        <input type="file" id="native-file-input" accept="image/*" multiple class="hidden">
-                    </label>
                 </div>
             </div>
 
+            <!-- Camera Trigger Controls Bar -->
+            <div id="capture-controls-bar" class="p-3 rounded-2xl bg-slate-900/80 border border-white/10 flex items-center justify-between gap-2.5">
+                <!-- Lens Switch -->
+                <button type="button" id="switch-camera-btn" class="p-2.5 rounded-xl bg-white/5 hover:bg-white/10 text-slate-300 hover:text-white border border-white/10 flex flex-col items-center justify-center gap-0.5 transition-all text-center min-w-[56px]" title="تبديل العدسة">
+                    <i class="fas fa-rotate studio-icon"></i>
+                    <span class="text-[9px] font-bold">تبديل</span>
+                </button>
 
-            <!-- Retake & Download / Reset Controls -->
-            <div id="post-capture-controls" class="flex flex-wrap items-center justify-between gap-3 bg-slate-900/40 p-3 rounded-2xl border border-white/5 hidden">
-                <div class="flex items-center gap-2">
-                    <button type="button" id="retake-btn" class="btn btn-outline text-xs px-3.5 py-2 rounded-xl text-slate-300 hover:text-white">
-                        <i class="fas fa-redo ml-1"></i> إعادة التقاط
-                    </button>
-                    <button type="button" id="reprocess-btn" class="btn btn-outline text-xs px-3.5 py-2 rounded-xl text-cyan hover:bg-cyan/10">
-                        <i class="fas fa-wand-magic ml-1"></i> إعادة المعالجة
-                    </button>
-                </div>
-                <div class="text-[11px] text-emerald-400 font-bold flex items-center gap-1.5">
-                    <i class="fas fa-check-circle"></i> تم التقاط ومعالجة الصورة بنجاح
-                </div>
+                <!-- Snap Shutter Button (In-Browser Live Snap) -->
+                <button type="button" id="snap-shutter-btn" class="flex-1 py-3 px-3 rounded-xl bg-gradient-to-r from-cyan-400 to-cyan-500 hover:brightness-110 text-slate-950 font-black text-xs sm:text-sm flex items-center justify-center gap-2 shadow-lg transition-all active:scale-95">
+                    <i class="fas fa-camera studio-icon"></i>
+                    <span>التقاط من الشاشة</span>
+                </button>
+
+                <!-- Native Phone Camera Trigger (Direct High-Res Phone App) -->
+                <label for="native-camera-direct-input" class="py-3 px-3 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black text-xs flex items-center justify-center gap-1.5 shadow-lg transition-all cursor-pointer active:scale-95" title="التقاط بواسطة تطبيق كاميرا الهاتف الأساسي">
+                    <i class="fas fa-camera-retro studio-icon"></i>
+                    <span class="hidden sm:inline">كاميرا الهاتف</span>
+                    <input type="file" id="native-camera-direct-input" accept="image/*" capture="environment" class="hidden">
+                </label>
+
+                <!-- Gallery File Picker -->
+                <label for="native-gallery-input" class="p-2.5 rounded-xl bg-white/5 hover:bg-white/10 text-slate-300 hover:text-white border border-white/10 flex flex-col items-center justify-center gap-0.5 transition-all cursor-pointer text-center min-w-[56px]" title="اختيار من المعرض">
+                    <i class="fas fa-images studio-icon"></i>
+                    <span class="text-[9px] font-bold">معرض</span>
+                    <input type="file" id="native-gallery-input" accept="image/*" class="hidden">
+                </label>
             </div>
+
+            <!-- Post-Capture Action Bar (Retake / Reprocess) -->
+            <div id="post-capture-bar" class="p-3 rounded-2xl bg-slate-900/80 border border-cyan/30 flex items-center justify-between gap-3 hidden">
+                <button type="button" id="retake-btn" onclick="retakePhoto()" class="px-3 py-2 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-xs font-bold text-slate-300 hover:text-white flex items-center gap-1.5 transition-all">
+                    <i class="fas fa-rotate-right studio-icon"></i>
+                    <span>إعادة التقاط</span>
+                </button>
+
+                <div class="flex items-center gap-1.5 text-xs font-bold text-emerald-400">
+                    <i class="fas fa-check-circle studio-icon"></i>
+                    <span>تمت المعالجة بنجاح! اختر المنتج بالأسفل للتعيين</span>
+                </div>
+
+                <button type="button" id="reprocess-btn" onclick="reprocessPhoto()" class="px-3 py-2 rounded-xl bg-cyan/10 hover:bg-cyan/20 border border-cyan/30 text-xs font-bold text-cyan flex items-center gap-1.5 transition-all">
+                    <i class="fas fa-wand-magic-sparkles studio-icon"></i>
+                    <span>إعادة المعالجة</span>
+                </button>
+            </div>
+
         </div>
 
-        <!-- Right Column: Product Assignment & Studio Settings (5 cols) -->
-        <div class="lg:col-span-5 space-y-5">
+        <!-- Right Column: Product Search & One-Click Assignment (5 cols) -->
+        <div class="lg:col-span-5 space-y-4">
             
-            <!-- Studio Settings Card -->
-            <div class="bg-slate-900/60 p-5 rounded-3xl border border-white/10 backdrop-blur-xl space-y-4">
-                <h3 class="text-xs font-black text-white flex items-center gap-2 uppercase tracking-wider text-cyan">
-                    <i class="fas fa-sliders text-cyan"></i> خيارات استوديو رقميات
-                </h3>
-                
-                <div class="space-y-3">
-                    <!-- Toggle 1: White Studio Background -->
-                    <label class="flex items-center justify-between p-3 rounded-2xl bg-slate-800/50 border border-white/5 cursor-pointer hover:border-cyan/30 transition-all">
-                        <div class="space-y-0.5">
-                            <span class="text-xs font-bold text-white block">خلفية بيضاء نقية (#ffffff)</span>
-                            <span class="text-[10px] text-slate-400 block">عزل المنتج على أرضية استوديو بيضاء وظل واقعي</span>
-                        </div>
-                        <input type="checkbox" id="opt-isolate-white" class="accent-cyan w-5 h-5 rounded cursor-pointer" checked>
+            <!-- Studio Enhancement Toggles -->
+            <div class="p-4 rounded-2xl bg-slate-900/70 border border-white/10 space-y-3">
+                <div class="text-xs font-black text-cyan uppercase tracking-wider flex items-center gap-1.5">
+                    <i class="fas fa-sliders studio-icon"></i>
+                    <span>خيارات تحسين الاستوديو</span>
+                </div>
+                <div class="grid grid-cols-2 gap-2 text-xs">
+                    <label class="flex items-center gap-2 p-2.5 rounded-xl bg-slate-800/60 border border-white/5 cursor-pointer hover:border-cyan/30 transition-all">
+                        <input type="checkbox" id="opt-white-bg" class="accent-cyan w-4 h-4 rounded cursor-pointer" checked>
+                        <span class="font-bold text-slate-200">خلفية استوديو بيضاء</span>
                     </label>
-
-                    <!-- Toggle 2: Raqamiyat Hallmark Stamp -->
-                    <label class="flex items-center justify-between p-3 rounded-2xl bg-slate-800/50 border border-white/5 cursor-pointer hover:border-cyan/30 transition-all">
-                        <div class="space-y-0.5">
-                            <span class="text-xs font-bold text-white block">ختم وشعار رقميات الرسمي</span>
-                            <span class="text-[10px] text-slate-400 block">إضافة درع البرق الكريستالي وعلامة الاعتماد الفخمة</span>
-                        </div>
-                        <input type="checkbox" id="opt-add-hallmark" class="accent-cyan w-5 h-5 rounded cursor-pointer" checked>
+                    <label class="flex items-center gap-2 p-2.5 rounded-xl bg-slate-800/60 border border-white/5 cursor-pointer hover:border-cyan/30 transition-all">
+                        <input type="checkbox" id="opt-hallmark" class="accent-cyan w-4 h-4 rounded cursor-pointer" checked>
+                        <span class="font-bold text-slate-200">ختم رقميات الرسمي</span>
                     </label>
                 </div>
             </div>
 
-            <!-- Product Assignment Card -->
-            <div class="bg-slate-900/60 p-5 rounded-3xl border border-white/10 backdrop-blur-xl space-y-4">
+            <!-- Target Product Selector Card -->
+            <div class="p-4 rounded-2xl bg-slate-900/70 border border-white/10 space-y-3">
                 <div class="flex items-center justify-between">
-                    <h3 class="text-xs font-black text-white flex items-center gap-2 uppercase tracking-wider text-cyan">
-                        <i class="fas fa-link text-cyan"></i> ربط الصورة بالمنتج
-                    </h3>
-                    <span class="text-[10px] text-slate-400 font-mono">متوفر: {{ total_products }} منتج</span>
+                    <div class="text-xs font-black text-cyan uppercase tracking-wider flex items-center gap-1.5">
+                        <i class="fas fa-box-open studio-icon"></i>
+                        <span>اختر المنتج المراد تعيين الصورة له</span>
+                    </div>
+                    <span class="text-[10px] text-slate-400 font-mono">({{ total_products }} منتج)</span>
                 </div>
 
-                <!-- Instant Search Input -->
+                <!-- Search Filter Input -->
                 <div class="relative">
-                    <i class="fas fa-search absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-500 text-xs"></i>
-                    <input type="text" id="product-search-input" placeholder="ابحث عن اسم المنتج (مثال: Kodak, HDMI, Denmen...)" class="w-full text-xs pr-9 pl-3 py-2.5 bg-slate-950/70 border border-white/10 rounded-xl text-white placeholder-slate-500 focus:border-cyan focus:ring-1 focus:ring-cyan transition-all">
+                    <i class="fas fa-search absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-500 studio-icon"></i>
+                    <input type="text" id="product-search-input" placeholder="ابحث باسم المنتج (كابل، شاحن، Denmen، Kodak...)" class="w-full text-xs pr-9 pl-3 py-2.5 bg-slate-950/80 border border-white/15 rounded-xl text-white placeholder-slate-500 focus:border-cyan focus:ring-1 focus:ring-cyan transition-all">
                 </div>
 
-                <!-- Product Select List (Scrollable) -->
-                <div id="product-select-list" class="max-h-64 overflow-y-auto space-y-2 pr-1 custom-scrollbar">
+                <!-- Products Scrollable List -->
+                <div id="product-items-list" class="space-y-1.5 max-h-64 overflow-y-auto studio-scroll pr-1">
                     {% for p in products %}
-                    <div class="product-item-card flex items-center justify-between p-2.5 rounded-xl bg-slate-800/40 border border-white/5 hover:border-cyan/40 hover:bg-slate-800/80 cursor-pointer transition-all" data-id="{{ p.id }}" data-name="{{ p.name }}" data-category="{{ p.category }}" onclick="selectTargetProduct('{{ p.id }}', '{{ p.name|escapejs }}', '{{ p.image_url|default:'' }}')">
-                        <div class="flex items-center gap-2.5 overflow-hidden">
-                            <div class="w-10 h-10 rounded-lg bg-slate-900 overflow-hidden flex-shrink-0 border border-white/10 flex items-center justify-center">
+                    <div class="studio-prod-card {% if selected_product and selected_product.id == p.id %}is-selected{% endif %}" data-id="{{ p.id }}" data-name="{{ p.name }}" data-category="{{ p.category }}" onclick="pickProduct('{{ p.id }}', '{{ p.name|escapejs }}')">
+                        <div class="flex items-center gap-2.5 min-w-0">
+                            <div class="w-9 h-9 rounded-lg bg-slate-950 border border-white/10 overflow-hidden flex items-center justify-center flex-shrink-0">
                                 {% if p.image_url %}
-                                <img src="{{ p.image_url }}" class="w-full h-full object-cover">
+                                <img src="{{ p.image_url }}" alt="{{ p.name }}" class="w-full h-full object-cover">
                                 {% else %}
-                                <i class="fas fa-box text-slate-600 text-xs"></i>
+                                <i class="fas fa-cube text-slate-600 studio-icon"></i>
                                 {% endif %}
                             </div>
                             <div class="truncate">
@@ -240,780 +308,377 @@
                                 <div class="text-[9px] text-cyan/70 font-semibold truncate">{{ p.category }}</div>
                             </div>
                         </div>
-                        <div class="select-indicator w-5 h-5 rounded-full border border-white/20 flex items-center justify-center text-[10px] text-cyan flex-shrink-0"></div>
+                        <div class="card-radio w-5 h-5 rounded-full border border-white/20 flex items-center justify-center flex-shrink-0 text-cyan text-[10px]">
+                            {% if selected_product and selected_product.id == p.id %}
+                            <i class="fas fa-check"></i>
+                            {% endif %}
+                        </div>
                     </div>
                     {% endfor %}
                 </div>
 
-                <!-- Selected Target Box -->
-                <div id="selected-target-display" class="p-3 rounded-2xl bg-cyan/10 border border-cyan/30 flex items-center justify-between hidden">
-                    <div class="overflow-hidden">
-                        <span class="text-[9px] font-black text-cyan uppercase block">المنتج المحدد للتعيين:</span>
-                        <span id="selected-prod-name" class="text-xs font-black text-white truncate block"></span>
+                <!-- Selected Product Banner -->
+                <div id="selected-product-banner" class="p-3 rounded-xl bg-cyan/10 border border-cyan/30 flex items-center justify-between {% if not selected_product %}hidden{% endif %}">
+                    <div class="min-w-0">
+                        <span class="text-[9px] font-black text-cyan uppercase block">المنتج المحدد حالياً:</span>
+                        <span id="selected-product-name" class="text-xs font-black text-white truncate block">
+                            {{ selected_product.name|default:"" }}
+                        </span>
                     </div>
-                    <button type="button" onclick="clearSelectedProduct()" class="text-slate-400 hover:text-rose-400 text-xs p-1">
-                        <i class="fas fa-times"></i>
+                    <button type="button" onclick="clearPickedProduct()" class="text-slate-400 hover:text-rose-400 p-1">
+                        <i class="fas fa-times studio-icon"></i>
                     </button>
                 </div>
 
-                <!-- Offline Queue Indicator -->
-                <div id="offline-queue-box" class="p-3 rounded-2xl bg-amber-500/10 border border-amber-500/30 flex items-center justify-between hidden">
-                    <div class="text-[11px] text-amber-300 font-bold">
-                        <i class="fas fa-wifi-slash ml-1"></i> بانتظار الاتصال: تم حفظ الصورة محلياً
-                    </div>
-                    <button type="button" id="retry-offline-upload-btn" class="px-2.5 py-1 bg-amber-500 text-black text-[10px] font-black rounded-lg">
-                        إعادة المحاولة
-                    </button>
-                </div>
-
-                <!-- Final Submit / Apply Buttons -->
-                <div class="space-y-2">
-                    <button type="button" id="apply-studio-image-btn" disabled class="w-full py-3.5 rounded-2xl bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 disabled:opacity-40 disabled:pointer-events-none text-black font-black text-sm flex items-center justify-center gap-2 shadow-xl transition-all">
-                        <i class="fas fa-cloud-arrow-up text-base"></i>
-                        <span>حفظ وتعيين للمنتج فوراً</span>
-                    </button>
-                    
-                    <button type="button" id="apply-and-next-btn" disabled class="w-full py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 disabled:opacity-40 disabled:pointer-events-none text-cyan font-bold text-xs flex items-center justify-center gap-1.5 border border-cyan/20 transition-all">
-                        <span>اعتماد والانتقال للمنتج التالي</span>
-                        <i class="fas fa-forward-step mr-1"></i>
-                    </button>
-                </div>
+                <!-- Big Action Button: Assign and Save -->
+                <button type="button" id="btn-save-assign" disabled onclick="saveImageToProduct()" class="w-full py-3.5 px-4 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-500 hover:brightness-110 disabled:opacity-40 disabled:pointer-events-none text-slate-950 font-black text-sm flex items-center justify-center gap-2 shadow-xl transition-all active:scale-95">
+                    <i class="fas fa-cloud-arrow-up studio-icon"></i>
+                    <span id="save-btn-text">حفظ وتعيين للمنتج فوراً</span>
+                </button>
             </div>
+
         </div>
 
     </div>
-</div>
 
-<!-- ==========================================
-     INTERACTIVE POST-CAPTURE PRODUCT SELECTION MODAL
-     Appears immediately after photo capture/upload
-     asking: "أي منتج تريد تعيين هذه الصورة له؟"
-     ========================================== -->
-<div id="post-capture-modal" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md hidden transition-all">
-    <div class="bg-slate-900 border border-cyan/40 rounded-3xl max-w-lg w-full p-5 sm:p-6 shadow-2xl relative space-y-4 max-h-[90vh] flex flex-col">
-        <!-- Modal Header -->
-        <div class="flex items-center justify-between pb-3 border-b border-white/10">
-            <div class="flex items-center gap-2.5">
-                <div class="w-10 h-10 rounded-2xl bg-cyan/20 border border-cyan/40 flex items-center justify-center text-cyan">
-                    <i class="fas fa-camera-viewfinder text-lg"></i>
-                </div>
-                <div>
-                    <h3 class="text-base font-black text-white">أي منتج تريد تعيين هذه الصورة له؟</h3>
-                    <p class="text-[11px] text-slate-400">اختر المنتج المستهدف للربط الفوري أو ابحث بالاسم</p>
-                </div>
-            </div>
-            <button type="button" onclick="closePostCaptureModal()" class="w-8 h-8 rounded-full bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white flex items-center justify-center transition-colors">
-                <i class="fas fa-times"></i>
-            </button>
-        </div>
-
-        <!-- Captured Image Thumbnail Preview -->
-        <div class="flex items-center gap-3 p-3 rounded-2xl bg-slate-950/60 border border-white/10">
-            <img id="modal-captured-preview-img" class="w-16 h-16 rounded-xl object-contain bg-black border border-white/10" alt="Preview">
-            <div class="flex-1 min-w-0">
-                <span class="text-[10px] text-cyan font-black block uppercase tracking-wider">تم التقاط الصورة بنجاح 📸</span>
-                <span id="modal-target-summary" class="text-xs font-bold text-white block truncate">اختر المنتج من القائمة بالأسفل لربط الصورة به فوراً</span>
-                <div class="flex items-center gap-2 mt-1">
-                    <span class="text-[10px] text-emerald-400 font-semibold"><i class="fas fa-check-circle"></i> جاهزة للمعالجة الفورية</span>
-                </div>
-            </div>
-        </div>
-
-        <!-- Instant Filter Search Box -->
-        <div class="relative">
-            <i class="fas fa-search absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 text-xs"></i>
-            <input type="text" id="modal-product-search-input" placeholder="ابحث عن اسم المنتج (مثال: Denmen, كابل, شاحن...)" class="w-full text-xs pr-9 pl-3 py-2.5 bg-slate-950/80 border border-white/15 rounded-xl text-white placeholder-slate-500 focus:border-cyan focus:ring-1 focus:ring-cyan transition-all">
-        </div>
-
-        <!-- Scrollable Products Selection List -->
-        <div id="modal-product-select-list" class="flex-1 overflow-y-auto space-y-2 pr-1 max-h-56 custom-scrollbar">
-            {% for p in products %}
-            <div class="modal-product-item flex items-center justify-between p-2.5 rounded-xl bg-slate-800/60 border border-white/5 hover:border-cyan/50 hover:bg-slate-800 cursor-pointer transition-all" data-id="{{ p.id }}" data-name="{{ p.name }}" data-category="{{ p.category }}" onclick="onModalSelectProduct('{{ p.id }}', '{{ p.name|escapejs }}', '{{ p.image_url|default:'' }}')">
-                <div class="flex items-center gap-2.5 overflow-hidden">
-                    <div class="w-10 h-10 rounded-lg bg-slate-950 overflow-hidden flex-shrink-0 border border-white/10 flex items-center justify-center">
-                        {% if p.image_url %}
-                        <img src="{{ p.image_url }}" class="w-full h-full object-cover">
-                        {% else %}
-                        <i class="fas fa-box text-slate-600 text-xs"></i>
-                        {% endif %}
-                    </div>
-                    <div class="truncate">
-                        <div class="text-xs font-bold text-white truncate">{{ p.name }}</div>
-                        <div class="text-[9px] text-cyan/80 font-semibold truncate">{{ p.category }}</div>
-                    </div>
-                </div>
-                <div class="modal-select-indicator w-6 h-6 rounded-full border border-white/20 flex items-center justify-center text-xs text-cyan flex-shrink-0"></div>
-            </div>
-            {% endfor %}
-        </div>
-
-        <!-- Studio Options in Modal -->
-        <div class="grid grid-cols-2 gap-2 pt-1 border-t border-white/10">
-            <label class="flex items-center gap-2 p-2 rounded-xl bg-slate-950/50 border border-white/5 cursor-pointer text-[11px] text-slate-300">
-                <input type="checkbox" id="modal-opt-white" checked class="accent-cyan w-4 h-4 rounded">
-                <span>عزل استوديو أبيض</span>
-            </label>
-            <label class="flex items-center gap-2 p-2 rounded-xl bg-slate-950/50 border border-white/5 cursor-pointer text-[11px] text-slate-300">
-                <input type="checkbox" id="modal-opt-hallmark" checked class="accent-cyan w-4 h-4 rounded">
-                <span>ختم رقميات الرسمي</span>
-            </label>
-        </div>
-
-        <!-- Modal Action Buttons -->
-        <div class="flex items-center gap-2 pt-2">
-            <button type="button" id="modal-confirm-apply-btn" disabled onclick="modalConfirmAssignment()" class="flex-1 py-3 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 disabled:opacity-40 disabled:pointer-events-none text-black font-black text-xs sm:text-sm flex items-center justify-center gap-2 shadow-lg transition-all">
-                <i class="fas fa-check-circle"></i>
-                <span>تعيين وحفظ للمنتج المختار</span>
-            </button>
-            <button type="button" onclick="closePostCaptureModal()" class="px-4 py-3 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-bold transition-colors">
-                متابعة في الاستوديو
-            </button>
-        </div>
-    </div>
 </div>
 
 <script>
     var currentStream = null;
     var facingMode = "environment";
-    var capturedDataUrl = null;
-    var processedDataUrl = null;
-    var selectedProductId = null;
-    var availableVideoDevices = [];
-    var currentDeviceIndex = 0;
+    var capturedBase64 = null;
+    var processedBase64 = null;
+    var currentTargetProductId = "{{ selected_product.id|default:'' }}";
 
-    // Elements
+    // DOM Elements
     var videoEl = document.getElementById('studio-video');
-    var previewImgEl = document.getElementById('studio-preview-img');
-    var originalImgEl = document.getElementById('studio-original-img');
-    var snapBtn = document.getElementById('snap-shutter-btn');
-    var switchCamBtn = document.getElementById('switch-camera-btn');
-    var retakeBtn = document.getElementById('retake-btn');
-    var nativeFileInput = document.getElementById('native-file-input');
-    var directCameraInput = document.getElementById('native-camera-direct-input');
-    var applyBtn = document.getElementById('apply-studio-image-btn');
+    var previewProcessed = document.getElementById('studio-preview-processed');
+    var previewOriginal = document.getElementById('studio-preview-original');
     var processingOverlay = document.getElementById('processing-overlay');
-    var processingStatusText = document.getElementById('processing-status-text');
-    var postCaptureControls = document.getElementById('post-capture-controls');
+    var processingText = document.getElementById('processing-status-text');
+    var previewTabs = document.getElementById('preview-tabs');
+    var captureControlsBar = document.getElementById('capture-controls-bar');
+    var postCaptureBar = document.getElementById('post-capture-bar');
+    var btnSaveAssign = document.getElementById('btn-save-assign');
+    var saveBtnText = document.getElementById('save-btn-text');
+    var selectedBanner = document.getElementById('selected-product-banner');
+    var selectedNameText = document.getElementById('selected-product-name');
     var searchInput = document.getElementById('product-search-input');
-    var optIsolateWhite = document.getElementById('opt-isolate-white');
-    var optAddHallmark = document.getElementById('opt-add-hallmark');
-    var previewTabBar = document.getElementById('preview-tab-bar');
-    var tabProcessedBtn = document.getElementById('tab-processed-btn');
-    var tabOriginalBtn = document.getElementById('tab-original-btn');
-    var reprocessBtn = document.getElementById('reprocess-btn');
-    var applyAndNextBtn = document.getElementById('apply-and-next-btn');
-    var offlineQueueBox = document.getElementById('offline-queue-box');
-    var retryOfflineBtn = document.getElementById('retry-offline-upload-btn');
-    var lensNameText = document.getElementById('lens-name-text');
+    var optWhiteBg = document.getElementById('opt-white-bg');
+    var optHallmark = document.getElementById('opt-hallmark');
+    var tabProcessed = document.getElementById('tab-btn-processed');
+    var tabOriginal = document.getElementById('tab-btn-original');
 
-    // High Performance Client-Side Canvas Pre-Compression
-    function compressImageForUpload(fileOrDataUrl, maxWidth, quality) {
+    function getCsrf() {
+        var cookieValue = null;
+        if (document.cookie && document.cookie !== '') {
+            var cookies = document.cookie.split(';');
+            for (var i = 0; i < cookies.length; i++) {
+                var cookie = cookies[i].trim();
+                if (cookie.substring(0, 10) === 'csrftoken=') {
+                    cookieValue = decodeURIComponent(cookie.substring(10));
+                    break;
+                }
+            }
+        }
+        return cookieValue || '{{ csrf_token }}';
+    }
+
+    // Start Live Viewfinder Camera
+    function startCamera() {
+        if (currentStream) {
+            currentStream.getTracks().forEach(function(t) { t.stop(); });
+        }
+        var constraints = {
+            video: {
+                facingMode: { ideal: facingMode },
+                width: { ideal: 1920 },
+                height: { ideal: 1080 }
+            },
+            audio: false
+        };
+        if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+            navigator.mediaDevices.getUserMedia(constraints)
+                .then(function(stream) {
+                    currentStream = stream;
+                    videoEl.srcObject = stream;
+                    videoEl.play();
+                })
+                .catch(function(err) {
+                    console.warn("Camera fallback:", err);
+                    navigator.mediaDevices.getUserMedia({ video: true, audio: false })
+                        .then(function(stream) {
+                            currentStream = stream;
+                            videoEl.srcObject = stream;
+                            videoEl.play();
+                        })
+                        .catch(function(e) {
+                            console.warn("Could not start live video:", e);
+                        });
+                });
+        }
+    }
+
+    // Switch Camera Front / Back
+    var switchBtn = document.getElementById('switch-camera-btn');
+    if (switchBtn) {
+        switchBtn.addEventListener('click', function() {
+            facingMode = (facingMode === "environment") ? "user" : "environment";
+            startCamera();
+        });
+    }
+
+    // Canvas Compression
+    function compressImage(fileOrData, maxWidth, quality) {
         maxWidth = maxWidth || 1600;
         quality = quality || 0.88;
         return new Promise(function(resolve, reject) {
             var img = new Image();
             img.onload = function() {
-                try {
-                    var w = img.width;
-                    var h = img.height;
-                    if (w > maxWidth || h > maxWidth) {
-                        if (w > h) {
-                            h = Math.round((h * maxWidth) / w);
-                            w = maxWidth;
-                        } else {
-                            w = Math.round((w * maxWidth) / h);
-                            h = maxWidth;
-                        }
+                var w = img.width;
+                var h = img.height;
+                if (w > maxWidth || h > maxWidth) {
+                    if (w > h) {
+                        h = Math.round((h * maxWidth) / w);
+                        w = maxWidth;
+                    } else {
+                        w = Math.round((w * maxWidth) / h);
+                        h = maxWidth;
                     }
-                    var canvas = document.createElement('canvas');
-                    canvas.width = w;
-                    canvas.height = h;
-                    var ctx = canvas.getContext('2d');
-                    ctx.drawImage(img, 0, 0, w, h);
-                    var compressed = canvas.toDataURL('image/jpeg', quality);
-                    resolve(compressed);
-                } catch (err) {
-                    reject(err);
                 }
+                var canvas = document.createElement('canvas');
+                canvas.width = w;
+                canvas.height = h;
+                var ctx = canvas.getContext('2d');
+                ctx.drawImage(img, 0, 0, w, h);
+                resolve(canvas.toDataURL('image/jpeg', quality));
             };
-            img.onerror = function() {
-                reject(new Error("تعذر معالجة وقراءة بيانات الصورة"));
-            };
+            img.onerror = function() { reject(new Error("تعذر قراءة الصورة")); };
 
-            if (typeof fileOrDataUrl === 'string') {
-                img.src = fileOrDataUrl;
+            if (typeof fileOrData === 'string') {
+                img.src = fileOrData;
             } else {
                 var reader = new FileReader();
-                reader.onload = function(e) {
-                    img.src = e.target.result;
-                };
-                reader.onerror = function() {
-                    reject(new Error("تعذر قراءة ملف الصورة من الهاتف"));
-                };
-                reader.readAsDataURL(fileOrDataUrl);
+                reader.onload = function(e) { img.src = e.target.result; };
+                reader.onerror = function() { reject(new Error("تعذر قراءة الملف")); };
+                reader.readAsDataURL(fileOrData);
             }
         });
     }
 
-    // Camera Enumeration & Primary Lens Prioritization
-    function enumerateCameras() {
-        if (!navigator.mediaDevices || !navigator.mediaDevices.enumerateDevices) return;
-        navigator.mediaDevices.enumerateDevices().then(function(devices) {
-            var videoDevices = devices.filter(function(d) { return d.kind === 'videoinput'; });
-            if (videoDevices.length > 0) {
-                // Sort cameras: prioritize back cameras, then primary wide (1x) over ultra-wide (0.5x/0.6x)
-                videoDevices.sort(function(a, b) {
-                    var la = (a.label || '').toLowerCase();
-                    var lb = (b.label || '').toLowerCase();
-                    var aBack = la.includes('back') || la.includes('rear') || la.includes('environment') || la.includes('0');
-                    var bBack = lb.includes('back') || lb.includes('rear') || lb.includes('environment') || lb.includes('0');
-                    if (aBack && !bBack) return -1;
-                    if (!aBack && bBack) return 1;
-                    var aUltra = la.includes('ultra') || la.includes('wide 0.') || la.includes('0.5') || la.includes('0.6');
-                    var bUltra = lb.includes('ultra') || lb.includes('wide 0.') || lb.includes('0.5') || lb.includes('0.6');
-                    if (!aUltra && bUltra) return -1;
-                    if (aUltra && !bUltra) return 1;
-                    return 0;
-                });
-                availableVideoDevices = videoDevices;
-                updateLensLabel();
+    // Capture from in-browser video
+    var snapBtn = document.getElementById('snap-shutter-btn');
+    if (snapBtn) {
+        snapBtn.addEventListener('click', function() {
+            if (!videoEl || !videoEl.videoWidth) {
+                alert("الكاميرا ليست جاهزة بعد، يرجى الانتظار أو استخدام خيار كاميرا الهاتف");
+                return;
             }
-        }).catch(function(e) {
-            console.warn('Enumerate devices warning:', e);
+            var canvas = document.createElement('canvas');
+            canvas.width = videoEl.videoWidth;
+            canvas.height = videoEl.videoHeight;
+            var ctx = canvas.getContext('2d');
+            ctx.drawImage(videoEl, 0, 0, canvas.width, canvas.height);
+            var rawBase64 = canvas.toDataURL('image/jpeg', 0.92);
+            onNewPhotoReceived(rawBase64);
         });
     }
 
-    function updateLensLabel() {
-        if (!lensNameText) return;
-        if (availableVideoDevices.length > 0 && availableVideoDevices[currentDeviceIndex]) {
-            var label = availableVideoDevices[currentDeviceIndex].label;
-            if (!label) {
-                lensNameText.textContent = (facingMode === 'environment') ? 'الكاميرا الخلفية الأساسية (1x)' : 'الكاميرا الأمامية';
-            } else {
-                var lLower = label.toLowerCase();
-                if (lLower.includes('ultra') || lLower.includes('0.5') || lLower.includes('0.6')) {
-                    lensNameText.textContent = 'عدسة عريضة جداً (Ultra-Wide)';
-                } else if (lLower.includes('front') || lLower.includes('user')) {
-                    lensNameText.textContent = 'الكاميرا الأمامية (سيلفي)';
-                } else {
-                    lensNameText.textContent = 'الكاميرا الخلفية الأساسية (1x)';
-                }
-            }
-        } else {
-            lensNameText.textContent = (facingMode === 'environment') ? 'الكاميرا الخلفية الأساسية (1x)' : 'الكاميرا الأمامية';
-        }
-    }
-
-    // Initialize Camera Stream
-    function startCamera() {
-        if (currentStream) {
-            currentStream.getTracks().forEach(function(track) { track.stop(); });
-        }
-        var videoConstraints = {
-            width: { ideal: 1920 },
-            height: { ideal: 1080 }
-        };
-        if (availableVideoDevices.length > 0 && availableVideoDevices[currentDeviceIndex] && availableVideoDevices[currentDeviceIndex].deviceId) {
-            videoConstraints.deviceId = { exact: availableVideoDevices[currentDeviceIndex].deviceId };
-        } else {
-            videoConstraints.facingMode = { ideal: facingMode };
-        }
-
-        navigator.mediaDevices.getUserMedia({ video: videoConstraints, audio: false })
-            .then(function(stream) {
-                currentStream = stream;
-                videoEl.srcObject = stream;
-                videoEl.play();
-                videoEl.classList.remove('hidden');
-                previewImgEl.classList.add('hidden');
-                if (originalImgEl) originalImgEl.classList.add('hidden');
-                document.getElementById('viewfinder-guides').classList.remove('hidden');
-                document.getElementById('viewfinder-box').classList.remove('hidden');
-                if (availableVideoDevices.length === 0 || !availableVideoDevices[0].label) {
-                    enumerateCameras();
-                }
-            })
-            .catch(function(err) {
-                console.warn('Primary camera stream error, trying fallback:', err);
-                navigator.mediaDevices.getUserMedia({ video: { facingMode: facingMode }, audio: false })
-                    .then(function(stream) {
-                        currentStream = stream;
-                        videoEl.srcObject = stream;
-                        videoEl.play();
-                    })
-                    .catch(function(e) {
-                        showToast('تعذر تشغيل كاميرا المتصفح المباشرة، استخدم زر "كاميرا الهاتف" لالتقاط الصورة بأعلى جودة', true);
-                    });
-            });
-    }
-
-    // Camera Switch (Cycles through available lenses)
-    if (switchCamBtn) {
-        switchCamBtn.addEventListener('click', function() {
-            if (availableVideoDevices.length > 1) {
-                currentDeviceIndex = (currentDeviceIndex + 1) % availableVideoDevices.length;
-                var dev = availableVideoDevices[currentDeviceIndex];
-                var lLower = (dev.label || '').toLowerCase();
-                facingMode = (lLower.includes('front') || lLower.includes('user')) ? 'user' : 'environment';
-            } else {
-                facingMode = (facingMode === "environment") ? "user" : "environment";
-            }
-            updateLensLabel();
-            startCamera();
-        });
-    }
-
-    // Snap Picture from Video Stream
-    snapBtn.addEventListener('click', function() {
-        if (!videoEl || !videoEl.videoWidth) {
-            showToast('الكاميرا غير جاهزة بعد', true);
-            return;
-        }
-        var canvas = document.createElement('canvas');
-        canvas.width = videoEl.videoWidth;
-        canvas.height = videoEl.videoHeight;
-        var ctx = canvas.getContext('2d');
-        ctx.drawImage(videoEl, 0, 0, canvas.width, canvas.height);
-        
-        var rawDataUrl = canvas.toDataURL('image/jpeg', 0.92);
-        handleIncomingImage(rawDataUrl);
-    });
-
-    // Handle File Pickers (Native primary camera & Gallery)
-    function handleIncomingFile(file) {
-        if (!file) return;
-        if (processingStatusText) processingStatusText.textContent = 'جاري ضغط وتحسين جودة الصورة...';
-        processingOverlay.classList.remove('hidden');
-
-        compressImageForUpload(file, 1600, 0.88)
-            .then(function(compressedData) {
-                handleIncomingImage(compressedData);
-            })
-            .catch(function(err) {
-                processingOverlay.classList.add('hidden');
-                showToast('خطأ أثناء قراءة الصورة: ' + err.message, true);
-            });
-    }
-
-    function handleIncomingImage(dataUrl) {
-        capturedDataUrl = dataUrl;
-        
-        // Show post-capture modal if no target product selected yet
-        if (!selectedProductId) {
-            openPostCaptureModal(dataUrl);
-        } else {
-            // Already targeted from product list, process directly
-            processCapturedImage(dataUrl);
-        }
-    }
-
+    // Direct Phone Native Camera Input
+    var directCameraInput = document.getElementById('native-camera-direct-input');
     if (directCameraInput) {
         directCameraInput.addEventListener('change', function(e) {
-            if (!e.target.files || !e.target.files[0]) return;
-            handleIncomingFile(e.target.files[0]);
+            if (e.target.files && e.target.files[0]) {
+                compressImage(e.target.files[0], 1600, 0.88).then(onNewPhotoReceived);
+            }
         });
     }
 
-    if (nativeFileInput) {
-        nativeFileInput.addEventListener('change', function(e) {
-            if (!e.target.files || !e.target.files[0]) return;
-            handleIncomingFile(e.target.files[0]);
+    // Gallery Input
+    var galleryInput = document.getElementById('native-gallery-input');
+    if (galleryInput) {
+        galleryInput.addEventListener('change', function(e) {
+            if (e.target.files && e.target.files[0]) {
+                compressImage(e.target.files[0], 1600, 0.88).then(onNewPhotoReceived);
+            }
         });
     }
 
-    // Dual Preview Switcher
-    window.switchPreviewTab = function(tab) {
-        if (tab === 'original') {
-            if (originalImgEl) originalImgEl.classList.remove('hidden');
-            if (previewImgEl) previewImgEl.classList.add('hidden');
-            if (tabOriginalBtn) {
-                tabOriginalBtn.classList.remove('bg-black/60', 'text-slate-300');
-                tabOriginalBtn.classList.add('bg-cyan', 'text-black', 'font-black');
-            }
-            if (tabProcessedBtn) {
-                tabProcessedBtn.classList.remove('bg-cyan', 'text-black', 'font-black');
-                tabProcessedBtn.classList.add('bg-black/60', 'text-slate-300');
-            }
-        } else {
-            if (previewImgEl) previewImgEl.classList.remove('hidden');
-            if (originalImgEl) originalImgEl.classList.add('hidden');
-            if (tabProcessedBtn) {
-                tabProcessedBtn.classList.remove('bg-black/60', 'text-slate-300');
-                tabProcessedBtn.classList.add('bg-cyan', 'text-black', 'font-black');
-            }
-            if (tabOriginalBtn) {
-                tabOriginalBtn.classList.remove('bg-cyan', 'text-black', 'font-black');
-                tabOriginalBtn.classList.add('bg-black/60', 'text-slate-300');
-            }
-        }
-    };
-
-    // Send Image to Studio Processing Endpoint with Timeout Resilience
-    function processCapturedImage(base64Data) {
-        if (processingStatusText) processingStatusText.textContent = 'جاري عزل الخلفية وإضافة ختم رقميات...';
+    // Photo Received -> Send to Processing & Show Preview
+    function onNewPhotoReceived(base64) {
+        capturedBase64 = base64;
+        previewOriginal.src = base64;
+        
+        // Hide viewfinder guides, pause video
+        videoEl.classList.add('hidden');
+        document.getElementById('viewfinder-guides').classList.add('hidden');
+        document.getElementById('viewfinder-box').classList.add('hidden');
+        
+        // Show processing indicator
         processingOverlay.classList.remove('hidden');
-        if (originalImgEl) originalImgEl.src = base64Data;
-        
-        var fd = new FormData();
-        fd.append('image_base64', base64Data);
-        fd.append('isolate_white', optIsolateWhite.checked ? 'true' : 'false');
-        fd.append('add_hallmark', optAddHallmark.checked ? 'true' : 'false');
+        processingText.textContent = "جاري عزل الخلفية وإضافة ختم رقميات...";
 
-        var controller = new AbortController();
-        var timeoutId = setTimeout(function() { controller.abort(); }, 25000); // 25s timeout
-        
+        // Send to Studio Processing Endpoint
+        var fd = new FormData();
+        fd.append('image_base64', base64);
+        fd.append('isolate_white', optWhiteBg.checked ? 'true' : 'false');
+        fd.append('add_hallmark', optHallmark.checked ? 'true' : 'false');
+
         fetch('{% url "control_camera_studio_process_ajax" %}', {
             method: 'POST',
             headers: { 'X-CSRFToken': getCsrf() },
-            body: fd,
-            signal: controller.signal
+            body: fd
         })
-        .then(function(r) {
-            if (!r.ok) {
-                throw new Error('فشل استجابة الخادم كود (' + r.status + ')');
-            }
-            return r.json();
-        })
+        .then(function(res) { return res.json(); })
         .then(function(data) {
-            if (data.status === 'success') {
-                processedDataUrl = data.preview_url;
-                previewImgEl.src = processedDataUrl;
-                previewImgEl.classList.remove('hidden');
-                if (originalImgEl) originalImgEl.classList.add('hidden');
-                videoEl.classList.add('hidden');
-                document.getElementById('viewfinder-guides').classList.add('hidden');
-                document.getElementById('viewfinder-box').classList.add('hidden');
-                previewTabBar.classList.remove('hidden');
-                postCaptureControls.classList.remove('hidden');
-                switchPreviewTab('processed');
-                updateApplyButtonState();
-                showToast(data.message || 'تمت معالجة صورة المنتج بنجاح!');
+            processingOverlay.classList.add('hidden');
+            if (data.status === 'success' && data.preview_url) {
+                processedBase64 = data.preview_url;
+                previewProcessed.src = processedBase64;
+                switchPreviewMode('processed');
+                
+                // Show preview tabs & post capture bar
+                previewTabs.classList.remove('hidden');
+                captureControlsBar.classList.add('hidden');
+                postCaptureBar.classList.remove('hidden');
+
+                updateSaveButtonState();
             } else {
-                showToast(data.message || 'فشلت معالجة الصورة', true);
+                alert(data.message || "حدث خطأ أثناء معالجة الصورة");
+                retakePhoto();
             }
         })
         .catch(function(err) {
-            var msg = (err.name === 'AbortError') ? 'انتهت مهلة استجابة الخادم، تم إلغاء العملية تلقائياً' : ('خطأ: ' + err.message);
-            showToast(msg, true);
-        })
-        .finally(function() {
-            clearTimeout(timeoutId);
             processingOverlay.classList.add('hidden');
+            alert("خطأ في الاتصال بالخادم: " + err.message);
+            retakePhoto();
         });
     }
 
-    // Reprocess Button
-    if (reprocessBtn) {
-        reprocessBtn.addEventListener('click', function() {
-            if (capturedDataUrl) {
-                processCapturedImage(capturedDataUrl);
-            }
-        });
-    }
+    // Switch between Processed and Original preview
+    window.switchPreviewMode = function(mode) {
+        if (mode === 'original') {
+            previewOriginal.classList.remove('hidden');
+            previewProcessed.classList.add('hidden');
+            tabOriginal.classList.remove('bg-black/70', 'text-slate-300');
+            tabOriginal.classList.add('bg-cyan', 'text-black', 'font-black');
+            tabProcessed.classList.remove('bg-cyan', 'text-black', 'font-black');
+            tabProcessed.classList.add('bg-black/70', 'text-slate-300');
+        } else {
+            previewProcessed.classList.remove('hidden');
+            previewOriginal.classList.add('hidden');
+            tabProcessed.classList.remove('bg-black/70', 'text-slate-300');
+            tabProcessed.classList.add('bg-cyan', 'text-black', 'font-black');
+            tabOriginal.classList.remove('bg-cyan', 'text-black', 'font-black');
+            tabOriginal.classList.add('bg-black/70', 'text-slate-300');
+        }
+    };
 
-    // Retake Button
-    retakeBtn.addEventListener('click', function() {
-        previewImgEl.classList.add('hidden');
-        if (originalImgEl) originalImgEl.classList.add('hidden');
-        previewTabBar.classList.add('hidden');
+    // Retake Photo
+    window.retakePhoto = function() {
+        capturedBase64 = null;
+        processedBase64 = null;
+        previewProcessed.classList.add('hidden');
+        previewOriginal.classList.add('hidden');
+        previewTabs.classList.add('hidden');
+        postCaptureBar.classList.add('hidden');
+        captureControlsBar.classList.remove('hidden');
+        
         videoEl.classList.remove('hidden');
         document.getElementById('viewfinder-guides').classList.remove('hidden');
         document.getElementById('viewfinder-box').classList.remove('hidden');
-        postCaptureControls.classList.add('hidden');
-        capturedDataUrl = null;
-        processedDataUrl = null;
-        updateApplyButtonState();
-    });
-
-    // Product Search Filter
-    searchInput.addEventListener('input', function(e) {
-        var q = e.target.value.toLowerCase().trim();
-        var items = document.querySelectorAll('.product-item-card');
-        items.forEach(function(card) {
-            var name = card.getAttribute('data-name').toLowerCase();
-            var cat = card.getAttribute('data-category').toLowerCase();
-            if (name.includes(q) || cat.includes(q)) {
-                card.style.display = 'flex';
-            } else {
-                card.style.display = 'none';
-            }
-        });
-    });
-
-    // Select Product Handler
-    window.selectTargetProduct = function(pid, name, img) {
-        selectedProductId = pid;
-        document.querySelectorAll('.product-item-card').forEach(function(c) {
-            var ind = c.querySelector('.select-indicator');
-            if (c.getAttribute('data-id') === pid) {
-                c.classList.add('border-cyan', 'bg-cyan/15');
-                if (ind) ind.innerHTML = '<i class="fas fa-check"></i>';
-            } else {
-                c.classList.remove('border-cyan', 'bg-cyan/15');
-                if (ind) ind.innerHTML = '';
-            }
-        });
-        document.getElementById('selected-prod-name').textContent = name;
-        document.getElementById('selected-target-display').classList.remove('hidden');
-        updateApplyButtonState();
+        updateSaveButtonState();
     };
 
-    window.clearSelectedProduct = function() {
-        selectedProductId = null;
-        document.querySelectorAll('.product-item-card').forEach(function(c) {
-            c.classList.remove('border-cyan', 'bg-cyan/15');
-            var ind = c.querySelector('.select-indicator');
-            if (ind) ind.innerHTML = '';
-        });
-        document.getElementById('selected-target-display').classList.add('hidden');
-        updateApplyButtonState();
+    // Reprocess with updated toggles
+    window.reprocessPhoto = function() {
+        if (capturedBase64) {
+            onNewPhotoReceived(capturedBase64);
+        }
     };
 
-    function updateApplyButtonState() {
-        var ready = !!(processedDataUrl && selectedProductId);
-        applyBtn.disabled = !ready;
-        if (applyAndNextBtn) applyAndNextBtn.disabled = !ready;
-    }
-
-    function selectNextProductInList() {
-        var visibleCards = Array.from(document.querySelectorAll('.product-item-card')).filter(function(c) {
-            return c.style.display !== 'none';
-        });
-        var currentIndex = visibleCards.findIndex(function(c) {
-            return c.getAttribute('data-id') === selectedProductId;
-        });
-        if (currentIndex >= 0 && currentIndex + 1 < visibleCards.length) {
-            var nextCard = visibleCards[currentIndex + 1];
-            selectTargetProduct(
-                nextCard.getAttribute('data-id'),
-                nextCard.getAttribute('data-name'),
-                ''
-            );
-            nextCard.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-        }
-    }
-
-    function saveProductStudioImage(isNextWorkflow) {
-        if (!processedDataUrl || !selectedProductId) return;
-
-        var isOffline = (window.RaqamiyatNative && !window.RaqamiyatNative.isOnline()) || !navigator.onLine;
-        if (isOffline) {
-            // Save payload to local storage for offline resilience
-            var pendingItem = {
-                product_id: selectedProductId,
-                image_base64: processedDataUrl,
-                isolate_white: optIsolateWhite.checked,
-                add_hallmark: optAddHallmark.checked,
-                timestamp: Date.now()
-            };
-            localStorage.setItem('raqamiyat_studio_pending', JSON.stringify(pendingItem));
-            if (offlineQueueBox) offlineQueueBox.classList.remove('hidden');
-
-            if (window.RaqamiyatNative) {
-                window.RaqamiyatNative.showOfflineTransactionAlert("رفع وتحديث صورة المنتج");
+    // Product Selection Handler
+    window.pickProduct = function(productId, productName) {
+        currentTargetProductId = productId;
+        document.querySelectorAll('.studio-prod-card').forEach(function(card) {
+            var radio = card.querySelector('.card-radio');
+            if (card.getAttribute('data-id') === productId) {
+                card.classList.add('is-selected');
+                if (radio) radio.innerHTML = '<i class="fas fa-check"></i>';
             } else {
-                showToast('أنت غير متصل بالإنترنت: تم حفظ الصورة محلياً على هاتفك، اضغط لإعادة المحاولة عند توفر الشبكة.', true);
+                card.classList.remove('is-selected');
+                if (radio) radio.innerHTML = '';
             }
-            return;
-        }
+        });
 
-        applyBtn.disabled = true;
-        if (applyAndNextBtn) applyAndNextBtn.disabled = true;
-        var origHtml = applyBtn.innerHTML;
-        applyBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> جاري الحفظ وتعيين الصورة...';
+        if (selectedNameText) selectedNameText.textContent = productName;
+        if (selectedBanner) selectedBanner.classList.remove('hidden');
+        updateSaveButtonState();
+    };
+
+    window.clearPickedProduct = function() {
+        currentTargetProductId = '';
+        document.querySelectorAll('.studio-prod-card').forEach(function(card) {
+            card.classList.remove('is-selected');
+            var radio = card.querySelector('.card-radio');
+            if (radio) radio.innerHTML = '';
+        });
+        if (selectedBanner) selectedBanner.classList.add('hidden');
+        updateSaveButtonState();
+    };
+
+    function updateSaveButtonState() {
+        var isReady = !!(processedBase64 && currentTargetProductId);
+        btnSaveAssign.disabled = !isReady;
+    }
+
+    // Save and Assign Image to Selected Product
+    window.saveImageToProduct = function() {
+        if (!processedBase64 || !currentTargetProductId) return;
+
+        btnSaveAssign.disabled = true;
+        saveBtnText.innerHTML = '<i class="fas fa-spinner fa-spin studio-icon"></i> جاري حفظ وتعيين الصورة...';
 
         var fd = new FormData();
-        fd.append('image_base64', processedDataUrl);
-        fd.append('product_id', selectedProductId);
-        fd.append('isolate_white', optIsolateWhite.checked ? 'true' : 'false');
-        fd.append('add_hallmark', optAddHallmark.checked ? 'true' : 'false');
-
-        var controller = new AbortController();
-        var timeoutId = setTimeout(function() { controller.abort(); }, 25000);
+        fd.append('image_base64', processedBase64);
+        fd.append('product_id', currentTargetProductId);
+        fd.append('isolate_white', optWhiteBg.checked ? 'true' : 'false');
+        fd.append('add_hallmark', optHallmark.checked ? 'true' : 'false');
 
         fetch('{% url "control_camera_studio_process_ajax" %}', {
             method: 'POST',
             headers: { 'X-CSRFToken': getCsrf() },
-            body: fd,
-            signal: controller.signal
+            body: fd
         })
-        .then(function(r) {
-            if (!r.ok) {
-                throw new Error('فشل استجابة الخادم كود (' + r.status + ')');
-            }
-            return r.json();
-        })
+        .then(function(res) { return res.json(); })
         .then(function(data) {
             if (data.status === 'success') {
-                showToast(data.message || 'تم تحديث صورة المنتج في المتجر بنجاح!');
-                localStorage.removeItem('raqamiyat_studio_pending');
-                if (offlineQueueBox) offlineQueueBox.classList.add('hidden');
-
-                if (isNextWorkflow) {
-                    // Rapid batch workflow: move to next product, reset camera
-                    selectNextProductInList();
-                    retakeBtn.click();
-                } else {
-                    setTimeout(function() {
-                        window.location.href = '{% url "control_products_list" %}';
-                    }, 1200);
-                }
-            } else {
-                showToast(data.message || 'فشل تحديث صورة المنتج', true);
-            }
-        })
-        .catch(function(err) {
-            var msg = (err.name === 'AbortError') ? 'انتهت مهلة استجابة الخادم أثناء الحفظ' : ('خطأ في الاتصال: ' + err.message);
-            showToast(msg, true);
-        })
-        .finally(function() {
-            clearTimeout(timeoutId);
-            applyBtn.disabled = false;
-            applyBtn.innerHTML = origHtml;
-            if (applyAndNextBtn) applyAndNextBtn.disabled = false;
-        });
-    }
-
-    applyBtn.addEventListener('click', function() {
-        saveProductStudioImage(false);
-    });
-
-    if (applyAndNextBtn) {
-        applyAndNextBtn.addEventListener('click', function() {
-            saveProductStudioImage(true);
-        });
-    }
-
-    if (retryOfflineBtn) {
-        retryOfflineBtn.addEventListener('click', function() {
-            saveProductStudioImage(false);
-        });
-    }
-
-    window.addEventListener('online', function() {
-        var pending = localStorage.getItem('raqamiyat_studio_pending');
-        if (pending && offlineQueueBox) {
-            offlineQueueBox.classList.remove('hidden');
-            showToast('تم استعادة الاتصال بالإنترنت! يمكنك الضغط على إعادة المحاولة لرفع الصورة المحفوظة.', false);
-        }
-    });
-
-    // ============================================
-    // POST-CAPTURE MODAL HANDLERS ("أي منتج تريد تعيين هذه الصورة له؟")
-    // ============================================
-    var postCaptureModal = document.getElementById('post-capture-modal');
-    var modalPreviewImg = document.getElementById('modal-captured-preview-img');
-    var modalSearchInput = document.getElementById('modal-product-search-input');
-    var modalTargetSummary = document.getElementById('modal-target-summary');
-    var modalConfirmBtn = document.getElementById('modal-confirm-apply-btn');
-    var modalOptWhite = document.getElementById('modal-opt-white');
-    var modalOptHallmark = document.getElementById('modal-opt-hallmark');
-    var tempModalProductId = null;
-
-    window.openPostCaptureModal = function(dataUrl) {
-        if (!postCaptureModal) return;
-        if (modalPreviewImg) modalPreviewImg.src = dataUrl;
-        postCaptureModal.classList.remove('hidden');
-        if (modalSearchInput) {
-            modalSearchInput.value = '';
-            modalSearchInput.focus();
-            // Reset visible list
-            document.querySelectorAll('.modal-product-item').forEach(function(el) {
-                el.style.display = 'flex';
-            });
-        }
-    };
-
-    window.closePostCaptureModal = function() {
-        if (!postCaptureModal) return;
-        postCaptureModal.classList.add('hidden');
-        // If image was captured, process it in main studio canvas
-        if (capturedDataUrl && !processedDataUrl) {
-            processCapturedImage(capturedDataUrl);
-        }
-    };
-
-    window.onModalSelectProduct = function(pid, name, img) {
-        tempModalProductId = pid;
-        document.querySelectorAll('.modal-product-item').forEach(function(item) {
-            var ind = item.querySelector('.modal-select-indicator');
-            if (item.getAttribute('data-id') === pid) {
-                item.classList.add('border-cyan', 'bg-cyan/20');
-                if (ind) ind.innerHTML = '<i class="fas fa-check text-cyan"></i>';
-            } else {
-                item.classList.remove('border-cyan', 'bg-cyan/20');
-                if (ind) ind.innerHTML = '';
-            }
-        });
-        if (modalTargetSummary) {
-            modalTargetSummary.textContent = 'المنتج المختار: ' + name;
-        }
-        if (modalConfirmBtn) modalConfirmBtn.disabled = false;
-        
-        // Also select on background right-column list
-        selectTargetProduct(pid, name, img);
-    };
-
-    window.modalConfirmAssignment = function() {
-        if (!tempModalProductId) return;
-        
-        // Sync checkboxes
-        if (optIsolateWhite && modalOptWhite) optIsolateWhite.checked = modalOptWhite.checked;
-        if (optAddHallmark && modalOptHallmark) optAddHallmark.checked = modalOptHallmark.checked;
-
-        postCaptureModal.classList.add('hidden');
-        
-        // Start processing and automatically save once ready
-        if (processingStatusText) processingStatusText.textContent = 'جاري معالجة وحفظ الصورة للمنتج المختار...';
-        processingOverlay.classList.remove('hidden');
-
-        var fd = new FormData();
-        fd.append('image_base64', capturedDataUrl);
-        fd.append('product_id', tempModalProductId);
-        fd.append('isolate_white', modalOptWhite.checked ? 'true' : 'false');
-        fd.append('add_hallmark', modalOptHallmark.checked ? 'true' : 'false');
-
-        var controller = new AbortController();
-        var timeoutId = setTimeout(function() { controller.abort(); }, 25000);
-
-        fetch('{% url "control_camera_studio_process_ajax" %}', {
-            method: 'POST',
-            headers: { 'X-CSRFToken': getCsrf() },
-            body: fd,
-            signal: controller.signal
-        })
-        .then(function(r) {
-            if (!r.ok) throw new Error('فشل استجابة الخادم كود (' + r.status + ')');
-            return r.json();
-        })
-        .then(function(data) {
-            if (data.status === 'success') {
-                showToast(data.message || 'تم تعيين وحفظ صورة المنتج بنجاح! 🎉');
+                saveBtnText.innerHTML = '<i class="fas fa-check studio-icon"></i> تم الحفظ بنجاح!';
+                alert(data.message || "تم حفظ وتعيين الصورة للمنتج بنجاح!");
                 setTimeout(function() {
-                    window.location.href = '{% url "control_products_list" %}';
-                }, 1000);
+                    window.location.href = "{% url 'control_products_list' %}";
+                }, 800);
             } else {
-                showToast(data.message || 'فشلت المعالجة والحفظ', true);
+                alert(data.message || "فشل حفظ وتعيين الصورة");
+                btnSaveAssign.disabled = false;
+                saveBtnText.textContent = "حفظ وتعيين للمنتج فوراً";
             }
         })
         .catch(function(err) {
-            var msg = (err.name === 'AbortError') ? 'انتهت المهلة أثناء حفظ الصورة' : ('خطأ: ' + err.message);
-            showToast(msg, true);
-        })
-        .finally(function() {
-            clearTimeout(timeoutId);
-            processingOverlay.classList.add('hidden');
+            alert("خطأ أثناء الحفظ: " + err.message);
+            btnSaveAssign.disabled = false;
+            saveBtnText.textContent = "حفظ وتعيين للمنتج فوراً";
         });
     };
 
-    // Modal Search Live Filter
-    if (modalSearchInput) {
-        modalSearchInput.addEventListener('input', function(e) {
-            var q = e.target.value.toLowerCase().trim();
-            document.querySelectorAll('.modal-product-item').forEach(function(card) {
+    // Live Search Filter for Products
+    if (searchInput) {
+        searchInput.addEventListener('input', function(e) {
+            var query = e.target.value.toLowerCase().trim();
+            document.querySelectorAll('.studio-prod-card').forEach(function(card) {
                 var name = (card.getAttribute('data-name') || '').toLowerCase();
                 var cat = (card.getAttribute('data-category') || '').toLowerCase();
-                if (name.includes(q) || cat.includes(q)) {
+                if (name.includes(query) || cat.includes(query)) {
                     card.style.display = 'flex';
                 } else {
                     card.style.display = 'none';
@@ -1022,9 +687,12 @@
         });
     }
 
-    // Start on load if mediaDevices available
-    if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+    // Initialize camera on page load
+    document.addEventListener('DOMContentLoaded', function() {
         startCamera();
-    }
+        if (currentTargetProductId) {
+            updateSaveButtonState();
+        }
+    });
 </script>
 {% endblock %}

@@ -124,9 +124,9 @@
                 android:textSize="10sp" />
         </LinearLayout>
 
-        <!-- 3. استوديو التصوير -->
+        <!-- 3. المحفظة والرصيد -->
         <LinearLayout
-            android:id="@+id/nav_item_studio"
+            android:id="@+id/nav_item_wallet"
             android:layout_width="0dp"
             android:layout_height="match_parent"
             android:layout_weight="1"
@@ -137,20 +137,19 @@
             android:orientation="vertical">
 
             <TextView
-                android:id="@+id/nav_icon_studio"
+                android:id="@+id/nav_icon_wallet"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="📷"
+                android:text="💳"
                 android:textSize="18sp" />
 
             <TextView
-                android:id="@+id/nav_text_studio"
+                android:id="@+id/nav_text_wallet"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="استوديو"
-                android:textColor="#06B6D4"
-                android:textSize="10sp"
-                android:textStyle="bold" />
+                android:text="المحفظة"
+                android:textColor="#94A3B8"
+                android:textSize="10sp" />
         </LinearLayout>
 
         <!-- 4. طلباتي -->

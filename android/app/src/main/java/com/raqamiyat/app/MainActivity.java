@@ -354,7 +354,7 @@ public class MainActivity extends AppCompatActivity implements ConnectivityHelpe
     private void setupBottomNavigation() {
         View navHome = findViewById(R.id.nav_item_home);
         View navCatalog = findViewById(R.id.nav_item_catalog);
-        View navStudio = findViewById(R.id.nav_item_studio);
+        View navWallet = findViewById(R.id.nav_item_wallet);
         View navOrders = findViewById(R.id.nav_item_orders);
         View navAccount = findViewById(R.id.nav_item_account);
 
@@ -364,8 +364,8 @@ public class MainActivity extends AppCompatActivity implements ConnectivityHelpe
         if (navCatalog != null) {
             navCatalog.setOnClickListener(v -> webView.loadUrl("https://raqamiyatapp.com/catalog/"));
         }
-        if (navStudio != null) {
-            navStudio.setOnClickListener(v -> webView.loadUrl("https://raqamiyatapp.com/control/camera-studio/"));
+        if (navWallet != null) {
+            navWallet.setOnClickListener(v -> webView.loadUrl("https://raqamiyatapp.com/dashboard/wallet/"));
         }
         if (navOrders != null) {
             navOrders.setOnClickListener(v -> webView.loadUrl("https://raqamiyatapp.com/dashboard/orders/"));
@@ -379,7 +379,7 @@ public class MainActivity extends AppCompatActivity implements ConnectivityHelpe
         if (url == null) return;
         TextView textHome = findViewById(R.id.nav_text_home);
         TextView textCatalog = findViewById(R.id.nav_text_catalog);
-        TextView textStudio = findViewById(R.id.nav_text_studio);
+        TextView textWallet = findViewById(R.id.nav_text_wallet);
         TextView textOrders = findViewById(R.id.nav_text_orders);
         TextView textAccount = findViewById(R.id.nav_text_account);
 
@@ -389,12 +389,12 @@ public class MainActivity extends AppCompatActivity implements ConnectivityHelpe
 
         if (textHome != null) textHome.setTextColor(colorInactive);
         if (textCatalog != null) textCatalog.setTextColor(colorInactive);
-        if (textStudio != null) textStudio.setTextColor(colorInactive);
+        if (textWallet != null) textWallet.setTextColor(colorInactive);
         if (textOrders != null) textOrders.setTextColor(colorInactive);
         if (textAccount != null) textAccount.setTextColor(colorInactive);
 
-        if (url.contains("/control/camera-studio/")) {
-            if (textStudio != null) textStudio.setTextColor(colorActiveCyan);
+        if (url.contains("/dashboard/wallet/")) {
+            if (textWallet != null) textWallet.setTextColor(colorActiveCyan);
         } else if (url.contains("/catalog/")) {
             if (textCatalog != null) textCatalog.setTextColor(colorActiveGold);
         } else if (url.contains("/dashboard/orders/")) {

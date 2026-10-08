@@ -1567,22 +1567,22 @@ body.is-native-app .rq-section-link {
         <div class="rq-hero-content">
           <div class="rq-meta-pill">
             <span class="rq-pulse-dot"></span>
-            <span>بنية رقمية موحدة • تسليم آلي 100% • ترخيص معتمد</span>
+            <span>المنظومة الرقمية الموحدة • تطبيق رسمي وهاتف أصيل • تسليم فوري</span>
           </div>
 
           <h1 class="rq-hero-title">
             بوابتك الرقمية الذكية <br>
-            <span class="rq-gradient-text">للشحن والاشتراكات الفورية</span>
+            <span class="rq-gradient-text">للشحن، البطاقات والاشتراكات السحابية</span>
           </h1>
 
           <p class="rq-hero-desc">
-            المنصة الأولى المعتمدة للوصول الفوري لأحدث الاشتراكات السحابية، شدات وبطاقات الألعاب، البرمجيات التخصصية، ومحافظ رقمية متعددة العملات بتسليم تلقائي وأمان مصرفي فائق.
+            المنصة الأولى المعتمدة للوصول الفوري لأحدث الاشتراكات السحابية، شدات الألعاب، البرمجيات التخصصية، ومحفظة رقمية متقدمة بتسليم فوري وتطبيق أندرويد رسمي فائق السرعة.
           </p>
 
           <!-- Interactive User Action Cluster (App Download + Auth/Dashboard) -->
           <div class="flex flex-wrap items-center gap-3 mb-6">
             {% if FEATURES.feature_app_download %}
-            <a href="{% url 'download_android_apk' %}" class="inline-flex items-center gap-2.5 px-5 py-3 rounded-2xl bg-gradient-to-r from-cyan-500 via-teal-400 to-emerald-400 hover:brightness-110 text-slate-950 font-black text-sm shadow-xl shadow-cyan-500/20 transition-all hover:scale-105 active:scale-95">
+            <a href="{% url 'download_android_apk' %}?direct=1" class="inline-flex items-center gap-2.5 px-5 py-3 rounded-2xl bg-gradient-to-r from-cyan-400 via-teal-300 to-emerald-400 hover:brightness-110 text-slate-950 font-black text-sm shadow-xl shadow-cyan-500/20 transition-all hover:scale-105 active:scale-95">
               <i class="fab fa-android text-lg"></i>
               <span>تحميل تطبيق رقميات (APK)</span>
               <span class="px-2 py-0.5 rounded-full bg-slate-950/20 text-slate-950 text-[10px] font-bold">مجاناً</span>
@@ -1590,11 +1590,11 @@ body.is-native-app .rq-section-link {
             {% endif %}
 
             {% if not user.is_authenticated %}
-            <a href="{% url 'site_register' %}" class="inline-flex items-center gap-2 px-4 py-3 rounded-2xl bg-amber-400/10 hover:bg-amber-400/20 border border-amber-400/30 text-amber-300 font-black text-sm transition-all hover:border-amber-400">
+            <a href="{% url 'site_register' %}" class="inline-flex items-center gap-2 px-4 py-3 rounded-2xl bg-amber-400/15 hover:bg-amber-400/25 border border-amber-400/40 text-amber-300 font-black text-sm transition-all hover:scale-105 active:scale-95">
               <i class="fas fa-user-plus text-xs"></i>
               <span>إنشاء حساب جديد</span>
             </a>
-            <a href="{% url 'site_login' %}" class="inline-flex items-center gap-2 px-4 py-3 rounded-2xl bg-white/5 hover:bg-white/10 border border-white/10 text-slate-200 font-bold text-sm transition-all">
+            <a href="{% url 'site_login' %}" class="inline-flex items-center gap-2 px-4 py-3 rounded-2xl bg-white/5 hover:bg-white/10 border border-white/10 text-slate-200 font-bold text-sm transition-all hover:text-white">
               <i class="fas fa-arrow-right-to-bracket text-xs"></i>
               <span>تسجيل الدخول</span>
             </a>
@@ -1635,11 +1635,61 @@ body.is-native-app .rq-section-link {
           </div>
         </div>
 
-        <!-- Left Column: Spotlight Live Card -->
+        <!-- Left Column: Interactive App Showcase & Spotlight Card -->
         <div class="rq-spotlight-wrapper">
+          
+          <!-- Interactive Selector Tabs -->
+          <div class="flex items-center gap-2 mb-3 bg-slate-900/60 p-1.5 rounded-2xl border border-white/10 w-fit">
+            <button type="button" id="hero-tab-app" onclick="switchHeroShowcase('app')" class="px-3.5 py-1.5 rounded-xl bg-cyan text-slate-950 font-black text-xs flex items-center gap-1.5 shadow-md transition-all">
+              <i class="fab fa-android"></i>
+              <span>تطبيق رقميات 📱</span>
+            </button>
+            <button type="button" id="hero-tab-spotlight" onclick="switchHeroShowcase('spotlight')" class="px-3.5 py-1.5 rounded-xl bg-transparent hover:bg-white/5 text-slate-400 hover:text-white font-bold text-xs flex items-center gap-1.5 transition-all">
+              <i class="fas fa-bolt"></i>
+              <span>المنتج المميز ⚡</span>
+            </button>
+          </div>
+
+          <!-- 1. App Showcase Card (Active by Default) -->
+          <div id="hero-showcase-app" class="rq-spotlight-card border border-cyan/40 bg-gradient-to-b from-slate-900 via-slate-950 to-slate-900 p-6 rounded-3xl relative overflow-hidden shadow-2xl">
+            <div class="rq-spotlight-badge" style="background: rgba(6, 182, 212, 0.15); border-color: rgba(6, 182, 212, 0.3); color: #38bdf8;">
+              <i class="fas fa-shield-check"></i>
+              <span>التطبيق الرسمي المعتمد • إصدار 2.4.0</span>
+            </div>
+
+            <div class="flex items-center gap-4 my-4 p-4 rounded-2xl bg-white/[0.03] border border-white/5">
+              <div class="w-16 h-16 rounded-2xl bg-gradient-to-tr from-cyan-500 to-amber-400 p-0.5 shadow-lg flex-shrink-0">
+                <div class="w-full h-full rounded-[14px] bg-slate-950 flex items-center justify-center text-cyan text-2xl font-black">
+                  <i class="fas fa-bolt"></i>
+                </div>
+              </div>
+              <div class="min-w-0">
+                <h3 class="text-base font-black text-white truncate">تطبيق رقميات للأندرويد</h3>
+                <p class="text-xs text-slate-400 mt-0.5">شحن فوري، إشعارات حية، ودخول بالبصمة</p>
+                <div class="flex items-center gap-3 mt-1.5 text-[10px] text-emerald-400 font-bold">
+                  <span><i class="fas fa-check-circle ml-0.5"></i> 4.6 MB فقط</span>
+                  <span><i class="fas fa-lock ml-0.5"></i> أمان مشفّر</span>
+                </div>
+              </div>
+            </div>
+
+            <div class="space-y-2 pt-2">
+              <a href="{% url 'download_android_apk' %}?direct=1" class="w-full py-3.5 px-4 rounded-2xl bg-gradient-to-r from-cyan-400 via-teal-300 to-emerald-400 hover:brightness-110 text-slate-950 font-black text-sm flex items-center justify-center gap-2 shadow-xl shadow-cyan-500/25 transition-all">
+                <i class="fab fa-android text-base"></i>
+                <span>تحميل التطبيق الآن (APK مباشر)</span>
+              </a>
+
+              <a href="{% url 'download_app' %}" class="w-full py-2.5 px-3 rounded-xl bg-white/5 hover:bg-white/10 text-slate-300 hover:text-white font-bold text-xs flex items-center justify-center gap-1.5 border border-white/10 transition-all">
+                <span>استكشف صفحة التحميل ومميزات التطبيق</span>
+                <i class="fas fa-arrow-left text-[10px]"></i>
+              </a>
+            </div>
+          </div>
+
+          <!-- 2. Spotlight Live Card -->
           {% with spotlight=featured_products|first %}
           {% if spotlight %}
-          <div class="rq-spotlight-card">
+          <div id="hero-showcase-spotlight" class="rq-spotlight-card hidden">
             <div class="rq-spotlight-badge">
               <i class="fas fa-circle-check"></i>
               <span>تسليم لحظي مباشر (أقل من 15 ثانية)</span>
@@ -1679,11 +1729,45 @@ body.is-native-app .rq-section-link {
           </div>
           {% endif %}
           {% endwith %}
+
         </div>
 
       </div>
     </div>
   </section>
+
+  <script>
+    function switchHeroShowcase(mode) {
+      var appCard = document.getElementById('hero-showcase-app');
+      var spotCard = document.getElementById('hero-showcase-spotlight');
+      var appTab = document.getElementById('hero-tab-app');
+      var spotTab = document.getElementById('hero-tab-spotlight');
+
+      if (mode === 'spotlight' && spotCard) {
+        if (appCard) appCard.classList.add('hidden');
+        spotCard.classList.remove('hidden');
+        if (spotTab) {
+          spotTab.classList.add('bg-cyan', 'text-slate-950', 'font-black');
+          spotTab.classList.remove('bg-transparent', 'text-slate-400');
+        }
+        if (appTab) {
+          appTab.classList.remove('bg-cyan', 'text-slate-950', 'font-black');
+          appTab.classList.add('bg-transparent', 'text-slate-400');
+        }
+      } else {
+        if (spotCard) spotCard.classList.add('hidden');
+        if (appCard) appCard.classList.remove('hidden');
+        if (appTab) {
+          appTab.classList.add('bg-cyan', 'text-slate-950', 'font-black');
+          appTab.classList.remove('bg-transparent', 'text-slate-400');
+        }
+        if (spotTab) {
+          spotTab.classList.remove('bg-cyan', 'text-slate-950', 'font-black');
+          spotTab.classList.add('bg-transparent', 'text-slate-400');
+        }
+      }
+    }
+  </script>
 
   <!-- ═══════════════════════════════════════════════════════════════
        2. ENTERPRISE PROTOCOL BAR (Trust Architecture)
