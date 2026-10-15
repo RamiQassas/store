@@ -1417,8 +1417,7 @@
           <a href="{% url 'home' %}" class="{% if request.resolver_match.url_name == 'home' %}active{% endif %}">الرئيسية</a>
           {% if not is_tenant and FEATURES.feature_sub_stores %}
           <a href="{% url 'stores_directory' %}" class="{% if request.resolver_match.url_name == 'stores_directory' %}active{% endif %}">المتاجر</a>
-          {% endif %}
-          <a href="{% url 'catalog' %}" class="{% if request.resolver_match.url_name == 'catalog' %}active{% endif %}">المنتجات والمعدات</a>
+          <a href="{% url 'catalog' %}" class="{% if request.resolver_match.url_name == 'catalog' %}active{% endif %}">المنتجات</a>
           {% if FEATURES.feature_app_download %}
           <a href="{% url 'download_android_apk' %}" class="{% if request.resolver_match.url_name == 'download_android_apk' %}active{% endif %} text-cyan hover:text-cyan font-bold flex items-center gap-1.5" title="تحميل تطبيق الأندرويد">
               <i class="fab fa-android text-emerald-400"></i>
@@ -1533,7 +1532,7 @@
                     {% if is_tenant %}
                     {{ STORE_DESCRIPTION|default:"مرحباً بكم في متجرنا الرقمي المميز!" }}
                     {% else %}
-                    رقميات هي المنصة الرائدة في المنطقة لتوفير كافة الخدمات والبطاقات الرقمية بأمان تام وسرعة استثنائية. نسعى دائماً لتقديم أفضل تجربة شراء لعملائنا وتجارنا.
+                    رقميات هي وجهتك المتكاملة لأحدث منتجات التكنولوجيا، إكسسوارات الهواتف، معدات الشبكات والإنترنت، كاميرات المراقبة، والأجهزة الإلكترونية والبرمجيات.
                     {% endif %}
                 </p>
                 <p class="text-[11px] font-black uppercase tracking-widest text-slate-400 mb-4 flex items-center gap-2">
@@ -1579,7 +1578,7 @@
             <div>
                 <h4 class="font-black text-xs uppercase tracking-widest text-white mb-6">روابط سريعة</h4>
                 <div class="stack gap-4 text-sm text-slate-500">
-                    <a href="{% url 'catalog' %}" class="hover:text-cyan transition-colors">تصفح الخدمات</a>
+                    <a href="{% url 'catalog' %}" class="hover:text-cyan transition-colors">تصفح المنتجات</a>
                     {% if FEATURES.feature_app_download %}
                     <a href="{% url 'download_android_apk' %}" class="text-cyan font-bold hover:text-cyan-300 transition-colors flex items-center gap-1.5">
                         <i class="fab fa-android text-emerald-400"></i> تطبيق رقميات (Android)

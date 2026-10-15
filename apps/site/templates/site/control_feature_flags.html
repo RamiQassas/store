@@ -4,46 +4,499 @@
 {% block title %}إدارة وإخفاء ميزات الموقع | Feature Flags{% endblock %}
 
 {% block control_content %}
-<div class="space-y-8">
+<style>
+    /* ═══════════════════════════════════════════════════════════════
+       FEATURE CONTROL CENTER — Pure CSS High-Performance Styles
+       ═══════════════════════════════════════════════════════════════ */
+    .rq-fc-container {
+        display: flex;
+        flex-direction: column;
+        gap: 1.5rem;
+        direction: rtl;
+    }
+
+    /* Top Stats Grid */
+    .rq-fc-stats-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+        gap: 1rem;
+    }
+
+    .rq-fc-stat-card {
+        background: rgba(15, 23, 42, 0.7);
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        border-radius: 1.25rem;
+        padding: 1.25rem;
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+        backdrop-filter: blur(12px);
+        transition: all 0.3s ease;
+    }
+
+    .rq-fc-stat-card:hover {
+        border-color: rgba(6, 182, 212, 0.3);
+        transform: translateY(-2px);
+    }
+
+    .rq-fc-stat-icon {
+        width: 48px;
+        height: 48px;
+        border-radius: 14px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.25rem;
+        flex-shrink: 0;
+    }
+
+    .rq-fc-stat-icon.total { background: rgba(56, 189, 248, 0.12); color: #38bdf8; border: 1px solid rgba(56, 189, 248, 0.25); }
+    .rq-fc-stat-icon.active { background: rgba(34, 197, 94, 0.12); color: #22c55e; border: 1px solid rgba(34, 197, 94, 0.25); }
+    .rq-fc-stat-icon.disabled { background: rgba(244, 63, 94, 0.12); color: #f43f5e; border: 1px solid rgba(244, 63, 94, 0.25); }
+
+    .rq-fc-stat-num {
+        font-size: 1.65rem;
+        font-weight: 900;
+        line-height: 1.1;
+        color: #ffffff;
+    }
+
+    .rq-fc-stat-label {
+        font-size: 0.75rem;
+        font-weight: 700;
+        color: #94a3b8;
+        margin-top: 2px;
+    }
+
+    /* Filter & Search Toolbar */
+    .rq-fc-toolbar {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        justify-content: space-between;
+        gap: 1rem;
+        background: rgba(15, 23, 42, 0.6);
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        border-radius: 1.25rem;
+        padding: 0.875rem 1.25rem;
+    }
+
+    .rq-fc-filters {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        flex-wrap: wrap;
+    }
+
+    .rq-filter-btn {
+        background: rgba(255, 255, 255, 0.04);
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        color: #94a3b8;
+        padding: 0.45rem 1rem;
+        border-radius: 9999px;
+        font-size: 0.8rem;
+        font-weight: 700;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        outline: none;
+    }
+
+    .rq-filter-btn:hover, .rq-filter-btn.active {
+        background: #06b6d4;
+        border-color: #06b6d4;
+        color: #ffffff;
+        box-shadow: 0 0 15px rgba(6, 182, 212, 0.35);
+    }
+
+    .rq-fc-search-box {
+        position: relative;
+        min-width: 260px;
+        flex-grow: 1;
+        max-width: 360px;
+    }
+
+    .rq-fc-search-box input {
+        width: 100%;
+        background: rgba(2, 6, 23, 0.6);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        border-radius: 9999px;
+        padding: 0.5rem 1rem 0.5rem 2.25rem;
+        font-size: 0.8rem;
+        color: #ffffff;
+        outline: none;
+        transition: border-color 0.2s ease;
+    }
+
+    .rq-fc-search-box input:focus {
+        border-color: #06b6d4;
+    }
+
+    .rq-fc-search-box i {
+        position: absolute;
+        left: 0.85rem;
+        top: 50%;
+        transform: translateY(-50%);
+        color: #64748b;
+        font-size: 0.8rem;
+        pointer-events: none;
+    }
+
+    /* Cards Grid */
+    .rq-fc-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+        gap: 1.25rem;
+    }
+
+    .rq-card {
+        background: rgba(15, 23, 42, 0.7);
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        border-radius: 1.5rem;
+        padding: 1.5rem;
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+        gap: 1.25rem;
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        position: relative;
+        backdrop-filter: blur(14px);
+    }
+
+    .rq-card:hover {
+        border-color: rgba(6, 182, 212, 0.35);
+        box-shadow: 0 12px 30px -10px rgba(0, 0, 0, 0.5);
+    }
+
+    .rq-card.is-disabled {
+        border-color: rgba(244, 63, 94, 0.2);
+        background: rgba(15, 23, 42, 0.45);
+    }
+
+    .rq-card.is-disabled .rq-card-title {
+        color: #cbd5e1;
+    }
+
+    /* Card Top Bar */
+    .rq-card-top {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 0.75rem;
+    }
+
+    .rq-cat-pill {
+        background: rgba(255, 255, 255, 0.05);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        padding: 0.25rem 0.65rem;
+        border-radius: 0.5rem;
+        font-size: 0.7rem;
+        font-weight: 800;
+        color: #94a3b8;
+    }
+
+    /* ═══════════════════════════════════════════════════════════════
+       BULLETPROOF PURE CSS TOGGLE SWITCH
+       ═══════════════════════════════════════════════════════════════ */
+    .rq-switch-control {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.65rem;
+        cursor: pointer;
+        user-select: none;
+    }
+
+    .rq-switch-box {
+        position: relative;
+        display: inline-block;
+        width: 54px;
+        height: 28px;
+        flex-shrink: 0;
+    }
+
+    .rq-switch-box input {
+        opacity: 0;
+        width: 0;
+        height: 0;
+        position: absolute;
+    }
+
+    .rq-switch-slider {
+        position: absolute;
+        cursor: pointer;
+        top: 0; left: 0; right: 0; bottom: 0;
+        background-color: #1e293b;
+        border: 2px solid #475569;
+        border-radius: 9999px;
+        transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    .rq-switch-slider:before {
+        position: absolute;
+        content: "";
+        height: 20px;
+        width: 20px;
+        left: 2px;
+        bottom: 2px;
+        background-color: #94a3b8;
+        border-radius: 50%;
+        transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+        box-shadow: 0 2px 4px rgba(0,0,0,0.4);
+    }
+
+    .rq-switch-box input:checked + .rq-switch-slider {
+        background: linear-gradient(135deg, #10b981 0%, #06b6d4 100%);
+        border-color: #10b981;
+        box-shadow: 0 0 14px rgba(16, 185, 129, 0.4);
+    }
+
+    .rq-switch-box input:checked + .rq-switch-slider:before {
+        transform: translateX(24px);
+        background-color: #ffffff;
+        box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+    }
+
+    /* Card Content */
+    .rq-card-body {
+        display: flex;
+        flex-direction: column;
+        gap: 0.5rem;
+    }
+
+    .rq-card-title {
+        font-size: 0.95rem;
+        font-weight: 900;
+        color: #ffffff;
+        display: flex;
+        align-items: center;
+        gap: 0.65rem;
+        line-height: 1.3;
+    }
+
+    .rq-card-title i {
+        font-size: 1.1rem;
+    }
+
+    .rq-card-desc {
+        font-size: 0.75rem;
+        color: #94a3b8;
+        line-height: 1.5;
+    }
+
+    /* Card Footer & Direct Action Buttons */
+    .rq-card-foot {
+        border-top: 1px solid rgba(255, 255, 255, 0.06);
+        padding-top: 1rem;
+        display: flex;
+        flex-direction: column;
+        gap: 0.75rem;
+    }
+
+    .rq-status-strip {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        font-size: 0.7rem;
+    }
+
+    .rq-status-pill {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.4rem;
+        font-weight: 800;
+        border-radius: 0.35rem;
+    }
+
+    .rq-status-pill.enabled {
+        color: #34d399;
+    }
+
+    .rq-status-pill.disabled {
+        color: #f87171;
+    }
+
+    .rq-status-dot {
+        width: 7px;
+        height: 7px;
+        border-radius: 50%;
+        display: inline-block;
+    }
+
+    .rq-status-pill.enabled .rq-status-dot {
+        background-color: #34d399;
+        box-shadow: 0 0 8px #34d399;
+    }
+
+    .rq-status-pill.disabled .rq-status-dot {
+        background-color: #f87171;
+    }
+
+    .rq-key-badge {
+        font-family: monospace;
+        font-size: 0.65rem;
+        color: #475569;
+        direction: ltr;
+    }
+
+    /* Direct Action Buttons */
+    .rq-direct-actions {
+        display: flex;
+        gap: 0.5rem;
+    }
+
+    .rq-btn-action {
+        flex: 1;
+        padding: 0.5rem 0.75rem;
+        border-radius: 0.75rem;
+        font-size: 0.75rem;
+        font-weight: 800;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.45rem;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        border: none;
+        outline: none;
+    }
+
+    .rq-btn-disable {
+        background: rgba(244, 63, 94, 0.12);
+        border: 1px solid rgba(244, 63, 94, 0.25);
+        color: #f43f5e;
+    }
+
+    .rq-btn-disable:hover {
+        background: #f43f5e;
+        color: #ffffff;
+        box-shadow: 0 4px 14px rgba(244, 63, 94, 0.35);
+    }
+
+    .rq-btn-enable {
+        background: rgba(16, 185, 129, 0.12);
+        border: 1px solid rgba(16, 185, 129, 0.25);
+        color: #10b981;
+    }
+
+    .rq-btn-enable:hover {
+        background: #10b981;
+        color: #ffffff;
+        box-shadow: 0 4px 14px rgba(16, 185, 129, 0.35);
+    }
+
+    /* Floating Toast */
+    .rq-toast-container {
+        position: fixed;
+        bottom: 2rem;
+        left: 2rem;
+        z-index: 99999;
+        pointer-events: none;
+    }
+
+    .rq-toast {
+        background: rgba(15, 23, 42, 0.95);
+        border: 1px solid #10b981;
+        box-shadow: 0 10px 25px -5px rgba(0,0,0,0.5), 0 0 15px rgba(16, 185, 129, 0.3);
+        border-radius: 1rem;
+        padding: 0.85rem 1.25rem;
+        color: #ffffff;
+        font-size: 0.85rem;
+        font-weight: 700;
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        transform: translateY(100px);
+        opacity: 0;
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        pointer-events: auto;
+    }
+
+    .rq-toast.show {
+        transform: translateY(0);
+        opacity: 1;
+    }
+</style>
+
+<div class="rq-fc-container">
     <!-- Header Hero Banner -->
     <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 p-6 rounded-3xl bg-slate-900/60 border border-white/10 backdrop-blur-xl">
         <div class="flex items-center gap-4">
-            <div class="w-14 h-14 rounded-2xl bg-gradient-to-tr from-cyan-500/20 to-amber-500/20 border border-cyan-500/30 flex items-center justify-center text-cyan-400 text-2xl shadow-xl">
+            <div class="w-14 h-14 rounded-2xl bg-gradient-to-tr from-cyan-500/20 to-emerald-500/20 border border-cyan-500/30 flex items-center justify-center text-cyan-400 text-2xl shadow-xl">
                 <i class="fas fa-sliders"></i>
             </div>
             <div>
                 <h1 class="text-xl sm:text-2xl font-black text-white">إدارة وإخفاء ميزات الموقع (Feature Control)</h1>
-                <p class="text-xs text-slate-400 mt-1">تحكم فوري بإظهار أو إخفاء أي خاصية في المتجر (التحويلات، السحب، بطاقات رقميات، تحميل التطبيق، المتاجر الفرعية...)</p>
+                <p class="text-xs text-slate-400 mt-1">تحكم فوري ودقيق بإظهار أو إخفاء أي خاصية في المتجر (سحب الرصيد، التحويلات، بطاقات الشحن، الدعم، المتاجر الفرعية...)</p>
             </div>
         </div>
         
         <div class="flex items-center gap-2">
             <span class="px-3.5 py-1.5 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-xs font-black flex items-center gap-1.5">
                 <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
-                <span>تحديث فوري مباشر (Live Switch)</span>
+                <span>تحديث فوري ومباشر</span>
             </span>
         </div>
     </div>
 
+    <!-- Stats Row -->
+    <div class="rq-fc-stats-grid">
+        <div class="rq-fc-stat-card">
+            <div class="rq-fc-stat-icon total"><i class="fas fa-layer-group"></i></div>
+            <div>
+                <div class="rq-fc-stat-num" id="stat-total">{{ total_count|default:flags|length }}</div>
+                <div class="rq-fc-stat-label">إجمالي الميزات القابلة للتحكم</div>
+            </div>
+        </div>
+        <div class="rq-fc-stat-card">
+            <div class="rq-fc-stat-icon active"><i class="fas fa-circle-check"></i></div>
+            <div>
+                <div class="rq-fc-stat-num text-emerald-400" id="stat-enabled">{{ enabled_count }}</div>
+                <div class="rq-fc-stat-label">ميزات مفعلة وتظهر للعملاء</div>
+            </div>
+        </div>
+        <div class="rq-fc-stat-card">
+            <div class="rq-fc-stat-icon disabled"><i class="fas fa-eye-slash"></i></div>
+            <div>
+                <div class="rq-fc-stat-num text-rose-400" id="stat-disabled">{{ disabled_count }}</div>
+                <div class="rq-fc-stat-label">ميزات مخفية ومعطلة برمجياً</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Filter & Search Toolbar -->
+    <div class="rq-fc-toolbar">
+        <div class="rq-fc-filters">
+            <button type="button" class="rq-filter-btn active" data-filter="all">عرض الكل ({{ flags|length }})</button>
+            <button type="button" class="rq-filter-btn" data-filter="enabled">المفعلة فقط</button>
+            <button type="button" class="rq-filter-btn" data-filter="disabled">المخفية والمعطلة فقط</button>
+        </div>
+        <div class="rq-fc-search-box">
+            <input type="text" id="feature-search" placeholder="ابحث باسم الميزة أو القسم...">
+            <i class="fas fa-search"></i>
+        </div>
+    </div>
+
     <!-- Features Bento Grid -->
-    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+    <div class="rq-fc-grid" id="features-grid">
         {% for f in flags %}
-        <div class="p-5 rounded-3xl bg-slate-900/60 border border-white/10 hover:border-cyan-500/40 backdrop-blur-xl transition-all duration-300 flex flex-col justify-between group shadow-lg" id="card-{{ f.id }}">
-            <div class="space-y-3">
-                <div class="flex items-center justify-between">
-                    <span class="text-[10px] font-black uppercase tracking-wider px-2.5 py-1 rounded-lg bg-white/5 border border-white/10 text-slate-400">
-                        {{ f.category }}
-                    </span>
+        <div class="rq-card {% if not f.is_enabled %}is-disabled{% endif %}" id="card-{{ f.id }}" data-status="{% if f.is_enabled %}enabled{% else %}disabled{% endif %}" data-key="{{ f.key }}" data-category="{{ f.category }}">
+            <div>
+                <!-- Card Header -->
+                <div class="rq-card-top">
+                    <span class="rq-cat-pill">{{ f.category }}</span>
                     
-                    <!-- Toggle Switch Button -->
-                    <label class="relative inline-flex items-center cursor-pointer">
-                        <input type="checkbox" class="sr-only peer feature-toggle-input" data-id="{{ f.id }}" data-name="{{ f.name }}" {% if f.is_enabled %}checked{% endif %}>
-                        <div class="w-11 h-6 bg-slate-800 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-gradient-to-r peer-checked:from-emerald-500 peer-checked:to-cyan-500"></div>
+                    <!-- Pure CSS Switch Control -->
+                    <label class="rq-switch-control" title="اضغط للتبديل الفوري بين التفعيل والإخفاء">
+                        <span class="text-[11px] font-bold text-slate-400 switch-label">{% if f.is_enabled %}مفعلة{% else %}معطلة{% endif %}</span>
+                        <div class="rq-switch-box">
+                            <input type="checkbox" class="feature-toggle-checkbox" data-id="{{ f.id }}" data-name="{{ f.name }}" {% if f.is_enabled %}checked{% endif %}>
+                            <span class="rq-switch-slider"></span>
+                        </div>
                     </label>
                 </div>
 
-                <div>
-                    <h3 class="text-sm font-black text-white group-hover:text-cyan-400 transition-colors flex items-center gap-2">
+                <!-- Card Body -->
+                <div class="rq-card-body mt-3">
+                    <h3 class="rq-card-title">
                         {% if 'transfer' in f.key %}<i class="fas fa-exchange-alt text-amber-400"></i>
                         {% elif 'withdraw' in f.key %}<i class="fas fa-circle-arrow-up text-rose-400"></i>
                         {% elif 'deposit' in f.key %}<i class="fas fa-circle-arrow-down text-emerald-400"></i>
@@ -58,72 +511,216 @@
                         {% elif 'coupon' in f.key %}<i class="fas fa-ticket text-purple-400"></i>
                         {% else %}<i class="fas fa-gear text-slate-400"></i>
                         {% endif %}
-                        <span>{{ f.name }}</span>
+                        <span class="feature-title-text">{{ f.name }}</span>
                     </h3>
-                    <p class="text-xs text-slate-400 mt-1 leading-relaxed">{{ f.description }}</p>
+                    <p class="rq-card-desc feature-desc-text">{{ f.description }}</p>
                 </div>
             </div>
 
-            <div class="mt-4 pt-3 border-t border-white/5 flex items-center justify-between text-[11px]">
-                <span class="status-badge font-bold flex items-center gap-1.5 {% if f.is_enabled %}text-emerald-400{% else %}text-rose-400{% endif %}">
-                    <span class="w-1.5 h-1.5 rounded-full {% if f.is_enabled %}bg-emerald-400{% else %}bg-rose-400{% endif %}"></span>
-                    <span class="status-text">{% if f.is_enabled %}مفعلة وتظهر للعملاء{% else %}مخفية ومعطلة{% endif %}</span>
-                </span>
-                <span class="text-slate-600 font-mono text-[9px]">{{ f.key }}</span>
+            <!-- Card Footer & Direct Action Button -->
+            <div class="rq-card-foot">
+                <div class="rq-status-strip">
+                    <span class="rq-status-pill {% if f.is_enabled %}enabled{% else %}disabled{% endif %}">
+                        <span class="rq-status-dot"></span>
+                        <span class="status-text">{% if f.is_enabled %}مفعلة وتظهر للعملاء{% else %}مخفية ومعطلة نهائياً{% endif %}</span>
+                    </span>
+                    <span class="rq-key-badge">{{ f.key }}</span>
+                </div>
+
+                <!-- Direct Action Form Submission (Fallback & Alternative to Switch) -->
+                <div class="rq-direct-actions">
+                    <form method="post" action="{% url 'control_feature_flags' %}" class="w-full">
+                        {% csrf_token %}
+                        <input type="hidden" name="flag_id" value="{{ f.id }}">
+                        {% if f.is_enabled %}
+                            <input type="hidden" name="action" value="disable">
+                            <button type="submit" class="rq-btn-action rq-btn-disable w-full">
+                                <i class="fas fa-eye-slash"></i>
+                                <span>إخفاء وتعطيل الميزة</span>
+                            </button>
+                        {% else %}
+                            <input type="hidden" name="action" value="enable">
+                            <button type="submit" class="rq-btn-action rq-btn-enable w-full">
+                                <i class="fas fa-circle-check"></i>
+                                <span>تفعيل وإظهار الميزة</span>
+                            </button>
+                        {% endif %}
+                    </form>
+                </div>
             </div>
         </div>
         {% endfor %}
     </div>
 </div>
 
-<script>
-    document.querySelectorAll('.feature-toggle-input').forEach(function(toggle) {
-        toggle.addEventListener('change', function(e) {
-            var flagId = this.getAttribute('data-id');
-            var flagName = this.getAttribute('data-name');
-            var isChecked = this.checked;
-            var card = document.getElementById('card-' + flagId);
-            var statusBadge = card ? card.querySelector('.status-badge') : null;
-            var statusText = card ? card.querySelector('.status-text') : null;
+<!-- Floating Toast Element -->
+<div class="rq-toast-container">
+    <div id="rq-toast" class="rq-toast">
+        <i class="fas fa-check-circle text-emerald-400 text-lg"></i>
+        <span id="rq-toast-msg">تم تحديث الميزة بنجاح.</span>
+    </div>
+</div>
 
-            fetch('{% url "control_feature_toggle_ajax" %}', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-CSRFToken': '{{ csrf_token }}'
-                },
-                body: JSON.stringify({
-                    flag_id: flagId,
-                    is_enabled: isChecked
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        var toastEl = document.getElementById('rq-toast');
+        var toastMsgEl = document.getElementById('rq-toast-msg');
+        var toastTimeout = null;
+
+        function showNotification(msg, isSuccess) {
+            if (!toastEl) return;
+            toastMsgEl.textContent = msg;
+            var icon = toastEl.querySelector('i');
+            if (icon) {
+                icon.className = isSuccess ? 'fas fa-check-circle text-emerald-400 text-lg' : 'fas fa-exclamation-triangle text-rose-400 text-lg';
+            }
+            toastEl.style.borderColor = isSuccess ? '#10b981' : '#f43f5e';
+            toastEl.classList.add('show');
+            if (toastTimeout) clearTimeout(toastTimeout);
+            toastTimeout = setTimeout(function() {
+                toastEl.classList.remove('show');
+            }, 3500);
+        }
+
+        // Live Toggle AJAX Handler
+        document.querySelectorAll('.feature-toggle-checkbox').forEach(function(checkbox) {
+            checkbox.addEventListener('change', function() {
+                var flagId = this.getAttribute('data-id');
+                var isChecked = this.checked;
+                var card = document.getElementById('card-' + flagId);
+                var statusPill = card ? card.querySelector('.rq-status-pill') : null;
+                var statusText = card ? card.querySelector('.status-text') : null;
+                var switchLabel = card ? card.querySelector('.switch-label') : null;
+                var formContainer = card ? card.querySelector('.rq-direct-actions') : null;
+
+                fetch('{% url "control_feature_toggle_ajax" %}', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': '{{ csrf_token }}'
+                    },
+                    body: JSON.stringify({
+                        flag_id: flagId,
+                        is_enabled: isChecked
+                    })
                 })
-            })
-            .then(function(r) { return r.json(); })
-            .then(function(data) {
-                if (data.status === 'success') {
-                    if (statusBadge && statusText) {
-                        if (isChecked) {
-                            statusBadge.className = 'status-badge font-bold flex items-center gap-1.5 text-emerald-400';
-                            statusBadge.querySelector('span:first-child').className = 'w-1.5 h-1.5 rounded-full bg-emerald-400';
-                            statusText.textContent = 'مفعلة وتظهر للعملاء';
-                        } else {
-                            statusBadge.className = 'status-badge font-bold flex items-center gap-1.5 text-rose-400';
-                            statusBadge.querySelector('span:first-child').className = 'w-1.5 h-1.5 rounded-full bg-rose-400';
-                            statusText.textContent = 'مخفية ومعطلة';
+                .then(function(res) { return res.json(); })
+                .then(function(data) {
+                    if (data.status === 'success') {
+                        // Update Card Styles
+                        if (card) {
+                            card.setAttribute('data-status', isChecked ? 'enabled' : 'disabled');
+                            if (isChecked) {
+                                card.classList.remove('is-disabled');
+                            } else {
+                                card.classList.add('is-disabled');
+                            }
                         }
+
+                        // Update Status Pill
+                        if (statusPill && statusText) {
+                            if (isChecked) {
+                                statusPill.className = 'rq-status-pill enabled';
+                                statusText.textContent = 'مفعلة وتظهر للعملاء';
+                            } else {
+                                statusPill.className = 'rq-status-pill disabled';
+                                statusText.textContent = 'مخفية ومعطلة نهائياً';
+                            }
+                        }
+
+                        // Update Switch Label
+                        if (switchLabel) {
+                            switchLabel.textContent = isChecked ? 'مفعلة' : 'معطلة';
+                        }
+
+                        // Update Direct Action Button
+                        if (formContainer) {
+                            var csrfVal = '{{ csrf_token }}';
+                            if (isChecked) {
+                                formContainer.innerHTML = '<form method="post" action="{% url "control_feature_flags" %}" class="w-full">' +
+                                    '<input type="hidden" name="csrfmiddlewaretoken" value="' + csrfVal + '">' +
+                                    '<input type="hidden" name="flag_id" value="' + flagId + '">' +
+                                    '<input type="hidden" name="action" value="disable">' +
+                                    '<button type="submit" class="rq-btn-action rq-btn-disable w-full">' +
+                                    '<i class="fas fa-eye-slash"></i> <span>إخفاء وتعطيل الميزة</span>' +
+                                    '</button></form>';
+                            } else {
+                                formContainer.innerHTML = '<form method="post" action="{% url "control_feature_flags" %}" class="w-full">' +
+                                    '<input type="hidden" name="csrfmiddlewaretoken" value="' + csrfVal + '">' +
+                                    '<input type="hidden" name="flag_id" value="' + flagId + '">' +
+                                    '<input type="hidden" name="action" value="enable">' +
+                                    '<button type="submit" class="rq-btn-action rq-btn-enable w-full">' +
+                                    '<i class="fas fa-circle-check"></i> <span>تفعيل وإظهار الميزة</span>' +
+                                    '</button></form>';
+                            }
+                        }
+
+                        // Recalculate Stats counters
+                        var allCards = document.querySelectorAll('.rq-card');
+                        var enabledCount = 0;
+                        allCards.forEach(function(c) {
+                            if (c.getAttribute('data-status') === 'enabled') enabledCount++;
+                        });
+                        var disabledCount = allCards.length - enabledCount;
+                        var statEnabled = document.getElementById('stat-enabled');
+                        var statDisabled = document.getElementById('stat-disabled');
+                        if (statEnabled) statEnabled.textContent = enabledCount;
+                        if (statDisabled) statDisabled.textContent = disabledCount;
+
+                        showNotification(data.message, true);
+                    } else {
+                        showNotification('خطأ: ' + (data.message || 'تعذر التحديث'), false);
+                        checkbox.checked = !isChecked;
                     }
-                    if (window.showToast) {
-                        showToast(data.message);
-                    }
-                } else {
-                    alert('خطأ: ' + (data.message || 'تعذر تغيير الحالة'));
-                    toggle.checked = !isChecked;
-                }
-            })
-            .catch(function(err) {
-                alert('خطأ في الاتصال: ' + err.message);
-                toggle.checked = !isChecked;
+                })
+                .catch(function(err) {
+                    showNotification('خطأ في الاتصال: ' + err.message, false);
+                    checkbox.checked = !isChecked;
+                });
             });
         });
+
+        // Filter Buttons
+        var filterBtns = document.querySelectorAll('.rq-filter-btn');
+        filterBtns.forEach(function(btn) {
+            btn.addEventListener('click', function() {
+                filterBtns.forEach(function(b) { b.classList.remove('active'); });
+                this.classList.add('active');
+                var filter = this.getAttribute('data-filter');
+                var cards = document.querySelectorAll('.rq-card');
+                cards.forEach(function(c) {
+                    var status = c.getAttribute('data-status');
+                    if (filter === 'all') {
+                        c.style.display = 'flex';
+                    } else if (filter === status) {
+                        c.style.display = 'flex';
+                    } else {
+                        c.style.display = 'none';
+                    }
+                });
+            });
+        });
+
+        // Search Input Filter
+        var searchInput = document.getElementById('feature-search');
+        if (searchInput) {
+            searchInput.addEventListener('input', function() {
+                var q = this.value.toLowerCase().trim();
+                var cards = document.querySelectorAll('.rq-card');
+                cards.forEach(function(c) {
+                    var title = (c.querySelector('.feature-title-text') ? c.querySelector('.feature-title-text').textContent : '').toLowerCase();
+                    var desc = (c.querySelector('.feature-desc-text') ? c.querySelector('.feature-desc-text').textContent : '').toLowerCase();
+                    var cat = (c.getAttribute('data-category') || '').toLowerCase();
+                    var key = (c.getAttribute('data-key') || '').toLowerCase();
+
+                    if (!q || title.includes(q) || desc.includes(q) || cat.includes(q) || key.includes(q)) {
+                        c.style.display = 'flex';
+                    } else {
+                        c.style.display = 'none';
+                    }
+                });
+            });
+        }
     });
 </script>
 {% endblock %}

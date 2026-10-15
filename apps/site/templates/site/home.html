@@ -1569,45 +1569,39 @@ body.is-native-app .rq-section-link {
         <div class="rq-hero-content">
           <div class="rq-meta-pill">
             <span class="rq-pulse-dot"></span>
-            <span>بوابة التجارة المعتمدة • توريد برمجيات بالجملة ومعدات إلكترونية</span>
+            <span>وجهتك الأولى للتكنولوجيا • إلكترونيات، شبكات وبرمجيات</span>
           </div>
 
           <h1 class="rq-hero-title">
             رقميات | RAQAMIYAT <br>
-            <span class="rq-gradient-text">لتجارة البرمجيات بالجملة والمعدات الإلكترونية</span>
+            <span class="rq-gradient-text">كل ما تحتاجه من عالم التكنولوجيا في مكان واحد</span>
           </h1>
 
           <p class="rq-hero-desc">
-            المنصة التجارية المعتمدة لتوريد تراخيص وحلول البرمجيات بالجملة، وتجارة واستيراد وتصدير كافة أنواع المعدات والأجهزة الإلكترونية الخاصة بالاتصالات وفق السجل التجاري المعتمد.
+            اكتشف تشكيلة متنوعة من إكسسوارات الهواتف، وقطع الإنترنت والشبكات، وكاميرات المراقبة، والشواحن والبطاريات، والسماعات، والأجهزة الإلكترونية، والبرمجيات.
           </p>
 
-          <!-- Interactive User Action Cluster (App Download + Auth/Dashboard) -->
+          <!-- Interactive User Action Cluster (App Download + Commerce Actions) -->
           <div class="flex flex-wrap items-center gap-3 mb-6">
-            {% if FEATURES.feature_app_download %}
-            <a href="{% url 'download_android_apk' %}?direct=1" class="inline-flex items-center gap-2.5 px-5 py-3 rounded-2xl bg-gradient-to-r from-cyan-400 via-teal-300 to-emerald-400 hover:brightness-110 text-slate-950 font-black text-sm shadow-xl shadow-cyan-500/20 transition-all hover:scale-105 active:scale-95">
-              <i class="fab fa-android text-lg"></i>
-              <span>تحميل تطبيق رقميات (APK)</span>
-              <span class="px-2 py-0.5 rounded-full bg-slate-950/20 text-slate-950 text-[10px] font-bold">مجاناً</span>
+            <a href="{% url 'catalog' %}" class="inline-flex items-center gap-2 px-5 py-3 rounded-2xl bg-gradient-to-r from-amber-400 to-amber-500 hover:from-amber-300 hover:to-amber-400 text-slate-950 font-black text-sm shadow-xl shadow-amber-500/20 transition-all hover:scale-105 active:scale-95">
+              <i class="fas fa-bag-shopping"></i>
+              <span>تسوّق المنتجات</span>
             </a>
-            {% endif %}
 
-            {% if not user.is_authenticated %}
-            <a href="{% url 'site_register' %}" class="inline-flex items-center gap-2 px-4 py-3 rounded-2xl bg-amber-400/15 hover:bg-amber-400/25 border border-amber-400/40 text-amber-300 font-black text-sm transition-all hover:scale-105 active:scale-95">
-              <i class="fas fa-user-plus text-xs"></i>
-              <span>إنشاء حساب جديد</span>
+            <a href="#categories-section" class="inline-flex items-center gap-2 px-4 py-3 rounded-2xl bg-white/5 hover:bg-white/10 border border-white/10 text-slate-200 font-bold text-sm transition-all hover:text-white hover:scale-105 active:scale-95">
+              <i class="fas fa-layer-group text-xs text-indigo-400"></i>
+              <span>استكشف الأقسام</span>
             </a>
-            <a href="{% url 'site_login' %}" class="inline-flex items-center gap-2 px-4 py-3 rounded-2xl bg-white/5 hover:bg-white/10 border border-white/10 text-slate-200 font-bold text-sm transition-all hover:text-white">
-              <i class="fas fa-arrow-right-to-bracket text-xs"></i>
-              <span>تسجيل الدخول</span>
+
+            <a href="{% url 'catalog' %}?sort=newest" class="inline-flex items-center gap-2 px-4 py-3 rounded-2xl bg-cyan/10 hover:bg-cyan/20 border border-cyan/30 text-cyan font-bold text-sm transition-all hover:scale-105 active:scale-95">
+              <i class="fas fa-sparkles text-amber-400 text-xs"></i>
+              <span>تصفح المنتجات الجديدة</span>
             </a>
-            {% else %}
-            <a href="{% url 'dashboard' %}" class="inline-flex items-center gap-2 px-5 py-3 rounded-2xl bg-indigo-500/20 hover:bg-indigo-500/30 border border-indigo-500/40 text-indigo-300 font-black text-sm transition-all">
-              <i class="fas fa-circle-user text-sm"></i>
-              <span>لوحة التحكم الشخصية</span>
-            </a>
-            <a href="{% url 'dashboard_wallet' %}" class="inline-flex items-center gap-2 px-4 py-3 rounded-2xl bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/30 text-emerald-300 font-bold text-sm transition-all">
-              <i class="fas fa-wallet text-xs"></i>
-              <span>المحفظة والفواتير</span>
+
+            {% if FEATURES.feature_app_download %}
+            <a href="{% url 'download_android_apk' %}?direct=1" class="inline-flex items-center gap-2 px-4 py-3 rounded-2xl bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/30 text-emerald-300 font-bold text-sm transition-all hover:scale-105 active:scale-95">
+              <i class="fab fa-android text-base"></i>
+              <span>تحميل التطبيق</span>
             </a>
             {% endif %}
           </div>
@@ -1615,9 +1609,9 @@ body.is-native-app .rq-section-link {
           <!-- Omni Search Dock -->
           <form action="{% url 'catalog' %}" method="get" class="rq-omni-search" id="rq-hero-search-form">
             <i class="fas fa-search"></i>
-            <input type="text" name="q" id="rq-hero-search-input" class="rq-omni-input" placeholder="ابحث في حلول البرمجيات بالجملة، تراخيص الشركات، والمعدات الإلكترونية..." autocomplete="off">
+            <input type="text" name="q" id="rq-hero-search-input" class="rq-omni-input" placeholder="ابحث عن إكسسوارات، هواتف، شواحن، شبكات، كاميرات، برمجيات..." autocomplete="off">
             <button type="submit" class="rq-omni-submit">
-              <span>استكشف الكتالوج</span>
+              <span>ابحث الآن</span>
               <i class="fas fa-arrow-left"></i>
             </button>
             <div class="rq-omni-dropdown" id="rq-hero-search-dropdown" role="listbox" aria-label="نتائج البحث اللحظي"></div>
@@ -1626,14 +1620,15 @@ body.is-native-app .rq-section-link {
           <!-- Quick Discovery Chips -->
           <div class="rq-quick-tags">
             <span class="rq-tag-label"><i class="fas fa-bolt text-amber-400"></i> وصول سريع:</span>
-            <a href="{% url 'catalog' %}?q=برمجيات" class="rq-tag-chip">برمجيات بالجملة</a>
-            <a href="{% url 'catalog' %}?q=معدات" class="rq-tag-chip">معدات إلكترونية</a>
-            <a href="{% url 'catalog' %}?q=اتصالات" class="rq-tag-chip">أنظمة اتصالات</a>
-            <a href="{% url 'catalog' %}?q=Canva" class="rq-tag-chip">تراخيص Canva Pro</a>
-            <a href="{% url 'catalog' %}?q=VPN" class="rq-tag-chip">حلول الشبكات NordVPN</a>
-            {% if not is_tenant %}
+            <a href="{% url 'catalog' %}?q=إكسسوارات" class="rq-tag-chip">إكسسوارات الهواتف</a>
+            <a href="{% url 'catalog' %}?q=شبكات" class="rq-tag-chip">إنترنت وشبكات</a>
+            <a href="{% url 'catalog' %}?q=كاميرات" class="rq-tag-chip">كاميرات مراقبة</a>
+            <a href="{% url 'catalog' %}?q=شواحن" class="rq-tag-chip">شواحن وبطاريات</a>
+            <a href="{% url 'catalog' %}?q=سماعات" class="rq-tag-chip">سماعات صوتية</a>
+            <a href="{% url 'catalog' %}?q=برمجيات" class="rq-tag-chip">برمجيات وحلول</a>
+            {% if not is_tenant and FEATURES.feature_sub_stores %}
             <a href="{% url 'stores_directory' %}" class="rq-tag-chip text-indigo-400 font-bold">دليل المتاجر ⟵</a>
-            <a href="{% url 'store_registration' %}" class="rq-tag-chip font-bold text-amber-400 border-amber-400/30" style="background: rgba(245, 158, 11, 0.12);"><i class="fas fa-rocket ml-1"></i> أنشئ متجرك</a>
+            <a href="{% url 'store_registration' %}" class="rq-tag-chip font-bold text-amber-400 border-amber-400/30" style="background: rgba(245, 158, 11, 0.12);"><i class="fas fa-store ml-1"></i> أنشئ متجرك الإلكتروني</a>
             {% endif %}
           </div>
         </div>
@@ -1771,7 +1766,7 @@ body.is-native-app .rq-section-link {
   </script>
 
   <!-- ═══════════════════════════════════════════════════════════════
-       2. ENTERPRISE PROTOCOL BAR (Trust Architecture)
+       2. HIGHLIGHTS & TRUST BAR
        ═══════════════════════════════════════════════════════════════ -->
   <section class="rq-protocol-section">
     <div class="rq-container">
@@ -1782,8 +1777,8 @@ body.is-native-app .rq-section-link {
             <i class="fas fa-bolt"></i>
           </div>
           <div>
-            <h4 class="rq-protocol-title">بروتوكول التوريد والتسليم</h4>
-            <p class="rq-protocol-text">ربط مؤتمت لتوريد التراخيص والحلول البرمجية فور تأكيد الطلب للشركات والمؤسسات.</p>
+            <h4 class="rq-protocol-title">سرعة في التجهيز والتسليم</h4>
+            <p class="rq-protocol-text">تجهيز سريع للطلبات ومتابعة دقيقة لحالة الشحن والتسليم فور إتمام الطلب.</p>
           </div>
         </div>
 
@@ -1792,8 +1787,8 @@ body.is-native-app .rq-section-link {
             <i class="fas fa-shield-halved"></i>
           </div>
           <div>
-            <h4 class="rq-protocol-title">حماية وتشفير مصرفي</h4>
-            <p class="rq-protocol-text">معايير أمان مصرفية معتمدة لحماية الفواتير والمدفوعات الإلكترونية.</p>
+            <h4 class="rq-protocol-title">أمان وخصوصية تامة</h4>
+            <p class="rq-protocol-text">حماية كاملة لبيانات حسابك ووسائل دفع إلكترونية آمنة وسهلة الاستخدام.</p>
           </div>
         </div>
 
@@ -1802,8 +1797,8 @@ body.is-native-app .rq-section-link {
             <i class="fas fa-coins"></i>
           </div>
           <div>
-            <h4 class="rq-protocol-title">تسوية متعددة العملات</h4>
-            <p class="rq-protocol-text">دعم الفوترة والتسعير بالليرة السورية، الليرة التركية، والدولار الأمريكي.</p>
+            <h4 class="rq-protocol-title">خيارات دفع متعددة</h4>
+            <p class="rq-protocol-text">دعم العملات المحلية والدولية لتسهيل مشترياتك بكل راحة ومرونة.</p>
           </div>
         </div>
 
@@ -1812,8 +1807,8 @@ body.is-native-app .rq-section-link {
             <i class="fas fa-circle-check"></i>
           </div>
           <div>
-            <h4 class="rq-protocol-title">تراخيص ومصادر أصلية</h4>
-            <p class="rq-protocol-text">كافة البرمجيات والمعدات الإلكترونية موثقة ومضمونة 100% ومستوردة من الوكلاء المعتمدين.</p>
+            <h4 class="rq-protocol-title">جودة وموثوقية عالية</h4>
+            <p class="rq-protocol-text">نحرص على انتقاء أفضل المنتجات التقنية والإلكترونية بجودة ممتازة لتلبية احتياجاتك.</p>
           </div>
         </div>
 
@@ -1822,17 +1817,17 @@ body.is-native-app .rq-section-link {
   </section>
 
   <!-- ═══════════════════════════════════════════════════════════════
-       3. CATEGORY SHOWCASE — Holographic Service Matrix
+       3. CATEGORY SHOWCASE
        ═══════════════════════════════════════════════════════════════ -->
   {% if categories %}
-  <section class="rq-container">
+  <section class="rq-container" id="categories-section">
     <div class="rq-section-head">
       <div>
-        <span class="rq-section-tag">الفهرس الرقمي المتخصص</span>
-        <h2 class="rq-section-title">استكشف الأقسام والحلول المتاحة</h2>
+        <span class="rq-section-tag">أقسام المتجر</span>
+        <h2 class="rq-section-title">استكشف أقسام رقميات</h2>
       </div>
       <a href="{% url 'catalog' %}" class="rq-section-link">
-        <span>عرض كامل الكتالوج ({{ categories.count }} فئة)</span>
+        <span>عرض جميع الأقسام ({{ categories|length }})</span>
         <i class="fas fa-arrow-left"></i>
       </a>
     </div>
@@ -1848,7 +1843,7 @@ body.is-native-app .rq-section-link {
           {% endif %}
         </div>
         <div class="rq-category-label">{{ cat.name }}</div>
-        <span class="rq-category-count">{{ cat.product_count|default:cat.products.count }} حزمة</span>
+        <span class="rq-category-count">{{ cat.product_count|default:cat.products.count }} منتج</span>
       </a>
       {% endfor %}
     </div>
@@ -1856,17 +1851,17 @@ body.is-native-app .rq-section-link {
   {% endif %}
 
   <!-- ═══════════════════════════════════════════════════════════════
-       4. CURATED SERVICES BENTO GRID (Featured Products)
+       4. FEATURED PRODUCTS BENTO GRID
        ═══════════════════════════════════════════════════════════════ -->
   {% if featured_products %}
   <section class="rq-container">
     <div class="rq-section-head">
       <div>
-        <span class="rq-section-tag">الخدمات الأكثر طلباً</span>
-        <h2 class="rq-section-title">مختارات الأصول الرقمية الحصرية</h2>
+        <span class="rq-section-tag">المنتجات المميزة</span>
+        <h2 class="rq-section-title">أحدث المنتجات والتجهيزات التقنية</h2>
       </div>
       <a href="{% url 'catalog' %}" class="rq-section-link">
-        <span>استكشف كافة الخدمات الرقمية</span>
+        <span>استكشف كافة المنتجات</span>
         <i class="fas fa-arrow-left"></i>
       </a>
     </div>
@@ -1887,23 +1882,23 @@ body.is-native-app .rq-section-link {
           {% endif %}
 
           <span class="rq-service-instant-badge">
-            <i class="fas fa-bolt"></i>
-            <span>تنفيذ آلي</span>
+            <i class="fas fa-box-open"></i>
+            <span>متوفر للطلب</span>
           </span>
         </div>
 
         <div class="rq-service-content">
-          <div class="rq-service-cat">{% if product.category %}{{ product.category.name }}{% else %}خدمة سحابية{% endif %}</div>
+          <div class="rq-service-cat">{% if product.category %}{{ product.category.name }}{% else %}إلكترونيات{% endif %}</div>
           <h3 class="rq-service-title">{{ product.name }}</h3>
 
           <div class="rq-service-foot">
             <div class="rq-service-price-block">
-              <span class="rq-price-sub">يبدأ من</span>
+              <span class="rq-price-sub">السعر</span>
               <span class="rq-service-amount">{% product_starting_price product %}</span>
             </div>
 
             <div class="rq-service-buy-btn">
-              <span>طلب مباشر</span>
+              <span>عرض التفاصيل</span>
               <i class="fas fa-arrow-left text-xs"></i>
             </div>
           </div>
@@ -1915,22 +1910,22 @@ body.is-native-app .rq-section-link {
   {% endif %}
 
   <!-- ═══════════════════════════════════════════════════════════════
-       5. RAQAMIYAT CLOUD STORES (Independent Merchant Showcase)
+       5. RAQAMIYAT STORES (Merchant Showcase)
        ═══════════════════════════════════════════════════════════════ -->
-  {% if not is_tenant %}
+  {% if not is_tenant and FEATURES.feature_sub_stores %}
   <section class="rq-container rq-stores-section" id="stores-section">
     <div class="rq-section-head">
       <div>
-        <span class="rq-section-tag">منظومة المتاجر الرقمية المستقلة</span>
-        <h2 class="rq-section-title">شبكة المتاجر المعتمدة على بنية رقميات التحتية</h2>
+        <span class="rq-section-tag">متاجر رقميات</span>
+        <h2 class="rq-section-title">اكتشف متاجرنا أو أنشئ متجرك الإلكتروني</h2>
       </div>
       <div class="flex items-center gap-3">
         <a href="{% url 'store_registration' %}" class="rq-create-store-head-btn">
           <i class="fas fa-plus-circle"></i>
-          <span>إنشاء متجرك الآن</span>
+          <span>أنشئ متجرك الإلكتروني</span>
         </a>
         <a href="{% url 'stores_directory' %}" class="rq-section-link">
-          <span>دليل كافة المتاجر المعتمدة</span>
+          <span>دليل المتاجر</span>
           <i class="fas fa-arrow-left"></i>
         </a>
       </div>
@@ -1960,12 +1955,12 @@ body.is-native-app .rq-section-link {
         </div>
 
         <p class="rq-store-bio">
-          {% if store.description %}{{ store.description|truncatewords:15 }}{% else %}متجر مستقل معتمد لتوريد المعدات الإلكترونية وأنظمة الاتصالات والبرمجيات بنظام رقميات.{% endif %}
+          {% if store.description %}{{ store.description|truncatewords:15 }}{% else %}متجر معتمد لتقديم المنتجات والحلول التقنية بنظام رقميات.{% endif %}
         </p>
 
         <div class="rq-store-meta-bar">
           <span class="rq-store-status-pill">
-            <i class="fas fa-shield-check"></i> متجر معتمد
+            <i class="fas fa-check-circle"></i> متجر نشط
           </span>
           <a href="{{ store.get_absolute_url }}" class="rq-store-visit-link" target="_blank">
             <span>زيارة المتجر</span>

@@ -25,6 +25,11 @@ from apps.common.tenant_utils import bypass_tenant_filter
 @login_required
 def store_registration_landing(request):
     """Landing page for store registration on the main site."""
+    from apps.common.models import SiteFeatureFlag
+    if not SiteFeatureFlag.is_feature_enabled("feature_sub_stores"):
+        messages.error(request, "⚠️ خدمة إنشاء المتاجر غير مفعلة حالياً.")
+        return redirect("home")
+
     from apps.accounts.models import KYCSettings
     kyc_settings = KYCSettings.get_settings()
     if kyc_settings.require_kyc_for_store_creation and not request.user.is_kyc_verified:

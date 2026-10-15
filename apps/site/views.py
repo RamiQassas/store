@@ -1141,8 +1141,12 @@ def transfer_history(request):
 
 @login_required
 def deposits(request):
-    # â”€â”€ Maintenance Mode Check â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-    from apps.common.models import SiteMaintenanceMode
+    # ── Maintenance Mode Check ──────────────────────────────────────────
+    from apps.common.models import SiteMaintenanceMode, SiteFeatureFlag
+    if not SiteFeatureFlag.is_feature_enabled("feature_deposits", store=getattr(request, "store", None)):
+        messages.error(request, "⚠️ خدمة شحن الرصيد والإيداع غير مفعلة حالياً.")
+        return redirect("dashboard_wallet")
+
     _maint = SiteMaintenanceMode.get_settings()
     if not _maint.deposits_enabled:
         messages.error(request, f"⚠️ خدمة الإيداع موقوفة مؤقتاً. {_maint.maintenance_message}")
@@ -1319,12 +1323,16 @@ def deposits(request):
 
 @login_required
 def withdrawals(request):
-    # â”€â”€ Maintenance Mode Check â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-    from apps.common.models import SiteMaintenanceMode
+    # ── Maintenance & Feature Flag Check ───────────────────────────────
+    from apps.common.models import SiteMaintenanceMode, SiteFeatureFlag
+    if not SiteFeatureFlag.is_feature_enabled("feature_withdrawals", store=getattr(request, "store", None)):
+        messages.error(request, "⚠️ خدمة سحب الأرباح والرصيد غير مفعلة حالياً.")
+        return redirect("dashboard_wallet")
+
     _maint = SiteMaintenanceMode.get_settings()
     if not _maint.withdrawals_enabled:
         messages.error(request, f"⚠️ خدمة السحب موقوفة مؤقتاً. {_maint.maintenance_message}")
-        return redirect("dashboard")
+        return redirect("dashboard_wallet")
 
     if request.method == "POST":
         method_id = request.POST.get("payment_method")
@@ -1872,6 +1880,11 @@ def visit_store(request, subdomain):
 
 def stores_directory(request):
     """Public directory of all independent stores hosted on Raqamiyat."""
+    from apps.common.models import SiteFeatureFlag
+    if not SiteFeatureFlag.is_feature_enabled("feature_sub_stores", store=getattr(request, "store", None)):
+        messages.error(request, "⚠️ دليل المتاجر غير متاح حالياً.")
+        return redirect("home")
+
     from apps.stores.models import Store
     from apps.catalog.models import Product
     from django.db.models import Q
@@ -6401,6 +6414,7 @@ def control_feature_flags(request):
     """
     Feature Flags Control Center:
     Allows administrators and store owners to toggle individual features on/off.
+    Supports instant AJAX switches and standard direct Form POST submissions.
     """
     from apps.common.models import SiteFeatureFlag
     store = getattr(request, "store", None)
@@ -6421,19 +6435,57 @@ def control_feature_flags(request):
         ("feature_coupon_discounts", "كوبونات وقسائم الخصم", "إتاحة تطبيق أكواد الخصم الترويجية عند الدفع", "التسويق والمبيعات"),
     ]
 
-    # Ensure all default flags exist in DB for this store
+    # Handle standard POST action if submitted via direct button/form
+    if request.method == "POST":
+        flag_id = request.POST.get("flag_id")
+        action = request.POST.get("action")  # "enable", "disable", "toggle"
+        flag = None
+        if flag_id:
+            flag = SiteFeatureFlag.all_objects.filter(id=flag_id, store=store).first()
+        else:
+            flag_key = request.POST.get("flag_key")
+            if flag_key:
+                flag = SiteFeatureFlag.all_objects.filter(key=flag_key, store=store).first()
+
+        if flag:
+            if action == "enable":
+                flag.is_enabled = True
+            elif action == "disable":
+                flag.is_enabled = False
+            elif action == "toggle":
+                flag.is_enabled = not flag.is_enabled
+            flag.save(update_fields=["is_enabled", "updated_at"])
+            status_text = "تفعيل وإظهار" if flag.is_enabled else "إخفاء وتعطيل"
+            messages.success(request, f"تم {status_text} ميزة ({flag.name}) بنجاح وتحديث المتجر فوراً.")
+            return redirect("control_feature_flags")
+        else:
+            messages.error(request, "لم يتم العثور على الميزة المحددة.")
+            return redirect("control_feature_flags")
+
+    # Ensure all default flags exist in DB for this store and repair corrupted names
     flags_list = []
     for key, name, desc, cat in DEFAULT_FEATURES:
-        flag, _ = SiteFeatureFlag.all_objects.get_or_create(
+        flag, created = SiteFeatureFlag.all_objects.get_or_create(
             key=key,
             store=store,
             defaults={"name": name, "description": desc, "category": cat, "is_enabled": True}
         )
+        if not created and (not flag.name or '' in flag.name or not flag.description or '' in flag.description):
+            flag.name = name
+            flag.description = desc
+            flag.category = cat
+            flag.save(update_fields=["name", "description", "category", "updated_at"])
         flags_list.append(flag)
+
+    enabled_count = sum(1 for f in flags_list if f.is_enabled)
+    disabled_count = len(flags_list) - enabled_count
 
     return render(request, "site/control_feature_flags.html", {
         "flags": flags_list,
         "is_tenant": bool(store),
+        "total_count": len(flags_list),
+        "enabled_count": enabled_count,
+        "disabled_count": disabled_count,
     })
 
 
@@ -6451,6 +6503,7 @@ def control_feature_toggle_ajax(request):
         data = request.POST
 
     flag_id = data.get("flag_id")
+    flag_key = data.get("key") or data.get("flag_key")
     enabled = data.get("is_enabled")
     if enabled is None:
         enabled = data.get("enabled")
@@ -6461,16 +6514,25 @@ def control_feature_toggle_ajax(request):
         is_enabled = False
 
     store = getattr(request, "store", None)
-    flag = get_object_or_404(SiteFeatureFlag.all_objects, id=flag_id, store=store)
+    flag = None
+    if flag_id:
+        flag = SiteFeatureFlag.all_objects.filter(id=flag_id, store=store).first()
+    elif flag_key:
+        flag = SiteFeatureFlag.all_objects.filter(key=flag_key, store=store).first()
+
+    if not flag:
+        return JsonResponse({"status": "error", "message": "الميزة غير موجودة"}, status=404)
+
     flag.is_enabled = is_enabled
     flag.save(update_fields=["is_enabled", "updated_at"])
 
-    status_str = "تفعيل" if is_enabled else "إخفاء وتعطيل"
+    status_str = "تفعيل وإظهار" if is_enabled else "إخفاء وتعطيل"
     return JsonResponse({
         "status": "success",
         "message": f"تم {status_str} ميزة ({flag.name}) بنجاح وتحديث المتجر فوراً.",
         "is_enabled": flag.is_enabled,
-        "key": flag.key
+        "key": flag.key,
+        "flag_id": flag.id
     })
 
 
@@ -9011,6 +9073,11 @@ def control_recharge_card_cancel(request, pk):
 
 @login_required
 def recharge_wallet(request):
+    from apps.common.models import SiteFeatureFlag
+    if not SiteFeatureFlag.is_feature_enabled("feature_recharge_cards", store=getattr(request, "store", None)):
+        messages.error(request, "⚠️ خدمة شحن الرصيد عبر البطاقات غير مفعلة حالياً.")
+        return redirect("dashboard_wallet")
+
     from apps.wallets.models import RechargeCard
     from apps.wallets.services import credit_wallet, WalletError, get_or_create_wallet
     from django.db import transaction

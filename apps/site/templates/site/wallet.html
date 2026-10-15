@@ -822,11 +822,13 @@
                             <span class="hero-sub-value {% if wallet.debt_balance > 0 %}debt{% endif %}">{{ wallet.debt_balance }} {{ wallet.currency.code }}</span>
                         </div>
 
-                        <!-- Withdrawable Balance (always shown) -->
+                        <!-- Withdrawable Balance (shown only when withdrawals enabled) -->
+                        {% if FEATURES.feature_withdrawals %}
                         <div class="hero-sub-item">
                             <span class="hero-sub-label"><i class="fas fa-hand-holding-usd" style="margin-left:3px; font-size:0.55rem;"></i> القابل للسحب</span>
                             <span class="hero-sub-value">{{ wallet.withdrawable_balance }} {{ wallet.currency.code }}</span>
                         </div>
+                        {% endif %}
 
                         <!-- Frozen: ONLY if > 0 -->
                         {% if wallet.frozen_balance > 0 %}
@@ -908,6 +910,7 @@
                         <span class="stat-meta-value">{{ total_deposited|floatformat:2 }} {{ wallet.currency.code }}</span>
                     </div>
                 </div>
+                {% if FEATURES.feature_recharge_cards %}
                 <div class="stat-pill">
                     <div class="stat-icon cyan"><i class="fas fa-ticket-alt"></i></div>
                     <div class="stat-meta">
@@ -915,6 +918,8 @@
                         <span class="stat-meta-value">{{ total_recharged|floatformat:2 }} {{ wallet.currency.code }}</span>
                     </div>
                 </div>
+                {% endif %}
+                {% if FEATURES.feature_withdrawals %}
                 <div class="stat-pill">
                     <div class="stat-icon red"><i class="fas fa-arrow-up"></i></div>
                     <div class="stat-meta">
@@ -922,6 +927,7 @@
                         <span class="stat-meta-value">{{ total_withdrawn|floatformat:2 }} {{ wallet.currency.code }}</span>
                     </div>
                 </div>
+                {% endif %}
             </div>
 
             <!-- Net Added -->
