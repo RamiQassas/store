@@ -5041,6 +5041,40 @@ def control_products_list(request):
                 messages.error(request, f"فشل التعديل الجماعي: {str(e)}")
             return redirect("control_products_list")
 
+        elif action == "set_unified_products_image":
+            from django.core.files.storage import default_storage
+
+            apply_to = request.POST.get("apply_to", "all")  # "all", "missing_only", or "selected"
+            product_ids = request.POST.getlist("selected_products")
+            uploaded_image = request.FILES.get("unified_image")
+            use_official_emblem = request.POST.get("use_official_emblem") == "1"
+
+            qs = Product.all_objects.filter(store=store)
+            if apply_to == "selected" and product_ids:
+                qs = qs.filter(id__in=product_ids)
+            elif apply_to == "missing_only":
+                from django.db.models import Q
+                qs = qs.filter(Q(image__isnull=True) | Q(image=""))
+
+            count = 0
+            if uploaded_image:
+                file_path = default_storage.save(f"products/main/{uploaded_image.name}", uploaded_image)
+                for prod in qs:
+                    prod.image = file_path
+                    prod.save(update_fields=["image", "updated_at"])
+                    count += 1
+                messages.success(request, f"✅ تم بنجاح تعيين الصورة المرفوعة كصورة موحدة لـ {count} منتج.")
+            elif use_official_emblem:
+                official_rel_path = "products/main/raqamiyat_official_brand_product.jpg"
+                for prod in qs:
+                    prod.image = official_rel_path
+                    prod.save(update_fields=["image", "updated_at"])
+                    count += 1
+                messages.success(request, f"✅ تم بنجاح تطبيق صورة وهوية رقميات الرسمية الموحدة على {count} منتج.")
+            else:
+                messages.error(request, "يرجى رفع صورة أو اختيار تطبيق هوية رقميات الموحدة.")
+            return redirect("control_products_list")
+
         elif action == "sync_alkasr_catalog":
             from apps.providers.models import ProviderProfile
             from services.provider.alkasr.mapper import AlkasrMapperService

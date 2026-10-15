@@ -87,6 +87,10 @@
             <i class="fas fa-file-import text-cyan-400"></i>
             <span>استيراد منتجات (Excel)</span>
         </button>
+        <button type="button" onclick="openUnifiedImageModal()" class="btn btn-outline btn-sm border-emerald-500/40 text-emerald-400 hover:bg-emerald-500 hover:text-slate-950 font-bold transition flex items-center gap-1.5 shadow-sm" title="تعيين وتوحيد صورة المنتجات بهوية رقميات الرسمية أو رفع صورة جديدة">
+            <i class="fas fa-image text-emerald-400"></i>
+            <span>صورة موحدة للمنتجات 🖼️</span>
+        </button>
         {% if request.store %}
         <form method="post" action="{% url 'control_products_list' %}" style="display:inline;" onsubmit="return confirm('هل تريد استيراد ومزامنة أحدث منتجات رقميات إلى متجرك الآن؟');">
             {% csrf_token %}
@@ -105,6 +109,7 @@
                 <span>استيراد منتجات الكاسر (API)</span>
             </button>
         </form>
+        {% endif %}
         <a href="{% url 'control_camera_studio' %}" class="btn btn-primary btn-sm bg-gradient-to-r from-amber-400 to-orange-500 hover:from-amber-300 hover:to-orange-400 text-black font-black flex items-center gap-1.5 shadow-lg border-0">
             <i class="fas fa-camera-retro"></i>
             <span>استوديو التصوير السريع 📸</span>
@@ -202,6 +207,94 @@ window.openProductImportModal = function() {
 window.closeProductImportModal = function() {
     var modal = document.getElementById('product-import-modal');
     if (modal) modal.style.display = 'none';
+};
+</script>
+
+{# ── Unified Product Image Modal ── #}
+<div id="unified-image-modal" onclick="if(event.target === this) closeUnifiedImageModal()" style="display:none;position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,0.85);backdrop-filter:blur(8px);align-items:center;justify-content:center;padding:1rem;">
+    <div style="background:#0f172a;border:1.5px solid rgba(16,185,129,0.35);border-radius:1.25rem;padding:1.5rem;max-width:32rem;width:100%;box-shadow:0 30px 60px rgba(0,0,0,0.6);">
+        <!-- Modal header -->
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem;border-bottom:1px solid rgba(255,255,255,0.08);padding-bottom:.75rem;">
+            <div style="display:flex;align-items:center;gap:.65rem;">
+                <div style="width:2.25rem;height:2.25rem;border-radius:50%;background:rgba(16,185,129,0.15);display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+                    <i class="fas fa-images text-emerald-400 text-lg"></i>
+                </div>
+                <div>
+                    <h3 style="font-size:.95rem;font-weight:900;color:#fff;margin:0;">تعيين صورة موحدة للمنتجات</h3>
+                    <p style="font-size:.75rem;color:#94a3b8;margin:0;">تطبيق صورة رسمية موحدة بنقرة واحدة أو رفع صورة جديدة</p>
+                </div>
+            </div>
+            <button type="button" onclick="closeUnifiedImageModal()" style="color:#94a3b8;background:none;border:none;cursor:pointer;font-size:1.1rem;">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+
+        <form method="post" action="{% url 'control_products_list' %}" enctype="multipart/form-data">
+            {% csrf_token %}
+            <input type="hidden" name="action" value="set_unified_products_image">
+
+            <!-- Option 1: Official Raqamiyat Emblem -->
+            <div style="background:rgba(16,185,129,0.06);border:1px solid rgba(16,185,129,0.25);border-radius:.85rem;padding:1rem;margin-bottom:1rem;">
+                <label style="display:flex;align-items:flex-start;gap:.75rem;cursor:pointer;">
+                    <input type="radio" name="image_choice" value="official" checked onchange="toggleImageUpload(false)" style="margin-top:.2rem;">
+                    <div>
+                        <div style="font-weight:800;color:#34d399;font-size:.85rem;">هوية رقميات الرسمية المعتمدة (موصى به)</div>
+                        <div style="font-size:.75rem;color:#94a3b8;margin-top:2px;">تطبيق صورة وهوية علامة رقميات التقنية الفاخرة الموحدة على المنتجات فوراً.</div>
+                    </div>
+                </label>
+            </div>
+
+            <!-- Option 2: Upload Custom Image -->
+            <div style="background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.1);border-radius:.85rem;padding:1rem;margin-bottom:1.2rem;">
+                <label style="display:flex;align-items:flex-start;gap:.75rem;cursor:pointer;margin-bottom:.5rem;">
+                    <input type="radio" name="image_choice" value="custom" onchange="toggleImageUpload(true)" style="margin-top:.2rem;">
+                    <div>
+                        <div style="font-weight:800;color:#fff;font-size:.85rem;">رفع صورة مخصصة من جهازك</div>
+                        <div style="font-size:.75rem;color:#94a3b8;margin-top:2px;">اختر صورة من جهازك ليتم تعيينها لجميع المنتجات المحددة.</div>
+                    </div>
+                </label>
+                <div id="custom-image-input" style="display:none;margin-top:.75rem;">
+                    <input type="file" name="unified_image" accept="image/*" class="w-full bg-slate-900 border border-white/10 rounded-xl p-2 text-xs text-slate-300">
+                </div>
+            </div>
+
+            <input type="hidden" name="use_official_emblem" id="use_official_emblem_input" value="1">
+
+            <!-- Target Scope -->
+            <div style="margin-bottom:1.25rem;">
+                <label style="font-size:.75rem;font-weight:700;color:#cbd5e1;display:block;margin-bottom:.4rem;">تطبيق الصورة على:</label>
+                <select name="apply_to" class="w-full bg-slate-900 border border-white/10 rounded-xl p-2.5 text-xs text-white">
+                    <option value="all">كافة منتجات المتجر (تحديث شامل)</option>
+                    <option value="missing_only">المنتجات التي ليس لها صورة فقط</option>
+                </select>
+            </div>
+
+            <!-- Submit buttons -->
+            <div style="display:flex;gap:.75rem;">
+                <button type="submit" class="btn btn-primary btn-sm flex-1 bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-2.5">
+                    <i class="fas fa-check-circle ml-1"></i> تطبيق الصورة الموحدة الآن
+                </button>
+                <button type="button" onclick="closeUnifiedImageModal()" class="btn btn-outline btn-sm py-2.5 text-slate-400">
+                    إلغاء
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+<script>
+window.openUnifiedImageModal = function() {
+    var modal = document.getElementById('unified-image-modal');
+    if (modal) modal.style.display = 'flex';
+};
+window.closeUnifiedImageModal = function() {
+    var modal = document.getElementById('unified-image-modal');
+    if (modal) modal.style.display = 'none';
+};
+window.toggleImageUpload = function(isCustom) {
+    var box = document.getElementById('custom-image-input');
+    var emblemInput = document.getElementById('use_official_emblem_input');
+    if (box) box.style.display = isCustom ? 'block' : 'none';
+    if (emblemInput) emblemInput.value = isCustom ? '0' : '1';
 };
 </script>
 

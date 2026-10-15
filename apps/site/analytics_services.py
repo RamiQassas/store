@@ -326,6 +326,7 @@ class FinancialAnalyticsService:
                 
                 currency_details.append({
                     "currency_code": curr.code,
+                    "currency_obj": curr,
                     "deposits_raw": dep_vol_raw,
                     "withdrawals_raw": with_vol_raw,
                     "fees_raw": dep_fees_raw,
@@ -334,8 +335,8 @@ class FinancialAnalyticsService:
                 })
 
             # Main PM aggregates (normalized)
-            dep_vol_norm = sum(self._normalize(c['deposits_raw'], Currency.objects.get(code=c['currency_code'])) for c in currency_details)
-            with_vol_norm = sum(self._normalize(c['withdrawals_raw'], Currency.objects.get(code=c['currency_code']), operation="withdraw") for c in currency_details)
+            dep_vol_norm = sum(self._normalize(c['deposits_raw'], c['currency_obj']) for c in currency_details)
+            with_vol_norm = sum(self._normalize(c['withdrawals_raw'], c['currency_obj'], operation="withdraw") for c in currency_details)
             
             results.append({
                 "name": pm.name,

@@ -1,1084 +1,825 @@
 {% extends "site/base.html" %}
 {% load static site_tags %}
 
-{% block title %}{% if is_tenant %}{{ STORE_NAME }}{% else %}رقميات | منظومة الأصول الرقمية والحلول السحابية المتقدمة{% endif %}{% endblock %}
+{% block title %}{% if is_tenant %}{{ STORE_NAME }} | المتجر الإلكتروني{% else %}رقميات | RAQAMIYAT — عالم التكنولوجيا والإلكترونيات الذكية{% endif %}{% endblock %}
 
 {% block extra_head %}
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;800;900&family=Space+Grotesk:wght@600;700;800&display=swap" rel="stylesheet">
 {% endblock %}
 
 {% block content %}
 <style>
 /* ══════════════════════════════════════════════════════════════════════
-   RAQAMIYAT NEXT-GEN TITANIUM & ELECTRIC INDIGO SYSTEM (360° REBIRTH)
-   Ultra-Luxury Fintech / Digital Ecosystem Interface
+   RAQAMIYAT NEXT-GEN DESIGN SYSTEM (2026 REBIRTH)
+   Ultra-Modern Tech Commerce, Responsive Bento Grids & Luminous Glass
    ══════════════════════════════════════════════════════════════════════ */
 
 :root {
-  --rq-bg: #070a11;
-  --rq-surface: #0d121e;
-  --rq-surface-card: rgba(15, 22, 36, 0.75);
-  --rq-surface-hover: rgba(22, 32, 54, 0.9);
-  
-  --rq-indigo: #6366f1;
-  --rq-indigo-light: #818cf8;
-  --rq-indigo-glow: rgba(99, 102, 241, 0.28);
+  --rq-bg: #060913;
+  --rq-bg-surface: #0c1222;
+  --rq-card-bg: rgba(14, 21, 38, 0.78);
+  --rq-card-hover: rgba(22, 33, 58, 0.92);
+  --rq-border: rgba(255, 255, 255, 0.08);
+  --rq-border-hover: rgba(56, 189, 248, 0.45);
   
   --rq-cyan: #06b6d4;
   --rq-cyan-light: #38bdf8;
   --rq-cyan-glow: rgba(6, 182, 212, 0.25);
   
-  --rq-gold: #f59e0b;
-  --rq-gold-light: #fbbf24;
-  --rq-gold-glow: rgba(245, 158, 11, 0.25);
+  --rq-sapphire: #3b82f6;
+  --rq-indigo: #6366f1;
+  --rq-indigo-light: #818cf8;
+  
+  --rq-amber: #f59e0b;
+  --rq-amber-light: #fbbf24;
+  --rq-amber-glow: rgba(245, 158, 11, 0.28);
   
   --rq-emerald: #10b981;
-  --rq-emerald-glow: rgba(16, 185, 129, 0.25);
+  --rq-emerald-glow: rgba(16, 185, 129, 0.22);
   
-  --rq-border: rgba(255, 255, 255, 0.08);
-  --rq-border-hover: rgba(99, 102, 241, 0.4);
-  --rq-border-active: rgba(6, 182, 212, 0.5);
+  --rq-text-title: #f8fafc;
+  --rq-text-body: #cbd5e1;
+  --rq-text-muted: #94a3b8;
   
-  --rq-text-primary: #f8fafc;
-  --rq-text-secondary: #94a3b8;
-  --rq-text-tertiary: #64748b;
-  
-  --rq-gradient-hero: linear-gradient(135deg, #6366f1 0%, #06b6d4 100%);
-  --rq-gradient-gold: linear-gradient(135deg, #f59e0b 0%, #fbbf24 100%);
-  --rq-shadow-card: 0 20px 45px -15px rgba(0, 0, 0, 0.7);
-  --rq-shadow-glow: 0 0 35px -5px rgba(99, 102, 241, 0.25);
+  --rq-radius-lg: 24px;
+  --rq-radius-md: 16px;
+  --rq-radius-sm: 10px;
 }
 
-/* Reset and Container */
-.rq-viewport {
+/* Base Viewport & Strict Touch Scrolling */
+.rq-home-root {
   position: relative;
   background-color: var(--rq-bg);
-  color: var(--rq-text-primary);
-  font-family: 'Tajawal', -apple-system, BlinkMacSystemFont, sans-serif;
-  overflow: visible !important;
+  color: var(--rq-text-body);
+  font-family: 'Tajawal', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  overflow-x: clip !important;
   touch-action: pan-y !important;
   -webkit-overflow-scrolling: touch !important;
   padding-bottom: 5rem;
 }
 
-.rq-container {
-  width: min(100% - 2rem, 1320px);
+.rq-home-container {
+  width: min(100% - 2rem, 1280px);
   margin-inline: auto;
 }
 
-/* Atmospheric Lighting */
-.rq-ambient-aura {
+/* Atmospheric Ambient Lights */
+.rq-ambient-glow {
   position: absolute;
   top: 0;
   left: 0;
   right: 0;
-  width: 100%;
-  max-width: 100%;
-  height: 650px;
+  height: 680px;
   background: 
-    radial-gradient(ellipse 70% 400px at 50% -50px, rgba(99, 102, 241, 0.16) 0%, transparent 70%),
-    radial-gradient(circle 400px at 85% 100px, rgba(6, 182, 212, 0.1) 0%, transparent 60%),
-    radial-gradient(circle 350px at 15% 200px, rgba(245, 158, 11, 0.06) 0%, transparent 60%);
+    radial-gradient(circle 500px at 50% -100px, rgba(59, 130, 246, 0.18), transparent 70%),
+    radial-gradient(circle 420px at 85% 80px, rgba(6, 182, 212, 0.12), transparent 60%),
+    radial-gradient(circle 380px at 15% 180px, rgba(245, 158, 11, 0.08), transparent 60%);
   pointer-events: none;
   z-index: 0;
   overflow: hidden;
 }
 
-/* ─────────────────────────────────────────────────────────────
-   1. HERO SECTION — Futuristic Split Spotlight
-   ───────────────────────────────────────────────────────────── */
-.rq-hero-section {
+/* ══════════════════════════════════════════════════════════════════════
+   1. HERO SECTION
+   ══════════════════════════════════════════════════════════════════════ */
+.rq-hero-wrapper {
   position: relative;
-  padding: 3.5rem 0 3rem;
-  z-index: 30;
+  padding: 3rem 0 2.5rem;
+  z-index: 10;
 }
 
-.rq-hero-layout {
+.rq-hero-grid {
   display: grid;
-  grid-template-columns: 1.2fr 0.8fr;
-  gap: 3.5rem;
+  grid-template-columns: 1.25fr 0.85fr;
+  gap: 3rem;
   align-items: center;
 }
 
-/* Meta Pill */
-.rq-meta-pill {
+@media (max-width: 1024px) {
+  .rq-hero-grid {
+    grid-template-columns: 1fr;
+    gap: 2.25rem;
+  }
+}
+
+/* Brand Announcement Pill */
+.rq-brand-pill {
   display: inline-flex;
   align-items: center;
-  gap: 0.65rem;
+  gap: 0.6rem;
   padding: 0.45rem 1.15rem;
   border-radius: 9999px;
-  background: rgba(99, 102, 241, 0.08);
-  border: 1px solid rgba(99, 102, 241, 0.22);
-  color: var(--rq-indigo-light);
-  font-size: 0.85rem;
+  background: rgba(6, 182, 212, 0.08);
+  border: 1px solid rgba(56, 189, 248, 0.25);
+  color: var(--rq-cyan-light);
+  font-size: 0.825rem;
   font-weight: 800;
-  margin-bottom: 1.5rem;
+  margin-bottom: 1.25rem;
   backdrop-filter: blur(12px);
-  box-shadow: 0 0 20px rgba(99, 102, 241, 0.15);
+  box-shadow: 0 0 24px rgba(6, 182, 212, 0.12);
 }
 
-.rq-pulse-dot {
+.rq-pulse-beacon {
   width: 8px;
   height: 8px;
   border-radius: 50%;
-  background-color: var(--rq-cyan);
-  box-shadow: 0 0 10px var(--rq-cyan);
-  animation: rqPulse 2s infinite ease-in-out;
+  background: var(--rq-cyan-light);
+  box-shadow: 0 0 10px var(--rq-cyan-light);
+  animation: rq-beacon-ping 2s cubic-bezier(0, 0, 0.2, 1) infinite;
 }
 
-@keyframes rqPulse {
-  0%, 100% { transform: scale(1); opacity: 1; }
-  50% { transform: scale(1.4); opacity: 0.5; }
+@keyframes rq-beacon-ping {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.4; transform: scale(1.3); }
 }
 
-/* Hero Titles */
-.rq-hero-title {
-  font-size: clamp(2.2rem, 5vw, 3.75rem);
+/* Hero Typography */
+.rq-hero-headline {
+  font-size: clamp(2rem, 4.5vw, 3.4rem);
   font-weight: 900;
-  line-height: 1.15;
+  line-height: 1.22;
+  color: var(--rq-text-title);
+  margin-bottom: 1.15rem;
   letter-spacing: -0.02em;
-  margin: 0 0 1.25rem;
-  color: #ffffff;
 }
 
-.rq-gradient-text {
-  background: linear-gradient(135deg, #ffffff 30%, #818cf8 70%, #38bdf8 100%);
+.rq-gradient-brand {
+  background: linear-gradient(135deg, #38bdf8 0%, #818cf8 50%, #fbbf24 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   display: inline-block;
 }
 
-.rq-hero-desc {
-  font-size: clamp(1rem, 1.8vw, 1.18rem);
+.rq-hero-summary {
+  font-size: clamp(0.95rem, 1.8vw, 1.125rem);
   line-height: 1.75;
-  color: var(--rq-text-secondary);
-  margin: 0 0 2rem;
-  max-width: 600px;
+  color: var(--rq-text-body);
+  margin-bottom: 1.75rem;
+  max-width: 640px;
+}
+
+/* Action Buttons Cluster */
+.rq-hero-ctas {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 2rem;
+}
+
+.rq-btn-primary {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.85rem 1.6rem;
+  border-radius: 16px;
+  background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+  color: #0b1120;
+  font-weight: 900;
+  font-size: 0.95rem;
+  box-shadow: 0 12px 28px -6px var(--rq-amber-glow);
+  transition: all 0.25s ease;
+  text-decoration: none;
+}
+.rq-btn-primary:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 16px 36px -6px rgba(245, 158, 11, 0.4);
+  background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%);
+  color: #000;
+}
+
+.rq-btn-glass {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.55rem;
+  padding: 0.85rem 1.35rem;
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  color: var(--rq-text-title);
+  font-weight: 700;
+  font-size: 0.9rem;
+  backdrop-filter: blur(12px);
+  transition: all 0.25s ease;
+  text-decoration: none;
+}
+.rq-btn-glass:hover {
+  background: rgba(255, 255, 255, 0.1);
+  border-color: rgba(56, 189, 248, 0.4);
+  color: #fff;
+  transform: translateY(-2px);
+}
+
+.rq-btn-cyan-outline {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.55rem;
+  padding: 0.85rem 1.35rem;
+  border-radius: 16px;
+  background: rgba(6, 182, 212, 0.08);
+  border: 1px solid rgba(6, 182, 212, 0.35);
+  color: var(--rq-cyan-light);
+  font-weight: 700;
+  font-size: 0.9rem;
+  transition: all 0.25s ease;
+  text-decoration: none;
+}
+.rq-btn-cyan-outline:hover {
+  background: rgba(6, 182, 212, 0.18);
+  border-color: var(--rq-cyan-light);
+  color: #fff;
+  transform: translateY(-2px);
+}
+
+.rq-btn-emerald {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.55rem;
+  padding: 0.85rem 1.35rem;
+  border-radius: 16px;
+  background: rgba(16, 185, 129, 0.1);
+  border: 1px solid rgba(16, 185, 129, 0.3);
+  color: #34d399;
+  font-weight: 700;
+  font-size: 0.9rem;
+  transition: all 0.25s ease;
+  text-decoration: none;
+}
+.rq-btn-emerald:hover {
+  background: rgba(16, 185, 129, 0.2);
+  color: #fff;
+  transform: translateY(-2px);
 }
 
 /* Omni Search Dock */
-.rq-omni-search {
+.rq-search-dock {
   position: relative;
-  background: rgba(15, 23, 42, 0.85);
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  border-radius: 20px;
-  padding: 0.5rem 0.5rem 0.5rem 1.25rem;
+  width: 100%;
+  max-width: 620px;
+  margin-bottom: 1.5rem;
+}
+
+.rq-search-field-box {
   display: flex;
   align-items: center;
-  gap: 0.85rem;
-  box-shadow: 0 20px 40px -10px rgba(0, 0, 0, 0.5), inset 0 1px 1px rgba(255, 255, 255, 0.1);
-  backdrop-filter: blur(20px);
+  gap: 0.75rem;
+  padding: 0.5rem 0.6rem 0.5rem 1.15rem;
+  background: rgba(15, 23, 42, 0.85);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 20px;
+  box-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.7), 0 0 0 1px rgba(255, 255, 255, 0.04);
+  backdrop-filter: blur(16px);
   transition: all 0.3s ease;
-  margin-bottom: 1.25rem;
+}
+.rq-search-field-box:focus-within {
+  border-color: var(--rq-cyan-light);
+  box-shadow: 0 12px 35px -8px rgba(6, 182, 212, 0.25), 0 0 0 2px rgba(6, 182, 212, 0.25);
 }
 
-.rq-omni-search:focus-within {
-  border-color: var(--rq-indigo);
-  box-shadow: 0 20px 45px -10px rgba(99, 102, 241, 0.3), 0 0 0 2px rgba(99, 102, 241, 0.2);
+.rq-search-icon {
+  color: var(--rq-cyan-light);
+  font-size: 1.1rem;
 }
 
-.rq-omni-search i {
-  color: var(--rq-indigo-light);
-  font-size: 1.15rem;
-}
-
-.rq-omni-input {
+.rq-search-input {
   flex: 1;
   background: transparent;
   border: none;
   outline: none;
   color: #fff;
   font-size: 0.95rem;
-  font-weight: 600;
   font-family: inherit;
+  padding: 0.4rem 0;
+}
+.rq-search-input::placeholder {
+  color: var(--rq-text-muted);
 }
 
-.rq-omni-input::placeholder {
-  color: var(--rq-text-tertiary);
-}
-
-.rq-omni-submit {
-  background: var(--rq-gradient-hero);
-  border: none;
-  color: #fff;
-  font-weight: 800;
-  font-size: 0.9rem;
-  padding: 0.75rem 1.6rem;
-  border-radius: 14px;
-  cursor: pointer;
-  display: flex;
+.rq-search-submit {
+  display: inline-flex;
   align-items: center;
   gap: 0.5rem;
-  transition: all 0.25s ease;
-  box-shadow: 0 8px 20px rgba(99, 102, 241, 0.35);
+  padding: 0.65rem 1.25rem;
+  background: linear-gradient(135deg, #0284c7 0%, #06b6d4 100%);
+  border: none;
+  border-radius: 14px;
+  color: #fff;
+  font-weight: 800;
+  font-size: 0.875rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+.rq-search-submit:hover {
+  filter: brightness(1.15);
+  transform: scale(1.02);
 }
 
-.rq-omni-submit:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 12px 26px rgba(99, 102, 241, 0.5);
-  filter: brightness(1.1);
-}
-
-/* Omni Search Floating Results Dropdown */
-.rq-omni-dropdown {
+/* Live Search Dropdown */
+.rq-search-results-panel {
+  display: none;
   position: absolute;
-  top: calc(100% + 8px);
+  top: calc(100% + 0.5rem);
   left: 0;
   right: 0;
-  background: rgba(15, 23, 42, 0.98);
-  border: 1px solid rgba(99, 102, 241, 0.35);
-  border-radius: 18px;
-  box-shadow: 0 25px 60px -12px rgba(0, 0, 0, 0.85), 0 0 25px rgba(99, 102, 241, 0.2);
-  backdrop-filter: blur(25px);
-  -webkit-backdrop-filter: blur(25px);
-  z-index: 1000;
-  display: none;
-  flex-direction: column;
-  max-height: min(72vh, 460px);
+  background: rgba(11, 17, 32, 0.98);
+  border: 1px solid rgba(56, 189, 248, 0.3);
+  border-radius: 20px;
+  box-shadow: 0 25px 60px -15px rgba(0, 0, 0, 0.85);
+  backdrop-filter: blur(20px);
+  z-index: 100;
   overflow: hidden;
-  animation: rqDropdownFadeIn 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  max-height: 420px;
+}
+.rq-search-results-panel.active {
+  display: block;
 }
 
-@keyframes rqDropdownFadeIn {
-  from { opacity: 0; transform: translateY(-6px); }
-  to { opacity: 1; transform: translateY(0); }
+.rq-search-results-list {
+  max-height: 350px;
+  overflow-y: auto;
 }
 
-.rq-omni-dropdown.active {
-  display: flex;
-}
-
-.rq-omni-results-scroll {
-  flex: 1 1 auto;
-  overflow-y: auto !important;
-  overflow-x: hidden;
-  -webkit-overflow-scrolling: touch;
-  max-height: min(58vh, 370px);
-  overscroll-behavior: contain;
-  scrollbar-width: thin;
-  scrollbar-color: rgba(99, 102, 241, 0.45) rgba(15, 23, 42, 0.6);
-}
-
-.rq-omni-results-scroll::-webkit-scrollbar {
-  width: 6px;
-}
-
-.rq-omni-results-scroll::-webkit-scrollbar-track {
-  background: rgba(15, 23, 42, 0.6);
-}
-
-.rq-omni-results-scroll::-webkit-scrollbar-thumb {
-  background: rgba(99, 102, 241, 0.45);
-  border-radius: 9999px;
-}
-
-.rq-omni-results-scroll::-webkit-scrollbar-thumb:hover {
-  background: rgba(99, 102, 241, 0.7);
-}
-
-.rq-omni-item {
+.rq-search-item {
   display: flex;
   align-items: center;
   gap: 0.85rem;
-  padding: 0.75rem 1.1rem;
-  color: #fff;
-  text-decoration: none;
+  padding: 0.75rem 1rem;
   border-bottom: 1px solid rgba(255, 255, 255, 0.05);
-  transition: all 0.2s ease;
+  text-decoration: none;
+  color: var(--rq-text-title);
+  transition: background 0.15s ease;
+}
+.rq-search-item:hover, .rq-search-item.selected {
+  background: rgba(56, 189, 248, 0.1);
 }
 
-.rq-omni-item:last-child {
-  border-bottom: none;
-}
-
-.rq-omni-item:hover, .rq-omni-item.selected {
-  background: rgba(99, 102, 241, 0.18);
-  padding-right: 1.35rem;
-}
-
-.rq-omni-thumb {
+.rq-search-thumb {
   width: 44px;
   height: 44px;
   border-radius: 10px;
   object-fit: cover;
-  background: rgba(255, 255, 255, 0.05);
+  background: #0f172a;
   border: 1px solid rgba(255, 255, 255, 0.1);
   flex-shrink: 0;
 }
 
-.rq-omni-meta {
-  flex: 1;
-  min-width: 0;
-}
-
-.rq-omni-title {
-  font-size: 0.88rem;
-  font-weight: 750;
-  color: #f8fafc;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  margin: 0 0 0.2rem;
-}
-
-.rq-omni-title mark {
-  background: rgba(99, 102, 241, 0.35);
-  color: #a5b4fc;
-  border-radius: 4px;
-  padding: 0 2px;
-}
-
-.rq-omni-sub {
-  font-size: 0.75rem;
-  color: var(--rq-text-secondary);
+/* Quick Category Tags */
+.rq-quick-pills {
   display: flex;
-  align-items: center;
-  gap: 0.5rem;
-}
-
-.rq-omni-cat-badge {
-  background: rgba(255, 255, 255, 0.08);
-  padding: 0.15rem 0.45rem;
-  border-radius: 6px;
-  font-size: 0.68rem;
-  color: #94a3b8;
-}
-
-.rq-omni-price {
-  font-weight: 800;
-  font-size: 0.85rem;
-  color: #38bdf8;
-  white-space: nowrap;
-}
-
-.rq-omni-footer {
-  flex-shrink: 0;
-  padding: 0.75rem 1rem;
-  background: rgba(10, 15, 29, 0.98);
-  text-align: center;
-  border-top: 1px solid rgba(255, 255, 255, 0.08);
-}
-
-.rq-omni-footer a {
-  color: var(--rq-indigo-light);
-  font-size: 0.82rem;
-  font-weight: 700;
-  text-decoration: none;
-  display: inline-flex;
-  align-items: center;
-  gap: 0.4rem;
-}
-
-.rq-omni-footer a:hover {
-  text-decoration: underline;
-}
-
-.rq-omni-empty {
-  padding: 1.5rem 1rem;
-  text-align: center;
-  color: #94a3b8;
-  font-size: 0.85rem;
-}
-
-.rq-omni-loading {
-  padding: 1.25rem 1rem;
-  text-align: center;
-  color: #94a3b8;
-  font-size: 0.85rem;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0.5rem;
-}
-
-/* Quick Search Tags */
-.rq-quick-tags {
-  display: flex;
-  align-items: center;
   flex-wrap: wrap;
-  gap: 0.6rem;
+  align-items: center;
+  gap: 0.5rem;
 }
 
-.rq-tag-label {
+.rq-quick-label {
   font-size: 0.8rem;
+  color: var(--rq-text-muted);
   font-weight: 700;
-  color: var(--rq-text-tertiary);
 }
 
-.rq-tag-chip {
-  font-size: 0.78rem;
-  font-weight: 700;
-  padding: 0.3rem 0.85rem;
+.rq-quick-chip {
+  padding: 0.35rem 0.85rem;
   border-radius: 9999px;
   background: rgba(255, 255, 255, 0.04);
   border: 1px solid rgba(255, 255, 255, 0.08);
-  color: var(--rq-text-secondary);
+  color: var(--rq-text-body);
+  font-size: 0.8rem;
   text-decoration: none;
   transition: all 0.2s ease;
 }
-
-.rq-tag-chip:hover {
-  background: rgba(99, 102, 241, 0.12);
-  border-color: rgba(99, 102, 241, 0.3);
-  color: var(--rq-indigo-light);
+.rq-quick-chip:hover {
+  background: rgba(56, 189, 248, 0.15);
+  border-color: rgba(56, 189, 248, 0.35);
+  color: #fff;
   transform: translateY(-1px);
 }
 
-/* Spotlight Card (Hero Left) */
-.rq-spotlight-wrapper {
+/* Hero Showcase Card (App / Spotlight Switcher) */
+.rq-hero-visual-card {
   position: relative;
+  background: linear-gradient(165deg, rgba(17, 24, 39, 0.85) 0%, rgba(10, 15, 30, 0.95) 100%);
+  border: 1px solid rgba(56, 189, 248, 0.25);
+  border-radius: var(--rq-radius-lg);
+  padding: 1.75rem;
+  box-shadow: 0 25px 60px -15px rgba(0, 0, 0, 0.8), 0 0 40px -10px rgba(56, 189, 248, 0.15);
+  backdrop-filter: blur(20px);
 }
 
-.rq-spotlight-card {
-  position: relative;
-  background: rgba(15, 23, 42, 0.75);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: 28px;
-  padding: 2rem;
-  box-shadow: var(--rq-shadow-card), inset 0 1px 1px rgba(255, 255, 255, 0.15);
-  backdrop-filter: blur(25px);
-  transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
-  overflow: hidden;
-}
-
-.rq-spotlight-card:hover {
-  transform: translateY(-5px);
-  border-color: rgba(99, 102, 241, 0.4);
-  box-shadow: var(--rq-shadow-card), 0 0 35px rgba(99, 102, 241, 0.2);
-}
-
-.rq-spotlight-badge {
+.rq-tabs-switch {
   display: inline-flex;
   align-items: center;
-  gap: 0.45rem;
-  padding: 0.35rem 0.85rem;
-  border-radius: 9999px;
-  background: rgba(16, 185, 129, 0.12);
-  border: 1px solid rgba(16, 185, 129, 0.25);
-  color: #34d399;
-  font-size: 0.75rem;
-  font-weight: 800;
+  gap: 0.35rem;
+  background: rgba(0, 0, 0, 0.45);
+  padding: 0.3rem;
+  border-radius: 14px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
   margin-bottom: 1.25rem;
 }
 
-.rq-spotlight-media {
-  position: relative;
-  width: 100%;
-  height: 220px;
-  border-radius: 20px;
-  overflow: hidden;
-  margin-bottom: 1.5rem;
-  background: #1e293b;
-  border: 1px solid rgba(255, 255, 255, 0.08);
-}
-
-.rq-spotlight-img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  transition: transform 0.6s cubic-bezier(0.16, 1, 0.3, 1);
-}
-
-.rq-spotlight-card:hover .rq-spotlight-img {
-  transform: scale(1.05);
-}
-
-.rq-spotlight-info {
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-end;
-  gap: 1rem;
-}
-
-.rq-spotlight-category {
+.rq-tab-btn {
+  padding: 0.45rem 1rem;
+  border-radius: 10px;
+  border: none;
   font-size: 0.8rem;
   font-weight: 800;
-  color: var(--rq-cyan-light);
-  margin-bottom: 0.35rem;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-}
-
-.rq-spotlight-name {
-  font-size: 1.25rem;
-  font-weight: 800;
-  color: #fff;
-  margin: 0;
-  line-height: 1.3;
-}
-
-.rq-spotlight-pricing {
-  text-align: left;
-}
-
-.rq-price-label {
-  font-size: 0.75rem;
-  color: var(--rq-text-tertiary);
-  font-weight: 700;
-  margin-bottom: 0.2rem;
-}
-
-.rq-price-val {
-  font-size: 1.45rem;
-  font-weight: 900;
-  color: var(--rq-gold-light);
-  font-family: 'Space Grotesk', sans-serif;
-}
-
-.rq-spotlight-action {
-  margin-top: 1.5rem;
-  display: flex;
-  gap: 0.85rem;
-}
-
-.rq-btn-highlight {
-  flex: 1;
-  background: var(--rq-gradient-hero);
-  color: #fff;
-  padding: 0.85rem 1.25rem;
-  border-radius: 14px;
-  font-weight: 800;
-  font-size: 0.92rem;
-  text-align: center;
-  text-decoration: none;
-  transition: all 0.25s ease;
+  cursor: pointer;
+  background: transparent;
+  color: var(--rq-text-muted);
   display: inline-flex;
   align-items: center;
-  justify-content: center;
-  gap: 0.5rem;
+  gap: 0.4rem;
+  transition: all 0.2s ease;
+}
+.rq-tab-btn.active {
+  background: var(--rq-cyan);
+  color: #0b1120;
+  box-shadow: 0 4px 12px rgba(6, 182, 212, 0.35);
 }
 
-.rq-btn-highlight:hover {
-  transform: translateY(-2px);
-  filter: brightness(1.1);
-  box-shadow: 0 10px 24px rgba(99, 102, 241, 0.4);
-}
-
-.rq-btn-outline {
-  padding: 0.85rem 1.25rem;
-  border-radius: 14px;
-  background: rgba(255, 255, 255, 0.04);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  color: #fff;
-  font-weight: 700;
-  font-size: 0.92rem;
-  text-decoration: none;
-  transition: all 0.25s ease;
-}
-
-.rq-btn-outline:hover {
-  background: rgba(255, 255, 255, 0.08);
-  border-color: rgba(255, 255, 255, 0.2);
-}
-
-/* ─────────────────────────────────────────────────────────────
-   2. ENTERPRISE PROTOCOL BAR (Trust Architecture)
-   ───────────────────────────────────────────────────────────── */
-.rq-protocol-section {
+/* ══════════════════════════════════════════════════════════════════════
+   2. TRUST PILLARS BAR (4 Value Props)
+   ══════════════════════════════════════════════════════════════════════ */
+.rq-trust-section {
   position: relative;
-  z-index: 1;
-  padding: 1.5rem 0 3.5rem;
+  margin: 1.5rem 0 3.5rem;
+  z-index: 10;
 }
 
-.rq-protocol-grid {
+.rq-trust-grid {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
   gap: 1.25rem;
 }
 
-.rq-protocol-box {
-  background: rgba(15, 23, 42, 0.6);
-  border: 1px solid rgba(255, 255, 255, 0.07);
-  border-radius: 20px;
-  padding: 1.5rem;
+@media (max-width: 1024px) {
+  .rq-trust-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+@media (max-width: 640px) {
+  .rq-trust-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.rq-trust-card {
   display: flex;
   align-items: flex-start;
-  gap: 1.15rem;
-  backdrop-filter: blur(16px);
+  gap: 1rem;
+  padding: 1.35rem 1.25rem;
+  background: var(--rq-card-bg);
+  border: 1px solid var(--rq-border);
+  border-radius: var(--rq-radius-md);
+  backdrop-filter: blur(12px);
   transition: all 0.3s ease;
 }
-
-.rq-protocol-box:hover {
-  transform: translateY(-4px);
-  border-color: rgba(99, 102, 241, 0.3);
-  background: rgba(22, 32, 54, 0.7);
+.rq-trust-card:hover {
+  background: var(--rq-card-hover);
+  border-color: var(--rq-border-hover);
+  transform: translateY(-3px);
+  box-shadow: 0 15px 35px -10px rgba(0, 0, 0, 0.6);
 }
 
-.rq-protocol-icon {
+.rq-trust-icon-wrap {
   width: 48px;
   height: 48px;
   border-radius: 14px;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 1.25rem;
+  font-size: 1.3rem;
   flex-shrink: 0;
-  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.3);
+}
+.rq-icon-speed {
+  background: rgba(245, 158, 11, 0.12);
+  color: #fbbf24;
+  border: 1px solid rgba(245, 158, 11, 0.25);
+}
+.rq-icon-shield {
+  background: rgba(16, 185, 129, 0.12);
+  color: #34d399;
+  border: 1px solid rgba(16, 185, 129, 0.25);
+}
+.rq-icon-wallet {
+  background: rgba(56, 189, 248, 0.12);
+  color: #38bdf8;
+  border: 1px solid rgba(56, 189, 248, 0.25);
+}
+.rq-icon-support {
+  background: rgba(129, 140, 248, 0.12);
+  color: #818cf8;
+  border: 1px solid rgba(129, 140, 248, 0.25);
 }
 
-.rq-icon-speed { background: linear-gradient(135deg, rgba(6, 182, 212, 0.2), rgba(6, 182, 212, 0.05)); color: var(--rq-cyan-light); border: 1px solid rgba(6, 182, 212, 0.2); }
-.rq-icon-shield { background: linear-gradient(135deg, rgba(99, 102, 241, 0.2), rgba(99, 102, 241, 0.05)); color: var(--rq-indigo-light); border: 1px solid rgba(99, 102, 241, 0.2); }
-.rq-icon-coins { background: linear-gradient(135deg, rgba(245, 158, 11, 0.2), rgba(245, 158, 11, 0.05)); color: var(--rq-gold-light); border: 1px solid rgba(245, 158, 11, 0.2); }
-.rq-icon-check { background: linear-gradient(135deg, rgba(16, 185, 129, 0.2), rgba(16, 185, 129, 0.05)); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.2); }
-
-.rq-protocol-title {
-  font-size: 1rem;
+.rq-trust-title {
+  font-size: 0.95rem;
   font-weight: 800;
-  color: #fff;
-  margin: 0 0 0.3rem;
+  color: var(--rq-text-title);
+  margin-bottom: 0.25rem;
 }
 
-.rq-protocol-text {
-  font-size: 0.83rem;
-  color: var(--rq-text-secondary);
+.rq-trust-desc {
+  font-size: 0.825rem;
+  color: var(--rq-text-muted);
   line-height: 1.5;
-  margin: 0;
 }
 
-/* ─────────────────────────────────────────────────────────────
-   3. CATEGORY SHOWCASE — Holographic Service Matrix
-   ───────────────────────────────────────────────────────────── */
-.rq-section-head {
+/* ══════════════════════════════════════════════════════════════════════
+   3. SECTION HEADERS
+   ═══════════════════════════════════════════════════════════════ */
+.rq-section-header {
   display: flex;
-  justify-content: space-between;
   align-items: flex-end;
-  margin-bottom: 2rem;
+  justify-content: space-between;
+  margin-bottom: 1.75rem;
+  gap: 1rem;
 }
 
-.rq-section-tag {
-  font-size: 0.8rem;
+.rq-section-badge {
+  display: inline-block;
+  font-size: 0.75rem;
   font-weight: 800;
-  color: var(--rq-indigo-light);
+  color: var(--rq-cyan-light);
   text-transform: uppercase;
-  letter-spacing: 0.06em;
+  letter-spacing: 0.05em;
   margin-bottom: 0.35rem;
-  display: block;
 }
 
-.rq-section-title {
-  font-size: clamp(1.4rem, 2.8vw, 1.95rem);
+.rq-section-title-text {
+  font-size: clamp(1.4rem, 2.5vw, 1.85rem);
   font-weight: 900;
-  color: #fff;
-  margin: 0;
+  color: var(--rq-text-title);
 }
 
-.rq-section-link {
-  color: var(--rq-indigo-light);
-  font-size: 0.88rem;
-  font-weight: 800;
-  text-decoration: none;
+.rq-section-more-link {
   display: inline-flex;
   align-items: center;
-  gap: 0.4rem;
+  gap: 0.45rem;
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--rq-cyan-light);
+  text-decoration: none;
   transition: all 0.2s ease;
+  padding: 0.4rem 0.85rem;
+  border-radius: 12px;
+  background: rgba(56, 189, 248, 0.08);
+  border: 1px solid rgba(56, 189, 248, 0.2);
 }
-
-.rq-section-link:hover {
+.rq-section-more-link:hover {
+  background: rgba(56, 189, 248, 0.18);
   color: #fff;
   transform: translateX(-3px);
 }
 
-.rq-categories-matrix {
+/* ══════════════════════════════════════════════════════════════════════
+   4. CATEGORIES BENTO GRID
+   ══════════════════════════════════════════════════════════════════════ */
+.rq-categories-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(135px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
   gap: 1.15rem;
-  margin-bottom: 4.5rem;
+  margin-bottom: 4rem;
 }
 
-.rq-category-tile {
-  background: rgba(15, 23, 42, 0.65);
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  border-radius: 20px;
-  padding: 1.5rem 0.85rem 1.15rem;
+@media (max-width: 640px) {
+  .rq-categories-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 0.75rem;
+  }
+}
+
+.rq-category-card {
   display: flex;
   flex-direction: column;
   align-items: center;
   text-align: center;
+  padding: 1.5rem 1rem;
+  background: var(--rq-card-bg);
+  border: 1px solid var(--rq-border);
+  border-radius: var(--rq-radius-md);
   text-decoration: none;
-  transition: all 0.35s cubic-bezier(0.16, 1, 0.3, 1);
-  backdrop-filter: blur(14px);
-  position: relative;
-  overflow: hidden;
+  transition: all 0.25s ease;
+  backdrop-filter: blur(12px);
+}
+.rq-category-card:hover {
+  background: var(--rq-card-hover);
+  border-color: rgba(56, 189, 248, 0.5);
+  transform: translateY(-4px);
+  box-shadow: 0 15px 30px -10px rgba(6, 182, 212, 0.2);
 }
 
-.rq-category-tile::after {
-  content: '';
-  position: absolute;
-  inset: 0;
-  border-radius: 20px;
-  padding: 1px;
-  background: linear-gradient(135deg, rgba(99, 102, 241, 0.4), transparent 60%);
-  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
-  -webkit-mask-composite: xor;
-  mask-composite: exclude;
-  opacity: 0;
-  transition: opacity 0.3s ease;
-}
-
-.rq-category-tile:hover {
-  transform: translateY(-6px);
-  background: rgba(22, 32, 54, 0.85);
-  border-color: rgba(99, 102, 241, 0.35);
-  box-shadow: 0 16px 32px -10px rgba(0, 0, 0, 0.5), 0 0 20px rgba(99, 102, 241, 0.15);
-}
-
-.rq-category-tile:hover::after {
-  opacity: 1;
-}
-
-.rq-category-icon-box {
-  width: 58px;
-  height: 58px;
-  border-radius: 16px;
-  background: rgba(255, 255, 255, 0.03);
+.rq-cat-icon-container {
+  width: 60px;
+  height: 60px;
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
   display: flex;
   align-items: center;
   justify-content: center;
-  margin-bottom: 0.85rem;
-  transition: transform 0.4s ease;
+  margin-bottom: 0.9rem;
+  overflow: hidden;
+  transition: transform 0.25s ease;
 }
-
-.rq-category-tile:hover .rq-category-icon-box {
+.rq-category-card:hover .rq-cat-icon-container {
   transform: scale(1.1);
+  border-color: rgba(56, 189, 248, 0.4);
 }
 
-.rq-category-icon-box img {
-  width: 44px;
-  height: 44px;
-  object-fit: contain;
-  filter: drop-shadow(0 4px 10px rgba(0,0,0,0.3));
-}
-
-.rq-category-label {
-  font-size: 0.9rem;
-  font-weight: 800;
-  color: #fff;
-  margin-bottom: 0.3rem;
-  line-height: 1.3;
-}
-
-.rq-category-count {
-  font-size: 0.72rem;
-  font-weight: 700;
-  color: var(--rq-text-tertiary);
-  background: rgba(255, 255, 255, 0.04);
-  padding: 0.15rem 0.55rem;
-  border-radius: 9999px;
-}
-
-/* ─────────────────────────────────────────────────────────────
-   4. CURATED SERVICES BENTO GRID (Products)
-   ───────────────────────────────────────────────────────────── */
-.rq-services-bento {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
-  gap: 1.5rem;
-  margin-bottom: 5rem;
-}
-
-.rq-service-card {
-  background: var(--rq-surface-card);
-  border: 1px solid var(--rq-border);
-  border-radius: 24px;
-  padding: 1.25rem;
-  display: flex;
-  flex-direction: column;
-  text-decoration: none;
-  transition: all 0.35s cubic-bezier(0.16, 1, 0.3, 1);
-  backdrop-filter: blur(20px);
-  position: relative;
-  overflow: hidden;
-}
-
-.rq-service-card:hover {
-  transform: translateY(-6px);
-  border-color: var(--rq-border-hover);
-  background: var(--rq-surface-hover);
-  box-shadow: 0 20px 40px -10px rgba(0, 0, 0, 0.6), 0 0 25px rgba(99, 102, 241, 0.15);
-}
-
-.rq-service-banner {
-  position: relative;
-  width: 100%;
-  height: 160px;
-  border-radius: 18px;
-  overflow: hidden;
-  background: #1e293b;
-  margin-bottom: 1.15rem;
-}
-
-.rq-service-banner img {
+.rq-cat-icon-container img {
   width: 100%;
   height: 100%;
   object-fit: cover;
-  transition: transform 0.5s ease;
 }
 
-.rq-service-card:hover .rq-service-banner img {
-  transform: scale(1.08);
-}
-
-.rq-service-tag-pill {
-  position: absolute;
-  top: 10px;
-  right: 10px;
-  background: rgba(7, 10, 17, 0.85);
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  color: var(--rq-cyan-light);
-  font-size: 0.72rem;
+.rq-cat-name {
+  font-size: 0.925rem;
   font-weight: 800;
-  padding: 0.25rem 0.65rem;
-  border-radius: 9999px;
-  backdrop-filter: blur(10px);
-}
-
-.rq-service-instant-badge {
-  position: absolute;
-  bottom: 10px;
-  right: 10px;
-  background: rgba(16, 185, 129, 0.9);
-  color: #fff;
-  font-size: 0.68rem;
-  font-weight: 800;
-  padding: 0.2rem 0.55rem;
-  border-radius: 8px;
-  display: flex;
-  align-items: center;
-  gap: 0.3rem;
-  box-shadow: 0 4px 10px rgba(0,0,0,0.3);
-}
-
-.rq-service-content {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-}
-
-.rq-service-cat {
-  font-size: 0.75rem;
-  font-weight: 700;
-  color: var(--rq-indigo-light);
+  color: var(--rq-text-title);
   margin-bottom: 0.35rem;
 }
 
-.rq-service-title {
-  font-size: 1.05rem;
-  font-weight: 800;
+.rq-cat-count-badge {
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: var(--rq-cyan-light);
+  background: rgba(6, 182, 212, 0.1);
+  padding: 0.2rem 0.65rem;
+  border-radius: 9999px;
+  border: 1px solid rgba(6, 182, 212, 0.2);
+}
+
+/* ══════════════════════════════════════════════════════════════════════
+   5. FEATURED PRODUCTS GRID
+   ══════════════════════════════════════════════════════════════════════ */
+.rq-products-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 1.35rem;
+  margin-bottom: 4rem;
+}
+
+@media (max-width: 640px) {
+  .rq-products-grid {
+    grid-template-columns: 1fr;
+    gap: 1rem;
+  }
+}
+
+.rq-product-card {
+  display: flex;
+  flex-direction: column;
+  background: var(--rq-card-bg);
+  border: 1px solid var(--rq-border);
+  border-radius: var(--rq-radius-lg);
+  overflow: hidden;
+  text-decoration: none;
+  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  backdrop-filter: blur(14px);
+}
+.rq-product-card:hover {
+  background: var(--rq-card-hover);
+  border-color: rgba(56, 189, 248, 0.45);
+  transform: translateY(-5px);
+  box-shadow: 0 20px 45px -12px rgba(0, 0, 0, 0.8), 0 0 25px -5px rgba(6, 182, 212, 0.2);
+}
+
+.rq-prod-media-box {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 4/3;
+  background: #090e1a;
+  overflow: hidden;
+}
+
+.rq-prod-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 0.4s ease;
+}
+.rq-product-card:hover .rq-prod-img {
+  transform: scale(1.06);
+}
+
+.rq-prod-cat-pill {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  background: rgba(10, 15, 30, 0.85);
+  backdrop-filter: blur(8px);
   color: #fff;
-  margin: 0 0 0.85rem;
-  line-height: 1.4;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  padding: 0.25rem 0.65rem;
+  border-radius: 8px;
+  font-size: 0.725rem;
+  font-weight: 800;
+}
+
+.rq-prod-stock-pill {
+  position: absolute;
+  bottom: 12px;
+  left: 12px;
+  background: rgba(16, 185, 129, 0.9);
+  color: #0b1120;
+  padding: 0.2rem 0.6rem;
+  border-radius: 8px;
+  font-size: 0.7rem;
+  font-weight: 900;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+}
+
+.rq-prod-body {
+  padding: 1.25rem;
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+}
+
+.rq-prod-title {
+  font-size: 1rem;
+  font-weight: 800;
+  color: var(--rq-text-title);
+  line-height: 1.45;
+  margin-bottom: 0.85rem;
   display: -webkit-box;
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
   overflow: hidden;
 }
 
-.rq-service-foot {
+.rq-prod-footer {
   margin-top: auto;
   padding-top: 1rem;
   border-top: 1px solid rgba(255, 255, 255, 0.06);
   display: flex;
   align-items: center;
   justify-content: space-between;
+  gap: 0.5rem;
 }
 
-.rq-service-price-block {
-  display: flex;
-  flex-direction: column;
-}
-
-.rq-price-sub {
-  font-size: 0.7rem;
-  font-weight: 700;
-  color: var(--rq-text-tertiary);
-}
-
-.rq-service-amount {
-  font-size: 1.25rem;
-  font-weight: 900;
-  color: var(--rq-gold-light);
-  font-family: 'Space Grotesk', sans-serif;
-}
-
-.rq-service-buy-btn {
-  background: rgba(99, 102, 241, 0.12);
-  border: 1px solid rgba(99, 102, 241, 0.3);
-  color: #fff;
-  font-size: 0.82rem;
-  font-weight: 800;
-  padding: 0.5rem 0.95rem;
-  border-radius: 12px;
-  display: inline-flex;
-  align-items: center;
-  gap: 0.4rem;
-  transition: all 0.25s ease;
-}
-
-.rq-service-card:hover .rq-service-buy-btn {
-  background: var(--rq-gradient-hero);
-  border-color: transparent;
-  box-shadow: 0 6px 18px rgba(99, 102, 241, 0.4);
-  transform: translateX(-2px);
-}
-
-/* ─────────────────────────────────────────────────────────────
-   5. RAQAMIYAT CLOUD STORES (Independent Merchant Ecosystem)
-   ───────────────────────────────────────────────────────────── */
-.rq-stores-section {
-  position: relative;
-  z-index: 1;
-  padding-bottom: 5rem;
-}
-
-.rq-stores-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-  gap: 1.5rem;
-  margin-bottom: 3rem;
-}
-
-.rq-store-card {
-  background: var(--rq-surface-card);
-  border: 1px solid var(--rq-border);
-  border-radius: 22px;
-  padding: 1.5rem;
-  display: flex;
-  flex-direction: column;
-  transition: all 0.3s ease;
-  backdrop-filter: blur(20px);
-}
-
-.rq-store-card:hover {
-  transform: translateY(-5px);
-  border-color: var(--rq-border-hover);
-  background: var(--rq-surface-hover);
-  box-shadow: var(--rq-shadow-card);
-}
-
-.rq-store-top {
-  display: flex;
-  align-items: center;
-  gap: 1rem;
-  margin-bottom: 1rem;
-}
-
-.rq-store-logo {
-  width: 52px;
-  height: 52px;
-  border-radius: 16px;
-  background: #1e293b;
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  overflow: hidden;
-  flex-shrink: 0;
-}
-
-.rq-store-logo img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-}
-
-.rq-store-title-wrap {
-  flex: 1;
-  min-width: 0;
-}
-
-.rq-store-name {
-  font-size: 1.1rem;
-  font-weight: 800;
-  color: #fff;
-  margin: 0 0 0.25rem;
-  display: flex;
-  align-items: center;
-  gap: 0.45rem;
-}
-
-.rq-verified-check {
-  color: var(--rq-cyan-light);
-  font-size: 0.85rem;
-}
-
-.rq-store-subdomain {
-  font-size: 0.78rem;
-  color: var(--rq-text-tertiary);
-  font-family: 'Space Grotesk', sans-serif;
-  direction: ltr;
-  text-align: right;
+.rq-price-label-sub {
+  font-size: 0.725rem;
+  color: var(--rq-text-muted);
   display: block;
 }
 
-.rq-store-bio {
-  font-size: 0.85rem;
-  color: var(--rq-text-secondary);
-  line-height: 1.6;
-  margin: 0 0 1.25rem;
-  flex: 1;
-}
-
-.rq-store-meta-bar {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding-top: 1rem;
-  border-top: 1px solid rgba(255, 255, 255, 0.06);
-}
-
-.rq-store-status-pill {
-  font-size: 0.75rem;
+.rq-price-value {
+  font-family: 'Space Grotesk', 'Tajawal', sans-serif;
+  font-size: 1.15rem;
   font-weight: 800;
-  color: var(--rq-gold-light);
-  background: rgba(245, 158, 11, 0.1);
-  border: 1px solid rgba(245, 158, 11, 0.2);
-  padding: 0.25rem 0.65rem;
-  border-radius: 9999px;
+  color: var(--rq-amber-light);
 }
 
-.rq-store-visit-link {
-  color: var(--rq-indigo-light);
-  font-size: 0.85rem;
-  font-weight: 800;
-  text-decoration: none;
+.rq-prod-action-btn {
   display: inline-flex;
   align-items: center;
   gap: 0.4rem;
+  background: rgba(56, 189, 248, 0.12);
+  border: 1px solid rgba(56, 189, 248, 0.25);
+  color: var(--rq-cyan-light);
+  padding: 0.5rem 0.9rem;
+  border-radius: 12px;
+  font-size: 0.8rem;
+  font-weight: 800;
   transition: all 0.2s ease;
 }
-
-.rq-store-visit-link:hover {
-  color: #fff;
-  transform: translateX(-3px);
+.rq-product-card:hover .rq-prod-action-btn {
+  background: var(--rq-cyan);
+  color: #0b1120;
+  border-color: var(--rq-cyan);
 }
 
-/* Merchant Onboarding Banner */
-.rq-merchant-banner {
-  background: linear-gradient(135deg, rgba(30, 41, 59, 0.9) 0%, rgba(15, 23, 42, 0.95) 100%);
-  border: 1px solid rgba(99, 102, 241, 0.25);
-  border-radius: 28px;
-  padding: 2.5rem 3rem;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
+/* ══════════════════════════════════════════════════════════════════════
+   6. MERCHANT & STORES PLATFORM SECTION
+   ══════════════════════════════════════════════════════════════════════ */
+.rq-stores-section-wrap {
+  margin-bottom: 4rem;
+}
+
+.rq-stores-banner-cta {
+  background: radial-gradient(circle at 100% 0%, rgba(245, 158, 11, 0.15) 0%, transparent 60%),
+              radial-gradient(circle at 0% 100%, rgba(56, 189, 248, 0.12) 0%, transparent 60%),
+              linear-gradient(145deg, rgba(15, 23, 42, 0.95) 0%, rgba(10, 16, 32, 0.98) 100%);
+  border: 1px solid rgba(245, 158, 11, 0.35);
+  border-radius: var(--rq-radius-lg);
+  padding: 2.25rem 2rem;
+  display: grid;
+  grid-template-columns: 1.4fr 0.8fr;
   gap: 2rem;
-  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.6);
-  position: relative;
-  overflow: hidden;
+  align-items: center;
+  box-shadow: 0 25px 60px -15px rgba(0, 0, 0, 0.7);
 }
 
-.rq-merchant-banner::before {
-  content: '';
-  position: absolute;
-  top: -50%;
-  right: -20%;
-  width: 500px;
-  height: 500px;
-  background: radial-gradient(circle, rgba(99, 102, 241, 0.15) 0%, transparent 70%);
-  pointer-events: none;
-}
-
-.rq-merchant-copy {
-  max-width: 650px;
-  position: relative;
-  z-index: 1;
+@media (max-width: 900px) {
+  .rq-stores-banner-cta {
+    grid-template-columns: 1fr;
+    padding: 1.75rem 1.25rem;
+  }
 }
 
 .rq-merchant-badge {
@@ -1087,519 +828,162 @@
   gap: 0.5rem;
   padding: 0.35rem 0.85rem;
   border-radius: 9999px;
-  background: rgba(99, 102, 241, 0.15);
-  border: 1px solid rgba(99, 102, 241, 0.3);
-  color: var(--rq-indigo-light);
+  background: rgba(245, 158, 11, 0.12);
+  border: 1px solid rgba(245, 158, 11, 0.3);
+  color: var(--rq-amber-light);
   font-size: 0.8rem;
   font-weight: 800;
-  margin-bottom: 1rem;
+  margin-bottom: 0.85rem;
 }
 
-.rq-merchant-heading {
-  font-size: clamp(1.4rem, 2.5vw, 1.95rem);
-  font-weight: 900;
-  color: #fff;
-  margin: 0 0 0.85rem;
+.rq-stores-grid-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(270px, 1fr));
+  gap: 1.25rem;
+  margin-top: 1.5rem;
 }
 
-.rq-merchant-text {
-  font-size: 0.95rem;
-  color: var(--rq-text-secondary);
-  line-height: 1.7;
-  margin: 0;
-}
-
-.rq-merchant-action {
-  position: relative;
-  z-index: 1;
-  flex-shrink: 0;
-}
-
-.rq-merchant-btn {
-  background: var(--rq-gradient-hero);
-  color: #fff;
-  font-weight: 900;
-  font-size: 1rem;
-  padding: 1rem 2.2rem;
-  border-radius: 16px;
-  text-decoration: none;
-  display: inline-flex;
-  align-items: center;
-  gap: 0.65rem;
-  box-shadow: 0 12px 28px rgba(99, 102, 241, 0.4);
-  transition: all 0.3s ease;
-}
-
-.rq-merchant-btn:hover {
-  transform: translateY(-3px);
-  box-shadow: 0 16px 36px rgba(99, 102, 241, 0.6);
-  filter: brightness(1.1);
-}
-
-.rq-merchant-btn.rq-btn-gold {
-  background: linear-gradient(135deg, #f59e0b 0%, #fbbf24 100%);
-  color: #070a11;
-  box-shadow: 0 12px 28px rgba(245, 158, 11, 0.4);
-}
-
-.rq-merchant-btn.rq-btn-gold:hover {
-  box-shadow: 0 16px 36px rgba(245, 158, 11, 0.6);
-}
-
-.rq-merchant-btn.rq-btn-secondary {
-  background: rgba(255, 255, 255, 0.06);
-  border: 1px solid rgba(255, 255, 255, 0.15);
-  color: #f8fafc;
-  box-shadow: none;
-}
-
-.rq-merchant-btn.rq-btn-secondary:hover {
-  background: rgba(255, 255, 255, 0.12);
-  border-color: rgba(99, 102, 241, 0.4);
-}
-
-.rq-create-store-head-btn {
-  background: linear-gradient(135deg, #f59e0b 0%, #fbbf24 100%);
-  color: #070a11 !important;
-  font-weight: 800;
-  font-size: 0.85rem;
-  padding: 0.6rem 1.25rem;
-  border-radius: 12px;
-  text-decoration: none;
-  display: inline-flex;
-  align-items: center;
-  gap: 0.45rem;
-  box-shadow: 0 8px 20px rgba(245, 158, 11, 0.3);
+.rq-store-card-item {
+  background: var(--rq-card-bg);
+  border: 1px solid var(--rq-border);
+  border-radius: var(--rq-radius-md);
+  padding: 1.25rem;
+  display: flex;
+  flex-direction: column;
   transition: all 0.25s ease;
+  backdrop-filter: blur(12px);
+}
+.rq-store-card-item:hover {
+  background: var(--rq-card-hover);
+  border-color: rgba(56, 189, 248, 0.4);
+  transform: translateY(-3px);
 }
 
-.rq-create-store-head-btn:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 12px 26px rgba(245, 158, 11, 0.5);
-  filter: brightness(1.08);
+.rq-store-header-box {
+  display: flex;
+  align-items: center;
+  gap: 0.85rem;
+  margin-bottom: 0.85rem;
 }
 
-/* ─────────────────────────────────────────────────────────────
-   6. PLATFORM PERFORMANCE PULSE (Live Metrics)
-   ───────────────────────────────────────────────────────────── */
-.rq-metrics-bar {
+.rq-store-logo-box {
+  width: 50px;
+  height: 50px;
+  border-radius: 14px;
+  background: #0f172a;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  overflow: hidden;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.rq-store-logo-box img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+/* ══════════════════════════════════════════════════════════════════════
+   7. LIVE PLATFORM METRICS
+   ══════════════════════════════════════════════════════════════════════ */
+.rq-metrics-grid {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
-  gap: 1.5rem;
-  margin-bottom: 5rem;
-}
-
-.rq-metric-card {
-  background: rgba(15, 23, 42, 0.5);
-  border: 1px solid rgba(255, 255, 255, 0.07);
-  border-radius: 20px;
-  padding: 1.5rem;
+  gap: 1.25rem;
+  padding: 2rem;
+  background: linear-gradient(145deg, rgba(15, 23, 42, 0.6) 0%, rgba(10, 16, 32, 0.8) 100%);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: var(--rq-radius-lg);
+  backdrop-filter: blur(14px);
   text-align: center;
-  backdrop-filter: blur(16px);
+  margin-bottom: 2rem;
 }
 
-.rq-metric-num {
-  font-size: clamp(1.8rem, 3.2vw, 2.5rem);
+@media (max-width: 900px) {
+  .rq-metrics-grid {
+    grid-template-columns: repeat(2, 1fr);
+    padding: 1.25rem;
+  }
+}
+@media (max-width: 480px) {
+  .rq-metrics-grid {
+    grid-template-columns: 1fr;
+    gap: 1rem;
+  }
+}
+
+.rq-metric-number {
+  font-family: 'Space Grotesk', 'Tajawal', sans-serif;
+  font-size: clamp(1.8rem, 3vw, 2.4rem);
   font-weight: 900;
   color: #fff;
-  font-family: 'Space Grotesk', sans-serif;
-  margin-bottom: 0.25rem;
-  background: linear-gradient(135deg, #ffffff 40%, #818cf8 100%);
+  background: linear-gradient(135deg, #38bdf8 0%, #fbbf24 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
+  margin-bottom: 0.35rem;
 }
 
 .rq-metric-title {
   font-size: 0.85rem;
   font-weight: 700;
-  color: var(--rq-text-secondary);
-}
-
-/* ─────────────────────────────────────────────────────────────
-   7. RESPONSIVE BREAKPOINTS (Mobile-First Perfection)
-   ───────────────────────────────────────────────────────────── */
-@media (max-width: 1024px) {
-  .rq-hero-layout {
-    grid-template-columns: 1fr;
-    gap: 2.5rem;
-  }
-  
-  .rq-protocol-grid {
-    grid-template-columns: repeat(2, 1fr);
-  }
-  
-  .rq-metrics-bar {
-    grid-template-columns: repeat(2, 1fr);
-  }
-  
-  .rq-merchant-banner {
-    flex-direction: column;
-    text-align: center;
-    padding: 2.5rem 1.5rem;
-  }
-  
-  .rq-merchant-copy {
-    max-width: 100%;
-  }
-}
-
-@media (max-width: 768px) {
-  .rq-hero-section {
-    padding: 1.75rem 0 1.5rem;
-  }
-
-  .rq-hero-title {
-    font-size: clamp(1.65rem, 5vw, 2.2rem);
-    margin-bottom: 0.75rem;
-  }
-
-  .rq-hero-desc {
-    font-size: 0.88rem;
-    line-height: 1.6;
-    margin-bottom: 1.25rem;
-  }
-  
-  .rq-protocol-grid {
-    grid-template-columns: repeat(2, 1fr);
-    gap: 0.65rem;
-  }
-
-  .rq-protocol-box {
-    padding: 0.85rem 0.75rem;
-    border-radius: 16px;
-    gap: 0.65rem;
-  }
-
-  .rq-protocol-icon {
-    width: 38px;
-    height: 38px;
-    font-size: 1rem;
-    border-radius: 10px;
-  }
-
-  .rq-protocol-title {
-    font-size: 0.82rem;
-    margin-bottom: 0.15rem;
-  }
-
-  .rq-protocol-text {
-    font-size: 0.7rem;
-    line-height: 1.35;
-  }
-  
-  .rq-metrics-bar {
-    grid-template-columns: repeat(2, 1fr);
-    gap: 0.65rem;
-    margin-bottom: 3rem;
-  }
-
-  .rq-metric-card {
-    padding: 1rem 0.75rem;
-    border-radius: 16px;
-  }
-  
-  .rq-categories-matrix {
-    grid-template-columns: repeat(3, 1fr);
-    gap: 0.55rem;
-    margin-bottom: 3rem;
-  }
-
-  .rq-category-tile {
-    padding: 0.85rem 0.4rem;
-    border-radius: 16px;
-  }
-
-  .rq-category-icon-box {
-    width: 44px;
-    height: 44px;
-    border-radius: 12px;
-    margin-bottom: 0.5rem;
-  }
-
-  .rq-category-icon-box img {
-    width: 32px;
-    height: 32px;
-  }
-
-  .rq-category-label {
-    font-size: 0.75rem;
-    margin-bottom: 0.2rem;
-  }
-
-  .rq-category-count {
-    font-size: 0.62rem;
-    padding: 0.1rem 0.4rem;
-  }
-  
-  /* 2 Products Side-by-Side on Mobile */
-  .rq-services-bento {
-    grid-template-columns: repeat(2, 1fr) !important;
-    gap: 0.65rem !important;
-    margin-bottom: 3.5rem;
-  }
-
-  .rq-service-card {
-    padding: 0.6rem;
-    border-radius: 16px;
-  }
-
-  .rq-service-banner {
-    height: 110px;
-    border-radius: 12px;
-    margin-bottom: 0.45rem;
-  }
-
-  .rq-service-tag-pill {
-    font-size: 0.58rem;
-    padding: 0.12rem 0.4rem;
-    top: 5px;
-    right: 5px;
-  }
-
-  .rq-service-instant-badge {
-    font-size: 0.54rem;
-    padding: 0.12rem 0.35rem;
-    bottom: 5px;
-    right: 5px;
-    gap: 0.2rem;
-  }
-
-  .rq-service-cat {
-    font-size: 0.65rem;
-    margin-bottom: 0.15rem;
-  }
-
-  .rq-service-title {
-    font-size: 0.82rem;
-    font-weight: 750;
-    margin: 0 0 0.45rem;
-    line-height: 1.25;
-    min-height: 2.1em;
-  }
-
-  .rq-service-foot {
-    padding-top: 0.45rem;
-    align-items: center;
-  }
-
-  .rq-price-sub {
-    font-size: 0.6rem;
-  }
-
-  .rq-service-amount {
-    font-size: 0.92rem;
-  }
-
-  .rq-service-buy-btn {
-    font-size: 0.7rem;
-    padding: 0.32rem 0.55rem;
-    border-radius: 8px;
-    gap: 0.25rem;
-  }
-  
-  .rq-omni-search {
-    flex-direction: column;
-    padding: 0.75rem;
-    gap: 0.65rem;
-    border-radius: 16px;
-  }
-  
-  .rq-omni-submit {
-    width: 100%;
-    justify-content: center;
-    padding: 0.65rem 1rem;
-    font-size: 0.85rem;
-    border-radius: 12px;
-  }
-}
-
-@media (max-width: 380px) {
-  .rq-services-bento {
-    gap: 0.45rem !important;
-  }
-  .rq-service-banner {
-    height: 95px;
-  }
-  .rq-service-title {
-    font-size: 0.76rem;
-  }
-  .rq-service-amount {
-    font-size: 0.85rem;
-  }
-  .rq-service-buy-btn span {
-    display: none;
-  }
-  .rq-service-buy-btn {
-    padding: 0.35rem 0.45rem;
-  }
-}
-
-/* ══════════════════════════════════════════════════════════
-   NATIVE APP EXCLUSIVE VIEW (body.is-native-app)
-   App-native experience with stories, compact search, and tactile cards
-   ══════════════════════════════════════════════════════════ */
-body.is-native-app .rq-hero-section {
-  padding: 0.75rem 0 1rem !important;
-}
-
-body.is-native-app .rq-meta-pill,
-body.is-native-app .rq-hero-desc,
-body.is-native-app .rq-protocol-section,
-body.is-native-app .rq-metrics-bar,
-body.is-native-app .rq-merchant-banner,
-body.is-native-app .rq-section-tag {
-  display: none !important;
-}
-
-body.is-native-app .rq-hero-layout {
-  display: block !important;
-}
-
-body.is-native-app .rq-hero-title {
-  font-size: 1.35rem !important;
-  margin-bottom: 0.75rem !important;
-  line-height: 1.25 !important;
-}
-
-body.is-native-app .rq-omni-search {
-  background: rgba(15, 23, 42, 0.95) !important;
-  border: 1px solid rgba(255, 255, 255, 0.12) !important;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4) !important;
-  border-radius: 18px !important;
-  padding: 0.45rem 0.85rem !important;
-  flex-direction: row !important;
-  align-items: center !important;
-}
-
-body.is-native-app .rq-omni-submit {
-  display: none !important;
-}
-
-body.is-native-app .rq-omni-input {
-  font-size: 0.88rem !important;
-  padding: 0.45rem 0 !important;
-}
-
-/* Native Stories / Category Pills Row */
-body.is-native-app .rq-categories-matrix {
-  display: flex !important;
-  overflow-x: auto !important;
-  scroll-snap-type: x mandatory !important;
-  -webkit-overflow-scrolling: touch !important;
-  gap: 0.65rem !important;
-  padding-bottom: 0.5rem !important;
-  margin-bottom: 1.5rem !important;
-  scrollbar-width: none !important;
-}
-
-body.is-native-app .rq-categories-matrix::-webkit-scrollbar {
-  display: none !important;
-}
-
-body.is-native-app .rq-category-tile {
-  flex: 0 0 auto !important;
-  width: 78px !important;
-  padding: 0.65rem 0.25rem !important;
-  border-radius: 18px !important;
-  scroll-snap-align: start !important;
-  background: rgba(15, 23, 42, 0.7) !important;
-  border: 1px solid rgba(255, 255, 255, 0.08) !important;
-}
-
-body.is-native-app .rq-category-icon-box {
-  width: 42px !important;
-  height: 42px !important;
-  border-radius: 14px !important;
-  margin-bottom: 0.35rem !important;
-}
-
-body.is-native-app .rq-category-label {
-  font-size: 0.7rem !important;
-  white-space: nowrap !important;
-  overflow: hidden !important;
-  text-overflow: ellipsis !important;
-  max-width: 70px !important;
-}
-
-body.is-native-app .rq-category-count {
-  display: none !important;
-}
-
-/* Spotlight card in native app - compact featured banner */
-body.is-native-app .rq-spotlight-wrapper {
-  margin-top: 1rem !important;
-  margin-bottom: 1rem !important;
-}
-
-body.is-native-app .rq-spotlight-card {
-  padding: 0.85rem !important;
-  border-radius: 20px !important;
-}
-
-body.is-native-app .rq-spotlight-media {
-  height: 140px !important;
-  border-radius: 14px !important;
-  margin-bottom: 0.75rem !important;
-}
-
-body.is-native-app .rq-section-head {
-  margin-bottom: 0.85rem !important;
-}
-
-body.is-native-app .rq-section-title {
-  font-size: 1.15rem !important;
-}
-
-body.is-native-app .rq-section-link {
-  font-size: 0.75rem !important;
+  color: var(--rq-text-muted);
 }
 </style>
 
-<div class="rq-viewport">
-  <div class="rq-ambient-aura"></div>
+<div class="rq-home-root">
+  <div class="rq-ambient-glow"></div>
 
   <!-- ═══════════════════════════════════════════════════════════════
-       1. HERO SECTION — Modern Interactive Multi-Action Showcase
+       1. HERO SECTION
        ═══════════════════════════════════════════════════════════════ -->
-  <section class="rq-hero-section">
-    <div class="rq-container">
-      <div class="rq-hero-layout">
+  <section class="rq-hero-wrapper">
+    <div class="rq-home-container">
+      <div class="rq-hero-grid">
         
-        <!-- Right Column: Brand Copy & Interactive Discovery Hub -->
-        <div class="rq-hero-content">
-          <div class="rq-meta-pill">
-            <span class="rq-pulse-dot"></span>
-            <span>وجهتك الأولى للتكنولوجيا • إلكترونيات، شبكات وبرمجيات</span>
+        <!-- Right Column: Marketing Copy, Actions & Search -->
+        <div class="rq-hero-info">
+          
+          <div class="rq-brand-pill">
+            <span class="rq-pulse-beacon"></span>
+            <span>رقميات | عالمك المتكامل للتكنولوجيا والإلكترونيات</span>
           </div>
 
-          <h1 class="rq-hero-title">
-            رقميات | RAQAMIYAT <br>
-            <span class="rq-gradient-text">كل ما تحتاجه من عالم التكنولوجيا في مكان واحد</span>
+          <h1 class="rq-hero-headline">
+            كل ما تحتاجه من عالم التكنولوجيا <br>
+            <span class="rq-gradient-brand">في مكان واحد وبأعلى جودة</span>
           </h1>
 
-          <p class="rq-hero-desc">
-            اكتشف تشكيلة متنوعة من إكسسوارات الهواتف، وقطع الإنترنت والشبكات، وكاميرات المراقبة، والشواحن والبطاريات، والسماعات، والأجهزة الإلكترونية، والبرمجيات.
+          <p class="rq-hero-summary">
+            اكتشف تشكيلة واسعة ومختارة بعناية من إكسسوارات الهواتف، وقطع الإنترنت والشبكات، وكاميرات المراقبة، والشواحن والبطاريات، والسماعات الصوتية، والأجهزة الذكية، والبرمجيات المتوافقة بأفضل الأسعار وأسرع خدمة.
           </p>
 
-          <!-- Interactive User Action Cluster (App Download + Commerce Actions) -->
-          <div class="flex flex-wrap items-center gap-3 mb-6">
-            <a href="{% url 'catalog' %}" class="inline-flex items-center gap-2 px-5 py-3 rounded-2xl bg-gradient-to-r from-amber-400 to-amber-500 hover:from-amber-300 hover:to-amber-400 text-slate-950 font-black text-sm shadow-xl shadow-amber-500/20 transition-all hover:scale-105 active:scale-95">
+          <!-- Action Buttons Cluster -->
+          <div class="rq-hero-ctas">
+            <a href="{% url 'catalog' %}" class="rq-btn-primary">
               <i class="fas fa-bag-shopping"></i>
               <span>تسوّق المنتجات</span>
             </a>
 
-            <a href="#categories-section" class="inline-flex items-center gap-2 px-4 py-3 rounded-2xl bg-white/5 hover:bg-white/10 border border-white/10 text-slate-200 font-bold text-sm transition-all hover:text-white hover:scale-105 active:scale-95">
-              <i class="fas fa-layer-group text-xs text-indigo-400"></i>
+            <a href="#categories-section" class="rq-btn-glass">
+              <i class="fas fa-layer-group text-sky-400"></i>
               <span>استكشف الأقسام</span>
             </a>
 
-            <a href="{% url 'catalog' %}?sort=newest" class="inline-flex items-center gap-2 px-4 py-3 rounded-2xl bg-cyan/10 hover:bg-cyan/20 border border-cyan/30 text-cyan font-bold text-sm transition-all hover:scale-105 active:scale-95">
-              <i class="fas fa-sparkles text-amber-400 text-xs"></i>
-              <span>تصفح المنتجات الجديدة</span>
+            <a href="{% url 'catalog' %}?sort=newest" class="rq-btn-cyan-outline">
+              <i class="fas fa-sparkles text-amber-400"></i>
+              <span>المنتجات الجديدة</span>
             </a>
 
+            {% if not is_tenant and FEATURES.feature_sub_stores %}
+            <a href="{% url 'store_registration' %}" class="rq-btn-glass" style="border-color: rgba(245, 158, 11, 0.4); color: #fbbf24;">
+              <i class="fas fa-store"></i>
+              <span>أنشئ متجرك</span>
+            </a>
+            {% endif %}
+
             {% if FEATURES.feature_app_download %}
-            <a href="{% url 'download_android_apk' %}?direct=1" class="inline-flex items-center gap-2 px-4 py-3 rounded-2xl bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/30 text-emerald-300 font-bold text-sm transition-all hover:scale-105 active:scale-95">
+            <a href="{% url 'download_android_apk' %}?direct=1" class="rq-btn-emerald">
               <i class="fab fa-android text-base"></i>
               <span>تحميل التطبيق</span>
             </a>
@@ -1607,208 +991,176 @@ body.is-native-app .rq-section-link {
           </div>
 
           <!-- Omni Search Dock -->
-          <form action="{% url 'catalog' %}" method="get" class="rq-omni-search" id="rq-hero-search-form">
-            <i class="fas fa-search"></i>
-            <input type="text" name="q" id="rq-hero-search-input" class="rq-omni-input" placeholder="ابحث عن إكسسوارات، هواتف، شواحن، شبكات، كاميرات، برمجيات..." autocomplete="off">
-            <button type="submit" class="rq-omni-submit">
-              <span>ابحث الآن</span>
-              <i class="fas fa-arrow-left"></i>
-            </button>
-            <div class="rq-omni-dropdown" id="rq-hero-search-dropdown" role="listbox" aria-label="نتائج البحث اللحظي"></div>
-          </form>
+          <div class="rq-search-dock" id="rq-search-dock-container">
+            <form action="{% url 'catalog' %}" method="get" class="rq-search-field-box" id="rq-hero-search-form">
+              <i class="fas fa-search rq-search-icon"></i>
+              <input type="text" name="q" id="rq-hero-search-input" class="rq-search-input" placeholder="ابحث عن إكسسوارات، شواحن، شبكات، كاميرات، هواتف..." autocomplete="off">
+              <button type="submit" class="rq-search-submit">
+                <span>بحث</span>
+                <i class="fas fa-arrow-left"></i>
+              </button>
+            </form>
+
+            <div class="rq-search-results-panel" id="rq-hero-search-dropdown" role="listbox" aria-label="نتائج البحث اللحظي"></div>
+          </div>
 
           <!-- Quick Discovery Chips -->
-          <div class="rq-quick-tags">
-            <span class="rq-tag-label"><i class="fas fa-bolt text-amber-400"></i> وصول سريع:</span>
-            <a href="{% url 'catalog' %}?q=إكسسوارات" class="rq-tag-chip">إكسسوارات الهواتف</a>
-            <a href="{% url 'catalog' %}?q=شبكات" class="rq-tag-chip">إنترنت وشبكات</a>
-            <a href="{% url 'catalog' %}?q=كاميرات" class="rq-tag-chip">كاميرات مراقبة</a>
-            <a href="{% url 'catalog' %}?q=شواحن" class="rq-tag-chip">شواحن وبطاريات</a>
-            <a href="{% url 'catalog' %}?q=سماعات" class="rq-tag-chip">سماعات صوتية</a>
-            <a href="{% url 'catalog' %}?q=برمجيات" class="rq-tag-chip">برمجيات وحلول</a>
-            {% if not is_tenant and FEATURES.feature_sub_stores %}
-            <a href="{% url 'stores_directory' %}" class="rq-tag-chip text-indigo-400 font-bold">دليل المتاجر ⟵</a>
-            <a href="{% url 'store_registration' %}" class="rq-tag-chip font-bold text-amber-400 border-amber-400/30" style="background: rgba(245, 158, 11, 0.12);"><i class="fas fa-store ml-1"></i> أنشئ متجرك الإلكتروني</a>
-            {% endif %}
+          <div class="rq-quick-pills">
+            <span class="rq-quick-label"><i class="fas fa-bolt text-amber-400"></i> وصول سريع:</span>
+            <a href="{% url 'catalog' %}?q=إكسسوارات" class="rq-quick-chip">إكسسوارات الهواتف</a>
+            <a href="{% url 'catalog' %}?q=شبكات" class="rq-quick-chip">إنترنت وشبكات</a>
+            <a href="{% url 'catalog' %}?q=كاميرات" class="rq-quick-chip">كاميرات مراقبة</a>
+            <a href="{% url 'catalog' %}?q=شواحن" class="rq-quick-chip">شواحن وبطاريات</a>
+            <a href="{% url 'catalog' %}?q=سماعات" class="rq-quick-chip">سماعات صوتية</a>
+            <a href="{% url 'catalog' %}?q=برمجيات" class="rq-quick-chip">برمجيات وحلول</a>
           </div>
+
         </div>
 
-        <!-- Left Column: Interactive App Showcase & Spotlight Card -->
-        <div class="rq-spotlight-wrapper">
-          
-          <!-- Interactive Selector Tabs -->
-          <div class="flex items-center gap-2 mb-3 bg-slate-900/60 p-1.5 rounded-2xl border border-white/10 w-fit">
-            <button type="button" id="hero-tab-app" onclick="switchHeroShowcase('app')" class="px-3.5 py-1.5 rounded-xl bg-cyan text-slate-950 font-black text-xs flex items-center gap-1.5 shadow-md transition-all">
-              <i class="fab fa-android"></i>
-              <span>تطبيق رقميات 📱</span>
-            </button>
-            <button type="button" id="hero-tab-spotlight" onclick="switchHeroShowcase('spotlight')" class="px-3.5 py-1.5 rounded-xl bg-transparent hover:bg-white/5 text-slate-400 hover:text-white font-bold text-xs flex items-center gap-1.5 transition-all">
-              <i class="fas fa-bolt"></i>
-              <span>المنتج المميز ⚡</span>
-            </button>
-          </div>
-
-          <!-- 1. App Showcase Card (Active by Default) -->
-          <div id="hero-showcase-app" class="rq-spotlight-card border border-cyan/40 bg-gradient-to-b from-slate-900 via-slate-950 to-slate-900 p-6 rounded-3xl relative overflow-hidden shadow-2xl">
-            <div class="rq-spotlight-badge" style="background: rgba(6, 182, 212, 0.15); border-color: rgba(6, 182, 212, 0.3); color: #38bdf8;">
-              <i class="fas fa-shield-check"></i>
-              <span>التطبيق الرسمي المعتمد • إصدار 2.4.0</span>
+        <!-- Left Column: Interactive Hero Spotlight / App Showcase -->
+        <div class="rq-hero-visual-col">
+          <div class="rq-hero-visual-card">
+            
+            <div class="rq-tabs-switch">
+              <button type="button" id="tab-app-btn" onclick="toggleHeroView('app')" class="rq-tab-btn active">
+                <i class="fab fa-android"></i>
+                <span>تطبيق رقميات 📱</span>
+              </button>
+              <button type="button" id="tab-spotlight-btn" onclick="toggleHeroView('spotlight')" class="rq-tab-btn">
+                <i class="fas fa-bolt"></i>
+                <span>منتج مميز ⚡</span>
+              </button>
             </div>
 
-            <div class="flex items-center gap-4 my-4 p-4 rounded-2xl bg-white/[0.03] border border-white/5">
-              <div class="w-16 h-16 rounded-2xl bg-gradient-to-tr from-cyan-500 to-amber-400 p-0.5 shadow-lg flex-shrink-0">
-                <div class="w-full h-full rounded-[14px] bg-slate-950 flex items-center justify-center text-cyan text-2xl font-black">
-                  <i class="fas fa-bolt"></i>
+            <!-- View 1: App Showcase Card -->
+            <div id="view-app-card" class="space-y-4">
+              <div class="flex items-center gap-2 text-xs font-bold text-sky-400 bg-sky-400/10 border border-sky-400/20 px-3 py-1.5 rounded-xl w-fit">
+                <i class="fas fa-shield-check"></i>
+                <span>التطبيق الرسمي المعتمد للأندرويد</span>
+              </div>
+
+              <div class="flex items-center gap-4 p-4 rounded-2xl bg-white/[0.04] border border-white/5">
+                <div class="w-16 h-16 rounded-2xl bg-gradient-to-tr from-cyan-500 to-amber-400 p-0.5 shadow-lg flex-shrink-0">
+                  <div class="w-full h-full rounded-[14px] bg-slate-950 flex items-center justify-center text-cyan-400 text-2xl font-black">
+                    <i class="fas fa-bolt"></i>
+                  </div>
+                </div>
+                <div class="min-w-0">
+                  <h3 class="text-base font-black text-white truncate">تطبيق رقميات الذكي</h3>
+                  <p class="text-xs text-slate-400 mt-1">تسوّق فوري، تتبع الطلبات، وتنبيهات العروض الحصرية</p>
+                  <div class="flex items-center gap-3 mt-2 text-[11px] text-emerald-400 font-bold">
+                    <span><i class="fas fa-check-circle ml-0.5"></i> خفيف وسريع</span>
+                    <span><i class="fas fa-lock ml-0.5"></i> دفع مشفر</span>
+                  </div>
                 </div>
               </div>
-              <div class="min-w-0">
-                <h3 class="text-base font-black text-white truncate">تطبيق رقميات للأندرويد</h3>
-                <p class="text-xs text-slate-400 mt-0.5">طلب مباشر، متابعة التوريدات، ودخول آمن بالبصمة</p>
-                <div class="flex items-center gap-3 mt-1.5 text-[10px] text-emerald-400 font-bold">
-                  <span><i class="fas fa-check-circle ml-0.5"></i> 4.6 MB فقط</span>
-                  <span><i class="fas fa-lock ml-0.5"></i> أمان مشفّر</span>
-                </div>
+
+              <div class="pt-2 space-y-2">
+                <a href="{% url 'download_android_apk' %}?direct=1" class="w-full py-3.5 px-4 rounded-xl bg-gradient-to-r from-cyan-400 via-sky-400 to-indigo-500 hover:brightness-110 text-slate-950 font-black text-sm flex items-center justify-center gap-2 shadow-lg shadow-cyan-500/20 transition-all">
+                  <i class="fab fa-android text-base"></i>
+                  <span>تحميل ملف التطبيق APK المباشر</span>
+                </a>
+
+                <a href="{% url 'download_app' %}" class="w-full py-2.5 px-3 rounded-xl bg-white/5 hover:bg-white/10 text-slate-300 hover:text-white font-bold text-xs flex items-center justify-center gap-1.5 border border-white/10 transition-all">
+                  <span>تعرّف على كافة ميزات التطبيق</span>
+                  <i class="fas fa-arrow-left text-[10px]"></i>
+                </a>
               </div>
             </div>
 
-            <div class="space-y-2 pt-2">
-              <a href="{% url 'download_android_apk' %}?direct=1" class="w-full py-3.5 px-4 rounded-2xl bg-gradient-to-r from-cyan-400 via-teal-300 to-emerald-400 hover:brightness-110 text-slate-950 font-black text-sm flex items-center justify-center gap-2 shadow-xl shadow-cyan-500/25 transition-all">
-                <i class="fab fa-android text-base"></i>
-                <span>تحميل التطبيق الآن (APK مباشر)</span>
-              </a>
+            <!-- View 2: Spotlight Product Card -->
+            {% with spotlight=featured_products|first %}
+            <div id="view-spotlight-card" class="space-y-4" style="display: none;">
+              {% if spotlight %}
+              <div class="flex items-center gap-2 text-xs font-bold text-amber-400 bg-amber-400/10 border border-amber-400/20 px-3 py-1.5 rounded-xl w-fit">
+                <i class="fas fa-star"></i>
+                <span>منتج مختار لك اليوم</span>
+              </div>
 
-              <a href="{% url 'download_app' %}" class="w-full py-2.5 px-3 rounded-xl bg-white/5 hover:bg-white/10 text-slate-300 hover:text-white font-bold text-xs flex items-center justify-center gap-1.5 border border-white/10 transition-all">
-                <span>استكشف صفحة التحميل ومميزات التطبيق</span>
-                <i class="fas fa-arrow-left text-[10px]"></i>
-              </a>
-            </div>
-          </div>
+              <div class="w-full aspect-video rounded-2xl overflow-hidden bg-slate-900 border border-white/10 relative">
+                {% product_display_image spotlight as sp_img %}
+                {% if sp_img %}
+                <img src="{{ sp_img }}" alt="{{ spotlight.name }}" class="w-full h-full object-cover" onerror="this.onerror=null; this.src='{% static 'site/img/raqamiyat_logo_square.jpg' %}';">
+                {% else %}
+                <img src="{% static 'site/img/raqamiyat_logo_square.jpg' %}" alt="{{ spotlight.name }}" class="w-full h-full object-cover">
+                {% endif %}
+                
+                {% if spotlight.category %}
+                <span class="absolute top-2 right-2 bg-slate-950/80 backdrop-blur text-white text-[10px] font-bold px-2 py-1 rounded-md border border-white/10">
+                  {{ spotlight.category.name }}
+                </span>
+                {% endif %}
+              </div>
 
-          <!-- 2. Spotlight Live Card -->
-          {% with spotlight=featured_products|first %}
-          {% if spotlight %}
-          <div id="hero-showcase-spotlight" class="rq-spotlight-card hidden">
-            <div class="rq-spotlight-badge">
-              <i class="fas fa-circle-check"></i>
-              <span>تسليم لحظي مباشر (أقل من 15 ثانية)</span>
-            </div>
-
-            <div class="rq-spotlight-media">
-              {% product_display_image spotlight as spot_img %}
-              {% if spot_img %}
-              <img src="{{ spot_img }}" alt="{{ spotlight.name }}" class="rq-spotlight-img" onerror="this.onerror=null; this.src='{% static 'site/img/raqamiyat_logo_square.jpg' %}';">
+              <div class="flex items-center justify-between gap-3">
+                <div>
+                  <h4 class="text-sm font-black text-white line-clamp-1">{{ spotlight.name }}</h4>
+                  <div class="text-xs text-amber-400 font-extrabold mt-0.5">{% product_starting_price spotlight %}</div>
+                </div>
+                <a href="{% url 'product_detail' spotlight.id %}" class="px-4 py-2 rounded-xl bg-gradient-to-r from-amber-400 to-amber-500 text-slate-950 font-black text-xs hover:scale-105 transition-all">
+                  <span>طلب فوري</span>
+                  <i class="fas fa-arrow-left text-[10px]"></i>
+                </a>
+              </div>
               {% else %}
-              <img src="{% static 'site/img/raqamiyat_logo_square.jpg' %}" alt="{{ spotlight.name }}" class="rq-spotlight-img">
+              <div class="text-center py-8 text-slate-400 text-xs">
+                استكشف الكتالوج الكامل للاطلاع على كافة المنتجات التقنية المميزة.
+              </div>
               {% endif %}
             </div>
+            {% endwith %}
 
-            <div class="rq-spotlight-info">
-              <div>
-                <div class="rq-spotlight-category">{% if spotlight.category %}{{ spotlight.category.name }}{% else %}خدمة مميزة{% endif %}</div>
-                <h3 class="rq-spotlight-name">{{ spotlight.name }}</h3>
-              </div>
-              <div class="rq-spotlight-pricing">
-                <div class="rq-price-label">السعر المتوفر:</div>
-                <div class="rq-price-val">{% product_starting_price spotlight %}</div>
-              </div>
-            </div>
-
-            <div class="rq-spotlight-action">
-              <a href="{% url 'product_detail' spotlight.id %}" class="rq-btn-highlight">
-                <i class="fas fa-bolt"></i>
-                <span>طلب فوري مباشر</span>
-              </a>
-              <a href="{% url 'catalog' %}" class="rq-btn-outline">
-                <span>تصفح الكل</span>
-              </a>
-            </div>
           </div>
-          {% endif %}
-          {% endwith %}
-
         </div>
 
       </div>
     </div>
   </section>
 
-  <script>
-    function switchHeroShowcase(mode) {
-      var appCard = document.getElementById('hero-showcase-app');
-      var spotCard = document.getElementById('hero-showcase-spotlight');
-      var appTab = document.getElementById('hero-tab-app');
-      var spotTab = document.getElementById('hero-tab-spotlight');
-
-      if (mode === 'spotlight' && spotCard) {
-        if (appCard) appCard.classList.add('hidden');
-        spotCard.classList.remove('hidden');
-        if (spotTab) {
-          spotTab.classList.add('bg-cyan', 'text-slate-950', 'font-black');
-          spotTab.classList.remove('bg-transparent', 'text-slate-400');
-        }
-        if (appTab) {
-          appTab.classList.remove('bg-cyan', 'text-slate-950', 'font-black');
-          appTab.classList.add('bg-transparent', 'text-slate-400');
-        }
-      } else {
-        if (spotCard) spotCard.classList.add('hidden');
-        if (appCard) appCard.classList.remove('hidden');
-        if (appTab) {
-          appTab.classList.add('bg-cyan', 'text-slate-950', 'font-black');
-          appTab.classList.remove('bg-transparent', 'text-slate-400');
-        }
-        if (spotTab) {
-          spotTab.classList.remove('bg-cyan', 'text-slate-950', 'font-black');
-          spotTab.classList.add('bg-transparent', 'text-slate-400');
-        }
-      }
-    }
-  </script>
-
   <!-- ═══════════════════════════════════════════════════════════════
-       2. HIGHLIGHTS & TRUST BAR
+       2. TRUST & VALUE PROPOSITIONS BAR
        ═══════════════════════════════════════════════════════════════ -->
-  <section class="rq-protocol-section">
-    <div class="rq-container">
-      <div class="rq-protocol-grid">
+  <section class="rq-trust-section">
+    <div class="rq-home-container">
+      <div class="rq-trust-grid">
         
-        <div class="rq-protocol-box">
-          <div class="rq-protocol-icon rq-icon-speed">
+        <div class="rq-trust-card">
+          <div class="rq-trust-icon-wrap rq-icon-speed">
             <i class="fas fa-bolt"></i>
           </div>
           <div>
-            <h4 class="rq-protocol-title">سرعة في التجهيز والتسليم</h4>
-            <p class="rq-protocol-text">تجهيز سريع للطلبات ومتابعة دقيقة لحالة الشحن والتسليم فور إتمام الطلب.</p>
+            <h4 class="rq-trust-title">سرعة في التجهيز والتسليم</h4>
+            <p class="rq-trust-desc">معالجة فورية لكافة الطلبات مع تحديثات لحظية لحالة التجهيز والشحن حتى وصول المنتج إليك.</p>
           </div>
         </div>
 
-        <div class="rq-protocol-box">
-          <div class="rq-protocol-icon rq-icon-shield">
-            <i class="fas fa-shield-halved"></i>
+        <div class="rq-trust-card">
+          <div class="rq-trust-icon-wrap rq-icon-shield">
+            <i class="fas fa-shield-check"></i>
           </div>
           <div>
-            <h4 class="rq-protocol-title">أمان وخصوصية تامة</h4>
-            <p class="rq-protocol-text">حماية كاملة لبيانات حسابك ووسائل دفع إلكترونية آمنة وسهلة الاستخدام.</p>
+            <h4 class="rq-trust-title">جودة واعتمادية ممتازة</h4>
+            <p class="rq-trust-desc">ننتقي أفضل المنتجات التقنية والإلكترونية المتوافقة مع أعلى معايير الجودة لضمان رضاك التام.</p>
           </div>
         </div>
 
-        <div class="rq-protocol-box">
-          <div class="rq-protocol-icon rq-icon-coins">
-            <i class="fas fa-coins"></i>
+        <div class="rq-trust-card">
+          <div class="rq-trust-icon-wrap rq-icon-wallet">
+            <i class="fas fa-wallet"></i>
           </div>
           <div>
-            <h4 class="rq-protocol-title">خيارات دفع متعددة</h4>
-            <p class="rq-protocol-text">دعم العملات المحلية والدولية لتسهيل مشترياتك بكل راحة ومرونة.</p>
+            <h4 class="rq-trust-title">دفع إلكتروني آمن ومتعدد</h4>
+            <p class="rq-trust-desc">دعم بوابات الدفع الإلكتروني والعملات المتنوعة مع حماية وتشفير كامل لجميع المعاملات.</p>
           </div>
         </div>
 
-        <div class="rq-protocol-box">
-          <div class="rq-protocol-icon rq-icon-check">
-            <i class="fas fa-circle-check"></i>
+        <div class="rq-trust-card">
+          <div class="rq-trust-icon-wrap rq-icon-support">
+            <i class="fas fa-headset"></i>
           </div>
           <div>
-            <h4 class="rq-protocol-title">جودة وموثوقية عالية</h4>
-            <p class="rq-protocol-text">نحرص على انتقاء أفضل المنتجات التقنية والإلكترونية بجودة ممتازة لتلبية احتياجاتك.</p>
+            <h4 class="rq-trust-title">دعم فني واستجابة سريعة</h4>
+            <p class="rq-trust-desc">فريق دعم متخصص للإجابة عن استفساراتك وتقديم المساعدة في كل خطوة على مدار الساعة.</p>
           </div>
         </div>
 
@@ -1817,33 +1169,33 @@ body.is-native-app .rq-section-link {
   </section>
 
   <!-- ═══════════════════════════════════════════════════════════════
-       3. CATEGORY SHOWCASE
+       3. CATEGORIES MATRIX
        ═══════════════════════════════════════════════════════════════ -->
   {% if categories %}
-  <section class="rq-container" id="categories-section">
-    <div class="rq-section-head">
+  <section class="rq-home-container" id="categories-section">
+    <div class="rq-section-header">
       <div>
-        <span class="rq-section-tag">أقسام المتجر</span>
-        <h2 class="rq-section-title">استكشف أقسام رقميات</h2>
+        <span class="rq-section-badge">تصفح حسب القسم</span>
+        <h2 class="rq-section-title-text">أقسام المتجر التقنية</h2>
       </div>
-      <a href="{% url 'catalog' %}" class="rq-section-link">
-        <span>عرض جميع الأقسام ({{ categories|length }})</span>
+      <a href="{% url 'catalog' %}" class="rq-section-more-link">
+        <span>عرض كافة الأقسام ({{ categories|length }})</span>
         <i class="fas fa-arrow-left"></i>
       </a>
     </div>
 
-    <div class="rq-categories-matrix">
+    <div class="rq-categories-grid">
       {% for cat in categories %}
-      <a href="{% url 'catalog' %}?category={{ cat.id }}" class="rq-category-tile">
-        <div class="rq-category-icon-box">
+      <a href="{% url 'catalog' %}?category={{ cat.id }}" class="rq-category-card">
+        <div class="rq-cat-icon-container">
           {% if cat.image %}
-          <img src="{{ cat.image.url }}" alt="{{ cat.name }}">
+          <img src="{{ cat.image.url }}" alt="{{ cat.name }}" loading="lazy">
           {% else %}
-          <i class="fas fa-cube text-2xl text-indigo-400"></i>
+          <i class="fas fa-microchip text-2xl text-sky-400"></i>
           {% endif %}
         </div>
-        <div class="rq-category-label">{{ cat.name }}</div>
-        <span class="rq-category-count">{{ cat.product_count|default:cat.products.count }} منتج</span>
+        <div class="rq-cat-name">{{ cat.name }}</div>
+        <span class="rq-cat-count-badge">{{ cat.product_count|default:cat.products.count }} منتج</span>
       </a>
       {% endfor %}
     </div>
@@ -1854,53 +1206,52 @@ body.is-native-app .rq-section-link {
        4. FEATURED PRODUCTS BENTO GRID
        ═══════════════════════════════════════════════════════════════ -->
   {% if featured_products %}
-  <section class="rq-container">
-    <div class="rq-section-head">
+  <section class="rq-home-container">
+    <div class="rq-section-header">
       <div>
-        <span class="rq-section-tag">المنتجات المميزة</span>
-        <h2 class="rq-section-title">أحدث المنتجات والتجهيزات التقنية</h2>
+        <span class="rq-section-badge">أحدث التجهيزات</span>
+        <h2 class="rq-section-title-text">المنتجات المميزة والجديدة</h2>
       </div>
-      <a href="{% url 'catalog' %}" class="rq-section-link">
-        <span>استكشف كافة المنتجات</span>
+      <a href="{% url 'catalog' %}" class="rq-section-more-link">
+        <span>تصفح الكتالوج بالكامل</span>
         <i class="fas fa-arrow-left"></i>
       </a>
     </div>
 
-    <div class="rq-services-bento">
+    <div class="rq-products-grid">
       {% for product in featured_products %}
-      <a href="{% url 'product_detail' product.id %}" class="rq-service-card">
-        <div class="rq-service-banner">
-          {% product_display_image product as p_img %}
-          {% if p_img %}
-          <img src="{{ p_img }}" alt="{{ product.name }}" loading="lazy" onerror="this.onerror=null; this.src='{% static 'site/img/raqamiyat_logo_square.jpg' %}';">
+      <a href="{% url 'product_detail' product.id %}" class="rq-product-card">
+        <div class="rq-prod-media-box">
+          {% product_display_image product as prod_img %}
+          {% if prod_img %}
+          <img src="{{ prod_img }}" alt="{{ product.name }}" class="rq-prod-img" loading="lazy" onerror="this.onerror=null; this.src='{% static 'site/img/raqamiyat_logo_square.jpg' %}';">
           {% else %}
-          <img src="{% static 'site/img/raqamiyat_logo_square.jpg' %}" alt="{{ product.name }}" loading="lazy">
-          {% endif %}
-          
-          {% if product.category %}
-          <span class="rq-service-tag-pill">{{ product.category.name }}</span>
+          <img src="{% static 'site/img/raqamiyat_logo_square.jpg' %}" alt="{{ product.name }}" class="rq-prod-img" loading="lazy">
           {% endif %}
 
-          <span class="rq-service-instant-badge">
-            <i class="fas fa-box-open"></i>
-            <span>متوفر للطلب</span>
+          {% if product.category %}
+          <span class="rq-prod-cat-pill">{{ product.category.name }}</span>
+          {% endif %}
+
+          <span class="rq-prod-stock-pill">
+            <i class="fas fa-box-check"></i>
+            <span>متوفر</span>
           </span>
         </div>
 
-        <div class="rq-service-content">
-          <div class="rq-service-cat">{% if product.category %}{{ product.category.name }}{% else %}إلكترونيات{% endif %}</div>
-          <h3 class="rq-service-title">{{ product.name }}</h3>
+        <div class="rq-prod-body">
+          <h3 class="rq-prod-title">{{ product.name }}</h3>
 
-          <div class="rq-service-foot">
-            <div class="rq-service-price-block">
-              <span class="rq-price-sub">السعر</span>
-              <span class="rq-service-amount">{% product_starting_price product %}</span>
+          <div class="rq-prod-footer">
+            <div>
+              <span class="rq-price-label-sub">السعر يبدأ من</span>
+              <span class="rq-price-value">{% product_starting_price product %}</span>
             </div>
 
-            <div class="rq-service-buy-btn">
-              <span>عرض التفاصيل</span>
-              <i class="fas fa-arrow-left text-xs"></i>
-            </div>
+            <span class="rq-prod-action-btn">
+              <span>تفاصيل والطلب</span>
+              <i class="fas fa-arrow-left text-[11px]"></i>
+            </span>
           </div>
         </div>
       </a>
@@ -1910,146 +1261,162 @@ body.is-native-app .rq-section-link {
   {% endif %}
 
   <!-- ═══════════════════════════════════════════════════════════════
-       5. RAQAMIYAT STORES (Merchant Showcase)
+       5. RAQAMIYAT STORES & MERCHANT LAUNCHPAD
        ═══════════════════════════════════════════════════════════════ -->
   {% if not is_tenant and FEATURES.feature_sub_stores %}
-  <section class="rq-container rq-stores-section" id="stores-section">
-    <div class="rq-section-head">
+  <section class="rq-home-container rq-stores-section-wrap" id="stores-section">
+    <div class="rq-section-header">
       <div>
-        <span class="rq-section-tag">متاجر رقميات</span>
-        <h2 class="rq-section-title">اكتشف متاجرنا أو أنشئ متجرك الإلكتروني</h2>
+        <span class="rq-section-badge">منظومة المتاجر الرقمية</span>
+        <h2 class="rq-section-title-text">متاجر رقميات الشريكة</h2>
       </div>
-      <div class="flex items-center gap-3">
-        <a href="{% url 'store_registration' %}" class="rq-create-store-head-btn">
+      <div class="flex items-center gap-2">
+        <a href="{% url 'store_registration' %}" class="rq-section-more-link" style="background: rgba(245, 158, 11, 0.12); border-color: rgba(245, 158, 11, 0.3); color: #fbbf24;">
           <i class="fas fa-plus-circle"></i>
-          <span>أنشئ متجرك الإلكتروني</span>
+          <span>أنشئ متجرك الآن</span>
         </a>
-        <a href="{% url 'stores_directory' %}" class="rq-section-link">
+        <a href="{% url 'stores_directory' %}" class="rq-section-more-link">
           <span>دليل المتاجر</span>
           <i class="fas fa-arrow-left"></i>
         </a>
       </div>
     </div>
 
+    <!-- Merchant Onboarding Call to Action -->
+    <div class="rq-stores-banner-cta">
+      <div>
+        <div class="rq-merchant-badge">
+          <i class="fas fa-rocket"></i>
+          <span>منصة رقميات للتجار والشركاء</span>
+        </div>
+        <h3 class="text-xl md:text-2xl font-black text-white mb-2">هل تريد إطلاق متجرك الإلكتروني المتكامل؟</h3>
+        <p class="text-sm text-slate-300 leading-relaxed mb-4 max-w-xl">
+          أطلق متجرك الإلكتروني بنطاقك الخاص خلال دقائق. تحكم كامل بالمنتجات، العملات، المحفظة، وبوابات الدفع الإلكتروني دون أي تعقيدات تقنية.
+        </p>
+        <div class="flex flex-wrap items-center gap-3">
+          <a href="{% url 'store_registration' %}" class="rq-btn-primary">
+            <i class="fas fa-store"></i>
+            <span>إنشاء متجرك الإلكتروني الآن</span>
+          </a>
+          <a href="{% url 'stores_directory' %}" class="rq-btn-glass">
+            <i class="fas fa-compass"></i>
+            <span>استعراض شبكة المتاجر</span>
+          </a>
+        </div>
+      </div>
+
+      <div class="hidden md:flex flex-col gap-3 p-5 rounded-2xl bg-black/40 border border-white/10 backdrop-blur">
+        <div class="flex items-center gap-3 text-xs font-bold text-slate-200">
+          <i class="fas fa-check-circle text-emerald-400 text-sm"></i>
+          <span>ربط تلقائي بالكتالوج وبوابات الدفع</span>
+        </div>
+        <div class="flex items-center gap-3 text-xs font-bold text-slate-200">
+          <i class="fas fa-check-circle text-emerald-400 text-sm"></i>
+          <span>لوحة تحكم سحابية متطورة لإدارة الطلبات</span>
+        </div>
+        <div class="flex items-center gap-3 text-xs font-bold text-slate-200">
+          <i class="fas fa-check-circle text-emerald-400 text-sm"></i>
+          <span>دعم العملات المتعددة ومحافظ العملاء</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Active Stores Preview -->
     {% if platform_stores %}
-    <div class="rq-stores-grid">
-      {% for store in platform_stores|slice:":8" %}
-      <div class="rq-store-card">
-        <div class="rq-store-top">
-          <div class="rq-store-logo">
+    <div class="rq-stores-grid-cards">
+      {% for store in platform_stores|slice:":6" %}
+      <div class="rq-store-card-item">
+        <div class="rq-store-header-box">
+          <div class="rq-store-logo-box">
             {% if store.logo %}
             <img src="{{ store.logo.url }}" alt="{{ store.name }}">
             {% else %}
-            <div style="width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; background: #0f172a; color: #818cf8; font-weight: bold; font-size: 1.25rem;">
-              {{ store.name|slice:":1" }}
-            </div>
+            <span class="text-sky-400 font-black text-lg">{{ store.name|slice:":1" }}</span>
             {% endif %}
           </div>
-          <div class="rq-store-title-wrap">
-            <h4 class="rq-store-name">
+          <div class="min-w-0">
+            <h4 class="text-sm font-black text-white flex items-center gap-1 truncate">
               <span>{{ store.name }}</span>
-              <i class="fas fa-certificate rq-verified-check" title="متجر موثق"></i>
+              <i class="fas fa-certificate text-sky-400 text-xs" title="متجر موثق"></i>
             </h4>
-            <span class="rq-store-subdomain">{{ store.subdomain }}.raqamiyatapp.com</span>
+            <span class="text-[11px] text-slate-400 block truncate">{{ store.subdomain }}.raqamiyatapp.com</span>
           </div>
         </div>
 
-        <p class="rq-store-bio">
-          {% if store.description %}{{ store.description|truncatewords:15 }}{% else %}متجر معتمد لتقديم المنتجات والحلول التقنية بنظام رقميات.{% endif %}
+        <p class="text-xs text-slate-400 line-clamp-2 mb-3">
+          {% if store.description %}{{ store.description }}{% else %}متجر معتمد لتقديم أحدث المنتجات والتجهيزات التقنية.{% endif %}
         </p>
 
-        <div class="rq-store-meta-bar">
-          <span class="rq-store-status-pill">
-            <i class="fas fa-check-circle"></i> متجر نشط
+        <div class="mt-auto pt-2 border-t border-white/5 flex items-center justify-between">
+          <span class="text-[11px] font-bold text-emerald-400 flex items-center gap-1">
+            <i class="fas fa-circle text-[7px]"></i> نشط
           </span>
-          <a href="{{ store.get_absolute_url }}" class="rq-store-visit-link" target="_blank">
+          <a href="{{ store.get_absolute_url }}" class="text-xs font-bold text-sky-400 hover:text-white flex items-center gap-1" target="_blank">
             <span>زيارة المتجر</span>
-            <i class="fas fa-arrow-left"></i>
+            <i class="fas fa-arrow-left text-[9px]"></i>
           </a>
         </div>
       </div>
       {% endfor %}
     </div>
-    {% else %}
-    <!-- In case no active stores yet, show welcoming banner to register the first store -->
-    <div class="p-8 rounded-3xl bg-slate-900/60 border border-white/10 text-center mb-8">
-      <div class="w-16 h-16 rounded-2xl bg-amber-500/10 border border-amber-500/20 text-amber-400 text-2xl flex items-center justify-center mx-auto mb-4">
-        <i class="fas fa-store"></i>
-      </div>
-      <h3 class="text-xl font-black text-white mb-2">كن أول من يطلق متجره الرقمي المستقل</h3>
-      <p class="text-sm text-slate-400 max-w-xl mx-auto mb-6">
-        انضم الآن لمنظومة رقميات السحابية للتجار، واحصل على متجر متكامل بهويتك الخاصة، وربط تلقائي بالكتالوج ومزودي الخدمات وبوابات الدفع.
-      </p>
-      <a href="{% url 'store_registration' %}" class="rq-merchant-btn rq-btn-gold">
-        <i class="fas fa-rocket ml-2"></i>
-        <span>أنشئ متجرك الإلكتروني الآن</span>
-      </a>
-    </div>
     {% endif %}
 
-    <!-- Merchant Onboarding Banner -->
-    <div class="rq-merchant-banner">
-      <div class="rq-merchant-copy">
-        <div class="rq-merchant-badge">
-          <i class="fas fa-rocket"></i>
-          <span>منصة رقميات للتجار والشركاء</span>
-        </div>
-        <h3 class="rq-merchant-heading">هل تدير نشاطاً أو تجارة في الخدمات الرقمية؟</h3>
-        <p class="rq-merchant-text">
-          أطلق متجرك الرقمي المتكامل بهويتك المستقلة ونطاقك الخاص خلال دقائق. استفد من الربط الآلي الشامل لمزودي الخدمات، وبوابات الدفع المتعددة، وإدارة العمليات دون الحاجة لأي خبرة برمجية.
-        </p>
-      </div>
-      <div class="rq-merchant-action flex items-center gap-3 flex-wrap">
-        <a href="{% url 'store_registration' %}" class="rq-merchant-btn rq-btn-gold">
-          <i class="fas fa-store"></i>
-          <span>إنشاء متجرك الرقمي</span>
-        </a>
-        <a href="{% url 'stores_directory' %}" class="rq-merchant-btn rq-btn-secondary">
-          <i class="fas fa-compass"></i>
-          <span>استكشف شبكة المتاجر</span>
-        </a>
-      </div>
-    </div>
   </section>
   {% endif %}
 
   <!-- ═══════════════════════════════════════════════════════════════
-       6. PLATFORM PERFORMANCE PULSE (Live Metrics)
+       6. PLATFORM PERFORMANCE METRICS
        ═══════════════════════════════════════════════════════════════ -->
-  <section class="rq-container">
-    <div class="rq-metrics-bar">
-      
-      <div class="rq-metric-card">
-        <div class="rq-metric-num">+25,000</div>
-        <div class="rq-metric-title">مستخدم وعميل نشط</div>
+  <section class="rq-home-container">
+    <div class="rq-metrics-grid">
+      <div>
+        <div class="rq-metric-number">+25,000</div>
+        <div class="rq-metric-title">عميل ومستخدم نشط</div>
       </div>
-
-      <div class="rq-metric-card">
-        <div class="rq-metric-num">+180,000</div>
-        <div class="rq-metric-title">معاملة تسليم ناجحة</div>
+      <div>
+        <div class="rq-metric-number">+180,000</div>
+        <div class="rq-metric-title">معاملة ناجحة ومكتملة</div>
       </div>
-
-      <div class="rq-metric-card">
-        <div class="rq-metric-num">99.98%</div>
+      <div>
+        <div class="rq-metric-number">99.98%</div>
         <div class="rq-metric-title">نسبة الدقة ورضا العملاء</div>
       </div>
-
-      <div class="rq-metric-card">
-        <div class="rq-metric-num">&lt; 15s</div>
-        <div class="rq-metric-title">متوسط سرعة الإنجاز الفعلي</div>
+      <div>
+        <div class="rq-metric-number">&lt; 15s</div>
+        <div class="rq-metric-title">سرعة المعالجة اللحظية</div>
       </div>
-
     </div>
   </section>
 
 </div>
 
+<!-- Interactive Switcher Script -->
 <script>
+function toggleHeroView(mode) {
+  var appView = document.getElementById('view-app-card');
+  var spotView = document.getElementById('view-spotlight-card');
+  var appBtn = document.getElementById('tab-app-btn');
+  var spotBtn = document.getElementById('tab-spotlight-btn');
+
+  if (mode === 'spotlight' && spotView) {
+    if (appView) appView.style.display = 'none';
+    spotView.style.display = 'block';
+    if (spotBtn) spotBtn.classList.add('active');
+    if (appBtn) appBtn.classList.remove('active');
+  } else {
+    if (spotView) spotView.style.display = 'none';
+    if (appView) appView.style.display = 'block';
+    if (appBtn) appBtn.classList.add('active');
+    if (spotBtn) spotBtn.classList.remove('active');
+  }
+}
+
+// Omni Live Search with keyboard support & debounce
 (function() {
   const input = document.getElementById('rq-hero-search-input');
   const dropdown = document.getElementById('rq-hero-search-dropdown');
   const form = document.getElementById('rq-hero-search-form');
-  const fallbackImg = "{% static 'site/img/brands/generic_digital.svg' %}";
+  const fallbackImg = "{% static 'site/img/raqamiyat_logo_square.jpg' %}";
   const catalogUrl = "{% url 'catalog' %}";
 
   if (!input || !dropdown) return;
@@ -2057,44 +1424,36 @@ body.is-native-app .rq-section-link {
   let debounceTimer = null;
   let currentController = null;
   let selectedIndex = -1;
-  let currentResults = [];
+
+  function escapeHtml(str) {
+    return (str || '').replace(/[&<>"']/g, function(m) {
+      return ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[m];
+    });
+  }
 
   function highlightMatch(text, query) {
     if (!query) return text;
     const safeQ = query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
     const regex = new RegExp(`(${safeQ})`, 'gi');
-    return text.replace(regex, '<mark>$1</mark>');
+    return text.replace(regex, '<mark style="background: rgba(245, 158, 11, 0.3); color: #fff; padding: 0 2px; border-radius: 4px;">$1</mark>');
   }
 
   function closeDropdown() {
     dropdown.classList.remove('active');
     dropdown.innerHTML = '';
     selectedIndex = -1;
-    currentResults = [];
-  }
-
-  function updateSelection(items) {
-    items.forEach((item, idx) => {
-      if (idx === selectedIndex) {
-        item.classList.add('selected');
-        item.scrollIntoView({ block: 'nearest' });
-      } else {
-        item.classList.remove('selected');
-      }
-    });
   }
 
   function renderResults(data, query) {
     const results = data.results || [];
-    currentResults = results;
     selectedIndex = -1;
 
     if (results.length === 0) {
       dropdown.innerHTML = `
-        <div class="rq-omni-empty">
-          <i class="fas fa-search-minus text-slate-500 text-2xl mb-2 block"></i>
+        <div style="padding: 1.5rem; text-align: center; color: #94a3b8; font-size: 0.85rem;">
+          <i class="fas fa-search-minus" style="font-size: 1.5rem; margin-bottom: 0.5rem; display: block; color: #64748b;"></i>
           <div>لم نجد نتائج مطابقة لـ "<strong>${escapeHtml(query)}</strong>"</div>
-          <a href="${catalogUrl}?q=${encodeURIComponent(query)}" class="inline-block mt-2 text-xs text-indigo-400 font-bold hover:underline">
+          <a href="${catalogUrl}?q=${encodeURIComponent(query)}" style="display: inline-block; margin-top: 0.5rem; color: #38bdf8; font-weight: bold; text-decoration: underline;">
             البحث في الكتالوج الشامل ⟵
           </a>
         </div>
@@ -2103,22 +1462,18 @@ body.is-native-app .rq-section-link {
       return;
     }
 
-    let html = '<div class="rq-omni-results-scroll">';
+    let html = '<div class="rq-search-results-list">';
     results.forEach((p, idx) => {
       const highlightedName = highlightMatch(escapeHtml(p.name), query);
-      const catBadge = p.category_name ? `<span class="rq-omni-cat-badge">${escapeHtml(p.category_name)}</span>` : '';
-      const priceText = p.price_display ? `<span class="rq-omni-price">${p.price_display}</span>` : '';
-      const stockBadge = !p.in_stock ? `<span class="text-[10px] text-rose-400 font-bold">(نفدت الكمية)</span>` : '';
+      const catBadge = p.category_name ? `<span style="font-size: 0.7rem; background: rgba(255,255,255,0.06); padding: 0.15rem 0.5rem; border-radius: 6px; color: #94a3b8;">${escapeHtml(p.category_name)}</span>` : '';
+      const priceText = p.price_display ? `<span style="font-family: 'Space Grotesk', sans-serif; font-size: 0.9rem; font-weight: 800; color: #fbbf24; margin-right: auto;">${p.price_display}</span>` : '';
 
       html += `
-        <a href="${p.url}" class="rq-omni-item" data-idx="${idx}">
-          <img src="${p.image}" alt="${escapeHtml(p.name)}" class="rq-omni-thumb" onerror="this.onerror=null;this.src='${fallbackImg}';" loading="lazy">
-          <div class="rq-omni-meta">
-            <div class="rq-omni-title">${highlightedName}</div>
-            <div class="rq-omni-sub">
-              ${catBadge}
-              ${stockBadge}
-            </div>
+        <a href="${p.url}" class="rq-search-item" data-idx="${idx}">
+          <img src="${p.image}" alt="${escapeHtml(p.name)}" class="rq-search-thumb" onerror="this.onerror=null;this.src='${fallbackImg}';" loading="lazy">
+          <div style="flex: 1; min-width: 0;">
+            <div style="font-size: 0.875rem; font-weight: 800; color: #fff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${highlightedName}</div>
+            <div style="margin-top: 0.25rem;">${catBadge}</div>
           </div>
           ${priceText}
         </a>
@@ -2127,10 +1482,9 @@ body.is-native-app .rq-section-link {
     html += '</div>';
 
     html += `
-      <div class="rq-omni-footer">
-        <a href="${catalogUrl}?q=${encodeURIComponent(query)}">
-          <span>عرض كافة النتائج في الكتالوج (${data.total || results.length})</span>
-          <i class="fas fa-arrow-left"></i>
+      <div style="padding: 0.75rem 1rem; background: rgba(0,0,0,0.3); border-top: 1px solid rgba(255,255,255,0.06); text-align: center;">
+        <a href="${catalogUrl}?q=${encodeURIComponent(query)}" style="font-size: 0.8rem; font-weight: 800; color: #38bdf8; text-decoration: none;">
+          عرض كافة النتائج في الكتالوج (${data.total || results.length}) ⟵
         </a>
       </div>
     `;
@@ -2139,36 +1493,28 @@ body.is-native-app .rq-section-link {
     dropdown.classList.add('active');
   }
 
-  function escapeHtml(str) {
-    return (str || '').replace(/[&<>"']/g, function(m) {
-      return ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[m];
-    });
-  }
-
-  const searchCache = new Map();
+  const cache = new Map();
 
   input.addEventListener('input', function() {
     const q = this.value.trim();
     clearTimeout(debounceTimer);
 
-    if (currentController) {
-      currentController.abort();
-    }
+    if (currentController) currentController.abort();
 
     if (q.length < 1) {
       closeDropdown();
       return;
     }
 
-    if (searchCache.has(q)) {
-      renderResults(searchCache.get(q), q);
+    if (cache.has(q)) {
+      renderResults(cache.get(q), q);
       return;
     }
 
     dropdown.innerHTML = `
-      <div class="rq-omni-loading">
-        <i class="fas fa-spinner fa-spin text-indigo-400"></i>
-        <span>جاري البحث الفوري في المنتجات والخدمات...</span>
+      <div style="padding: 1.25rem; text-align: center; color: #94a3b8; font-size: 0.85rem;">
+        <i class="fas fa-spinner fa-spin" style="color: #38bdf8; margin-left: 0.5rem;"></i>
+        <span>جاري البحث الفوري...</span>
       </div>
     `;
     dropdown.classList.add('active');
@@ -2181,51 +1527,26 @@ body.is-native-app .rq-section-link {
       })
       .then(res => res.json())
       .then(data => {
-        searchCache.set(q, data);
+        cache.set(q, data);
         if (input.value.trim() === q) {
           renderResults(data, q);
         }
       })
       .catch(err => {
-        if (err.name !== 'AbortError') {
-          console.error('Search error:', err);
-        }
+        if (err.name !== 'AbortError') console.error('Search error:', err);
       });
     }, 240);
   });
 
-  input.addEventListener('keydown', function(e) {
-    if (!dropdown.classList.contains('active')) return;
-    const items = dropdown.querySelectorAll('.rq-omni-item');
-    if (!items.length) return;
-
-    if (e.key === 'ArrowDown') {
-      e.preventDefault();
-      selectedIndex = (selectedIndex + 1) % items.length;
-      updateSelection(items);
-    } else if (e.key === 'ArrowUp') {
-      e.preventDefault();
-      selectedIndex = (selectedIndex - 1 + items.length) % items.length;
-      updateSelection(items);
-    } else if (e.key === 'Enter') {
-      if (selectedIndex >= 0 && selectedIndex < items.length) {
-        e.preventDefault();
-        items[selectedIndex].click();
-      }
-    } else if (e.key === 'Escape') {
-      closeDropdown();
-    }
-  });
-
   document.addEventListener('click', function(e) {
-    if (!form.contains(e.target)) {
+    if (!form.contains(e.target) && !dropdown.contains(e.target)) {
       closeDropdown();
     }
   });
 
   input.addEventListener('focus', function() {
-    if (this.value.trim().length >= 1 && currentResults.length > 0) {
-      dropdown.classList.add('active');
+    if (this.value.trim().length >= 1 && cache.has(this.value.trim())) {
+      renderResults(cache.get(this.value.trim()), this.value.trim());
     }
   });
 })();
