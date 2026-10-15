@@ -600,10 +600,12 @@
                 <i class="fas fa-plus-circle"></i>
                 <span>إيداع رصيد</span>
             </a>
+            {% if FEATURES.feature_withdrawals %}
             <a href="{% url 'dashboard_withdrawals' %}" class="action-btn">
                 <i class="fas fa-arrow-alt-circle-down"></i>
                 <span>طلب سحب</span>
             </a>
+            {% endif %}
             {% if FEATURES.feature_p2p_transfers %}
             <a href="{% url 'dashboard_transfer' %}" class="action-btn">
                 <i class="fas fa-exchange-alt"></i>
@@ -700,6 +702,7 @@
             </div>
 
             <!-- Recent Withdrawals -->
+            {% if FEATURES.feature_withdrawals %}
             <div class="panel stack">
                 <div class="section-head p-6 pb-0">
                     <h2 class="text-lg">آخر السحوبات</h2>
@@ -740,6 +743,7 @@
                     {% endfor %}
                 </div>
             </div>
+            {% endif %}
         </div>
     </div>
 

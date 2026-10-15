@@ -1410,7 +1410,7 @@
           {% if not is_tenant and FEATURES.feature_sub_stores %}
           <a href="{% url 'stores_directory' %}" class="{% if request.resolver_match.url_name == 'stores_directory' %}active{% endif %}">المتاجر</a>
           {% endif %}
-          <a href="{% url 'catalog' %}" class="{% if request.resolver_match.url_name == 'catalog' %}active{% endif %}">الخدمات</a>
+          <a href="{% url 'catalog' %}" class="{% if request.resolver_match.url_name == 'catalog' %}active{% endif %}">المنتجات والمعدات</a>
           {% if FEATURES.feature_app_download %}
           <a href="{% url 'download_android_apk' %}" class="{% if request.resolver_match.url_name == 'download_android_apk' %}active{% endif %} text-cyan hover:text-cyan font-bold flex items-center gap-1.5" title="تحميل تطبيق الأندرويد">
               <i class="fab fa-android text-emerald-400"></i>
@@ -1638,8 +1638,8 @@
           <span>الرئيسية</span>
       </a>
       <a href="{% url 'catalog' %}" class="mobile-nav-item {% if request.resolver_match.url_name == 'catalog' %}active{% endif %}">
-          <i class="fas fa-layer-group"></i>
-          <span>الخدمات</span>
+          <i class="fas fa-boxes-stacked"></i>
+          <span>الكتالوج</span>
       </a>
       <a href="{% url 'dashboard_wallet' %}" class="mobile-nav-item {% if request.resolver_match.url_name == 'dashboard_wallet' %}active{% endif %}">
           <i class="fas fa-wallet"></i>
