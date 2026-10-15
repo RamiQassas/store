@@ -1,1995 +1,984 @@
 {% extends "site/base.html" %}
 {% load static site_tags %}
 
-{% block title %}متجر الخدمات | {% if is_tenant %}{{ STORE_NAME }}{% else %}رقميات{% endif %}{% endblock %}
+{% block title %}كتالوج المنتجات والتجهيزات التقنية | {% if is_tenant %}{{ STORE_NAME }}{% else %}رقميات RAQAMIYAT{% endif %}{% endblock %}
 
 {% block extra_head %}
 <style>
-/* =========================================
-   CATALOG PAGE — PURE VANILLA CSS
-   No Tailwind dependency, works on all devices
-   ========================================= */
+/* ══════════════════════════════════════════════════════════════════════
+   RAQAMIYAT CATALOG — PREMIUM HIGH-PERFORMANCE TECH COMMERCE
+   Obsidian Dark, Electric Cyan & Luminous Gold Glassmorphism
+   ══════════════════════════════════════════════════════════════════════ */
 
-/* ---- Page Layout ---- */
-/* ---- Page Layout ---- */
-.catalog-page {
+.rq-catalog-viewport {
     min-height: 100vh;
-    padding: 3rem 0 6rem;
+    padding: 2.5rem 0 5rem;
     direction: rtl;
-    background: radial-gradient(circle at 85% 8%, rgba(212,168,83,0.06) 0%, transparent 45%),
-                radial-gradient(circle at 15% 18%, rgba(124,92,191,0.06) 0%, transparent 45%);
-}
-.catalog-container {
-    width: 100%;
-    max-width: 1400px;
-    margin-inline: auto;
-    padding-inline: 1rem;
-    box-sizing: border-box;
+    background-color: var(--rq-bg, #060913);
+    color: var(--rq-text-body, #cbd5e1);
+    touch-action: pan-y !important;
+    -webkit-overflow-scrolling: touch !important;
 }
 
-/* ---- Hero Header ---- */
-.catalog-hero {
-    margin-bottom: 2.5rem;
+.rq-catalog-container {
+    width: min(100% - 2rem, 1320px);
+    margin-inline: auto;
+}
+
+/* ── Hero Header ── */
+.rq-catalog-hero {
+    margin-bottom: 2.25rem;
     display: flex;
     flex-direction: column;
     gap: 1.5rem;
+    position: relative;
+    z-index: 10;
 }
-@media (min-width: 768px) {
-    .catalog-hero {
+@media (min-width: 860px) {
+    .rq-catalog-hero {
         flex-direction: row;
         align-items: flex-end;
         justify-content: space-between;
     }
 }
-.catalog-hero-label {
-    font-size: 0.7rem;
-    font-weight: 900;
-    color: var(--gold, #d4a853);
-    text-transform: uppercase;
-    letter-spacing: 0.25em;
+
+.rq-catalog-hero-badge {
+    font-size: 0.75rem;
+    font-weight: 800;
+    color: var(--rq-cyan-light, #38bdf8);
     display: inline-flex;
     align-items: center;
-    gap: 0.4rem;
+    gap: 0.5rem;
     margin-bottom: 0.6rem;
-    background: rgba(212,168,83,0.08);
-    border: 1px solid rgba(212,168,83,0.2);
-    padding: 0.25rem 0.75rem;
+    background: rgba(6, 182, 212, 0.08);
+    border: 1px solid rgba(56, 189, 248, 0.25);
+    padding: 0.35rem 0.9rem;
     border-radius: 999px;
 }
-.catalog-hero h1 {
-    font-size: clamp(2rem, 5vw, 3.2rem);
+
+.rq-catalog-hero-title {
+    font-size: clamp(1.8rem, 4.5vw, 2.75rem);
     font-weight: 900;
-    color: #fff;
+    color: var(--rq-text-title, #f8fafc);
     margin: 0 0 0.5rem;
-    line-height: 1.15;
+    line-height: 1.2;
     letter-spacing: -0.02em;
-    background: linear-gradient(135deg, #ffffff 0%, #e2e8f0 70%, #94a3b8 100%);
+}
+
+.rq-catalog-hero-title .rq-gradient-text {
+    background: linear-gradient(135deg, #38bdf8 0%, #818cf8 50%, #fbbf24 100%);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
 }
-.catalog-hero p {
-    color: #94a3b8;
+
+.rq-catalog-hero-desc {
+    color: var(--rq-text-muted, #94a3b8);
     font-size: 0.95rem;
     margin: 0;
-    line-height: 1.6;
+    line-height: 1.65;
+    max-width: 680px;
 }
-.catalog-search-wrap {
+
+/* ── Search Dock ── */
+.rq-catalog-search-wrap {
     width: 100%;
-    max-width: 420px;
+    max-width: 440px;
 }
-.catalog-search-wrap form {
+.rq-catalog-search-box {
     position: relative;
+    display: flex;
+    align-items: center;
 }
-.catalog-search-wrap i {
+.rq-catalog-search-box i.fa-search {
     position: absolute;
-    right: 1.1rem;
+    right: 1.15rem;
     top: 50%;
     transform: translateY(-50%);
-    color: #64748b;
+    color: var(--rq-cyan-light, #38bdf8);
+    font-size: 1rem;
     pointer-events: none;
     z-index: 2;
-    transition: color 0.3s;
 }
-.catalog-search-wrap form:focus-within i {
-    color: var(--gold, #d4a853);
-}
-.catalog-search-input {
+.rq-catalog-search-input {
     width: 100%;
-    background: rgba(15, 23, 42, 0.75);
-    backdrop-filter: blur(12px);
-    -webkit-backdrop-filter: blur(12px);
-    border: 1px solid rgba(255,255,255,0.1);
-    border-radius: 999px;
-    padding: 0.9rem 3.25rem 0.9rem 1.25rem;
+    background: rgba(14, 21, 38, 0.85);
+    backdrop-filter: blur(14px);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 18px;
+    padding: 0.85rem 3.1rem 0.85rem 1.15rem;
     color: #fff;
     font-size: 0.9rem;
     font-family: inherit;
     direction: rtl;
     text-align: right;
     outline: none;
-    transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
-    box-shadow: 0 8px 24px rgba(0,0,0,0.3);
+    transition: all 0.25s ease;
+    box-shadow: 0 10px 25px -8px rgba(0,0,0,0.6);
 }
-.catalog-search-input:focus {
-    border-color: rgba(212,168,83,0.6);
-    box-shadow: 0 0 0 4px rgba(212,168,83,0.12), 0 10px 30px rgba(0,0,0,0.4);
+.rq-catalog-search-input:focus {
+    border-color: var(--rq-cyan-light, #38bdf8);
+    box-shadow: 0 0 0 3px rgba(6, 182, 212, 0.2), 0 12px 30px rgba(0,0,0,0.7);
 }
-.catalog-search-input::placeholder { color: #64748b; }
+.rq-catalog-search-input::placeholder { color: var(--rq-text-muted, #94a3b8); }
 
-/* ---- Mobile Category Pills ---- */
-.mobile-cats {
+/* ── Mobile Horizontal Category Pills ── */
+.rq-mobile-cats-scroller {
     display: flex;
-    gap: 0.6rem;
+    gap: 0.55rem;
     overflow-x: auto;
-    padding-bottom: 0.5rem;
+    padding-bottom: 0.65rem;
     margin-bottom: 1.5rem;
     scrollbar-width: none;
+    -webkit-overflow-scrolling: touch;
 }
-.mobile-cats::-webkit-scrollbar { display: none; }
-@media (min-width: 1024px) { .mobile-cats { display: none; } }
+.rq-mobile-cats-scroller::-webkit-scrollbar { display: none; }
+@media (min-width: 1024px) { .rq-mobile-cats-scroller { display: none; } }
 
-.cat-pill {
+.rq-cat-pill-item {
     display: inline-flex;
     align-items: center;
     white-space: nowrap;
-    padding: 0.5rem 1rem;
+    padding: 0.45rem 1rem;
     border-radius: 999px;
-    font-weight: 700;
-    font-size: 0.75rem;
+    font-weight: 800;
+    font-size: 0.8rem;
     text-decoration: none;
-    border: 1px solid rgba(255,255,255,0.07);
-    background: rgba(15,23,42,0.5);
-    color: #94a3b8;
-    transition: all 0.25s;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    background: rgba(14, 21, 38, 0.7);
+    color: var(--rq-text-muted, #94a3b8);
+    transition: all 0.2s ease;
     flex-shrink: 0;
 }
-.cat-pill:hover { background: rgba(255,255,255,0.08); color: #fff; }
-.cat-pill.active {
-    background: var(--gold, #d4a853);
-    color: #000;
-    border-color: var(--gold, #d4a853);
-    font-weight: 900;
+.rq-cat-pill-item:hover { background: rgba(56, 189, 248, 0.12); color: #fff; }
+.rq-cat-pill-item.active {
+    background: linear-gradient(135deg, #0284c7 0%, #06b6d4 100%);
+    color: #fff;
+    border-color: var(--rq-cyan-light, #38bdf8);
+    box-shadow: 0 4px 14px rgba(6, 182, 212, 0.3);
 }
 
-/* ---- Main Grid (Sidebar + Content) ---- */
-.catalog-layout {
+/* ── Main Catalog Layout (Sidebar + Content) ── */
+.rq-catalog-layout {
     display: grid;
-    grid-template-columns: minmax(0, 1fr);
+    grid-template-columns: 1fr;
     gap: 2rem;
-    align-items: start;
-    width: 100%;
-    min-width: 0;
 }
 @media (min-width: 1024px) {
-    .catalog-layout {
-        grid-template-columns: 260px minmax(0, 1fr);
+    .rq-catalog-layout {
+        grid-template-columns: 280px 1fr;
     }
 }
 
-/* ---- Sidebar ---- */
-.catalog-sidebar {
+/* Desktop Sidebar */
+.rq-catalog-sidebar {
     display: none;
 }
 @media (min-width: 1024px) {
-    .catalog-sidebar {
+    .rq-catalog-sidebar {
         display: block;
-        position: sticky;
-        top: 90px;
     }
 }
-.sidebar-panel {
-    background: rgba(15,23,42,0.5);
-    backdrop-filter: blur(20px);
-    border: 1px solid rgba(255,255,255,0.06);
+.rq-sidebar-sticky {
+    position: sticky;
+    top: 5rem;
+    background: rgba(14, 21, 38, 0.75);
+    border: 1px solid rgba(255, 255, 255, 0.08);
     border-radius: 20px;
     padding: 1.5rem;
+    backdrop-filter: blur(14px);
     display: flex;
     flex-direction: column;
     gap: 1.5rem;
 }
-.sidebar-title {
-    font-size: 0.7rem;
+.rq-sidebar-heading {
+    font-size: 0.9rem;
     font-weight: 900;
-    color: #64748b;
-    text-transform: uppercase;
-    letter-spacing: 0.2em;
-    margin-bottom: 0.75rem;
+    color: var(--rq-text-title, #f8fafc);
+    margin: 0 0 1rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
 }
-.sidebar-cat-list {
+.rq-sidebar-cat-list {
     display: flex;
     flex-direction: column;
     gap: 0.35rem;
+    max-height: 480px;
+    overflow-y: auto;
+    padding-left: 0.25rem;
 }
-.sidebar-cat-link {
+.rq-sidebar-cat-item {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 0.6rem 0.9rem;
+    padding: 0.65rem 0.9rem;
     border-radius: 12px;
-    font-size: 0.8rem;
+    font-size: 0.85rem;
     font-weight: 700;
+    color: var(--rq-text-body, #cbd5e1);
     text-decoration: none;
-    color: #94a3b8;
+    transition: all 0.2s ease;
     border: 1px solid transparent;
-    transition: all 0.2s;
 }
-.sidebar-cat-link:hover {
-    background: rgba(255,255,255,0.06);
-    color: #e2e8f0;
-}
-.sidebar-cat-link.active {
-    background: var(--gold, #d4a853);
-    color: #000;
-    border-color: var(--gold, #d4a853);
-    font-weight: 900;
-}
-.sidebar-cat-count {
-    background: rgba(255,255,255,0.1);
-    padding: 0.15rem 0.45rem;
-    border-radius: 6px;
-    font-size: 0.65rem;
-    font-weight: 700;
-}
-.sidebar-cat-link.active .sidebar-cat-count {
-    background: rgba(0,0,0,0.2);
-    color: #000;
-}
-
-/* ---- Sidebar Suggestion Card ---- */
-.sidebar-suggest-card {
-    background: linear-gradient(135deg, rgba(124,92,191,0.08) 0%, rgba(212,168,83,0.05) 100%);
-    border: 1px solid rgba(124,92,191,0.2);
-    border-radius: 16px;
-    padding: 1.25rem;
-    position: relative;
-    overflow: hidden;
-}
-.sidebar-suggest-card::before {
-    content: '';
-    position: absolute;
-    top: -30px;
-    right: -30px;
-    width: 80px;
-    height: 80px;
-    background: rgba(124,92,191,0.15);
-    border-radius: 50%;
-    filter: blur(20px);
-    pointer-events: none;
-}
-.sidebar-suggest-icon {
-    width: 36px;
-    height: 36px;
-    background: rgba(124,92,191,0.15);
-    border-radius: 10px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    color: #b8a5e8;
-    margin-bottom: 0.75rem;
-}
-.sidebar-suggest-card h4 {
-    font-size: 0.8rem;
-    font-weight: 900;
+.rq-sidebar-cat-item:hover {
+    background: rgba(56, 189, 248, 0.08);
     color: #fff;
-    margin: 0 0 0.25rem;
+    transform: translateX(-2px);
 }
-.sidebar-suggest-card p {
-    font-size: 0.7rem;
-    color: #64748b;
-    margin: 0 0 1rem;
+.rq-sidebar-cat-item.active {
+    background: linear-gradient(135deg, rgba(6, 182, 212, 0.15) 0%, rgba(59, 130, 246, 0.15) 100%);
+    border-color: rgba(56, 189, 248, 0.35);
+    color: #fff;
+    font-weight: 800;
 }
-.btn-suggest-sidebar {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 100%;
-    padding: 0.6rem;
-    border: none;
-    border-radius: 10px;
-    background: linear-gradient(135deg, var(--gold, #d4a853), #7c5cbf);
-    color: #000;
+.rq-sidebar-count-badge {
     font-size: 0.75rem;
-    font-weight: 900;
-    cursor: pointer;
-    transition: transform 0.2s, box-shadow 0.2s;
-    font-family: inherit;
-}
-.btn-suggest-sidebar:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 8px 20px rgba(212,168,83,0.3);
+    font-family: monospace;
+    font-weight: 800;
+    color: var(--rq-cyan-light, #38bdf8);
+    background: rgba(6, 182, 212, 0.1);
+    padding: 0.15rem 0.55rem;
+    border-radius: 999px;
 }
 
-/* ---- Content Area ---- */
-.catalog-content {
-    display: flex;
-    flex-direction: column;
-    gap: 1.25rem;
+/* ── Content Area & Controls Bar ── */
+.rq-catalog-main {
     min-width: 0;
-    width: 100%;
 }
 
-/* ---- View Toggle ---- */
-.view-toggle-wrap {
-    display: flex;
-    justify-content: center;
-}
-.view-toggle {
-    display: flex;
-    background: rgba(2,6,23,0.7);
-    border: 1px solid rgba(255,255,255,0.07);
-    border-radius: 14px;
-    padding: 4px;
-    position: relative;
-    width: 100%;
-    max-width: 300px;
-}
-.toggle-indicator {
-    position: absolute;
-    top: 4px;
-    bottom: 4px;
-    width: calc(50% - 4px);
-    right: 4px;
-    border-radius: 10px;
-    background: linear-gradient(135deg, var(--gold, #d4a853) 0%, #7c5cbf 100%);
-    transition: transform 0.3s cubic-bezier(0.4,0,0.2,1);
-    z-index: 0;
-    box-shadow: 0 4px 15px rgba(212,168,83,0.3);
-}
-.toggle-indicator.at-left {
-    transform: translateX(-100%);
-}
-.toggle-btn {
-    flex: 1;
+.rq-catalog-controls {
+    background: rgba(14, 21, 38, 0.7);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 18px;
+    padding: 0.85rem 1.25rem;
+    margin-bottom: 1.5rem;
     display: flex;
     align-items: center;
-    justify-content: center;
-    gap: 0.4rem;
-    padding: 0.55rem 0.75rem;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 1rem;
+    backdrop-filter: blur(12px);
+}
+
+.rq-view-switch-tabs {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+    background: rgba(0, 0, 0, 0.4);
+    padding: 0.3rem;
+    border-radius: 14px;
+    border: 1px solid rgba(255, 255, 255, 0.06);
+}
+.rq-view-tab-btn {
+    padding: 0.45rem 1rem;
+    border-radius: 10px;
     border: none;
     background: transparent;
-    font-size: 0.75rem;
+    color: var(--rq-text-muted, #94a3b8);
+    font-size: 0.8rem;
     font-weight: 800;
     cursor: pointer;
-    border-radius: 10px;
-    transition: color 0.3s;
-    position: relative;
-    z-index: 1;
-    font-family: inherit;
-    color: #64748b;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    transition: all 0.2s ease;
 }
-.toggle-btn.is-active {
-    color: #000;
+.rq-view-tab-btn.active {
+    background: var(--rq-cyan, #06b6d4);
+    color: #0b1120;
+    box-shadow: 0 4px 12px rgba(6, 182, 212, 0.35);
 }
 
-/* ---- Top Bar (Sort + Info) ---- */
-.catalog-topbar {
-    background: rgba(15,23,42,0.5);
-    border: 1px solid rgba(255,255,255,0.06);
-    border-radius: 14px;
-    padding: 0.85rem 1.1rem;
-    display: flex;
-    flex-direction: column;
-    gap: 0.75rem;
+.rq-sort-select {
+    background: rgba(15, 23, 42, 0.85);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    color: #fff;
+    padding: 0.45rem 1rem;
+    border-radius: 12px;
+    font-size: 0.8rem;
+    font-weight: 700;
+    cursor: pointer;
+    outline: none;
 }
-@media (min-width: 640px) {
-    .catalog-topbar {
-        flex-direction: row;
-        align-items: center;
-        justify-content: space-between;
+
+/* ── Product Grid ── */
+.rq-catalog-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+    gap: 1.25rem;
+    margin-bottom: 2.5rem;
+}
+@media (max-width: 640px) {
+    .rq-catalog-grid {
+        grid-template-columns: 1fr;
+        gap: 1rem;
     }
 }
-.topbar-info {
-    font-size: 0.78rem;
-    font-weight: 700;
-    color: #64748b;
-}
-.topbar-info span { color: var(--gold, #d4a853); }
-.topbar-actions {
-    display: flex;
-    align-items: center;
-    gap: 0.75rem;
-    flex-wrap: wrap;
-    max-width: 100%;
-}
-.sort-select {
-    background: rgba(15,23,42,0.8);
-    border: 1px solid rgba(255,255,255,0.07);
-    color: #cbd5e1;
-    padding: 0.5rem 0.85rem;
-    border-radius: 10px;
-    font-size: 0.75rem;
-    font-weight: 700;
-    font-family: inherit;
-    outline: none;
-    cursor: pointer;
-    direction: rtl;
-}
-.sort-select option { background: #0f172a; }
 
-/* Mobile suggest button in topbar */
-.btn-suggest-mobile-bar {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.4rem;
-    padding: 0.5rem 0.85rem;
-    border: 1px solid rgba(124,92,191,0.3);
-    background: rgba(124,92,191,0.1);
-    color: #b8a5e8;
-    border-radius: 10px;
-    font-size: 0.75rem;
-    font-weight: 700;
-    cursor: pointer;
-    transition: all 0.25s;
-    font-family: inherit;
-}
-.btn-suggest-mobile-bar:hover {
-    background: rgba(124,92,191,0.2);
-    color: #fff;
-}
-@media (min-width: 1024px) { .btn-suggest-mobile-bar { display: none; } }
-
-/* ---- Product Grid ---- */
-.products-section { display: block; }
-.products-section.is-hidden { display: none; }
-
-/* ---- Product Grid ---- */
-.products-section { display: block; }
-.products-section.is-hidden { display: none; }
-
-.product-grid {
-    display: grid;
-    grid-template-columns: repeat(2, 1fr);
-    gap: 1.1rem;
-}
-@media (min-width: 640px) {
-    .product-grid { grid-template-columns: repeat(3, 1fr); gap: 1.35rem; }
-}
-@media (min-width: 1024px) {
-    .product-grid { grid-template-columns: repeat(3, 1fr); gap: 1.5rem; }
-}
-@media (min-width: 1280px) {
-    .product-grid { grid-template-columns: repeat(4, 1fr); gap: 1.5rem; }
-}
-
-/* ---- Product Card ---- */
-.p-card {
-    background: linear-gradient(180deg, rgba(15,23,42,0.7) 0%, rgba(10,15,30,0.95) 100%);
-    border: 1px solid rgba(255,255,255,0.08);
-    border-radius: 22px;
-    overflow: hidden;
+.rq-prod-item-card {
     display: flex;
     flex-direction: column;
-    position: relative;
-    transition: transform 0.35s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.35s, box-shadow 0.35s;
-    animation: cardSlideIn 0.5s ease forwards;
-    box-shadow: 0 10px 25px rgba(0,0,0,0.35);
-    opacity: 1;
-}
-@keyframes cardSlideIn {
-    from { opacity: 0; transform: translateY(16px); }
-    to   { opacity: 1; transform: translateY(0); }
-}
-.p-card:hover {
-    transform: translateY(-8px);
-    border-color: rgba(212,168,83,0.45);
-    box-shadow: 0 20px 45px rgba(212,168,83,0.15), 0 0 25px rgba(212,168,83,0.08);
-}
-
-/* Card badge */
-.card-badge {
-    position: absolute;
-    top: 0.65rem;
-    right: 0.65rem;
-    z-index: 10;
-    padding: 0.3rem 0.65rem;
-    border-radius: 999px;
-    font-size: 0.65rem;
-    font-weight: 900;
-    backdrop-filter: blur(8px);
-    box-shadow: 0 4px 12px rgba(0,0,0,0.3);
-}
-.badge-sale {
-    background: linear-gradient(135deg, #f59e0b, #e85d75);
-    color: #000;
-}
-.badge-physical {
-    background: linear-gradient(135deg, #7c5cbf, #8b5cf6);
-    color: #fff;
-}
-/* Card product number index badge */
-.card-index-badge {
-    position: absolute;
-    top: 0.65rem;
-    left: 0.65rem;
-    z-index: 10;
-    padding: 0.2rem 0.55rem;
-    border-radius: 8px;
-    font-size: 0.65rem;
-    font-weight: 900;
-    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-    background: rgba(15, 23, 42, 0.82);
-    color: #e2e8f0;
-    border: 1px solid rgba(255, 255, 255, 0.14);
-    backdrop-filter: blur(8px);
-    box-shadow: 0 4px 10px rgba(0,0,0,0.35);
-    direction: ltr;
-}
-
-/* Range indicator pill */
-.catalog-range-pill {
-    background: rgba(212, 168, 83, 0.12);
-    border: 1px solid rgba(212, 168, 83, 0.3);
-    color: #fbbf24;
-    padding: 0.2rem 0.6rem;
-    border-radius: 999px;
-    font-size: 0.75rem;
-    font-weight: 800;
-    display: inline-flex;
-    align-items: center;
-    gap: 0.35rem;
-    direction: ltr;
-}
-
-/* Catalog Jump Form */
-.catalog-jump-box {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.4rem;
-    background: rgba(15, 23, 42, 0.75);
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    border-radius: 12px;
-    padding: 0.25rem 0.5rem;
-    backdrop-filter: blur(8px);
-}
-.catalog-jump-box label {
-    font-size: 0.72rem;
-    font-weight: 800;
-    color: #94a3b8;
-    white-space: nowrap;
-}
-.catalog-jump-input {
-    width: 70px;
-    background: rgba(255, 255, 255, 0.08);
-    border: 1px solid rgba(212, 168, 83, 0.35);
-    border-radius: 8px;
-    color: #fff;
-    font-family: ui-monospace, monospace;
-    font-size: 0.85rem;
-    font-weight: 800;
-    padding: 0.25rem 0.4rem;
-    text-align: center;
-    outline: none;
-    transition: all 0.2s;
-    direction: ltr;
-}
-.catalog-jump-input:focus {
-    border-color: var(--gold, #d4a853);
-    box-shadow: 0 0 10px rgba(212, 168, 83, 0.35);
-    background: rgba(255, 255, 255, 0.14);
-}
-.catalog-jump-total {
-    font-size: 0.75rem;
-    font-family: ui-monospace, monospace;
-    color: #94a3b8;
-    font-weight: 700;
-    direction: ltr;
-    white-space: nowrap;
-}
-.catalog-jump-btn {
-    background: linear-gradient(135deg, var(--gold, #d4a853), #b8862d);
-    color: #000;
-    border: none;
-    border-radius: 8px;
-    padding: 0.3rem 0.7rem;
-    font-size: 0.72rem;
-    font-weight: 900;
-    cursor: pointer;
-    transition: all 0.2s;
-    display: inline-flex;
-    align-items: center;
-    gap: 0.3rem;
-    white-space: nowrap;
-}
-.catalog-jump-btn:hover {
-    transform: translateY(-1px);
-    box-shadow: 0 4px 12px rgba(212, 168, 83, 0.35);
-}
-
-/* Enhanced Pagination Container */
-.catalog-pagination-wrap {
-    display: flex;
-    flex-wrap: wrap;
-    justify-content: center;
-    align-items: center;
-    gap: 1rem;
-    margin-top: 3rem;
-    margin-bottom: 2rem;
-    padding: 1rem;
-    background: rgba(15, 23, 42, 0.5);
-    border: 1px solid rgba(255, 255, 255, 0.06);
-    border-radius: 18px;
-}
-.catalog-nav-btn {
-    background: rgba(255, 255, 255, 0.05);
-    padding: 0.65rem 1.15rem;
-    border-radius: 12px;
-    color: #fff;
+    background: var(--rq-card-bg, rgba(14, 21, 38, 0.78));
+    border: 1px solid var(--rq-border, rgba(255, 255, 255, 0.08));
+    border-radius: 20px;
+    overflow: hidden;
     text-decoration: none;
-    font-size: 0.8rem;
-    font-weight: 800;
-    border: 1px solid rgba(255, 255, 255, 0.08);
-    display: inline-flex;
-    align-items: center;
-    gap: 0.5rem;
-    transition: all 0.2s;
+    transition: all 0.28s ease;
+    backdrop-filter: blur(14px);
+    position: relative;
 }
-.catalog-nav-btn:hover:not(.is-disabled) {
-    background: rgba(212, 168, 83, 0.15);
-    border-color: rgba(212, 168, 83, 0.35);
-    color: var(--gold, #d4a853);
-    transform: translateY(-1px);
-}
-.catalog-nav-btn.is-disabled {
-    opacity: 0.4;
-    cursor: not-allowed;
-    pointer-events: none;
-}
-.catalog-pagination-center {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    justify-content: center;
-    gap: 0.85rem;
-}
-.catalog-pagination-info {
-    color: #94a3b8;
-    font-size: 0.8rem;
-    font-weight: 700;
-}
-/* Out of stock badges and strips - CRYSTAL CLEAR LOGOS, NO BLUR */
-.badge-oos {
-    background: linear-gradient(135deg, #ef4444, #dc2626);
-    color: #fff;
-    border: 1px solid rgba(255, 255, 255, 0.25);
-    box-shadow: 0 4px 14px rgba(239, 68, 68, 0.4);
-    display: inline-flex;
-    align-items: center;
-    gap: 0.3rem;
-}
-.card-img-oos-strip {
-    position: absolute;
-    bottom: 0;
-    left: 0;
-    right: 0;
-    z-index: 8;
-    background: linear-gradient(to top, rgba(185, 28, 28, 0.95), rgba(220, 38, 38, 0.85));
-    color: #ffffff;
-    font-size: 0.68rem;
-    font-weight: 900;
-    text-align: center;
-    padding: 0.25rem 0.5rem;
-    letter-spacing: 0.02em;
-    border-top: 1px solid rgba(255, 255, 255, 0.25);
-    box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.3);
-}
-.card-buy-btn.oos {
-    background: rgba(239, 68, 68, 0.12);
-    color: #ef4444;
-    border: 1px solid rgba(239, 68, 68, 0.35);
-    box-shadow: none;
-    width: auto;
-    padding: 0 0.7rem;
-    font-size: 0.72rem;
-    font-weight: 800;
-    gap: 0.35rem;
-}
-.card-buy-btn.oos:hover {
-    background: rgba(239, 68, 68, 0.22);
-    color: #fca5a5;
-    border-color: rgba(239, 68, 68, 0.6);
-    transform: translateY(-1px);
-    box-shadow: 0 4px 12px rgba(239, 68, 68, 0.25);
+.rq-prod-item-card:hover {
+    background: var(--rq-card-hover, rgba(22, 33, 58, 0.92));
+    border-color: rgba(56, 189, 248, 0.45);
+    transform: translateY(-4px);
+    box-shadow: 0 16px 36px -10px rgba(0, 0, 0, 0.8), 0 0 20px rgba(6, 182, 212, 0.15);
 }
 
-/* Card image area - ENLARGED & MODERN */
-.card-img-wrap {
+.rq-prod-thumb-box {
     position: relative;
     width: 100%;
-    aspect-ratio: 1 / 1;
-    background: radial-gradient(circle at 50% 40%, rgba(212,168,83,0.08) 0%, rgba(10,15,30,0.95) 75%);
-    border-bottom: 1px solid rgba(255,255,255,0.06);
+    aspect-ratio: 4/3;
+    background: #090e1a;
     overflow: hidden;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    text-decoration: none;
 }
-.card-img-wrap img {
-    position: absolute;
-    inset: 0;
+.rq-prod-thumb-img {
     width: 100%;
     height: 100%;
     object-fit: cover;
-    transition: transform 0.5s cubic-bezier(0.16, 1, 0.3, 1), filter 0.35s;
+    transition: transform 0.35s ease;
 }
-.p-card:hover .card-img-wrap img {
-    transform: scale(1.08);
-    filter: brightness(1.06);
-}
-.card-img-wrap .card-no-img {
-    position: absolute;
-    inset: 0;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 2.5rem;
-    color: #1e293b;
+.rq-prod-item-card:hover .rq-prod-thumb-img {
+    transform: scale(1.06);
 }
 
-/* Product type icon on image */
-.card-type-chip {
+.rq-tag-index {
     position: absolute;
-    bottom: 0.65rem;
-    left: 0.65rem;
-    background: rgba(2,6,23,0.85);
-    border: 1px solid rgba(255,255,255,0.12);
-    border-radius: 8px;
-    padding: 0.25rem 0.55rem;
-    font-size: 0.65rem;
+    top: 10px;
+    left: 10px;
+    background: rgba(0, 0, 0, 0.65);
+    backdrop-filter: blur(6px);
+    color: #94a3b8;
+    font-family: monospace;
+    font-size: 0.7rem;
     font-weight: 800;
-    backdrop-filter: blur(8px);
-    display: flex;
-    align-items: center;
-    gap: 0.35rem;
-    z-index: 5;
+    padding: 0.2rem 0.5rem;
+    border-radius: 6px;
+    border: 1px solid rgba(255, 255, 255, 0.08);
 }
-.card-type-chip.digital { color: var(--gold, #d4a853); border-color: rgba(212,168,83,0.25); }
-.card-type-chip.physical { color: #b8a5e8; border-color: rgba(124,92,191,0.25); }
+.rq-tag-category {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    background: rgba(10, 15, 30, 0.85);
+    backdrop-filter: blur(8px);
+    color: #fff;
+    font-size: 0.725rem;
+    font-weight: 800;
+    padding: 0.25rem 0.65rem;
+    border-radius: 8px;
+    border: 1px solid rgba(255, 255, 255, 0.12);
+}
 
-/* Card body */
-.card-body {
-    padding: 1rem 1.1rem;
+.rq-type-badge-physical {
+    position: absolute;
+    bottom: 10px;
+    right: 10px;
+    background: rgba(59, 130, 246, 0.85);
+    color: #fff;
+    font-size: 0.7rem;
+    font-weight: 900;
+    padding: 0.2rem 0.55rem;
+    border-radius: 6px;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+}
+.rq-type-badge-digital {
+    position: absolute;
+    bottom: 10px;
+    right: 10px;
+    background: rgba(16, 185, 129, 0.85);
+    color: #0b1120;
+    font-size: 0.7rem;
+    font-weight: 900;
+    padding: 0.2rem 0.55rem;
+    border-radius: 6px;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+}
+
+.rq-prod-details {
+    padding: 1.25rem;
     display: flex;
     flex-direction: column;
     flex: 1;
-    gap: 0.5rem;
 }
-.card-cat {
-    font-size: 0.68rem;
+
+.rq-prod-item-name {
+    font-size: 1rem;
     font-weight: 800;
-    color: var(--gold, #d4a853);
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
-    opacity: 0.85;
-}
-.card-name {
-    font-size: 0.95rem;
-    font-weight: 800;
-    color: #f8fafc;
-    text-decoration: none;
-    line-height: 1.4;
+    color: var(--rq-text-title, #f8fafc);
+    line-height: 1.45;
+    margin-bottom: 0.75rem;
     display: -webkit-box;
     -webkit-line-clamp: 2;
     -webkit-box-orient: vertical;
     overflow: hidden;
-    transition: color 0.2s;
-    min-height: 2.6rem;
-}
-.p-card:hover .card-name { color: var(--gold, #d4a853); }
-
-/* Variants preview */
-.card-variants {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 0.35rem;
-}
-.variant-chip {
-    background: rgba(255,255,255,0.05);
-    border: 1px solid rgba(255,255,255,0.07);
-    color: #94a3b8;
-    font-size: 0.65rem;
-    font-weight: 700;
-    padding: 0.2rem 0.5rem;
-    border-radius: 6px;
-    max-width: 85px;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-}
-.variant-more {
-    font-size: 0.65rem;
-    font-weight: 800;
-    color: var(--gold, #d4a853);
-    padding: 0.2rem 0.3rem;
 }
 
-/* Price row */
-.card-price-row {
+.rq-prod-bottom-row {
     margin-top: auto;
-    padding-top: 0.85rem;
-    border-top: 1px solid rgba(255,255,255,0.06);
+    padding-top: 1rem;
+    border-top: 1px solid rgba(255, 255, 255, 0.06);
     display: flex;
-    justify-content: space-between;
     align-items: center;
+    justify-content: space-between;
     gap: 0.5rem;
 }
-.card-price-label { font-size: 0.65rem; color: #64748b; font-weight: 700; }
-.card-price-value {
-    font-size: 1.1rem;
-    font-weight: 900;
-    color: #fff;
-    letter-spacing: -0.01em;
+
+.rq-price-label {
+    font-size: 0.725rem;
+    color: var(--rq-text-muted, #94a3b8);
+    display: block;
 }
-.card-buy-btn {
-    width: 38px;
-    height: 38px;
-    flex-shrink: 0;
-    background: linear-gradient(135deg, var(--gold, #d4a853) 0%, #d4a853 100%);
-    color: #000;
-    border-radius: 12px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    text-decoration: none;
-    font-size: 0.8rem;
-    box-shadow: 0 4px 12px rgba(212,168,83,0.3);
-    transition: transform 0.25s, box-shadow 0.25s, background 0.25s, color 0.25s;
-}
-.card-buy-btn:hover {
-    transform: scale(1.1);
-    background: linear-gradient(135deg, #7c5cbf 0%, #8b5cf6 100%);
-    color: #fff;
-    box-shadow: 0 6px 20px rgba(124,92,191,0.45);
+.rq-price-amount {
+    font-family: 'Space Grotesk', 'Tajawal', sans-serif;
+    font-size: 1.15rem;
+    font-weight: 800;
+    color: var(--rq-amber-light, #fbbf24);
 }
 
-/* Empty state */
-.empty-state {
-    grid-column: 1 / -1;
-    padding: 5rem 2rem;
-    text-align: center;
-    background: rgba(15,23,42,0.4);
-    border: 1px dashed rgba(255,255,255,0.08);
-    border-radius: 22px;
-}
-.empty-icon {
-    width: 72px;
-    height: 72px;
-    background: rgba(15,23,42,0.6);
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    margin: 0 auto 1.5rem;
-    font-size: 1.5rem;
-    color: #334155;
-}
-.empty-state h3 { font-size: 1.2rem; font-weight: 900; color: #fff; margin: 0 0 0.5rem; }
-.empty-state p { color: #64748b; font-size: 0.85rem; margin: 0 0 1.5rem; }
-.btn-browse-all {
+.rq-order-action-pill {
     display: inline-flex;
     align-items: center;
-    gap: 0.5rem;
-    padding: 0.75rem 1.75rem;
-    border: 1px solid rgba(255,255,255,0.1);
-    background: rgba(255,255,255,0.04);
-    color: #e2e8f0;
+    gap: 0.4rem;
+    background: rgba(56, 189, 248, 0.12);
+    border: 1px solid rgba(56, 189, 248, 0.25);
+    color: var(--rq-cyan-light, #38bdf8);
+    padding: 0.5rem 0.9rem;
     border-radius: 12px;
-    font-weight: 700;
-    font-size: 0.85rem;
+    font-size: 0.8rem;
+    font-weight: 800;
+    transition: all 0.2s ease;
+}
+.rq-prod-item-card:hover .rq-order-action-pill {
+    background: var(--rq-cyan, #06b6d4);
+    color: #0b1120;
+    border-color: var(--rq-cyan, #06b6d4);
+}
+
+/* ── Categories Grid View ── */
+.rq-categories-full-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    gap: 1.25rem;
+    margin-bottom: 2.5rem;
+}
+.rq-cat-tile-card {
+    background: var(--rq-card-bg, rgba(14, 21, 38, 0.78));
+    border: 1px solid var(--rq-border, rgba(255, 255, 255, 0.08));
+    border-radius: 20px;
+    padding: 1.5rem 1.25rem;
+    text-align: center;
     text-decoration: none;
-    transition: all 0.25s;
-}
-.btn-browse-all:hover { background: rgba(255,255,255,0.08); }
-
-/* ---- Categories Section - PREMIUM HIGH-END DESIGN ---- */
-.categories-section {
-    display: none;
-    grid-template-columns: repeat(2, 1fr);
-    gap: 1.1rem;
-}
-@media (min-width: 640px) {
-    .categories-section { grid-template-columns: repeat(3, 1fr); gap: 1.35rem; }
-}
-@media (min-width: 1024px) {
-    .categories-section { grid-template-columns: repeat(3, 1fr); gap: 1.5rem; }
-}
-@media (min-width: 1280px) {
-    .categories-section { grid-template-columns: repeat(4, 1fr); gap: 1.5rem; }
-}
-.categories-section.is-visible { display: grid; }
-
-.cat-card {
-    background: linear-gradient(180deg, rgba(15,23,42,0.7) 0%, rgba(10,15,30,0.95) 100%);
-    border: 1px solid rgba(255,255,255,0.08);
-    border-radius: 22px;
-    overflow: hidden;
+    transition: all 0.25s ease;
     display: flex;
     flex-direction: column;
-    text-decoration: none;
-    transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
-    animation: cardSlideIn 0.5s ease forwards;
-    position: relative;
-    box-shadow: 0 10px 30px rgba(0,0,0,0.4);
+    align-items: center;
+    backdrop-filter: blur(12px);
 }
-.cat-card:hover {
-    transform: translateY(-8px);
-    border-color: rgba(212,168,83,0.45);
-    box-shadow: 0 20px 45px rgba(212,168,83,0.18), 0 0 30px rgba(212,168,83,0.08);
+.rq-cat-tile-card:hover {
+    background: var(--rq-card-hover, rgba(22, 33, 58, 0.92));
+    border-color: rgba(56, 189, 248, 0.4);
+    transform: translateY(-4px);
+    box-shadow: 0 15px 35px -10px rgba(6, 182, 212, 0.2);
 }
-
-.cat-card-cover {
-    position: relative;
-    width: 100%;
-    aspect-ratio: 16 / 10;
-    overflow: hidden;
-    background: radial-gradient(circle at center, rgba(212,168,83,0.08) 0%, #0b1120 80%);
-    border-bottom: 1px solid rgba(255,255,255,0.06);
+.rq-cat-tile-icon {
+    width: 64px;
+    height: 64px;
+    border-radius: 18px;
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid rgba(255, 255, 255, 0.08);
     display: flex;
     align-items: center;
     justify-content: center;
+    margin-bottom: 1rem;
+    overflow: hidden;
+    transition: transform 0.25s ease;
 }
-.cat-card-cover img {
-    position: absolute;
-    inset: 0;
+.rq-cat-tile-card:hover .rq-cat-tile-icon {
+    transform: scale(1.1);
+    border-color: rgba(56, 189, 248, 0.4);
+}
+.rq-cat-tile-icon img {
     width: 100%;
     height: 100%;
     object-fit: cover;
-    transition: transform 0.55s cubic-bezier(0.16, 1, 0.3, 1), filter 0.35s;
 }
-.cat-card:hover .cat-card-cover img {
-    transform: scale(1.08);
-    filter: brightness(1.05);
-}
-.cat-card-placeholder {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 2.8rem;
-    color: #334155;
-    transition: color 0.35s, transform 0.35s;
-}
-.cat-card:hover .cat-card-placeholder {
-    color: var(--gold, #d4a853);
-    transform: scale(1.1);
-}
-.cat-card-overlay {
-    position: absolute;
-    inset: 0;
-    background: linear-gradient(to top, rgba(10,15,30,0.95) 0%, rgba(10,15,30,0.2) 60%, transparent 100%);
-    pointer-events: none;
-}
-.cat-card-badge {
-    position: absolute;
-    top: 0.75rem;
-    left: 0.75rem;
-    z-index: 5;
-    background: rgba(2,6,23,0.8);
-    backdrop-filter: blur(8px);
-    border: 1px solid rgba(255,255,255,0.12);
-    color: var(--gold, #d4a853);
-    font-size: 0.68rem;
+.rq-cat-tile-name {
+    font-size: 0.95rem;
     font-weight: 800;
-    padding: 0.25rem 0.65rem;
+    color: var(--rq-text-title, #f8fafc);
+    margin-bottom: 0.4rem;
+}
+.rq-cat-tile-count {
+    font-size: 0.75rem;
+    font-weight: 800;
+    color: var(--rq-cyan-light, #38bdf8);
+    background: rgba(6, 182, 212, 0.1);
+    border: 1px solid rgba(6, 182, 212, 0.2);
+    padding: 0.2rem 0.65rem;
     border-radius: 999px;
-    display: inline-flex;
-    align-items: center;
-    gap: 0.35rem;
-    box-shadow: 0 4px 12px rgba(0,0,0,0.4);
 }
 
-.cat-card-info {
-    padding: 1.1rem 1.25rem;
-    display: flex;
-    flex-direction: column;
-    gap: 0.35rem;
-    background: rgba(15,23,42,0.3);
-}
-.cat-card-title-wrap {
+/* ── Pagination & Jump Bar ── */
+.rq-pagination-bar {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    gap: 0.5rem;
+    flex-wrap: wrap;
+    gap: 1rem;
+    background: rgba(14, 21, 38, 0.7);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 18px;
+    padding: 1rem 1.25rem;
+    backdrop-filter: blur(12px);
 }
-.cat-card-name {
-    font-size: 1.05rem;
-    font-weight: 900;
-    color: #fff;
-    margin: 0;
-    line-height: 1.3;
-    transition: color 0.25s;
-}
-.cat-card:hover .cat-card-name {
-    color: var(--gold, #d4a853);
-}
-.cat-card-action {
+.rq-page-nav-btn {
     display: inline-flex;
     align-items: center;
-    gap: 0.35rem;
-    font-size: 0.75rem;
+    gap: 0.5rem;
+    padding: 0.6rem 1.25rem;
+    border-radius: 12px;
+    background: rgba(56, 189, 248, 0.1);
+    border: 1px solid rgba(56, 189, 248, 0.25);
+    color: var(--rq-cyan-light, #38bdf8);
+    font-size: 0.85rem;
     font-weight: 800;
-    color: var(--gold, #d4a853);
-    opacity: 0.9;
-    transition: transform 0.25s, opacity 0.25s;
+    text-decoration: none;
+    transition: all 0.2s ease;
 }
-.cat-card:hover .cat-card-action {
-    transform: translateX(-4px);
-    opacity: 1;
+.rq-page-nav-btn:hover {
+    background: var(--rq-cyan, #06b6d4);
+    color: #0b1120;
+}
+.rq-page-nav-btn.disabled {
+    opacity: 0.4;
+    pointer-events: none;
 }
 
-/* ---- Suggestion Card (bottom) ---- */
-.suggest-cta {
-    background: linear-gradient(135deg, rgba(124,92,191,0.08) 0%, rgba(212,168,83,0.06) 100%);
-    border: 1px solid rgba(124,92,191,0.2);
-    border-radius: 20px;
-    padding: 2.5rem 2rem;
-    text-align: center;
-    position: relative;
-    overflow: hidden;
-}
-.suggest-cta::before {
-    content: '';
-    position: absolute;
-    top: -50px; right: -50px;
-    width: 150px; height: 150px;
-    background: rgba(124,92,191,0.1);
-    border-radius: 50%;
-    filter: blur(40px);
-    pointer-events: none;
-}
-.suggest-cta::after {
-    content: '';
-    position: absolute;
-    bottom: -40px; left: -40px;
-    width: 120px; height: 120px;
-    background: rgba(212,168,83,0.08);
-    border-radius: 50%;
-    filter: blur(30px);
-    pointer-events: none;
-}
-.suggest-cta-icon {
-    width: 56px;
-    height: 56px;
-    background: rgba(124,92,191,0.12);
-    border-radius: 16px;
+/* ── Suggestion CTA Card ── */
+.rq-suggest-dock {
+    margin-top: 3rem;
+    background: linear-gradient(145deg, rgba(15, 23, 42, 0.8) 0%, rgba(10, 16, 32, 0.95) 100%);
+    border: 1px solid rgba(245, 158, 11, 0.25);
+    border-radius: 22px;
+    padding: 2rem;
     display: flex;
     align-items: center;
-    justify-content: center;
-    margin: 0 auto 1.25rem;
-    font-size: 1.3rem;
-    color: #b8a5e8;
-    position: relative;
-    z-index: 1;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 1.5rem;
 }
-.suggest-cta h3 {
-    font-size: 1.2rem;
-    font-weight: 900;
-    color: #fff;
-    margin: 0 0 0.5rem;
-    position: relative;
-    z-index: 1;
-}
-.suggest-cta p {
-    color: #64748b;
-    font-size: 0.85rem;
-    margin: 0 0 1.5rem;
-    max-width: 400px;
-    margin-inline: auto;
-    line-height: 1.6;
-    position: relative;
-    z-index: 1;
-}
-.btn-suggest-main {
+.rq-suggest-btn {
     display: inline-flex;
     align-items: center;
-    justify-content: center;
     gap: 0.5rem;
-    padding: 0.85rem 2rem;
-    background: linear-gradient(135deg, var(--gold, #d4a853) 0%, #7c5cbf 100%);
-    color: #000;
-    font-weight: 900;
-    font-size: 0.875rem;
-    border: none;
+    padding: 0.8rem 1.5rem;
     border-radius: 14px;
+    background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+    color: #0b1120;
+    font-weight: 900;
+    font-size: 0.9rem;
+    border: none;
     cursor: pointer;
-    font-family: inherit;
-    transition: transform 0.25s, box-shadow 0.25s;
-    position: relative;
-    z-index: 1;
+    transition: all 0.25s ease;
 }
-.btn-suggest-main:hover {
-    transform: translateY(-3px);
-    box-shadow: 0 12px 30px rgba(212,168,83,0.35);
+.rq-suggest-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 12px 24px -6px rgba(245, 158, 11, 0.4);
 }
 
-/* ---- Suggestion Modal ---- */
-.suggestion-modal-overlay {
+/* Suggestion Modal */
+.rq-modal-backdrop {
     position: fixed;
     inset: 0;
-    z-index: 9999;
-    background: rgba(2,6,23,0.85);
+    background: rgba(0, 0, 0, 0.85);
     backdrop-filter: blur(12px);
-    -webkit-backdrop-filter: blur(12px);
+    z-index: 10000;
     display: none;
     align-items: center;
     justify-content: center;
     padding: 1rem;
 }
-.suggestion-modal-overlay.is-open {
+.rq-modal-backdrop.active {
     display: flex;
 }
-.suggestion-modal {
-    background: rgba(15,23,42,0.95);
-    border: 1px solid rgba(255,255,255,0.08);
+.rq-modal-card {
+    background: #0d1322;
+    border: 1px solid rgba(56, 189, 248, 0.3);
     border-radius: 24px;
     padding: 2rem;
-    width: 100%;
     max-width: 480px;
-    box-shadow: 0 25px 60px rgba(0,0,0,0.6);
-    animation: modalPop 0.3s cubic-bezier(0.34,1.56,0.64,1) forwards;
-    max-height: 90vh;
-    overflow-y: auto;
-}
-@keyframes modalPop {
-    from { opacity: 0; transform: scale(0.9); }
-    to   { opacity: 1; transform: scale(1); }
-}
-.modal-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 1.25rem;
-}
-.modal-header h2 { font-size: 1.3rem; font-weight: 900; color: #fff; margin: 0; }
-.modal-close-btn {
-    width: 36px;
-    height: 36px;
-    background: rgba(255,255,255,0.05);
-    border: 1px solid rgba(255,255,255,0.08);
-    border-radius: 10px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    color: #94a3b8;
-    cursor: pointer;
-    font-size: 1rem;
-    transition: all 0.2s;
-}
-.modal-close-btn:hover { background: rgba(239,68,68,0.1); border-color: rgba(239,68,68,0.3); color: #ef4444; }
-.modal-desc { color: #64748b; font-size: 0.82rem; line-height: 1.6; margin-bottom: 1.5rem; }
-
-.modal-form { display: flex; flex-direction: column; gap: 1rem; direction: rtl; }
-.form-group { display: flex; flex-direction: column; gap: 0.4rem; }
-.form-label { font-size: 0.68rem; font-weight: 900; color: #64748b; text-transform: uppercase; letter-spacing: 0.1em; }
-.form-input,
-.form-textarea {
     width: 100%;
-    background: rgba(2,6,23,0.6);
-    border: 1px solid rgba(255,255,255,0.08);
-    border-radius: 12px;
-    padding: 0.8rem 1rem;
-    color: #fff;
-    font-size: 0.85rem;
-    font-family: inherit;
-    direction: rtl;
-    text-align: right;
-    outline: none;
-    transition: border-color 0.25s, box-shadow 0.25s;
-    box-sizing: border-box;
-}
-.form-input:focus, .form-textarea:focus {
-    border-color: rgba(212,168,83,0.5);
-    box-shadow: 0 0 0 3px rgba(212,168,83,0.1);
-}
-.form-input::placeholder, .form-textarea::placeholder { color: #334155; }
-.form-textarea { resize: vertical; min-height: 90px; }
-
-.btn-submit {
-    width: 100%;
-    padding: 0.9rem;
-    background: linear-gradient(135deg, var(--gold, #d4a853) 0%, #7c5cbf 100%);
-    color: #000;
-    font-weight: 900;
-    font-size: 0.9rem;
-    border: none;
-    border-radius: 12px;
-    cursor: pointer;
-    font-family: inherit;
-    transition: transform 0.2s, box-shadow 0.2s;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 0.5rem;
-}
-.btn-submit:hover { transform: translateY(-2px); box-shadow: 0 10px 25px rgba(212,168,83,0.3); }
-.btn-submit:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
-
-/* Modal feedback states */
-.modal-feedback { display: none; }
-.modal-feedback.is-success {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    text-align: center;
-    gap: 0.75rem;
-    padding: 1rem 0;
-}
-.modal-feedback.is-error {
-    display: block;
-    background: rgba(239,68,68,0.1);
-    border: 1px solid rgba(239,68,68,0.2);
-    color: #fca5a5;
-    font-size: 0.82rem;
-    font-weight: 700;
-    border-radius: 10px;
-    padding: 0.75rem 1rem;
-    text-align: center;
-    margin-bottom: 0.75rem;
-}
-.success-icon {
-    width: 56px; height: 56px;
-    background: rgba(34,197,94,0.1);
-    border: 1px solid rgba(34,197,94,0.2);
-    border-radius: 16px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 1.5rem;
-    color: #22c55e;
-}
-.modal-feedback.is-success h3 { font-size: 1.1rem; font-weight: 900; color: #fff; margin: 0; }
-.modal-feedback.is-success p { font-size: 0.8rem; color: #64748b; margin: 0; }
-
-/* Login prompt in modal */
-.modal-login-prompt {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 1.25rem;
-    padding: 0.5rem 0 1rem;
-    text-align: center;
-}
-.lock-icon {
-    width: 60px; height: 60px;
-    background: rgba(245,158,11,0.1);
-    border: 1px solid rgba(245,158,11,0.2);
-    border-radius: 16px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 1.5rem;
-    color: #f59e0b;
-}
-.modal-login-prompt p { color: #94a3b8; font-size: 0.85rem; max-width: 260px; line-height: 1.5; margin: 0; }
-.btn-login-modal {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    gap: 0.5rem;
-    width: 100%;
-    padding: 0.9rem;
-    background: linear-gradient(135deg, var(--gold, #d4a853), #7c5cbf);
-    color: #000;
-    font-weight: 900;
-    font-size: 0.9rem;
-    border-radius: 12px;
-    text-decoration: none;
-    transition: transform 0.2s, box-shadow 0.2s;
-}
-.btn-login-modal:hover { transform: translateY(-2px); box-shadow: 0 10px 25px rgba(212,168,83,0.3); }
-
-/* ---- Stagger animation delays for cards ---- */
-.p-card:nth-child(1)  { animation-delay: 0.00s; }
-.p-card:nth-child(2)  { animation-delay: 0.04s; }
-.p-card:nth-child(3)  { animation-delay: 0.08s; }
-.p-card:nth-child(4)  { animation-delay: 0.12s; }
-.p-card:nth-child(5)  { animation-delay: 0.16s; }
-.p-card:nth-child(6)  { animation-delay: 0.20s; }
-.p-card:nth-child(7)  { animation-delay: 0.24s; }
-.p-card:nth-child(8)  { animation-delay: 0.28s; }
-.p-card:nth-child(9)  { animation-delay: 0.32s; }
-.p-card:nth-child(10) { animation-delay: 0.36s; }
-.p-card:nth-child(11) { animation-delay: 0.40s; }
-.p-card:nth-child(12) { animation-delay: 0.44s; }
-.cat-card:nth-child(1)  { animation-delay: 0.00s; }
-.cat-card:nth-child(2)  { animation-delay: 0.05s; }
-.cat-card:nth-child(3)  { animation-delay: 0.10s; }
-.cat-card:nth-child(4)  { animation-delay: 0.15s; }
-/* ---- Ultra-Compact Mobile Layout & Horizontal Overflow Prevention ---- */
-/* ---- Ultra-Compact Mobile Layout & Horizontal Overflow Prevention ---- */
-@media (max-width: 768px) {
-    .catalog-page {
-        padding: 1.5rem 0 5rem;
-        overflow-x: clip;
-        max-width: 100vw;
-    }
-    .catalog-container {
-        width: 100% !important;
-        max-width: 100vw !important;
-        padding-inline: 0.75rem !important;
-        box-sizing: border-box !important;
-        overflow-x: clip;
-    }
-    .catalog-layout {
-        grid-template-columns: minmax(0, 1fr) !important;
-        gap: 1.25rem !important;
-        width: 100% !important;
-        min-width: 0 !important;
-    }
-    .catalog-content {
-        min-width: 0 !important;
-        width: 100% !important;
-        overflow-x: clip;
-    }
-    .catalog-hero h1 {
-        font-size: 1.85rem !important;
-        line-height: 1.2 !important;
-    }
-    .catalog-search-wrap {
-        max-width: 100% !important;
-    }
-    .product-grid, .categories-section {
-        grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
-        gap: 0.65rem !important;
-        width: 100% !important;
-    }
-    .p-card, .cat-card {
-        min-width: 0 !important;
-        width: 100% !important;
-        border-radius: 16px !important;
-        box-sizing: border-box !important;
-    }
-    .card-body, .p-card-body, .cat-card-info {
-        padding: 0.75rem 0.65rem !important;
-        min-width: 0 !important;
-    }
-    .card-name, .p-card-name, .cat-card-name {
-        font-size: 0.82rem !important;
-        line-height: 1.3 !important;
-        word-break: break-word !important;
-        overflow-wrap: break-word !important;
-        min-height: auto !important;
-    }
-    .card-price-value, .p-card-price {
-        font-size: 0.95rem !important;
-    }
-    .card-buy-btn {
-        width: 32px !important;
-        height: 32px !important;
-        font-size: 0.75rem !important;
-        border-radius: 9px !important;
-    }
-    .catalog-topbar {
-        padding: 0.75rem 0.85rem !important;
-    }
-    .topbar-actions {
-        width: 100% !important;
-        flex-direction: column !important;
-        align-items: stretch !important;
-        gap: 0.5rem !important;
-    }
-    .catalog-jump-box {
-        width: 100% !important;
-        justify-content: space-between !important;
-        box-sizing: border-box !important;
-    }
-    .sort-select {
-        width: 100% !important;
-        box-sizing: border-box !important;
-        text-align: right !important;
-    }
-    .view-toggle {
-        width: 100% !important;
-        max-width: 100% !important;
-    }
-    .catalog-pagination-wrap {
-        padding: 0.75rem 0.5rem !important;
-        gap: 0.5rem !important;
-    }
-    .catalog-nav-btn {
-        padding: 0.5rem 0.75rem !important;
-        font-size: 0.72rem !important;
-    }
+    position: relative;
+    box-shadow: 0 25px 60px -15px rgba(0, 0, 0, 0.9);
 }
 </style>
 {% endblock %}
 
 {% block content %}
-<div class="catalog-page">
-<div class="catalog-container">
+<div class="rq-catalog-viewport">
+  <div class="rq-catalog-container">
 
     <!-- ── Hero Header ── -->
-    <div class="catalog-hero">
-        <div>
-            <span class="catalog-hero-label">Software & Hardware Catalog</span>
-            <h1>كتالوج البرمجيات والمعدات.</h1>
-            <p>تصفح مجموعتنا المعتمدة من حلول وتراخيص البرمجيات بالجملة، والمعدات والأجهزة الإلكترونية وأنظمة الاتصالات.</p>
+    <div class="rq-catalog-hero">
+      <div>
+        <span class="rq-catalog-hero-badge">
+          <i class="fas fa-boxes-stacked"></i>
+          <span>كتالوج المنتجات والتجهيزات التقنية</span>
+        </span>
+        <h1 class="rq-catalog-hero-title">
+          تسوّق تشكيلة رقميات <span class="rq-gradient-text">المتكاملة</span>
+        </h1>
+        <p class="rq-catalog-hero-desc">
+          اكتشف أحدث إكسسوارات الهواتف، وقطع وتجهيزات الشبكات، وكاميرات المراقبة، والشواحن، والسماعات، والأجهزة الإلكترونية والبرمجيات المتوافقة بأفضل الأسعار.
+        </p>
+      </div>
+
+      <!-- Quick Search Input -->
+      <div class="rq-catalog-search-wrap">
+        <form method="get" action="{% url 'catalog' %}" class="rq-catalog-search-box">
+          {% if active_category %}<input type="hidden" name="category" value="{{ active_category }}">{% endif %}
+          <i class="fas fa-search"></i>
+          <input type="text" name="q" value="{{ query }}" placeholder="ابحث عن إكسسوارات، شواحن، شبكات، كاميرات..." class="rq-catalog-search-input">
+        </form>
+      </div>
+    </div>
+
+    <!-- ── Mobile Horizontal Category Pills ── -->
+    <div class="rq-mobile-cats-scroller">
+      <a href="{% url 'catalog' %}{% if query %}?q={{ query }}{% endif %}" class="rq-cat-pill-item {% if not active_category %}active{% endif %}">
+        الكل ({{ all_products_count }})
+      </a>
+      {% for cat in categories %}
+      {% if cat.product_count > 0 %}
+      <a href="?category={{ cat.id }}{% if query %}&q={{ query }}{% endif %}" class="rq-cat-pill-item {% if active_category == cat.id|stringformat:'s' %}active{% endif %}">
+        {{ cat.name }} ({{ cat.product_count }})
+      </a>
+      {% endif %}
+      {% endfor %}
+    </div>
+
+    <!-- ── Main Grid Layout (Sidebar + Content) ── -->
+    <div class="rq-catalog-layout">
+
+      <!-- Desktop Sidebar -->
+      <aside class="rq-catalog-sidebar">
+        <div class="rq-sidebar-sticky">
+          <div>
+            <h3 class="rq-sidebar-heading">
+              <i class="fas fa-layer-group text-sky-400"></i>
+              <span>أقسام المتجر</span>
+            </h3>
+            <div class="rq-sidebar-cat-list">
+              <a href="{% url 'catalog' %}{% if query %}?q={{ query }}{% endif %}" class="rq-sidebar-cat-item {% if not active_category %}active{% endif %}">
+                <span>كافة الأقسام</span>
+                <span class="rq-sidebar-count-badge">{{ all_products_count }}</span>
+              </a>
+              {% for cat in categories %}
+              {% if cat.product_count > 0 %}
+              <a href="?category={{ cat.id }}{% if query %}&q={{ query }}{% endif %}" class="rq-sidebar-cat-item {% if active_category == cat.id|stringformat:'s' %}active{% endif %}">
+                <span>{{ cat.name }}</span>
+                <span class="rq-sidebar-count-badge">{{ cat.product_count }}</span>
+              </a>
+              {% endif %}
+              {% endfor %}
+            </div>
+          </div>
+
+          <!-- Suggestion Shortcut -->
+          <div class="p-4 rounded-xl bg-black/40 border border-white/5 text-center">
+            <i class="fas fa-lightbulb text-amber-400 text-xl mb-2 block"></i>
+            <h4 class="text-xs font-black text-white mb-1">لم تجد طلبك؟</h4>
+            <p class="text-[11px] text-slate-400 mb-3">شاركنا اقتراحك وسنوفره لك بأفضل سعر.</p>
+            <button type="button" onclick="openSuggestionModal()" class="w-full py-2 px-3 rounded-lg bg-white/5 hover:bg-white/10 text-xs font-bold text-sky-400 border border-white/10 transition-all">
+              اقتراح منتج جديد
+            </button>
+          </div>
         </div>
-        <div class="catalog-search-wrap">
-            <form method="get" action="{% url 'catalog' %}" class="relative flex items-center">
-                {% if active_category %}<input type="hidden" name="category" value="{{ active_category }}">{% endif %}
-                <button type="submit" aria-label="بحث" style="position: absolute; right: 0.75rem; top: 50%; transform: translateY(-50%); background: transparent; border: none; color: #d4a853; cursor: pointer; z-index: 5; font-size: 1.1rem; padding: 0.5rem;">
-                    <i class="fas fa-search"></i>
-                </button>
-                <input type="text" name="q" value="{{ query }}" 
-                       placeholder="ابحث في البرمجيات بالجملة، التراخيص، أو المعدات الإلكترونية..." 
-                       class="catalog-search-input" style="padding-right: 3.25rem;">
+      </aside>
+
+      <!-- Content Area -->
+      <main class="rq-catalog-main">
+
+        <!-- Controls Bar -->
+        <div class="rq-catalog-controls">
+          <div class="rq-view-switch-tabs">
+            <button type="button" id="tab-products-btn" onclick="switchCatalogView('products')" class="rq-view-tab-btn {% if view_type == 'products' %}active{% endif %}">
+              <i class="fas fa-boxes"></i>
+              <span>عرض المنتجات</span>
+            </button>
+            <button type="button" id="tab-categories-btn" onclick="switchCatalogView('categories')" class="rq-view-tab-btn {% if view_type == 'categories' %}active{% endif %}">
+              <i class="fas fa-th-large"></i>
+              <span>عرض الأقسام</span>
+            </button>
+          </div>
+
+          <div class="flex items-center gap-3">
+            <form method="get" class="flex items-center gap-2">
+              {% if active_category %}<input type="hidden" name="category" value="{{ active_category }}">{% endif %}
+              {% if query %}<input type="hidden" name="q" value="{{ query }}">{% endif %}
+              <input type="hidden" name="view" value="{{ view_type }}">
+              <select name="sort" onchange="this.form.submit()" class="rq-sort-select">
+                <option value="newest" {% if sort == "newest" %}selected{% endif %}>الأحدث أولاً</option>
+                <option value="price_low" {% if sort == "price_low" %}selected{% endif %}>السعر: من الأقل للأعلى</option>
+                <option value="price_high" {% if sort == "price_high" %}selected{% endif %}>السعر: من الأعلى للأقل</option>
+              </select>
             </form>
+          </div>
         </div>
-    </div>
 
-    <!-- ── Mobile Category Pills ── -->
-    <div class="mobile-cats">
-        <a href="{% url 'catalog' %}{% if query %}?q={{ query }}{% endif %}" 
-           class="cat-pill {% if not active_category %}active{% endif %}">
-           الكل <span style="font-size: 0.65rem; opacity: 0.85; margin-right: 0.25rem;">({{ all_products_count }})</span>
-        </a>
-        {% for cat in categories %}
-        {% if cat.product_count > 0 %}
-        <a href="?category={{ cat.id }}{% if query %}&q={{ query }}{% endif %}" 
-           class="cat-pill {% if active_category == cat.id|stringformat:'s' %}active{% endif %}">
-            {{ cat.name }}
-        </a>
-        {% endif %}
-        {% endfor %}
-    </div>
+        <!-- Section 1: Products Grid View -->
+        <div id="catalog-products-view" style="{% if view_type == 'categories' %}display: none;{% endif %}">
+          <div class="rq-catalog-grid">
+            {% for p in page_obj %}
+            <a href="{% url 'product_detail' p.id %}" class="rq-prod-item-card">
+              <div class="rq-prod-thumb-box">
+                {% product_display_image p as p_img %}
+                {% if p_img %}
+                <img src="{{ p_img }}" alt="{{ p.name }}" class="rq-prod-thumb-img" loading="lazy" onerror="this.onerror=null; this.src='{% static 'site/img/raqamiyat_logo_square.jpg' %}';">
+                {% else %}
+                <img src="{% static 'site/img/raqamiyat_logo_square.jpg' %}" alt="{{ p.name }}" class="rq-prod-thumb-img" loading="lazy">
+                {% endif %}
 
-    <!-- ── Main Layout ── -->
-    <div class="catalog-layout">
+                {% if p.catalog_index %}
+                <span class="rq-tag-index">#{{ p.catalog_index }}</span>
+                {% endif %}
 
-        <!-- ── Desktop Sidebar ── -->
-        <aside class="catalog-sidebar">
-            <div class="sidebar-panel">
-                <!-- Categories -->
-                <div>
-                    <p class="sidebar-title">أقسام الخدمات</p>
-                    <div class="sidebar-cat-list">
-                        <a href="{% url 'catalog' %}{% if query %}?q={{ query }}{% endif %}" 
-                           class="sidebar-cat-link {% if not active_category %}active{% endif %}">
-                            <span>الكل</span>
-                            <span class="sidebar-cat-count">{{ all_products_count }}</span>
-                        </a>
-                        {% for cat in categories %}
-                        {% if cat.product_count > 0 %}
-                        <a href="?category={{ cat.id }}{% if query %}&q={{ query }}{% endif %}" 
-                           class="sidebar-cat-link {% if active_category == cat.id|stringformat:'s' %}active{% endif %}">
-                            <span>{{ cat.name }}</span>
-                            <span class="sidebar-cat-count">{{ cat.product_count }}</span>
-                        </a>
-                        {% endif %}
-                        {% endfor %}
-                    </div>
+                {% if p.category %}
+                <span class="rq-tag-category">{{ p.category.name }}</span>
+                {% endif %}
+
+                {% if p.product_type == 'physical' %}
+                <span class="rq-type-badge-physical"><i class="fas fa-truck text-[9px]"></i> منتج مادي</span>
+                {% else %}
+                <span class="rq-type-badge-digital"><i class="fas fa-bolt text-[9px]"></i> فوري ومباشر</span>
+                {% endif %}
+              </div>
+
+              <div class="rq-prod-details">
+                <h3 class="rq-prod-item-name">{{ p.name }}</h3>
+
+                <div class="rq-prod-bottom-row">
+                  <div>
+                    <span class="rq-price-label">السعر يبدأ من</span>
+                    <span class="rq-price-amount">{% product_starting_price p %}</span>
+                  </div>
+
+                  <span class="rq-order-action-pill">
+                    <span>عرض والطلب</span>
+                    <i class="fas fa-arrow-left text-[11px]"></i>
+                  </span>
                 </div>
-
-                <!-- Suggestion Card -->
-                <div class="sidebar-suggest-card">
-                    <div class="sidebar-suggest-icon">
-                        <i class="fas fa-lightbulb"></i>
-                    </div>
-                    <h4>لم تجد طلبك؟</h4>
-                    <p>نحن نوفره لك بأفضل سعر.</p>
-                    <button class="btn-suggest-sidebar" id="open-modal-sidebar">
-                        <i class="fas fa-plus" style="margin-left:0.35rem;"></i>
-                        اقتراح خدمة جديدة
-                    </button>
-                </div>
+              </div>
+            </a>
+            {% empty %}
+            <div class="col-span-full py-16 text-center bg-slate-900/50 rounded-3xl border border-white/5">
+              <i class="fas fa-search text-3xl text-slate-500 mb-3 block"></i>
+              <h3 class="text-base font-bold text-white mb-1">لم نجد منتجات مطابقة للبحث</h3>
+              <p class="text-xs text-slate-400 mb-4">جرب البحث بكلمات أخرى أو استكشف كافة الأقسام.</p>
+              <a href="{% url 'catalog' %}" class="px-5 py-2.5 rounded-xl bg-sky-500/10 border border-sky-500/30 text-sky-400 font-bold text-xs inline-block">
+                تصفح كافة المنتجات
+              </a>
             </div>
-        </aside>
+            {% endfor %}
+          </div>
 
-        <!-- ── Content Area ── -->
-        <div class="catalog-content">
-
-            <!-- View Toggle -->
-            <div class="view-toggle-wrap">
-                <div class="view-toggle">
-                    <div class="toggle-indicator" id="toggle-indicator"></div>
-                    <button class="toggle-btn is-active" id="toggle-products" onclick="switchView('products')">
-                        <i class="fas fa-boxes"></i>
-                        <span>عرض المنتجات</span>
-                    </button>
-                    <button class="toggle-btn" id="toggle-categories" onclick="switchView('categories')">
-                        <i class="fas fa-th-large"></i>
-                        <span>عرض الأقسام</span>
-                    </button>
-                </div>
-            </div>
-
-            <!-- Top Bar -->
-            <div class="catalog-topbar">
-                <div class="topbar-info flex items-center flex-wrap gap-2">
-                    {% if query %}
-                        نتائج البحث عن: <span>"{{ query }}"</span> (<span>{{ total_products_count }}</span> منتج)
-                    {% elif selected_category %}
-                        قسم: <span>{{ selected_category.name }}</span> (<span>{{ total_products_count }}</span> منتج)
-                    {% elif active_category %}
-                        معروض: <span>{% for cat in categories %}{% if active_category == cat.id|stringformat:'s' %}{{ cat.name }}{% endif %}{% endfor %}</span> (<span>{{ total_products_count }}</span> منتج)
-                    {% else %}
-                        تصفح جميع الخدمات والمنتجات المتاحة (<span>{{ all_products_count }}</span> منتج)
-                    {% endif %}
-                    {% if total_products_count > 0 %}
-                    <span class="catalog-range-pill font-mono" title="نطاق المنتجات المعروضة حالياً من إجمالي منتجات القسم">
-                        <i class="fas fa-boxes text-[10px]"></i>
-                        {{ start_num }} - {{ end_num }} / {{ total_products_count }}
-                    </span>
-                    {% endif %}
-                </div>
-                <div class="topbar-actions flex items-center flex-wrap gap-2">
-                    {% if total_products_count > 0 %}
-                    <!-- Quick Jump Form in Topbar -->
-                    <form method="get" action="{% url 'catalog' %}" class="catalog-jump-box">
-                        {% if active_category %}<input type="hidden" name="category" value="{{ active_category }}">{% endif %}
-                        {% if query %}<input type="hidden" name="q" value="{{ query }}">{% endif %}
-                        {% if sort %}<input type="hidden" name="sort" value="{{ sort }}">{% endif %}
-                        {% if cols %}<input type="hidden" name="cols" value="{{ cols }}">{% endif %}
-                        <input type="hidden" name="view" value="products">
-                        <label><i class="fas fa-hashtag text-gold"></i> البدء من:</label>
-                        <input type="number" name="start" class="catalog-jump-input" min="1" max="{{ total_products_count }}" value="{{ start_num }}" placeholder="رقم">
-                        <span class="catalog-jump-total">/ {{ total_products_count }}</span>
-                        <button type="submit" class="catalog-jump-btn" title="الانتقال للمنتج">
-                            <span>عرض</span>
-                            <i class="fas fa-angle-left"></i>
-                        </button>
-                    </form>
-                    {% endif %}
-
-                    <form method="get" style="display:flex;">
-                        {% if active_category %}<input type="hidden" name="category" value="{{ active_category }}">{% endif %}
-                        {% if query %}<input type="hidden" name="q" value="{{ query }}">{% endif %}
-                        <input type="hidden" name="view" value="products">
-                        <select name="sort" onchange="this.form.submit()" class="sort-select">
-                            <option value="newest" {% if sort == "newest" %}selected{% endif %}>الأحدث أولاً</option>
-                            <option value="price_low" {% if sort == "price_low" %}selected{% endif %}>السعر: من الأقل للأعلى</option>
-                            <option value="price_high" {% if sort == "price_high" %}selected{% endif %}>السعر: من الأعلى للأقل</option>
-                        </select>
-                    </form>
-                    <button class="btn-suggest-mobile-bar" id="open-modal-mobile-bar">
-                        <i class="fas fa-lightbulb"></i>
-                        <span>اقتراح خدمة</span>
-                    </button>
-                </div>
-            </div>
-
-            {% if selected_category and subcategories %}
-            <div class="subcategories-bar" style="background: linear-gradient(135deg, rgba(15,23,42,0.85) 0%, rgba(30,41,59,0.7) 100%); border: 1px solid rgba(212,168,83,0.25); border-radius: 16px; padding: 1rem 1.25rem; margin-top: 1rem; margin-bottom: 1.25rem; display: flex; flex-direction: column; gap: 0.75rem; box-shadow: 0 8px 24px rgba(0,0,0,0.3);">
-                <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 0.5rem;">
-                    <div style="display: flex; align-items: center; gap: 0.5rem;">
-                        <i class="fas fa-layer-group text-gold" style="font-size: 0.9rem;"></i>
-                        <span style="font-size: 0.85rem; font-weight: 800; color: #fff;">
-                            أقسام وفئات {{ selected_category.name }}:
-                        </span>
-                    </div>
-                    {% if parent_category %}
-                    <a href="?category={{ parent_category.id }}{% if query %}&q={{ query }}{% endif %}" style="font-size: 0.75rem; font-weight: 700; color: #d4a853; text-decoration: none; display: inline-flex; align-items: center; gap: 0.3rem;">
-                        <i class="fas fa-arrow-up"></i> العودة إلى {{ parent_category.name }}
-                    </a>
-                    {% endif %}
-                </div>
-                <div style="display: flex; flex-wrap: wrap; gap: 0.5rem; align-items: center;">
-                    <a href="?category={{ selected_category.id }}{% if query %}&q={{ query }}{% endif %}" class="cat-pill {% if not parent_category %}active{% endif %}" style="font-size: 0.75rem; padding: 0.45rem 1rem;">
-                        عرض الكل في {{ selected_category.name }} <span style="font-size: 0.65rem; opacity: 0.85; margin-right: 0.25rem;">({{ selected_category.product_count }})</span>
-                    </a>
-                    {% for sub in subcategories %}
-                    {% if sub.id != selected_category.id %}
-                    <a href="?category={{ sub.id }}{% if query %}&q={{ query }}{% endif %}" class="cat-pill {% if active_category == sub.id|stringformat:'s' %}active{% endif %}" style="font-size: 0.75rem; padding: 0.45rem 1rem;">
-                        {{ sub.name }} <span style="font-size: 0.65rem; color: #d4a853; margin-right: 0.25rem;">({{ sub.product_count }})</span>
-                    </a>
-                    {% endif %}
-                    {% endfor %}
-                </div>
-            </div>
-            {% elif subcategories %}
-            <div class="subcategories-bar" style="background: rgba(15,23,42,0.6); border: 1px solid rgba(255,255,255,0.06); border-radius: 16px; padding: 1rem; margin-top: 1rem; margin-bottom: 1rem; display: flex; flex-wrap: wrap; gap: 0.5rem; align-items: center;">
-                <span style="font-size: 0.75rem; font-weight: 900; color: #94a3b8; margin-left: 0.5rem;"><i class="fas fa-folder-tree text-gold ml-1"></i> الأقسام الفرعية:</span>
-                {% for sub in subcategories %}
-                <a href="?category={{ sub.id }}{% if query %}&q={{ query }}{% endif %}" class="cat-pill" style="font-size: 0.75rem; padding: 0.4rem 0.85rem; background: rgba(255,255,255,0.05); color: #64748b; border: 1px solid rgba(255,255,255,0.08); border-radius: 999px; text-decoration: none; font-weight: 700; transition: all 0.2s;">
-                    {{ sub.name }} <span style="font-size: 0.65rem; color: #d4a853;">({{ sub.product_count }})</span>
-                </a>
-                {% endfor %}
-            </div>
+          <!-- Pagination Bar -->
+          {% if total_products_count > 0 %}
+          <div class="rq-pagination-bar">
+            {% if page_obj.has_previous %}
+            <a href="?start={{ prev_start }}{% if query %}&q={{ query }}{% endif %}{% if active_category %}&category={{ active_category }}{% endif %}{% if sort %}&sort={{ sort }}{% endif %}&view=products" class="rq-page-nav-btn">
+              <i class="fas fa-chevron-right"></i>
+              <span>الصفحة السابقة</span>
+            </a>
+            {% else %}
+            <span class="rq-page-nav-btn disabled">
+              <i class="fas fa-chevron-right"></i>
+              <span>الصفحة السابقة</span>
+            </span>
             {% endif %}
 
-            <!-- Products Grid -->
-            <div class="products-section" id="products-section">
-                <div class="product-grid">
-                    {% for p in page_obj %}
-                    <div class="p-card {% if p.is_out_of_stock %}is-oos{% endif %}">
-                        <!-- Badges -->
-                        {% if p.catalog_index %}
-                        <span class="card-index-badge" title="رقم المنتج في الدليل">#{{ p.catalog_index }}</span>
-                        {% endif %}
-                        {% if p.is_sale %}
-                        <span class="card-badge badge-sale">عرض خاص</span>
-                        {% elif p.is_out_of_stock %}
-                        <span class="card-badge badge-oos"><i class="fas fa-box-open mr-1"></i> نفدت الكمية</span>
-                        {% endif %}
-
-                        <!-- Image -->
-                        <a href="{% url 'product_detail' p.id %}" class="card-img-wrap">
-                            {% product_display_image p as p_img %}
-                            {% if p_img %}
-                            <img src="{{ p_img }}" alt="{{ p.name }}" loading="lazy" onerror="this.onerror=null; this.src='{% static 'site/img/raqamiyat_logo_square.jpg' %}';">
-                            {% else %}
-                            <img src="{% static 'site/img/raqamiyat_logo_square.jpg' %}" alt="{{ p.name }}" loading="lazy">
-                            {% endif %}
-                            {% if p.is_out_of_stock %}
-                            <div class="card-img-oos-strip"><span>غير متوفر حالياً</span></div>
-                            {% endif %}
-                            <!-- Product type chip -->
-                            {% if p.product_type == 'physical' %}
-                            <span class="card-type-chip physical"><i class="fas fa-truck" style="font-size:0.55rem;"></i> مادي</span>
-                            {% else %}
-                            <span class="card-type-chip digital"><i class="fas fa-bolt" style="font-size:0.55rem;"></i> رقمي</span>
-                            {% endif %}
-                        </a>
-
-                        <!-- Body -->
-                        <div class="card-body">
-                            <span class="card-cat">{{ p.category.name|default:"خدمات رقمية" }}</span>
-                            <a href="{% url 'product_detail' p.id %}" class="card-name">{{ p.name }}</a>
-                            
-                            <!-- Variants preview -->
-                            <div class="card-variants">
-                                {% for v in p.variants.all|slice:":3" %}
-                                <span class="variant-chip">{{ v.name }}</span>
-                                {% endfor %}
-                                {% if p.variants.count > 3 %}
-                                <span class="variant-more">+{{ p.variants.count|add:"-3" }}</span>
-                                {% endif %}
-                            </div>
-
-                            <!-- Price row -->
-                            <div class="card-price-row">
-                                <div>
-                                    <div class="card-price-label">يبدأ من</div>
-                                    <div class="card-price-value">{% product_starting_price p %}</div>
-                                </div>
-                                <a href="{% url 'product_detail' p.id %}" class="card-buy-btn {% if p.is_out_of_stock %}oos{% endif %}" title="{% if p.is_out_of_stock %}المنتج غير متوفر حالياً - تفاصيل المنتج{% else %}عرض المنتج{% endif %}">
-                                    {% if p.is_out_of_stock %}
-                                    <span style="font-size:0.68rem; font-weight:800;">غير متوفر</span>
-                                    <i class="fas fa-chevron-left" style="font-size:0.65rem;"></i>
-                                    {% else %}
-                                    <i class="fas fa-arrow-left"></i>
-                                    {% endif %}
-                                </a>
-                            </div>
-                        </div>
-                    </div>
-                    {% empty %}
-                    <div class="empty-state">
-                        <div class="empty-icon"><i class="fas fa-search"></i></div>
-                        <h3>لم نجد ما تبحث عنه</h3>
-                        <p>حاول تغيير كلمات البحث أو تصفح التصنيفات الأخرى.</p>
-                        <a href="{% url 'catalog' %}" class="btn-browse-all">
-                            <i class="fas fa-grid-2"></i>
-                            عرض كل الخدمات
-                        </a>
-                    </div>
-                    {% endfor %}
-                </div>
-                
-                <!-- Pagination & Product Jump Bar -->
-                {% if total_products_count > 0 %}
-                <div class="catalog-pagination-wrap">
-                    {% if page_obj.has_previous %}
-                    <a href="?start={{ prev_start }}{% if query %}&q={{ query }}{% endif %}{% if active_category %}&category={{ active_category }}{% endif %}{% if sort %}&sort={{ sort }}{% endif %}&view=products" class="catalog-nav-btn prev-btn">
-                        <i class="fas fa-chevron-right"></i> السابق
-                    </a>
-                    {% else %}
-                    <span class="catalog-nav-btn is-disabled">
-                        <i class="fas fa-chevron-right"></i> السابق
-                    </span>
-                    {% endif %}
-
-                    <!-- Center Info & Jump -->
-                    <div class="catalog-pagination-center">
-                        <span class="catalog-pagination-info">
-                            عرض المنتجات <b class="text-gold font-mono">{{ start_num }} - {{ end_num }}</b> من أصل <b class="text-white font-mono">{{ total_products_count }}</b>
-                        </span>
-
-                        <form method="get" action="{% url 'catalog' %}" class="catalog-jump-box">
-                            {% if active_category %}<input type="hidden" name="category" value="{{ active_category }}">{% endif %}
-                            {% if query %}<input type="hidden" name="q" value="{{ query }}">{% endif %}
-                            {% if sort %}<input type="hidden" name="sort" value="{{ sort }}">{% endif %}
-                            {% if cols %}<input type="hidden" name="cols" value="{{ cols }}">{% endif %}
-                            <input type="hidden" name="view" value="products">
-                            <label>انتقال للمنتج:</label>
-                            <input type="number" name="start" class="catalog-jump-input" min="1" max="{{ total_products_count }}" value="{{ start_num }}" placeholder="رقم">
-                            <span class="catalog-jump-total">/ {{ total_products_count }}</span>
-                            <button type="submit" class="catalog-jump-btn">
-                                <span>انتقال</span>
-                                <i class="fas fa-arrow-left"></i>
-                            </button>
-                        </form>
-                    </div>
-
-                    {% if page_obj.has_next %}
-                    <a href="?start={{ next_start }}{% if query %}&q={{ query }}{% endif %}{% if active_category %}&category={{ active_category }}{% endif %}{% if sort %}&sort={{ sort }}{% endif %}&view=products" class="catalog-nav-btn next-btn">
-                        التالي <i class="fas fa-chevron-left"></i>
-                    </a>
-                    {% else %}
-                    <span class="catalog-nav-btn is-disabled">
-                        التالي <i class="fas fa-chevron-left"></i>
-                    </span>
-                    {% endif %}
-                </div>
-                {% endif %}
+            <div class="text-xs text-slate-300 font-bold">
+              عرض المنتجات <span class="text-amber-400 font-mono">{{ start_num }} - {{ end_num }}</span> من أصل <span class="text-white font-mono">{{ total_products_count }}</span>
             </div>
 
-            <!-- Categories Grid -->
-            <div class="categories-section" id="categories-section">
-                {% if selected_category and subcategories %}
-                    {% for cat in subcategories %}
-                    {% if cat.product_count > 0 %}
-                    <a href="?category={{ cat.id }}{% if query %}&q={{ query }}{% endif %}" class="cat-card">
-                        <div class="cat-card-cover">
-                            {% if cat.image %}
-                            <img src="{{ cat.image.url }}" alt="{{ cat.name }}" loading="lazy">
-                            {% else %}
-                            <div class="cat-card-placeholder">
-                                <i class="fas fa-layer-group"></i>
-                            </div>
-                            {% endif %}
-                            <div class="cat-card-overlay"></div>
-                            <span class="cat-card-badge">
-                                <i class="fas fa-cubes"></i> {{ cat.product_count }} خدمة
-                            </span>
-                        </div>
-                        <div class="cat-card-info">
-                            <div class="cat-card-title-wrap">
-                                <h3 class="cat-card-name">{{ cat.name }}</h3>
-                                <span class="cat-card-action">استعراض <i class="fas fa-arrow-left"></i></span>
-                            </div>
-                        </div>
-                    </a>
-                    {% endif %}
-                    {% endfor %}
-                {% else %}
-                    {% for cat in categories %}
-                    {% if cat.product_count > 0 %}
-                    <a href="?category={{ cat.id }}{% if query %}&q={{ query }}{% endif %}" class="cat-card">
-                        <div class="cat-card-cover">
-                            {% if cat.image %}
-                            <img src="{{ cat.image.url }}" alt="{{ cat.name }}" loading="lazy">
-                            {% else %}
-                            <div class="cat-card-placeholder">
-                                <i class="fas fa-layer-group"></i>
-                            </div>
-                            {% endif %}
-                            <div class="cat-card-overlay"></div>
-                            <span class="cat-card-badge">
-                                <i class="fas fa-cubes"></i> {{ cat.product_count }} خدمة
-                            </span>
-                        </div>
-                        <div class="cat-card-info">
-                            <div class="cat-card-title-wrap">
-                                <h3 class="cat-card-name">{{ cat.name }}</h3>
-                                <span class="cat-card-action">استعراض <i class="fas fa-arrow-left"></i></span>
-                            </div>
-                        </div>
-                    </a>
-                    {% endif %}
-                    {% endfor %}
-                {% endif %}
-            </div>
-
-            <!-- Suggestion CTA (always visible) -->
-            <div class="suggest-cta">
-                <div class="suggest-cta-icon">
-                    <i class="fas fa-lightbulb"></i>
-                </div>
-                <h3>لم تجد طلبك؟</h3>
-                <p>إذا كان هناك منتج أو خدمة رقمية غير متوفرة حالياً، شاركنا اقتراحك وسنعمل على توفيرها بأفضل سعر.</p>
-                <button class="btn-suggest-main" id="open-modal-cta">
-                    <i class="fas fa-plus"></i>
-                    اقتراح خدمة جديدة
-                </button>
-            </div>
-
-        </div><!-- /.catalog-content -->
-    </div><!-- /.catalog-layout -->
-</div><!-- /.catalog-container -->
-</div><!-- /.catalog-page -->
-
-<!-- ════════════════════════════════════════
-     SUGGESTION MODAL (pure CSS class toggle)
-     ════════════════════════════════════════ -->
-<div id="suggestion-modal" class="suggestion-modal-overlay" role="dialog" aria-modal="true" aria-label="اقتراح خدمة">
-    <div class="suggestion-modal">
-        <div class="modal-header">
-            <h2>اقتراح خدمة جديدة</h2>
-            <button class="modal-close-btn" id="close-modal" aria-label="إغلاق">
-                <i class="fas fa-times"></i>
-            </button>
-        </div>
-        <p class="modal-desc">أخبرنا عما تبحث عنه، وسيقوم فريقنا بمراجعة طلبك وتوفيره في أسرع وقت ممكن.</p>
-
-        <!-- Feedback display area -->
-        <div class="modal-feedback" id="suggestion-feedback"></div>
-
-        {% if request.user.is_authenticated %}
-        <form id="suggestion-form" action="{% url 'site_product_suggestion' %}" method="post" class="modal-form">
-            {% csrf_token %}
-            <div class="form-group">
-                <label class="form-label">اسم المنتج المقترح</label>
-                <input type="text" name="product_name" class="form-input" 
-                       placeholder="مثلاً: بطاقة شحن X، اشتراك Netflix..." required>
-            </div>
-            <div class="form-group">
-                <label class="form-label">رابط أو وصف مختصر</label>
-                <textarea name="description" rows="3" class="form-textarea" 
-                          placeholder="رابط الموقع أو تفاصيل إضافية..." required></textarea>
-            </div>
-            <button type="submit" class="btn-submit" id="suggestion-submit-btn">
-                <i class="fas fa-paper-plane"></i>
-                إرسال الاقتراح
-            </button>
-        </form>
-        {% else %}
-        <div class="modal-login-prompt">
-            <div class="lock-icon"><i class="fas fa-lock"></i></div>
-            <p>يرجى تسجيل الدخول أولاً لتتمكن من إرسال اقتراح لخدمة جديدة.</p>
-            <a href="{% url 'site_login' %}?next={{ request.path }}" class="btn-login-modal">
-                <i class="fas fa-sign-in-alt"></i>
-                تسجيل الدخول
+            {% if page_obj.has_next %}
+            <a href="?start={{ next_start }}{% if query %}&q={{ query }}{% endif %}{% if active_category %}&category={{ active_category }}{% endif %}{% if sort %}&sort={{ sort }}{% endif %}&view=products" class="rq-page-nav-btn">
+              <span>الصفحة التالية</span>
+              <i class="fas fa-chevron-left"></i>
             </a>
+            {% else %}
+            <span class="rq-page-nav-btn disabled">
+              <span>الصفحة التالية</span>
+              <i class="fas fa-chevron-left"></i>
+            </span>
+            {% endif %}
+          </div>
+          {% endif %}
         </div>
-        {% endif %}
+
+        <!-- Section 2: Categories Grid View -->
+        <div id="catalog-categories-view" style="{% if view_type != 'categories' %}display: none;{% endif %}">
+          <div class="rq-categories-full-grid">
+            {% for cat in categories %}
+            {% if cat.product_count > 0 %}
+            <a href="?category={{ cat.id }}{% if query %}&q={{ query }}{% endif %}" class="rq-cat-tile-card">
+              <div class="rq-cat-tile-icon">
+                {% if cat.image %}
+                <img src="{{ cat.image.url }}" alt="{{ cat.name }}" loading="lazy">
+                {% else %}
+                <i class="fas fa-microchip text-2xl text-sky-400"></i>
+                {% endif %}
+              </div>
+              <h3 class="rq-cat-tile-name">{{ cat.name }}</h3>
+              <span class="rq-cat-tile-count">{{ cat.product_count }} منتج</span>
+            </a>
+            {% endif %}
+            {% endfor %}
+          </div>
+        </div>
+
+        <!-- Suggestion Dock Banner -->
+        <div class="rq-suggest-dock">
+          <div>
+            <h3 class="text-lg font-black text-white mb-1">هل تبحث عن منتج أو مواصفة خاصة؟</h3>
+            <p class="text-xs text-slate-300">إذا لم تجد المنتج الذي تبحث عنه، شاركنا تفاصيله وسنعمل على توفيره فوراً بأفضل سعر.</p>
+          </div>
+          <button type="button" onclick="openSuggestionModal()" class="rq-suggest-btn">
+            <i class="fas fa-plus"></i>
+            <span>اقتراح منتج جديد</span>
+          </button>
+        </div>
+
+      </main>
     </div>
+
+  </div>
+</div>
+
+<!-- Suggestion Modal -->
+<div id="suggestion-modal" class="rq-modal-backdrop">
+  <div class="rq-modal-card">
+    <div class="flex items-center justify-between mb-4 border-b border-white/10 pb-3">
+      <h3 class="text-base font-black text-white">اقتراح منتج جديد</h3>
+      <button type="button" onclick="closeSuggestionModal()" class="text-slate-400 hover:text-white">
+        <i class="fas fa-times"></i>
+      </button>
+    </div>
+
+    {% if request.user.is_authenticated %}
+    <form id="suggestion-form" action="{% url 'site_product_suggestion' %}" method="post" class="space-y-4">
+      {% csrf_token %}
+      <div>
+        <label class="text-xs font-bold text-slate-300 block mb-1">اسم المنتج أو المواصفات</label>
+        <input type="text" name="product_name" class="w-full bg-slate-900 border border-white/15 rounded-xl p-3 text-white text-xs outline-none focus:border-sky-400" placeholder="مثال: شاحن لاسلكي سريع، راوتر منزلي..." required>
+      </div>
+      <div>
+        <label class="text-xs font-bold text-slate-300 block mb-1">رابط أو تفاصيل إضافية</label>
+        <textarea name="description" rows="3" class="w-full bg-slate-900 border border-white/15 rounded-xl p-3 text-white text-xs outline-none focus:border-sky-400" placeholder="رابط المنتج أو تفاصيل الموديل والمواصفات المطلوبة..." required></textarea>
+      </div>
+      <button type="submit" id="suggestion-submit-btn" class="w-full py-3 rounded-xl bg-gradient-to-r from-amber-400 to-amber-500 hover:brightness-110 text-slate-950 font-black text-xs transition-all shadow-lg shadow-amber-500/20">
+        إرسال الاقتراح
+      </button>
+      <div id="suggestion-feedback" class="text-xs text-center font-bold"></div>
+    </form>
+    {% else %}
+    <div class="text-center py-6 space-y-4">
+      <i class="fas fa-lock text-3xl text-amber-400"></i>
+      <p class="text-xs text-slate-300">يرجى تسجيل الدخول إلى حسابك أولاً لتتمكن من إرسال اقتراح لمنتج جديد.</p>
+      <a href="{% url 'site_login' %}?next={{ request.path }}" class="inline-block py-2.5 px-6 rounded-xl bg-sky-500 text-slate-950 font-black text-xs">
+        تسجيل الدخول
+      </a>
+    </div>
+    {% endif %}
+  </div>
 </div>
 
 <script>
+function switchCatalogView(view) {
+  var prodView = document.getElementById('catalog-products-view');
+  var catView = document.getElementById('catalog-categories-view');
+  var prodBtn = document.getElementById('tab-products-btn');
+  var catBtn = document.getElementById('tab-categories-btn');
+
+  if (view === 'products') {
+    if (prodView) prodView.style.display = 'block';
+    if (catView) catView.style.display = 'none';
+    if (prodBtn) prodBtn.classList.add('active');
+    if (catBtn) catBtn.classList.remove('active');
+  } else {
+    if (prodView) prodView.style.display = 'none';
+    if (catView) catView.style.display = 'block';
+    if (prodBtn) prodBtn.classList.remove('active');
+    if (catBtn) catBtn.classList.add('active');
+  }
+
+  try {
+    var url = new URL(window.location.href);
+    url.searchParams.set('view', view);
+    window.history.replaceState({}, '', url.toString());
+  } catch(e) {}
+}
+
+function openSuggestionModal() {
+  var modal = document.getElementById('suggestion-modal');
+  if (modal) modal.classList.add('active');
+}
+
+function closeSuggestionModal() {
+  var modal = document.getElementById('suggestion-modal');
+  if (modal) modal.classList.remove('active');
+}
+
+// Ajax suggestion submission
 (function() {
-    'use strict';
+  var form = document.getElementById('suggestion-form');
+  var feedback = document.getElementById('suggestion-feedback');
+  var btn = document.getElementById('suggestion-submit-btn');
 
-    /* ──────────────────────────────────────────
-       1. MODAL OPEN / CLOSE (class-based, no display flex issues)
-    ─────────────────────────────────────────── */
-    const modal = document.getElementById('suggestion-modal');
+  if (form && feedback && btn) {
+    form.addEventListener('submit', function(e) {
+      e.preventDefault();
+      btn.disabled = true;
+      btn.innerText = 'جاري الإرسال...';
+      feedback.innerText = '';
 
-    function openModal() {
-        if (!modal) return;
-        modal.classList.add('is-open');
-        document.body.style.overflow = 'hidden';
-    }
-
-    function closeModal() {
-        if (!modal) return;
-        modal.classList.remove('is-open');
-        document.body.style.overflow = '';
-    }
-
-    // All "open" triggers
-    var openTriggers = [
-        document.getElementById('open-modal-sidebar'),
-        document.getElementById('open-modal-mobile-bar'),
-        document.getElementById('open-modal-cta')
-    ];
-    openTriggers.forEach(function(btn) {
-        if (btn) btn.addEventListener('click', openModal);
-    });
-
-    // Close button
-    var closeBtn = document.getElementById('close-modal');
-    if (closeBtn) closeBtn.addEventListener('click', closeModal);
-
-    // Click outside modal box
-    if (modal) {
-        modal.addEventListener('click', function(e) {
-            if (e.target === modal) closeModal();
-        });
-    }
-
-    // ESC key
-    document.addEventListener('keydown', function(e) {
-        if (e.key === 'Escape') closeModal();
-    });
-
-    /* ──────────────────────────────────────────
-       2. VIEW TOGGLE (Products ↔ Categories)
-    ─────────────────────────────────────────── */
-    var productsSection   = document.getElementById('products-section');
-    var categoriesSection = document.getElementById('categories-section');
-    var toggleProducts    = document.getElementById('toggle-products');
-    var toggleCategories  = document.getElementById('toggle-categories');
-    var indicator         = document.getElementById('toggle-indicator');
-
-    function switchView(view) {
-        if (!productsSection || !categoriesSection) return;
-
-        if (view === 'products') {
-            productsSection.classList.remove('is-hidden');
-            categoriesSection.classList.remove('is-visible');
-            if (toggleProducts)   toggleProducts.classList.add('is-active');
-            if (toggleCategories) toggleCategories.classList.remove('is-active');
-            if (indicator) indicator.classList.remove('at-left');
+      fetch(form.action, {
+        method: 'POST',
+        body: new FormData(form),
+        headers: { 'X-Requested-With': 'XMLHttpRequest' }
+      })
+      .then(res => res.json())
+      .then(data => {
+        if (data.status === 'success') {
+          feedback.innerHTML = '<span class="text-emerald-400">✅ تم إرسال اقتراحك بنجاح، شكراً لك!</span>';
+          setTimeout(closeSuggestionModal, 2000);
         } else {
-            productsSection.classList.add('is-hidden');
-            categoriesSection.classList.add('is-visible');
-            if (toggleProducts)   toggleProducts.classList.remove('is-active');
-            if (toggleCategories) toggleCategories.classList.add('is-active');
-            if (indicator) indicator.classList.add('at-left');
+          feedback.innerHTML = '<span class="text-rose-400">⚠️ ' + (data.message || 'حدث خطأ أثناء الإرسال') + '</span>';
+          btn.disabled = false;
+          btn.innerText = 'إرسال الاقتراح';
         }
-
-        // Push to URL without reload
-        try {
-            var url = new URL(window.location.href);
-            url.searchParams.set('view', view);
-            window.history.replaceState({}, '', url.toString());
-        } catch(e) {}
-    }
-
-    // Expose globally for onclick attributes
-    window.switchView = switchView;
-
-    // Init view: prefer URL param, fallback to server-rendered default
-    var urlView = new URLSearchParams(window.location.search).get('view');
-    var serverView = '{{ view_type|default:"categories" }}';
-    switchView(urlView || serverView);
-
-    /* ──────────────────────────────────────────
-       3. AJAX SUGGESTION FORM SUBMISSION
-    ─────────────────────────────────────────── */
-    var suggestionForm   = document.getElementById('suggestion-form');
-    var feedbackEl       = document.getElementById('suggestion-feedback');
-    var submitBtn        = document.getElementById('suggestion-submit-btn');
-
-    if (suggestionForm && feedbackEl && submitBtn) {
-        var originalBtnHTML = submitBtn.innerHTML;
-
-        suggestionForm.addEventListener('submit', function(e) {
-            e.preventDefault();
-
-            // Reset feedback
-            feedbackEl.className = 'modal-feedback';
-            feedbackEl.innerHTML = '';
-
-            // Loading state
-            submitBtn.disabled = true;
-            submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin" style="margin-left:0.4rem;"></i> جاري الإرسال...';
-
-            fetch(suggestionForm.action, {
-                method: 'POST',
-                body: new FormData(suggestionForm),
-                headers: { 'X-Requested-With': 'XMLHttpRequest' }
-            })
-            .then(function(res) {
-                return res.json().then(function(data) {
-                    return { ok: res.ok, data: data };
-                });
-            })
-            .then(function(result) {
-                if (result.ok && result.data.status === 'success') {
-                    // Show success
-                    feedbackEl.className = 'modal-feedback is-success';
-                    feedbackEl.innerHTML =
-                        '<div class="success-icon"><i class="fas fa-check-circle"></i></div>' +
-                        '<h3>تم إرسال اقتراحك بنجاح!</h3>' +
-                        '<p>شكراً لك، سنقوم بمراجعته والرد عليك في أقرب وقت.</p>';
-                    suggestionForm.style.display = 'none';
-
-                    setTimeout(function() {
-                        closeModal();
-                        setTimeout(function() {
-                            suggestionForm.reset();
-                            suggestionForm.style.display = '';
-                            feedbackEl.className = 'modal-feedback';
-                            feedbackEl.innerHTML = '';
-                            submitBtn.disabled = false;
-                            submitBtn.innerHTML = originalBtnHTML;
-                        }, 400);
-                    }, 2500);
-                } else {
-                    throw new Error((result.data && result.data.message) || 'فشل إرسال الاقتراح.');
-                }
-            })
-            .catch(function(err) {
-                feedbackEl.className = 'modal-feedback is-error';
-                feedbackEl.textContent = err.message || 'حدث خطأ غير متوقع. يرجى المحاولة مرة أخرى.';
-                submitBtn.disabled = false;
-                submitBtn.innerHTML = originalBtnHTML;
-            });
-        });
-    }
-
+      })
+      .catch(err => {
+        feedback.innerHTML = '<span class="text-rose-400">⚠️ حدث خطأ في الشبكة، يرجى المحاولة لاحقاً</span>';
+        btn.disabled = false;
+        btn.innerText = 'إرسال الاقتراح';
+      });
+    });
+  }
 })();
 </script>
 {% endblock %}

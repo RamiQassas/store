@@ -86,21 +86,57 @@
 
 <style>
     /* ================================================================
-       ALKASR VIP ULTRA-COMPACT PRODUCT INTERFACE (ZERO-SCROLL UX)
+       RAQAMIYAT MODERN PRODUCT DETAIL - OBSIDIAN TECH DESIGN SYSTEM
        ================================================================ */
     #product-page-wrapper {
         transition: opacity 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-        min-height: calc(100vh - 100px);
-        display: flex;
-        flex-direction: column;
-        justify-content: center;
-        padding: 0.75rem 0.5rem 1.5rem;
+        min-height: calc(100vh - 120px);
+        padding: 0.75rem 0.5rem 3rem;
     }
 
     .alkasr-container {
         width: 100%;
-        max-width: 440px;
+        max-width: 480px;
         margin: 0 auto;
+    }
+
+    @media (min-width: 1024px) {
+        .alkasr-container {
+            max-width: 1240px;
+            padding: 0 1rem;
+        }
+    }
+
+    /* Breadcrumbs */
+    .product-breadcrumbs {
+        display: flex;
+        align-items: center;
+        gap: 0.4rem;
+        font-size: 0.78rem;
+        color: #64748b;
+        margin-bottom: 0.85rem;
+        padding: 0 0.25rem;
+        flex-wrap: wrap;
+    }
+    .product-breadcrumbs a {
+        color: #94a3b8;
+        text-decoration: none;
+        transition: color 0.15s;
+    }
+    .product-breadcrumbs a:hover {
+        color: #38bdf8;
+    }
+    .product-breadcrumbs .sep {
+        font-size: 0.65rem;
+        color: #475569;
+    }
+    .product-breadcrumbs .current {
+        color: #cbd5e1;
+        font-weight: 600;
+        max-width: 240px;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
     }
 
     /* Top Navigation Dock */
@@ -108,7 +144,7 @@
         display: flex;
         align-items: center;
         justify-content: space-between;
-        margin-bottom: 0.75rem;
+        margin-bottom: 0.85rem;
         padding: 0.25rem 0.25rem;
     }
     .alkasr-top-btn {
@@ -126,9 +162,9 @@
         font-size: 0.85rem;
     }
     .alkasr-top-btn:hover {
-        background: rgba(245, 158, 11, 0.15);
-        border-color: rgba(245, 158, 11, 0.4);
-        color: #f59e0b;
+        background: rgba(6, 182, 212, 0.15);
+        border-color: rgba(6, 182, 212, 0.4);
+        color: #38bdf8;
         transform: scale(1.05);
     }
     .alkasr-top-btn:active {
@@ -139,472 +175,289 @@
         display: flex;
         align-items: center;
         gap: 0.45rem;
-        background: rgba(245, 158, 11, 0.1);
-        border: 1px solid rgba(245, 158, 11, 0.25);
-        border-radius: 9999px;
         padding: 0.4rem 0.85rem;
+        border-radius: 9999px;
+        background: rgba(245, 158, 11, 0.08);
+        border: 1px solid rgba(245, 158, 11, 0.25);
         text-decoration: none;
         transition: all 0.2s;
     }
     .alkasr-wallet-pill:hover {
-        background: rgba(245, 158, 11, 0.18);
-        border-color: rgba(245, 158, 11, 0.4);
+        background: rgba(245, 158, 11, 0.16);
+        border-color: rgba(245, 158, 11, 0.45);
+        transform: translateY(-1px);
     }
 
-    /* Central Alkasr Card */
+    .alkasr-nav-counter {
+        display: flex;
+        align-items: center;
+        gap: 0.25rem;
+        padding: 0.35rem 0.75rem;
+        border-radius: 12px;
+        background: rgba(15, 23, 42, 0.8);
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        font-family: monospace;
+        font-size: 0.78rem;
+        font-weight: 700;
+        color: #94a3b8;
+    }
+    .alkasr-nav-current {
+        color: #38bdf8;
+        font-weight: 900;
+    }
+    .alkasr-nav-sep {
+        color: #475569;
+        font-size: 0.7rem;
+    }
+    .alkasr-nav-total {
+        color: #64748b;
+    }
+
+    /* Main Responsive Grid Layout */
+    .alkasr-main-grid {
+        display: flex;
+        flex-direction: column;
+        gap: 1.25rem;
+    }
+
+    @media (min-width: 1024px) {
+        .alkasr-main-grid {
+            display: grid;
+            grid-template-columns: 1.12fr 0.88fr;
+            gap: 2rem;
+            align-items: start;
+        }
+        .alkasr-showcase-column {
+            order: 1; /* Right side in RTL */
+        }
+        .alkasr-purchase-column {
+            order: 2; /* Left side in RTL */
+            position: sticky;
+            top: 92px;
+        }
+    }
+
+    @media (max-width: 1023px) {
+        .alkasr-purchase-column {
+            order: 1; /* Purchase card first on mobile for zero-friction */
+        }
+        .alkasr-showcase-column {
+            order: 2; /* Gallery & description below purchase card */
+        }
+    }
+
+    /* Central Purchase Card */
     .alkasr-card {
-        background: linear-gradient(180deg, #130f29 0%, #0c091a 100%);
-        border: 1.5px solid rgba(139, 92, 246, 0.2);
+        background: rgba(14, 21, 38, 0.78);
+        border: 1px solid rgba(56, 189, 248, 0.15);
+        backdrop-filter: blur(20px);
+        -webkit-backdrop-filter: blur(20px);
         border-radius: 26px;
-        padding: 1.35rem 1.15rem;
-        box-shadow: 0 20px 50px -10px rgba(0, 0, 0, 0.7), 0 0 35px rgba(124, 58, 237, 0.08);
-        direction: rtl;
-        position: relative;
+        padding: 1.15rem;
+        box-shadow: 0 20px 45px -10px rgba(0, 0, 0, 0.7), 0 0 25px rgba(6, 182, 212, 0.06);
     }
 
     /* Card Header */
     .alkasr-card-header {
         display: flex;
-        align-items: flex-start;
+        align-items: center;
         justify-content: space-between;
-        gap: 0.5rem;
-        margin-bottom: 0.65rem;
+        gap: 0.75rem;
+        padding-bottom: 0.95rem;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.07);
+        margin-bottom: 1rem;
     }
     .alkasr-title-wrap {
         display: flex;
         align-items: center;
-        gap: 0.65rem;
+        gap: 0.75rem;
+        min-width: 0;
     }
     .alkasr-prod-avatar {
-        width: 44px;
-        height: 44px;
-        min-width: 44px;
+        width: 48px;
+        height: 48px;
         border-radius: 14px;
-        background: rgba(255, 255, 255, 0.04);
-        border: 1px solid rgba(255, 255, 255, 0.1);
+        background: rgba(15, 23, 42, 0.9);
+        border: 1.5px solid rgba(56, 189, 248, 0.25);
         display: flex;
         align-items: center;
         justify-content: center;
         overflow: hidden;
+        flex-shrink: 0;
         cursor: pointer;
-        transition: transform 0.2s;
+        transition: all 0.2s;
     }
     .alkasr-prod-avatar:hover {
-        transform: scale(1.05);
+        transform: scale(1.06);
+        border-color: #38bdf8;
+        box-shadow: 0 0 16px rgba(56, 189, 248, 0.35);
     }
     .alkasr-prod-avatar img {
         width: 100%;
         height: 100%;
-        object-fit: contain;
+        object-fit: cover;
     }
     .alkasr-prod-title {
-        font-size: 1.15rem;
+        font-size: 1.05rem;
         font-weight: 900;
         color: #fff;
-        margin: 0;
+        line-height: 1.3;
         display: flex;
         align-items: center;
-        gap: 0.4rem;
-        line-height: 1.25;
+        gap: 0.5rem;
     }
     .alkasr-heart-btn {
-        color: #94a3b8;
-        font-size: 1rem;
-        background: transparent;
+        background: none;
         border: none;
+        color: #64748b;
+        font-size: 0.95rem;
         cursor: pointer;
         transition: all 0.2s;
-        padding: 2px;
+        padding: 0;
     }
     .alkasr-heart-btn.active, .alkasr-heart-btn:hover {
-        color: #f43f5e;
+        color: #ef4444;
         transform: scale(1.15);
     }
     .alkasr-subtitle {
         font-size: 0.72rem;
+        color: #38bdf8;
         font-weight: 700;
-        color: #64748b;
-        margin-top: 2px;
+        margin-top: 0.15rem;
     }
 
     .alkasr-price-badge {
-        background: #2a1b12;
-        border: 1px solid rgba(245, 158, 11, 0.45);
-        color: #f59e0b;
-        font-size: 0.92rem;
+        padding: 0.4rem 0.85rem;
+        border-radius: 12px;
+        background: rgba(245, 158, 11, 0.12);
+        border: 1px solid rgba(245, 158, 11, 0.35);
+        color: #fbbf24;
         font-weight: 900;
-        padding: 0.35rem 0.85rem;
-        border-radius: 9999px;
+        font-size: 0.92rem;
         white-space: nowrap;
-        box-shadow: 0 4px 12px rgba(245, 158, 11, 0.12);
-        letter-spacing: 0.02em;
+        font-family: monospace;
+        letter-spacing: -0.02em;
+        flex-shrink: 0;
+        box-shadow: 0 0 16px rgba(245, 158, 11, 0.15);
     }
 
-    /* Luxury Variant Dropdown Menu */
+    /* Variant Selector */
     .alkasr-select-wrapper {
-        position: relative;
-        margin-bottom: 0.95rem;
+        margin-bottom: 0.9rem;
     }
     .alkasr-select-label {
         display: flex;
         align-items: center;
         justify-content: space-between;
-        font-size: 0.78rem;
+        font-size: 0.75rem;
         font-weight: 800;
         color: #cbd5e1;
-        margin-bottom: 0.45rem;
+        margin-bottom: 0.4rem;
+    }
+    .alkasr-select-box {
+        width: 100%;
+        background: rgba(10, 15, 30, 0.85);
+        border: 1.5px solid rgba(56, 189, 248, 0.25);
+        color: #fff;
+        font-size: 0.85rem;
+        font-weight: 800;
+        border-radius: 14px;
+        padding: 0.7rem 2.2rem 0.7rem 0.85rem;
+        outline: none;
+        appearance: none;
+        -webkit-appearance: none;
+        cursor: pointer;
+        transition: all 0.2s;
+    }
+    .alkasr-select-box:focus {
+        border-color: #38bdf8;
+        box-shadow: 0 0 16px rgba(56, 189, 248, 0.25);
     }
     .alkasr-select-arrow {
         position: absolute;
-        left: 1.1rem;
         top: 50%;
+        right: 0.85rem;
         transform: translateY(-50%);
         pointer-events: none;
-        color: #f59e0b;
-        font-size: 0.85rem;
-        transition: transform 0.2s;
+        color: #38bdf8;
+        font-size: 0.75rem;
+    }
+    .alkasr-select-box option {
+        background: #0c1222;
+        color: #fff;
+        padding: 0.5rem;
     }
     .alkasr-select-box option:disabled {
-        color: #ef4444 !important;
-        background: #1c1427 !important;
-        opacity: 0.6;
-        font-style: italic;
+        color: #64748b;
+        background: #060913;
     }
 
-    /* Metrics Row (العدد & الاجمالي) */
+    /* Metrics: Count & Total */
     .alkasr-metrics-row {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        background: rgba(7, 5, 16, 0.7);
-        border: 1px solid rgba(255, 255, 255, 0.06);
-        border-radius: 18px;
-        padding: 0.65rem 1.15rem;
-        margin-bottom: 0.75rem;
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 0.65rem;
+        margin-bottom: 0.85rem;
     }
     .alkasr-metric-col {
+        background: rgba(10, 15, 30, 0.7);
+        border: 1px solid rgba(255, 255, 255, 0.07);
+        border-radius: 14px;
+        padding: 0.6rem 0.85rem;
         display: flex;
         flex-direction: column;
+        justify-content: center;
     }
     .alkasr-metric-label {
-        font-size: 0.75rem;
-        font-weight: 800;
+        font-size: 0.68rem;
+        font-weight: 700;
         color: #94a3b8;
-        margin-bottom: 0.1rem;
+        margin-bottom: 0.15rem;
     }
     .alkasr-metric-value {
-        font-size: 1.1rem;
+        font-size: 0.95rem;
         font-weight: 900;
         color: #fff;
-        letter-spacing: -0.01em;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
     }
 
-    /* Centered Input Box */
+    /* Dynamic inputs & Stepper */
     .alkasr-input-wrap {
-        margin-bottom: 0.75rem;
+        margin-bottom: 0.85rem;
     }
     .alkasr-input-box {
         width: 100%;
-        background: rgba(6, 4, 14, 0.85);
-        border: 1px solid rgba(255, 255, 255, 0.1);
-        border-radius: 16px;
-        padding: 0.85rem 1rem;
+        background: rgba(10, 15, 30, 0.85);
+        border: 1.5px solid rgba(255, 255, 255, 0.12);
         color: #fff;
-        font-size: 0.95rem;
+        font-size: 0.85rem;
         font-weight: 700;
+        border-radius: 14px;
+        padding: 0.65rem 0.85rem;
         outline: none;
-        transition: all 0.25s;
-        text-align: center;
-        box-sizing: border-box;
+        transition: all 0.2s;
     }
     .alkasr-input-box:focus {
-        border-color: #f59e0b;
-        box-shadow: 0 0 16px rgba(245, 158, 11, 0.25);
-        background: rgba(10, 7, 22, 0.95);
+        border-color: #38bdf8;
+        box-shadow: 0 0 14px rgba(56, 189, 248, 0.25);
     }
     .alkasr-input-box::placeholder {
         color: #64748b;
-        font-size: 0.85rem;
-        font-weight: 600;
+        font-weight: 500;
     }
-
-    .alkasr-instant-note {
-        display: flex;
-        align-items: center;
-        gap: 0.6rem;
-        padding: 0.75rem 0.9rem;
-        border-radius: 14px;
-        background: rgba(16, 185, 129, 0.08);
-        border: 1px solid rgba(16, 185, 129, 0.2);
-        color: #34d399;
-        font-size: 0.78rem;
-        font-weight: 700;
-        line-height: 1.35;
-    }
-
-    /* Actions Row (شراء & الغاء) */
-    .alkasr-actions-row {
-        display: grid;
-        grid-template-columns: 1.35fr 1fr;
-        gap: 0.75rem;
-        margin-bottom: 0.95rem;
-    }
-    .alkasr-btn-buy {
-        width: 100%;
-        padding: 0.85rem 1rem;
-        border-radius: 9999px;
-        background: linear-gradient(135deg, #a54f24 0%, #7c3516 100%);
-        color: #fff;
-        font-size: 1.05rem;
-        font-weight: 900;
-        border: none;
-        cursor: pointer;
-        box-shadow: 0 8px 24px rgba(165, 79, 36, 0.45);
-        transition: all 0.2s;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        gap: 0.4rem;
-    }
-    .alkasr-btn-buy:hover:not(:disabled) {
-        filter: brightness(1.15);
-        transform: translateY(-2px);
-        box-shadow: 0 10px 28px rgba(165, 79, 36, 0.65);
-    }
-    .alkasr-btn-buy:active:not(:disabled) {
-        transform: scale(0.97);
-    }
-    .alkasr-btn-buy:disabled {
-        opacity: 0.4;
-        cursor: not-allowed;
-        filter: grayscale(1);
-    }
-
-    .alkasr-btn-cancel {
-        width: 100%;
-        padding: 0.85rem 1rem;
-        border-radius: 9999px;
-        background: transparent;
-        border: 1.5px solid rgba(225, 29, 72, 0.45);
-        color: #fb7185;
-        font-size: 1rem;
-        font-weight: 900;
-        cursor: pointer;
-        transition: all 0.2s;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        text-decoration: none;
-    }
-    .alkasr-btn-cancel:hover {
-        border-color: #f43f5e;
-        background: rgba(244, 63, 94, 0.12);
-        color: #fff;
-    }
-    .alkasr-btn-cancel:active {
-        transform: scale(0.97);
-    }
-
-    /* Notice Box (Right vertical line) */
-    .alkasr-notice-box {
-        display: flex;
-        align-items: center;
-        gap: 0.6rem;
-        padding: 0.5rem 0.65rem;
-        border-right: 3px solid #f59e0b;
-        background: rgba(255, 255, 255, 0.02);
-        border-radius: 0 10px 10px 0;
-    }
-    .alkasr-notice-text {
-        font-size: 0.72rem;
-        font-weight: 700;
-        color: #94a3b8;
-        line-height: 1.4;
-    }
-
-    /* Dropdown Variant Select Box */
-    .alkasr-select-box {
-        width: 100%;
-        background: linear-gradient(180deg, rgba(16, 12, 34, 0.95) 0%, rgba(9, 6, 20, 0.98) 100%);
-        border: 1.5px solid rgba(168, 85, 247, 0.35);
-        border-radius: 16px;
-        padding: 0.85rem 1rem 0.85rem 2.5rem;
-        color: #fff;
-        font-size: 0.92rem;
-        font-weight: 800;
-        outline: none;
-        transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
-        text-align: right;
-        direction: rtl;
-        appearance: none;
-        cursor: pointer;
-        box-sizing: border-box;
-        box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
-    }
-    .alkasr-select-box:hover {
-        border-color: rgba(245, 158, 11, 0.5);
-    }
-    .alkasr-select-box:focus {
-        border-color: #f59e0b;
-        box-shadow: 0 0 20px rgba(245, 158, 11, 0.3);
-        background: rgba(14, 10, 30, 0.98);
-    }
-    .alkasr-select-box option {
-        background: #0f0c22;
-        color: #fff;
-        font-weight: 700;
-        padding: 10px 12px;
-    }
-
-    /* Extra Tools: Payment Selector & Coupon */
-    .alkasr-extra-tools {
-        margin-top: 0.85rem;
-        padding-top: 0.75rem;
-        border-top: 1px solid rgba(255, 255, 255, 0.06);
-    }
-    .alkasr-pm-grid {
-        display: grid;
-        grid-template-columns: repeat(2, 1fr);
-        gap: 0.5rem;
-        margin-top: 0.4rem;
-    }
-    @media (max-width: 360px) {
-        .alkasr-pm-grid {
-            grid-template-columns: 1fr;
-        }
-    }
-    .alkasr-pm-tab {
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        gap: 0.5rem;
-        padding: 0.65rem 0.75rem;
-        border-radius: 14px;
-        font-size: 0.8rem;
-        font-weight: 800;
-        background: rgba(255, 255, 255, 0.03);
-        border: 1.5px solid rgba(255, 255, 255, 0.08);
-        color: #cbd5e1;
-        cursor: pointer;
-        transition: all 0.2s;
-        user-select: none;
-        min-height: 44px;
-    }
-    .alkasr-pm-tab:hover {
-        background: rgba(255, 255, 255, 0.06);
-        border-color: rgba(255, 255, 255, 0.15);
-    }
-    .alkasr-pm-tab.is-active {
-        background: linear-gradient(135deg, rgba(245, 158, 11, 0.18) 0%, rgba(180, 83, 9, 0.12) 100%);
-        border-color: #f59e0b;
-        color: #fbbf24;
-        box-shadow: 0 0 16px rgba(245, 158, 11, 0.2);
-    }
-    .alkasr-pm-tab img {
-        height: 18px;
-        max-width: 28px;
-        object-fit: contain;
-    }
-
-    /* Price breakdown receipt styling */
-    .alkasr-breakdown-card {
-        background: rgba(0, 0, 0, 0.45);
-        border: 1px solid rgba(245, 158, 11, 0.25);
-        border-radius: 16px;
-        padding: 0.75rem 1rem;
-        margin-top: 0.75rem;
-        direction: rtl;
-    }
-    .alkasr-breakdown-row {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        padding: 0.25rem 0;
-        font-size: 0.78rem;
-    }
-
-    /* Topbar Navigation Product Counter Badge */
-    .alkasr-nav-counter {
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        gap: 0.25rem;
-        padding: 0.25rem 0.65rem;
-        background: rgba(255, 255, 255, 0.05);
-        border: 1px solid rgba(255, 255, 255, 0.09);
-        border-radius: 12px;
-        font-size: 0.8rem;
-        font-weight: 800;
-        min-width: 56px;
-        height: 38px;
-        box-sizing: border-box;
-        user-select: none;
-    }
-    .alkasr-nav-current {
-        color: #fbbf24;
-        font-family: monospace;
-        font-weight: 900;
-    }
-    .alkasr-nav-sep {
-        color: #64748b;
-        font-size: 0.72rem;
-    }
-    .alkasr-nav-total {
-        color: #94a3b8;
-        font-family: monospace;
-        font-weight: 700;
-    }
-
-    /* Stepper + and - Buttons & Container */
-    .alkasr-qty-box {
-        background: rgba(10, 7, 24, 0.75);
-        border: 1px solid rgba(168, 85, 247, 0.25);
-        border-radius: 18px;
-        padding: 0.75rem 0.9rem;
-        margin-bottom: 0.85rem;
-        box-shadow: 0 4px 18px rgba(0, 0, 0, 0.35);
-    }
-    .alkasr-stepper-btn {
-        width: 44px;
-        height: 44px;
-        border-radius: 14px;
-        background: linear-gradient(135deg, rgba(245, 158, 11, 0.2) 0%, rgba(180, 83, 9, 0.35) 100%);
-        border: 1.5px solid rgba(245, 158, 11, 0.5);
-        color: #fbbf24;
-        font-size: 1.05rem;
-        font-weight: 900;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        cursor: pointer;
-        transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.1);
-        user-select: none;
-        flex-shrink: 0;
-    }
-    .alkasr-stepper-btn:hover {
-        background: linear-gradient(135deg, rgba(245, 158, 11, 0.35) 0%, rgba(217, 119, 6, 0.5) 100%);
-        border-color: #f59e0b;
-        color: #fff;
-        transform: translateY(-1px);
-        box-shadow: 0 6px 18px rgba(245, 158, 11, 0.4);
-    }
-    .alkasr-stepper-btn:active {
-        transform: scale(0.92);
-    }
-
-    /* Paste Button */
     .alkasr-paste-btn {
         position: absolute;
-        left: 0.65rem;
+        left: 0.5rem;
         top: 50%;
         transform: translateY(-50%);
         padding: 0.35rem 0.75rem;
         border-radius: 10px;
-        background: rgba(245, 158, 11, 0.15);
-        border: 1px solid rgba(245, 158, 11, 0.35);
-        color: #fbbf24;
-        font-size: 0.75rem;
+        background: rgba(6, 182, 212, 0.15);
+        border: 1px solid rgba(6, 182, 212, 0.35);
+        color: #38bdf8;
+        font-size: 0.72rem;
         font-weight: 800;
         cursor: pointer;
         transition: all 0.2s;
@@ -613,21 +466,128 @@
         gap: 0.35rem;
     }
     .alkasr-paste-btn:hover {
-        background: rgba(245, 158, 11, 0.25);
-        border-color: #f59e0b;
+        background: rgba(6, 182, 212, 0.25);
+        border-color: #38bdf8;
         color: #fff;
         transform: translateY(-50%) scale(1.04);
     }
-    .alkasr-paste-btn:active {
-        transform: translateY(-50%) scale(0.95);
+    .alkasr-instant-note {
+        display: flex;
+        align-items: center;
+        gap: 0.45rem;
+        padding: 0.55rem 0.85rem;
+        border-radius: 12px;
+        background: rgba(16, 185, 129, 0.08);
+        border: 1px solid rgba(16, 185, 129, 0.25);
+        color: #34d399;
+        font-size: 0.74rem;
+        font-weight: 700;
     }
 
-    /* Luxury Coupon Box & Golden Apply Button */
+    /* Actions Row */
+    .alkasr-actions-row {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 0.65rem;
+        margin-bottom: 0.85rem;
+    }
+    .alkasr-btn-buy {
+        background: linear-gradient(135deg, #06b6d4 0%, #0284c7 100%);
+        color: #04101e;
+        font-size: 0.95rem;
+        font-weight: 900;
+        border: none;
+        border-radius: 14px;
+        padding: 0.75rem;
+        cursor: pointer;
+        transition: all 0.2s;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        box-shadow: 0 4px 18px rgba(6, 182, 212, 0.35);
+    }
+    .alkasr-btn-buy:hover:not(:disabled) {
+        filter: brightness(1.15);
+        transform: translateY(-1px);
+        box-shadow: 0 6px 24px rgba(6, 182, 212, 0.5);
+    }
+    .alkasr-btn-buy:active:not(:disabled) {
+        transform: scale(0.97);
+    }
+    .alkasr-btn-cancel {
+        background: rgba(255, 255, 255, 0.06);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        color: #cbd5e1;
+        font-size: 0.85rem;
+        font-weight: 800;
+        border-radius: 14px;
+        padding: 0.75rem;
+        text-align: center;
+        text-decoration: none;
+        transition: all 0.2s;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+    .alkasr-btn-cancel:hover {
+        background: rgba(255, 255, 255, 0.12);
+        color: #fff;
+    }
+
+    /* Notice callout */
+    .alkasr-notice-box {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        text-align: center;
+        padding: 0.5rem 0.75rem;
+        border-radius: 12px;
+        background: rgba(6, 182, 212, 0.06);
+        border-right: 3px solid #06b6d4;
+        margin-bottom: 0.85rem;
+    }
+    .alkasr-notice-text {
+        font-size: 0.72rem;
+        color: #94a3b8;
+        font-weight: 600;
+    }
+
+    /* Payment Tabs */
+    .alkasr-pm-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 0.45rem;
+    }
+    .alkasr-pm-tab {
+        background: rgba(10, 15, 30, 0.6);
+        border: 1.5px solid rgba(255, 255, 255, 0.08);
+        border-radius: 12px;
+        padding: 0.5rem 0.65rem;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        cursor: pointer;
+        transition: all 0.2s;
+        color: #cbd5e1;
+        text-align: right;
+    }
+    .alkasr-pm-tab:hover {
+        background: rgba(255, 255, 255, 0.05);
+        border-color: rgba(56, 189, 248, 0.3);
+    }
+    .alkasr-pm-tab.is-active {
+        background: rgba(6, 182, 212, 0.12);
+        border-color: #06b6d4;
+        color: #fff;
+        box-shadow: 0 0 14px rgba(6, 182, 212, 0.2);
+    }
+
+    /* Coupon Drawer */
     .alkasr-coupon-box {
-        background: rgba(10, 7, 24, 0.7);
-        border: 1px solid rgba(168, 85, 247, 0.2);
-        border-radius: 16px;
-        padding: 0.65rem 0.85rem;
+        background: rgba(10, 15, 30, 0.7);
+        border: 1px solid rgba(245, 158, 11, 0.2);
+        border-radius: 14px;
+        padding: 0.6rem 0.85rem;
         margin-top: 0.75rem;
     }
     .alkasr-coupon-header {
@@ -643,7 +603,7 @@
         color: #fbbf24;
         border-radius: 10px;
         padding: 0.3rem 0.65rem;
-        font-size: 0.75rem;
+        font-size: 0.72rem;
         font-weight: 800;
         display: flex;
         align-items: center;
@@ -651,23 +611,18 @@
         cursor: pointer;
         transition: all 0.2s;
     }
-    .alkasr-coupon-toggle-btn:hover {
-        background: rgba(245, 158, 11, 0.22);
-        border-color: #f59e0b;
-        color: #fff;
-    }
     .alkasr-coupon-input-group {
         display: flex;
         align-items: center;
-        gap: 0.5rem;
+        gap: 0.45rem;
     }
     .alkasr-coupon-input {
         flex-grow: 1;
         background: rgba(0, 0, 0, 0.65);
         border: 1.5px solid rgba(255, 255, 255, 0.12);
         border-radius: 12px;
-        padding: 0.6rem 0.85rem;
-        font-size: 0.82rem;
+        padding: 0.55rem 0.85rem;
+        font-size: 0.8rem;
         color: #fff;
         outline: none;
         font-weight: 700;
@@ -677,14 +632,13 @@
     .alkasr-coupon-input:focus {
         border-color: #f59e0b;
         box-shadow: 0 0 14px rgba(245, 158, 11, 0.25);
-        background: rgba(14, 10, 30, 0.95);
     }
     .alkasr-coupon-apply-btn {
         background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
         color: #000;
         font-weight: 900;
-        font-size: 0.82rem;
-        padding: 0.6rem 1.15rem;
+        font-size: 0.8rem;
+        padding: 0.55rem 1rem;
         border-radius: 12px;
         border: none;
         cursor: pointer;
@@ -695,29 +649,286 @@
         transition: all 0.2s;
         white-space: nowrap;
     }
-    .alkasr-coupon-apply-btn:hover {
-        filter: brightness(1.15);
-        transform: translateY(-1px);
-        box-shadow: 0 6px 18px rgba(245, 158, 11, 0.5);
+
+    /* Price Breakdown */
+    .alkasr-breakdown-card {
+        background: rgba(10, 15, 30, 0.85);
+        border: 1px solid rgba(16, 185, 129, 0.25);
+        border-radius: 14px;
+        padding: 0.75rem 0.95rem;
+        margin-top: 0.75rem;
     }
-    .alkasr-coupon-apply-btn:active {
-        transform: scale(0.96);
+    .alkasr-breakdown-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        font-size: 0.78rem;
+        padding: 0.35rem 0;
+    }
+
+    /* ================================================================
+       SHOWCASE COLUMN STYLING (MEDIA, GALLERY, SPECS, TRUST)
+       ================================================================ */
+    .alkasr-media-card {
+        background: rgba(14, 21, 38, 0.78);
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        backdrop-filter: blur(20px);
+        -webkit-backdrop-filter: blur(20px);
+        border-radius: 26px;
+        padding: 1.25rem;
+        position: relative;
+        overflow: hidden;
+        margin-bottom: 1.25rem;
+        box-shadow: 0 20px 45px -10px rgba(0, 0, 0, 0.7);
+    }
+    .alkasr-media-viewer {
+        width: 100%;
+        height: 340px;
+        border-radius: 18px;
+        background: radial-gradient(circle at center, rgba(30, 41, 59, 0.6) 0%, rgba(10, 15, 30, 0.95) 100%);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        position: relative;
+        overflow: hidden;
+        cursor: pointer;
+        border: 1px solid rgba(255, 255, 255, 0.05);
+    }
+    @media (min-width: 1024px) {
+        .alkasr-media-viewer {
+            height: 420px;
+        }
+    }
+    .alkasr-media-viewer img {
+        max-width: 90%;
+        max-height: 90%;
+        object-fit: contain;
+        transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    .alkasr-media-viewer:hover img {
+        transform: scale(1.04);
+    }
+    .alkasr-media-viewer video {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+    }
+    .alkasr-floating-badges {
+        position: absolute;
+        top: 1rem;
+        right: 1rem;
+        display: flex;
+        flex-direction: column;
+        gap: 0.4rem;
+        z-index: 10;
+    }
+    .alkasr-badge-tag {
+        font-size: 0.72rem;
+        font-weight: 800;
+        padding: 0.35rem 0.75rem;
+        border-radius: 9999px;
+        backdrop-filter: blur(8px);
+        display: flex;
+        align-items: center;
+        gap: 0.35rem;
+    }
+    .badge-digital {
+        background: rgba(6, 182, 212, 0.2);
+        border: 1px solid rgba(6, 182, 212, 0.4);
+        color: #38bdf8;
+    }
+    .badge-physical {
+        background: rgba(245, 158, 11, 0.2);
+        border: 1px solid rgba(245, 158, 11, 0.4);
+        color: #fbbf24;
+    }
+    .badge-instock {
+        background: rgba(16, 185, 129, 0.2);
+        border: 1px solid rgba(16, 185, 129, 0.4);
+        color: #34d399;
+    }
+    .badge-outstock {
+        background: rgba(239, 68, 68, 0.2);
+        border: 1px solid rgba(239, 68, 68, 0.4);
+        color: #f87171;
+    }
+    .alkasr-zoom-trigger {
+        position: absolute;
+        bottom: 1rem;
+        left: 1rem;
+        padding: 0.4rem 0.85rem;
+        border-radius: 9999px;
+        background: rgba(15, 23, 42, 0.75);
+        border: 1px solid rgba(255, 255, 255, 0.15);
+        color: #cbd5e1;
+        font-size: 0.74rem;
+        font-weight: 700;
+        display: flex;
+        align-items: center;
+        gap: 0.4rem;
+        backdrop-filter: blur(8px);
+        transition: all 0.2s;
+        z-index: 10;
+        cursor: pointer;
+    }
+    .alkasr-zoom-trigger:hover {
+        background: rgba(6, 182, 212, 0.25);
+        border-color: #06b6d4;
+        color: #fff;
+    }
+
+    /* Gallery Thumbnails */
+    .alkasr-thumbs-grid {
+        display: flex;
+        align-items: center;
+        gap: 0.65rem;
+        margin-top: 0.85rem;
+        overflow-x: auto;
+        padding-bottom: 0.35rem;
+    }
+    .thumb-item {
+        width: 60px;
+        height: 60px;
+        border-radius: 12px;
+        background: rgba(10, 15, 30, 0.9);
+        border: 1.5px solid rgba(255, 255, 255, 0.1);
+        overflow: hidden;
+        cursor: pointer;
+        flex-shrink: 0;
+        transition: all 0.2s;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+    .thumb-item:hover {
+        border-color: #38bdf8;
+        transform: translateY(-2px);
+    }
+    .thumb-item.active {
+        border-color: #06b6d4;
+        box-shadow: 0 0 12px rgba(6, 182, 212, 0.4);
+    }
+    .thumb-item img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+    }
+
+    /* Product Specs & Description Card */
+    .alkasr-info-card {
+        background: rgba(14, 21, 38, 0.78);
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        backdrop-filter: blur(20px);
+        -webkit-backdrop-filter: blur(20px);
+        border-radius: 26px;
+        padding: 1.35rem;
+        margin-bottom: 1.25rem;
+        box-shadow: 0 20px 45px -10px rgba(0, 0, 0, 0.7);
+    }
+    .alkasr-info-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding-bottom: 0.85rem;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.07);
+        margin-bottom: 1rem;
+    }
+    .alkasr-desc-content {
+        color: #cbd5e1;
+        font-size: 0.88rem;
+        line-height: 1.75;
+    }
+    .alkasr-desc-content p {
+        margin-bottom: 0.85rem;
+    }
+
+    /* Trust Pillars Grid */
+    .alkasr-trust-grid {
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 0.75rem;
+        margin-top: 1.25rem;
+        padding-top: 1.15rem;
+        border-top: 1px solid rgba(255, 255, 255, 0.07);
+    }
+    @media (min-width: 640px) {
+        .alkasr-trust-grid {
+            grid-template-columns: repeat(3, 1fr);
+        }
+    }
+    .alkasr-trust-item {
+        background: rgba(10, 15, 30, 0.65);
+        border: 1px solid rgba(255, 255, 255, 0.06);
+        border-radius: 14px;
+        padding: 0.85rem;
+        display: flex;
+        flex-direction: column;
+        gap: 0.35rem;
+    }
+    .alkasr-trust-item i {
+        font-size: 1.1rem;
+        margin-bottom: 0.25rem;
+    }
+
+    /* Related Products Bento */
+    .alkasr-related-card {
+        background: rgba(14, 21, 38, 0.78);
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        backdrop-filter: blur(20px);
+        -webkit-backdrop-filter: blur(20px);
+        border-radius: 26px;
+        padding: 1.25rem;
+        box-shadow: 0 20px 45px -10px rgba(0, 0, 0, 0.7);
+    }
+    .alkasr-related-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+        gap: 0.85rem;
+        margin-top: 0.85rem;
+    }
+    .alkasr-rel-item {
+        background: rgba(10, 15, 30, 0.7);
+        border: 1px solid rgba(255, 255, 255, 0.06);
+        border-radius: 14px;
+        padding: 0.75rem;
+        text-decoration: none;
+        display: flex;
+        flex-direction: column;
+        gap: 0.5rem;
+        transition: all 0.2s;
+    }
+    .alkasr-rel-item:hover {
+        border-color: rgba(56, 189, 248, 0.4);
+        transform: translateY(-2px);
     }
 </style>
 {% endblock %}
 
 {% block content %}
-{% if prev_product %}<link rel="prefetch" href="{% url 'product_detail' prev_product.id %}">{% endif %}
 {% if next_product %}<link rel="prefetch" href="{% url 'product_detail' next_product.id %}">{% endif %}
 <div id="product-page-wrapper" class="transition-opacity duration-200"
      data-category-name="{{ product.category.name|default:''|escapejs }}"
      data-product-name="{{ product.name|default:''|escapejs }}"
      data-is-physical="{% if product.product_type == 'physical' %}true{% else %}false{% endif %}">
+
 <div class="alkasr-container">
-    <!-- Top Navigation Dock: Back to catalog, Previous, Next, and Wallet balance -->
+    <!-- Breadcrumbs Trail -->
+    <div class="product-breadcrumbs">
+        <a href="{% url 'home' %}"><i class="fas fa-home text-xs ml-1"></i> الرئيسية</a>
+        <span class="sep"><i class="fas fa-chevron-left"></i></span>
+        <a href="{% url 'catalog' %}">كتالوج المنتجات</a>
+        {% if product.category %}
+        <span class="sep"><i class="fas fa-chevron-left"></i></span>
+        <a href="{% url 'catalog' %}?category={{ product.category.id }}">{{ product.category.name }}</a>
+        {% endif %}
+        <span class="sep"><i class="fas fa-chevron-left"></i></span>
+        <span class="current">{{ product.name }}</span>
+    </div>
+
+    <!-- Top Navigation Dock: Back to catalog, Previous, Next, Product Counter, and Wallet balance -->
     <div class="alkasr-topbar">
         <div class="flex items-center gap-1.5">
-            <a href="{% url 'catalog' %}" class="alkasr-top-btn" title="الرجوع للكتالوج">
+            <a href="{% url 'catalog' %}" class="alkasr-top-btn" title="كتالوج المنتجات">
                 <i class="fas fa-arrow-right"></i>
             </a>
             {% if prev_product %}
@@ -727,7 +938,7 @@
             {% endif %}
 
             <!-- Product Navigation Counter (e.g. 5 / 40) -->
-            <div class="alkasr-nav-counter" id="alkasr-nav-counter" title="رقم المنتج الحالي من إجمالي منتجات المتجر">
+            <div class="alkasr-nav-counter" id="alkasr-nav-counter" title="ترتيب المنتج ضمن التصنيف">
                 <span class="alkasr-nav-current">{{ product_index|default:1 }}</span>
                 <span class="alkasr-nav-sep">/</span>
                 <span class="alkasr-nav-total">{{ total_category_products|default:1 }}</span>
@@ -741,7 +952,7 @@
         </div>
 
         <div class="flex items-center gap-2">
-            <a href="{% url 'dashboard_deposits' %}" class="alkasr-wallet-pill" title="رصيدك الحالي - إيداع">
+            <a href="{% url 'dashboard_deposits' %}" class="alkasr-wallet-pill" title="رصيد المحفظة - شحن سريع">
                 <i class="fas fa-wallet text-[11px] text-amber-400"></i>
                 <span class="text-xs font-black text-amber-300">{% currency_format request.user.wallet.available_balance|default:0 %}</span>
                 <i class="fas fa-plus text-[9px] text-amber-400/80 mr-0.5"></i>
@@ -749,296 +960,444 @@
         </div>
     </div>
 
-    <!-- Central Purchase Card (Inspired by reference image alkasr-vip) -->
-    <div class="alkasr-card">
-        <!-- Card Header: Title & Heart on right, Price Pill on left -->
-        <div class="alkasr-card-header">
-            <div class="alkasr-title-wrap">
-                {% product_display_image product as p_img %}
-                <div class="alkasr-prod-avatar" {% if p_img %}onclick="openImageLightbox('{{ p_img }}')"{% endif %} title="عرض الصورة">
-                    {% if p_img %}
-                    <img src="{{ p_img }}" alt="{{ product.name }}" onerror="this.onerror=null; this.src='{% static 'site/img/brands/generic_digital.svg' %}';">
-                    {% else %}
-                    <i class="fas fa-bolt text-amber-400 text-sm"></i>
-                    {% endif %}
-                </div>
-                <div>
-                    <h1 class="alkasr-prod-title">
-                        <span>{{ product.name }}</span>
-                        <button type="button" class="alkasr-heart-btn" onclick="this.classList.toggle('active'); this.querySelector('i').classList.toggle('fas'); this.querySelector('i').classList.toggle('far');" title="إضافة للمفضلة">
-                            <i class="far fa-heart"></i>
-                        </button>
-                    </h1>
-                    {% if product.category %}
-                    <div class="alkasr-subtitle">{{ product.category.name }}</div>
-                    {% endif %}
-                </div>
-            </div>
+    <!-- Responsive Layout: Showcase Column + Purchase Column -->
+    <div class="alkasr-main-grid">
 
-            <!-- Price Badge Pill -->
-            <div class="alkasr-price-badge" id="alkasr-top-price">
-                {% product_starting_price product %}
-            </div>
-        </div>
-
-        {% if is_inactive_product or product.is_out_of_stock or not product.is_active %}
-        <div class="mx-3 my-2.5 p-3 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-300 text-xs flex items-center gap-2.5">
-            <i class="fas fa-circle-exclamation text-amber-400 text-base shrink-0"></i>
-            <div>
-                <span class="font-bold block">هذا التطبيق أو المنتج غير متوفر حالياً</span>
-                <span class="text-slate-300 text-[11px]">يجري تحديث هذا المنتج من قِبل المزوّد، أو قد يكون نافداً مؤقتاً. يمكنك استعراض الكتالوج للحصول على بدائل.</span>
-            </div>
-        </div>
-        {% endif %}
-
-        <!-- Form Begin -->
-        <form method="post" action="{% url 'product_detail' product.id %}" id="purchase-form">
-            {% csrf_token %}
-            <input type="hidden" name="product" value="{{ product.id }}">
-            <input type="hidden" name="variant_id" id="selected-variant-id" value="{% if active_variant and not active_variant.is_temporarily_disabled and not product.is_out_of_stock %}{{ active_variant.id }}{% endif %}">
-            <input type="hidden" name="payment_method" id="selected-payment-method" value="wallet">
-
-            <!-- Variants Selection: Clean Luxury Dropdown Menu -->
-            {% if variants %}
-            <div class="alkasr-select-wrapper">
-                <label for="alkasr-variant-select" class="alkasr-select-label">
-                    <span class="flex items-center gap-1.5">
-                        <i class="fas fa-layer-group text-amber-400 text-xs"></i>
-                        <span>اختر الفئة أو الباقة المطلوبة:</span>
+        <!-- Column 1: Showcase (Media, Gallery, Details & Specs) -->
+        <div class="alkasr-showcase-column">
+            {% product_display_image product as p_img %}
+            
+            <!-- Main Media Card -->
+            <div class="alkasr-media-card">
+                <!-- Floating status tags -->
+                <div class="alkasr-floating-badges">
+                    {% if product.product_type == 'physical' %}
+                    <span class="alkasr-badge-tag badge-physical">
+                        <i class="fas fa-truck-fast"></i> منتج عيني (شحن وتوصيل)
                     </span>
-                    <span class="text-[11px] text-amber-400 font-mono font-bold bg-amber-500/10 border border-amber-500/20 px-2 py-0.5 rounded-full">({{ variants|length }} خيارات)</span>
-                </label>
-                <div class="relative">
-                    <select id="alkasr-variant-select" class="alkasr-select-box" onchange="onVariantDropdownChange(this.value)">
-                        {% for v in variants %}
-                        {% variant_price v as v_price %}
-                        {% variant_card_price v as v_card_price %}
-                        <option value="{{ v.id }}"
-                                data-price="{{ v_price|unlocalize }}"
-                                data-qty-type="{{ v.metadata.qty_type|default:'none' }}"
-                                data-qty-min="{{ v.metadata.qty_min|default:1 }}"
-                                data-qty-max="{{ v.metadata.qty_max|default:999999 }}"
-                                data-qty-list='{% if v.metadata.qty_list %}{{ v.metadata.qty_list|jsonify }}{% else %}[]{% endif %}'
-                                data-is-per-mille="{% if v.metadata.is_per_mille %}true{% else %}false{% endif %}"
-                                data-delivery-type="{{ v.delivery_type|default:'manual' }}"
-                                data-is-recharge="{% if v.is_recharge_card %}true{% else %}false{% endif %}"
-                                data-params='{% if v.metadata.params %}{{ v.metadata.params|jsonify }}{% else %}[]{% endif %}'
-                                data-variant-name="{{ v.name }}"
-                                {% if active_variant and v.id == active_variant.id and not product.is_out_of_stock %}selected{% elif forloop.first and not active_variant %}selected{% endif %}
-                                {% if v.is_temporarily_disabled or not v.is_active or product.is_out_of_stock %}disabled{% endif %}>
-                            {{ v.name }} — {{ v_card_price|striptags }}{% if v.is_temporarily_disabled or not v.is_active %} (غير متوفر حالياً){% endif %}
-                        </option>
-                        {% endfor %}
-                    </select>
-                    <div class="alkasr-select-arrow">
-                        <i class="fas fa-chevron-down"></i>
+                    {% else %}
+                    <span class="alkasr-badge-tag badge-digital">
+                        <i class="fas fa-bolt"></i> منتج رقمي (تسليم فوري)
+                    </span>
+                    {% endif %}
+
+                    {% if product.is_out_of_stock or is_inactive_product %}
+                    <span class="alkasr-badge-tag badge-outstock">
+                        <i class="fas fa-circle-xmark"></i> غير متوفر حالياً
+                    </span>
+                    {% else %}
+                    <span class="alkasr-badge-tag badge-instock">
+                        <i class="fas fa-circle-check"></i> متوفر في المخزون
+                    </span>
+                    {% endif %}
+                </div>
+
+                <!-- Main Media Viewer -->
+                <div class="alkasr-media-viewer" onclick="{% if p_img %}openImageLightbox('{{ p_img }}'){% endif %}">
+                    {% if p_img %}
+                    <img id="main-product-img" src="{{ p_img }}" alt="{{ product.name }}" onerror="this.onerror=null; this.src='{% static 'site/img/brands/generic_digital.svg' %}';">
+                    {% else %}
+                    <div class="text-center p-6 text-slate-500">
+                        <i class="fas fa-microchip text-5xl mb-3 text-cyan/40"></i>
+                        <p class="text-xs font-bold text-slate-400">{{ product.name }}</p>
+                    </div>
+                    {% endif %}
+                    <video id="main-product-video" class="hidden" controls playsinline></video>
+
+                    {% if p_img %}
+                    <button type="button" class="alkasr-zoom-trigger" onclick="event.stopPropagation(); openImageLightbox(document.getElementById('main-product-img').src);" title="تكبير الصورة">
+                        <i class="fas fa-expand text-cyan"></i>
+                        <span>تكبير الصورة</span>
+                    </button>
+                    {% endif %}
+                </div>
+
+                <!-- Gallery Thumbnails -->
+                {% if product.gallery.all or product.cover_image %}
+                <div class="alkasr-thumbs-grid">
+                    {% if p_img %}
+                    <div class="thumb-item active" onclick="changeMedia('{{ p_img }}', false, this)">
+                        <img src="{{ p_img }}" alt="{{ product.name }}">
+                    </div>
+                    {% endif %}
+                    {% for g in product.gallery.all %}
+                    <div class="thumb-item" onclick="changeMedia('{{ g.image.url }}', {% if g.video %}true{% else %}false{% endif %}, this)">
+                        <img src="{{ g.image.url }}" alt="{{ g.alt_text|default:product.name }}">
+                    </div>
+                    {% endfor %}
+                </div>
+                {% endif %}
+            </div>
+
+            <!-- Product Description & Specifications Card -->
+            <div class="alkasr-info-card">
+                <div class="alkasr-info-header">
+                    <h2 class="text-sm font-black text-white flex items-center gap-2">
+                        <i class="fas fa-circle-info text-cyan"></i>
+                        <span>مواصفات وتفاصيل المنتج</span>
+                    </h2>
+                    <span class="text-[11px] text-slate-400 font-mono">ID: #{{ product.id }}</span>
+                </div>
+
+                <div class="alkasr-desc-content">
+                    {% if product.description %}
+                        {{ product.description|linebreaks }}
+                    {% else %}
+                        <p class="text-slate-400 text-xs leading-relaxed">
+                            منتج تكنولوجي أصلي معتمد من متجر رقميات. يخضع لكافة معايير الجودة والضمان وتوثيق الأوامر عبر النظام الرقمي الفوري.
+                        </p>
+                    {% endif %}
+
+                    {% if product.instructions %}
+                    <div class="mt-4 p-3.5 rounded-xl bg-cyan-950/20 border border-cyan-500/20 text-xs">
+                        <span class="font-bold text-cyan block mb-1 flex items-center gap-1.5">
+                            <i class="fas fa-book-open"></i> تعليمات الاستخدام والتفعيل:
+                        </span>
+                        <div class="text-slate-300 leading-relaxed">{{ product.instructions|linebreaks }}</div>
+                    </div>
+                    {% endif %}
+                </div>
+
+                <!-- Trust Pillars Bento -->
+                <div class="alkasr-trust-grid">
+                    <div class="alkasr-trust-item">
+                        <i class="fas fa-shield-halved text-cyan"></i>
+                        <span class="font-black text-xs text-white">ضمان وأصالة 100%</span>
+                        <span class="text-[11px] text-slate-400 leading-tight">منتجات وعتاد أصلي معتمد مع تفعيل رسمي.</span>
+                    </div>
+                    <div class="alkasr-trust-item">
+                        <i class="fas fa-bolt text-amber-400"></i>
+                        <span class="font-black text-xs text-white">معالجة فورية</span>
+                        <span class="text-[11px] text-slate-400 leading-tight">تنفيذ رقمي سريع وتوثيق لحظي لحالة الطلب.</span>
+                    </div>
+                    <div class="alkasr-trust-item">
+                        <i class="fas fa-headset text-emerald-400"></i>
+                        <span class="font-black text-xs text-white">دعم فني متواصل</span>
+                        <span class="text-[11px] text-slate-400 leading-tight">فريق دعم متواجد للإجابة عن استفساراتك.</span>
                     </div>
                 </div>
             </div>
-            {% else %}
-            <!-- Single product dummy variant option for script selection -->
-            <div id="single-product-dummy-variant" class="hidden"
-                 data-price="{{ product.price|default:'0.00'|unlocalize }}"
-                 data-qty-type="fixed"
-                 data-qty-min="1"
-                 data-qty-max="1"
-                 data-qty-list="[]"
-                 data-is-per-mille="false"
-                 data-params="[]"
-                 data-variant-name="{{ product.name }}">
+
+            <!-- Related Products Bento (if available) -->
+            {% if related_products %}
+            <div class="alkasr-related-card">
+                <h3 class="text-xs font-black text-white flex items-center gap-1.5">
+                    <i class="fas fa-layer-group text-amber-400"></i>
+                    <span>منتجات ذات صلة من نفس القسم</span>
+                </h3>
+                <div class="alkasr-related-grid">
+                    {% for rp in related_products %}
+                    {% product_display_image rp as rp_img %}
+                    <a href="{% url 'product_detail' rp.id %}" class="alkasr-rel-item">
+                        <div class="w-full h-24 rounded-lg bg-slate-900/80 flex items-center justify-center overflow-hidden">
+                            {% if rp_img %}
+                            <img src="{{ rp_img }}" alt="{{ rp.name }}" class="h-full w-full object-cover">
+                            {% else %}
+                            <i class="fas fa-box text-slate-600 text-xl"></i>
+                            {% endif %}
+                        </div>
+                        <span class="text-xs font-bold text-white line-clamp-1">{{ rp.name }}</span>
+                        <span class="text-[11px] font-black text-amber-400 font-mono">{% product_starting_price rp %}</span>
+                    </a>
+                    {% endfor %}
+                </div>
             </div>
             {% endif %}
+        </div>
 
-            <!-- Two Metrics: العدد (Count) and الاجمالي (Total) -->
-            <div class="alkasr-metrics-row">
-                <div class="alkasr-metric-col text-right">
-                    <span class="alkasr-metric-label">العدد</span>
-                    <span class="alkasr-metric-value" id="metric-count">
-                        {% if variants.0 %}{{ variants.0.name }}{% else %}1{% endif %}
-                    </span>
-                </div>
-                <div class="alkasr-metric-col text-left">
-                    <span class="alkasr-metric-label">الاجمالي</span>
-                    <span class="alkasr-metric-value text-amber-400" id="metric-total">
-                        {% product_starting_price product %}
-                    </span>
-                </div>
-            </div>
-
-            <!-- Subscription Duration Indicator (if applicable) -->
-            <div id="duration-indicator-box" class="hidden mb-3 p-2.5 rounded-xl bg-amber-500/10 border border-amber-500/25 flex items-center justify-between text-xs">
-                <span class="text-slate-300 font-bold flex items-center gap-1.5">
-                    <i class="fas fa-hourglass-half text-amber-400 text-xs"></i>
-                    <span>مدة الباقة / الاشتراك:</span>
-                </span>
-                <span id="duration-indicator-text" class="text-amber-400 font-bold font-mono bg-amber-500/20 px-2.5 py-1 rounded-lg border border-amber-500/30"></span>
-            </div>
-
-            <!-- Dynamic Quantity Stepper if range, list, or fixed -->
-            <div id="quantity-container" class="mb-3">
-                <div id="quantity-input-wrapper"></div>
-            </div>
-
-            <!-- Input / Dynamic Fields Area (e.g. ايدي المستخدم) -->
-            <div id="dynamic-fields-container" class="alkasr-input-wrap">
-                <div id="dynamic-fields-wrapper">
-                    {% if is_instant_product or not product.form_schema.fields and not product.is_api_product and product.product_type != 'physical' %}
-                    <div class="alkasr-instant-note">
-                        <i class="fas fa-bolt text-amber-400"></i>
-                        <span>لا يتطلب هذا المنتج أي إدخال مسبق، التسليم فوري وتلقائي للكود فور الشراء.</span>
+        <!-- Column 2: Sticky Purchase Dock -->
+        <div class="alkasr-purchase-column">
+            <div class="alkasr-card">
+                <!-- Card Header: Title & Heart on right, Price Pill on left -->
+                <div class="alkasr-card-header">
+                    <div class="alkasr-title-wrap">
+                        <div class="alkasr-prod-avatar" {% if p_img %}onclick="openImageLightbox('{{ p_img }}')"{% endif %} title="عرض صورة المنتج">
+                            {% if p_img %}
+                            <img src="{{ p_img }}" alt="{{ product.name }}" onerror="this.onerror=null; this.src='{% static 'site/img/brands/generic_digital.svg' %}';">
+                            {% else %}
+                            <i class="fas fa-bolt text-amber-400 text-sm"></i>
+                            {% endif %}
+                        </div>
+                        <div>
+                            <h1 class="alkasr-prod-title">
+                                <span>{{ product.name }}</span>
+                                <button type="button" class="alkasr-heart-btn" onclick="this.classList.toggle('active'); this.querySelector('i').classList.toggle('fas'); this.querySelector('i').classList.toggle('far');" title="إضافة للمفضلة">
+                                    <i class="far fa-heart"></i>
+                                </button>
+                            </h1>
+                            {% if product.category %}
+                            <div class="alkasr-subtitle">{{ product.category.name }}</div>
+                            {% endif %}
+                        </div>
                     </div>
-                    {% elif product.form_schema.fields %}
-                        {% for f in product.form_schema.fields %}
-                        <div class="mb-2.5">
-                            <label class="text-[11px] font-bold text-slate-300 block mb-1">
-                                {{ f.label }} {% if f.required %}<span class="text-rose-400">*</span>{% endif %}
-                            </label>
-                            {% if f.type == 'textarea' %}
-                            <textarea name="custom_{{ f.name|default:f.label }}" placeholder="{{ f.placeholder|default:'أدخل البيانات المطلوبة...' }}" class="alkasr-input-box" rows="2" {% if f.required %}required{% endif %}></textarea>
-                            {% elif f.options %}
-                            <select name="custom_{{ f.name|default:f.label }}" class="alkasr-input-box" {% if f.required %}required{% endif %}>
-                                <option value="">-- اختر من القائمة --</option>
-                                {% for opt in f.options %}
-                                <option value="{{ opt|trim }}">{{ opt|trim }}</option>
+
+                    <!-- Price Badge Pill -->
+                    <div class="alkasr-price-badge" id="alkasr-top-price">
+                        {% product_starting_price product %}
+                    </div>
+                </div>
+
+                {% if is_inactive_product or product.is_out_of_stock or not product.is_active %}
+                <div class="mx-1 my-2.5 p-3 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-300 text-xs flex items-center gap-2.5">
+                    <i class="fas fa-circle-exclamation text-amber-400 text-base shrink-0"></i>
+                    <div>
+                        <span class="font-bold block">هذا المنتج غير متوفر حالياً</span>
+                        <span class="text-slate-300 text-[11px]">نعتذر، نفدت الكمية المتاحة أو أن المزود قيد التحديث. سيتاح فور توفره مجدداً.</span>
+                    </div>
+                </div>
+                {% endif %}
+
+                <!-- Form Begin -->
+                <form method="post" action="{% url 'product_detail' product.id %}" id="purchase-form">
+                    {% csrf_token %}
+                    <input type="hidden" name="product" value="{{ product.id }}">
+                    <input type="hidden" name="variant_id" id="selected-variant-id" value="{% if active_variant and not active_variant.is_temporarily_disabled and not product.is_out_of_stock %}{{ active_variant.id }}{% endif %}">
+                    <input type="hidden" name="payment_method" id="selected-payment-method" value="wallet">
+
+                    <!-- Variants Selection: Clean Luxury Dropdown Menu -->
+                    {% if variants %}
+                    <div class="alkasr-select-wrapper">
+                        <label for="alkasr-variant-select" class="alkasr-select-label">
+                            <span class="flex items-center gap-1.5">
+                                <i class="fas fa-layer-group text-amber-400 text-xs"></i>
+                                <span>اختر الباقة أو الفئة:</span>
+                            </span>
+                            <span class="text-[11px] text-amber-400 font-mono font-bold bg-amber-500/10 border border-amber-500/20 px-2 py-0.5 rounded-full">({{ variants|length }} خيارات)</span>
+                        </label>
+                        <div class="relative">
+                            <select id="alkasr-variant-select" class="alkasr-select-box" onchange="onVariantDropdownChange(this.value)">
+                                {% for v in variants %}
+                                {% variant_price v as v_price %}
+                                {% variant_card_price v as v_card_price %}
+                                <option value="{{ v.id }}"
+                                        data-price="{{ v_price|unlocalize }}"
+                                        data-qty-type="{{ v.metadata.qty_type|default:'none' }}"
+                                        data-qty-min="{{ v.metadata.qty_min|default:1 }}"
+                                        data-qty-max="{{ v.metadata.qty_max|default:999999 }}"
+                                        data-qty-list='{% if v.metadata.qty_list %}{{ v.metadata.qty_list|jsonify }}{% else %}[]{% endif %}'
+                                        data-is-per-mille="{% if v.metadata.is_per_mille %}true{% else %}false{% endif %}"
+                                        data-delivery-type="{{ v.delivery_type|default:'manual' }}"
+                                        data-is-recharge="{% if v.is_recharge_card %}true{% else %}false{% endif %}"
+                                        data-params='{% if v.metadata.params %}{{ v.metadata.params|jsonify }}{% else %}[]{% endif %}'
+                                        data-variant-name="{{ v.name }}"
+                                        {% if active_variant and v.id == active_variant.id and not product.is_out_of_stock %}selected{% elif forloop.first and not active_variant %}selected{% endif %}
+                                        {% if v.is_temporarily_disabled or not v.is_active or product.is_out_of_stock %}disabled{% endif %}>
+                                    {{ v.name }} — {{ v_card_price|striptags }}{% if v.is_temporarily_disabled or not v.is_active %} (غير متوفر){% endif %}
+                                </option>
                                 {% endfor %}
                             </select>
+                            <div class="alkasr-select-arrow">
+                                <i class="fas fa-chevron-down"></i>
+                            </div>
+                        </div>
+                    </div>
+                    {% else %}
+                    <!-- Single product dummy variant option for script selection -->
+                    <div id="single-product-dummy-variant" class="hidden"
+                         data-price="{{ product.price|default:'0.00'|unlocalize }}"
+                         data-qty-type="fixed"
+                         data-qty-min="1"
+                         data-qty-max="1"
+                         data-qty-list="[]"
+                         data-is-per-mille="false"
+                         data-params="[]"
+                         data-variant-name="{{ product.name }}">
+                    </div>
+                    {% endif %}
+
+                    <!-- Two Metrics: العدد (Count) and الإجمالي (Total) -->
+                    <div class="alkasr-metrics-row">
+                        <div class="alkasr-metric-col text-right">
+                            <span class="alkasr-metric-label">الكمية / الباقة</span>
+                            <span class="alkasr-metric-value" id="metric-count">
+                                {% if variants.0 %}{{ variants.0.name }}{% else %}1{% endif %}
+                            </span>
+                        </div>
+                        <div class="alkasr-metric-col text-left">
+                            <span class="alkasr-metric-label">السعر الإجمالي</span>
+                            <span class="alkasr-metric-value text-amber-400" id="metric-total">
+                                {% product_starting_price product %}
+                            </span>
+                        </div>
+                    </div>
+
+                    <!-- Subscription Duration Indicator (if applicable) -->
+                    <div id="duration-indicator-box" class="hidden mb-3 p-2.5 rounded-xl bg-amber-500/10 border border-amber-500/25 flex items-center justify-between text-xs">
+                        <span class="text-slate-300 font-bold flex items-center gap-1.5">
+                            <i class="fas fa-hourglass-half text-amber-400 text-xs"></i>
+                            <span>مدة التفعيل / الاشتراك:</span>
+                        </span>
+                        <span id="duration-indicator-text" class="text-amber-400 font-bold font-mono bg-amber-500/20 px-2.5 py-1 rounded-lg border border-amber-500/30"></span>
+                    </div>
+
+                    <!-- Dynamic Quantity Stepper if range, list, or fixed -->
+                    <div id="quantity-container" class="mb-3">
+                        <div id="quantity-input-wrapper"></div>
+                    </div>
+
+                    <!-- Input / Dynamic Fields Area (e.g. معرف الحساب) -->
+                    <div id="dynamic-fields-container" class="alkasr-input-wrap">
+                        <div id="dynamic-fields-wrapper">
+                            {% if is_instant_product or not product.form_schema.fields and not product.is_api_product and product.product_type != 'physical' %}
+                            <div class="alkasr-instant-note">
+                                <i class="fas fa-bolt text-emerald-400"></i>
+                                <span>طلب رقمي فوري، يتم تسليم البيانات آلياً بعد إتمام الطلب مباشرة.</span>
+                            </div>
+                            {% elif product.form_schema.fields %}
+                                {% for f in product.form_schema.fields %}
+                                <div class="mb-2.5">
+                                    <label class="text-[11px] font-bold text-slate-300 block mb-1">
+                                        {{ f.label }} {% if f.required %}<span class="text-rose-400">*</span>{% endif %}
+                                    </label>
+                                    {% if f.type == 'textarea' %}
+                                    <textarea name="custom_{{ f.name|default:f.label }}" placeholder="{{ f.placeholder|default:'اكتب هنا...' }}" class="alkasr-input-box" rows="2" {% if f.required %}required{% endif %}></textarea>
+                                    {% elif f.options %}
+                                    <select name="custom_{{ f.name|default:f.label }}" class="alkasr-input-box" {% if f.required %}required{% endif %}>
+                                        <option value="">-- اختر من القائمة --</option>
+                                        {% for opt in f.options %}
+                                        <option value="{{ opt|trim }}">{{ opt|trim }}</option>
+                                        {% endfor %}
+                                    </select>
+                                    {% else %}
+                                    <div class="relative flex items-center">
+                                        <input type="text" name="custom_{{ f.name|default:f.label }}" id="custom_{{ f.name|default:f.label }}" placeholder="{{ f.placeholder|default:'أدخل البيانات' }}" class="alkasr-input-box text-center" {% if f.required %}required{% endif %}>
+                                        <button type="button" onclick="pasteToInput('custom_{{ f.name|default:f.label }}')" class="alkasr-paste-btn">
+                                            <i class="fas fa-paste text-[10px]"></i>
+                                            <span>لصق</span>
+                                        </button>
+                                    </div>
+                                    {% endif %}
+                                </div>
+                                {% endfor %}
                             {% else %}
+                            <!-- Default Player ID / Account input -->
                             <div class="relative flex items-center">
-                                <input type="text" name="custom_{{ f.name|default:f.label }}" id="custom_{{ f.name|default:f.label }}" placeholder="{{ f.placeholder|default:'ايدي المستخدم' }}" class="alkasr-input-box text-center" {% if f.required %}required{% endif %}>
-                                <button type="button" onclick="pasteToInput('custom_{{ f.name|default:f.label }}')" class="alkasr-paste-btn">
+                                <input type="text" name="custom_player_id" id="custom_player_id" placeholder="معرف الحساب أو اللاعب" class="alkasr-input-box text-center" required>
+                                <button type="button" onclick="pasteToInput('custom_player_id')" class="alkasr-paste-btn">
                                     <i class="fas fa-paste text-[10px]"></i>
                                     <span>لصق</span>
                                 </button>
                             </div>
                             {% endif %}
                         </div>
-                        {% endfor %}
-                    {% else %}
-                    <!-- Default Player ID / Account input -->
-                    <div class="relative flex items-center">
-                        <input type="text" name="custom_player_id" id="custom_player_id" placeholder="ايدي المستخدم" class="alkasr-input-box text-center" required>
-                        <button type="button" onclick="pasteToInput('custom_player_id')" class="alkasr-paste-btn">
-                            <i class="fas fa-paste text-[10px]"></i>
-                            <span>لصق</span>
-                        </button>
+                    </div>
+
+                    <!-- Physical Product Shipping Fields (if physical) -->
+                    {% if product.product_type == "physical" and not product.form_schema.fields %}
+                    <div class="p-3.5 rounded-2xl bg-black/40 border border-white/10 mb-3 text-right">
+                        <span class="text-xs font-bold text-amber-400 block mb-2">بيانات الشحن والتوصيل:</span>
+                        <input type="text" name="shipping_name" placeholder="اسم المستلم الكامل" class="alkasr-input-box mb-2 text-right text-xs" required>
+                        <input type="text" name="shipping_phone" placeholder="رقم هاتف المستلم للتواصل" class="alkasr-input-box mb-2 text-right text-xs" required>
+                        <textarea name="shipping_address" rows="2" placeholder="العنوان التفصيلي للشحن" class="alkasr-input-box text-right text-xs" required></textarea>
                     </div>
                     {% endif %}
-                </div>
-            </div>
 
-            <!-- Physical Product Shipping Fields (if physical) -->
-            {% if product.product_type == "physical" and not product.form_schema.fields %}
-            <div class="p-3.5 rounded-2xl bg-black/40 border border-white/10 mb-3 text-right">
-                <span class="text-xs font-bold text-amber-400 block mb-2">معلومات التوصيل والشحن:</span>
-                <input type="text" name="shipping_name" placeholder="اسم المستلم" class="alkasr-input-box mb-2 text-right text-xs" required>
-                <input type="text" name="shipping_phone" placeholder="رقم هاتف المستلم" class="alkasr-input-box mb-2 text-right text-xs" required>
-                <textarea name="shipping_address" rows="2" placeholder="العنوان التفصيلي" class="alkasr-input-box text-right text-xs" required></textarea>
-            </div>
-            {% endif %}
-
-            <!-- Actions Row: شراء & الغاء -->
-            <div class="alkasr-actions-row">
-                {% if is_inactive_product or product.is_out_of_stock or not product.is_active %}
-                <button type="button" class="alkasr-btn-buy opacity-60 cursor-not-allowed !bg-slate-700 !text-slate-400 !shadow-none" disabled>
-                    غير متوفر حالياً
-                </button>
-                {% else %}
-                <button type="submit" class="alkasr-btn-buy" id="submit-btn">
-                    شراء
-                </button>
-                {% endif %}
-                <a href="{% url 'catalog' %}" class="alkasr-btn-cancel">
-                    الغاء
-                </a>
-            </div>
-
-            <!-- Assurance Callout Note (Right vertical bar) -->
-            <div class="alkasr-notice-box">
-                <span class="alkasr-notice-text">
-                    هذا المنتج يعمل بشكل آلي، 24 ساعة على مدار السنة
-                </span>
-            </div>
-
-            <!-- Extra Sleek Tools: Payment Selector & Coupon Drawer -->
-            <div class="alkasr-extra-tools">
-                <!-- Payment methods switch with official logos -->
-                <div class="mb-3">
-                    <span class="text-xs font-bold text-slate-300 block mb-1.5 flex items-center gap-1.5">
-                        <i class="fas fa-credit-card text-amber-400 text-xs"></i>
-                        <span>طريقة الدفع المتوفرة:</span>
-                    </span>
-                    <div class="alkasr-pm-grid">
-                        <button type="button" class="alkasr-pm-tab is-active" id="pm-tab-wallet" onclick="selectAlkasrPayment('wallet', this)">
-                            <div class="w-6 h-6 rounded-full bg-amber-500/20 text-amber-400 flex items-center justify-center text-xs shrink-0 border border-amber-500/30">
-                                <i class="fas fa-wallet"></i>
-                            </div>
-                            <div class="text-right">
-                                <span class="font-bold block leading-tight">محفظة رقميات</span>
-                                <span class="text-[10px] text-amber-400/90 font-mono">{% currency_format request.user.wallet.available_balance|default:0 %}</span>
-                            </div>
+                    <!-- Actions Row: شراء & إلغاء -->
+                    <div class="alkasr-actions-row">
+                        {% if is_inactive_product or product.is_out_of_stock or not product.is_active %}
+                        <button type="button" class="alkasr-btn-buy opacity-60 cursor-not-allowed !bg-slate-700 !text-slate-400 !shadow-none" disabled>
+                            غير متوفر حالياً
                         </button>
-                        {% for gw in gateway_methods %}
-                        <button type="button" class="alkasr-pm-tab" id="pm-tab-{{ gw.id }}" onclick="selectAlkasrPayment('{{ gw.id }}', this)">
-                            {% if gw.logo %}
-                            <img src="{{ gw.logo }}" class="h-5 w-auto object-contain rounded shrink-0" alt="{{ gw.name }}" onerror="this.style.display='none'; this.nextElementSibling.classList.remove('hidden');">
-                            <i class="fas fa-shield-alt text-sky-400 text-sm hidden shrink-0"></i>
-                            {% else %}
-                            <i class="fas fa-shield-alt text-sky-400 text-sm shrink-0"></i>
-                            {% endif %}
-                            <div class="text-right">
-                                <span class="font-bold block leading-tight">{{ gw.name }}</span>
-                                <span class="text-[10px] text-slate-400">دفع مباشر</span>
-                            </div>
+                        {% else %}
+                        <button type="submit" class="alkasr-btn-buy" id="submit-btn">
+                            <i class="fas fa-bolt ml-1.5"></i> إتمام الشراء الآن
                         </button>
-                        {% endfor %}
+                        {% endif %}
+                        <a href="{% url 'catalog' %}" class="alkasr-btn-cancel">
+                            الرجوع للكتالوج
+                        </a>
                     </div>
-                </div>
 
-                <!-- Coupon Drawer with Luxury Amber Styling -->
-                <div class="alkasr-coupon-box">
-                    <div class="alkasr-coupon-header" onclick="toggleCouponDrawer()">
-                        <div class="flex items-center gap-2">
-                            <div class="w-6 h-6 rounded-lg bg-amber-500/15 border border-amber-500/30 text-amber-400 flex items-center justify-center text-xs">
-                                <i class="fas fa-tag"></i>
+                    <!-- Assurance Callout Note -->
+                    <div class="alkasr-notice-box">
+                        <span class="alkasr-notice-text">
+                            <i class="fas fa-headset text-cyan ml-1"></i> ضمان استرجاع ودعم مباشر على مدار 24 ساعة لجميع الطلبات
+                        </span>
+                    </div>
+
+                    <!-- Payment Selector & Coupon Drawer -->
+                    <div class="alkasr-extra-tools">
+                        <!-- Payment methods switch with official logos -->
+                        <div class="mb-3">
+                            <span class="text-xs font-bold text-slate-300 block mb-1.5 flex items-center gap-1.5">
+                                <i class="fas fa-credit-card text-amber-400 text-xs"></i>
+                                <span>طريقة الدفع:</span>
+                            </span>
+                            <div class="alkasr-pm-grid">
+                                <button type="button" class="alkasr-pm-tab is-active" id="pm-tab-wallet" onclick="selectAlkasrPayment('wallet', this)">
+                                    <div class="w-6 h-6 rounded-full bg-amber-500/20 text-amber-400 flex items-center justify-center text-xs shrink-0 border border-amber-500/30">
+                                        <i class="fas fa-wallet"></i>
+                                    </div>
+                                    <div class="text-right">
+                                        <span class="font-bold block leading-tight text-xs">رصيد المحفظة</span>
+                                        <span class="text-[10px] text-amber-400/90 font-mono">{% currency_format request.user.wallet.available_balance|default:0 %}</span>
+                                    </div>
+                                </button>
+                                {% for gw in gateway_methods %}
+                                <button type="button" class="alkasr-pm-tab" id="pm-tab-{{ gw.id }}" onclick="selectAlkasrPayment('{{ gw.id }}', this)">
+                                    {% if gw.logo %}
+                                    <img src="{{ gw.logo }}" class="h-5 w-auto object-contain rounded shrink-0" alt="{{ gw.name }}" onerror="this.style.display='none'; this.nextElementSibling.classList.remove('hidden');">
+                                    <i class="fas fa-shield-alt text-sky-400 text-sm hidden shrink-0"></i>
+                                    {% else %}
+                                    <i class="fas fa-shield-alt text-sky-400 text-sm shrink-0"></i>
+                                    {% endif %}
+                                    <div class="text-right">
+                                        <span class="font-bold block leading-tight text-xs">{{ gw.name }}</span>
+                                        <span class="text-[10px] text-slate-400">دفع إلكتروني</span>
+                                    </div>
+                                </button>
+                                {% endfor %}
                             </div>
-                            <span class="text-xs font-bold text-slate-300">هل لديك كود خصم؟</span>
                         </div>
-                        <button type="button" class="alkasr-coupon-toggle-btn">
-                            <span>إدخال الكود</span>
-                            <i class="fas fa-chevron-down text-[10px]" id="coupon-chevron"></i>
-                        </button>
-                    </div>
-                    <div id="alkasr-coupon-drawer" class="hidden mt-2.5">
-                        <div class="alkasr-coupon-input-group">
-                            <input type="text" name="coupon_code" id="coupon-code-input" placeholder="أدخل كود الخصم هنا..." class="alkasr-coupon-input" autocomplete="off">
-                            <button type="button" onclick="applyCoupon(event)" class="alkasr-coupon-apply-btn">
-                                <i class="fas fa-check text-xs"></i>
-                                <span>تطبيق</span>
-                            </button>
-                        </div>
-                        <div id="coupon-feedback" class="mt-2 text-xs text-center hidden"></div>
-                    </div>
-                </div>
-            </div>
 
-            <!-- Price Breakdown Card with clear Arabic labels (Visible ONLY when coupon discount > 0) -->
-            <div id="price-breakdown" class="alkasr-breakdown-card hidden">
-                <div class="alkasr-breakdown-row border-b border-white/5 text-slate-400">
-                    <span>السعر الأساسي:</span>
-                    <span id="subtotal-display" class="font-bold text-slate-200"></span>
-                </div>
-                <div class="alkasr-breakdown-row border-b border-white/5 text-emerald-400">
-                    <span>قيمة الخصم بالكوبون:</span>
-                    <span id="discount-display" class="font-bold">0.00</span>
-                </div>
-                <div class="alkasr-breakdown-row pt-1.5 text-sm font-black text-amber-400">
-                    <span>المبلغ الإجمالي بعد الخصم:</span>
-                    <span id="total-display"></span>
-                </div>
+                        <!-- Coupon Drawer with Luxury Amber Styling -->
+                        <div class="alkasr-coupon-box">
+                            <div class="alkasr-coupon-header" onclick="toggleCouponDrawer()">
+                                <div class="flex items-center gap-2">
+                                    <div class="w-6 h-6 rounded-lg bg-amber-500/15 border border-amber-500/30 text-amber-400 flex items-center justify-center text-xs">
+                                        <i class="fas fa-tag"></i>
+                                    </div>
+                                    <span class="text-xs font-bold text-slate-300">هل لديك كوبون خصم؟</span>
+                                </div>
+                                <button type="button" class="alkasr-coupon-toggle-btn">
+                                    <span>تطبيق كود</span>
+                                    <i class="fas fa-chevron-down text-[10px]" id="coupon-chevron"></i>
+                                </button>
+                            </div>
+                            <div id="alkasr-coupon-drawer" class="hidden mt-2.5">
+                                <div class="alkasr-coupon-input-group">
+                                    <input type="text" name="coupon_code" id="coupon-code-input" placeholder="أدخل رمز الكوبون..." class="alkasr-coupon-input" autocomplete="off">
+                                    <button type="button" onclick="applyCoupon(event)" class="alkasr-coupon-apply-btn">
+                                        <i class="fas fa-check text-xs"></i>
+                                        <span>تفعيل</span>
+                                    </button>
+                                </div>
+                                <div id="coupon-feedback" class="mt-2 text-xs text-center hidden"></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Price Breakdown Card with clear Arabic labels (Visible ONLY when coupon discount > 0) -->
+                    <div id="price-breakdown" class="alkasr-breakdown-card hidden">
+                        <div class="alkasr-breakdown-row border-b border-white/5 text-slate-400">
+                            <span>السعر قبل الخصم:</span>
+                            <span id="subtotal-display" class="font-bold text-slate-200"></span>
+                        </div>
+                        <div class="alkasr-breakdown-row border-b border-white/5 text-emerald-400">
+                            <span>قيمة الخصم بالكوبون:</span>
+                            <span id="discount-display" class="font-bold">0.00</span>
+                        </div>
+                        <div class="alkasr-breakdown-row pt-1.5 text-sm font-black text-amber-400">
+                            <span>الإجمالي النهائي للدفع:</span>
+                            <span id="total-display"></span>
+                        </div>
+                    </div>
+                </form>
             </div>
-        </form>
-    </div>
-</div>
+        </div>
+
+    </div><!-- /.alkasr-main-grid -->
+</div><!-- /.alkasr-container -->
 
 <!-- Insufficient Balance Modal -->
 <div id="balance-modal" class="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm hidden">
@@ -1048,14 +1407,14 @@
                 <i class="fas fa-wallet text-3xl"></i>
             </div>
             <div>
-                <h3 class="text-2xl font-black text-white mb-2">رصيد غير كافٍ</h3>
-                <p class="text-slate-400 text-sm">أنت بحاجة إلى <span id="modal-missing-amount" class="text-white font-bold"></span> إضافية لإتمام عملية الشراء بنجاح.</p>
+                <h3 class="text-2xl font-black text-white mb-2">الرصيد غير كافٍ</h3>
+                <p class="text-slate-400 text-sm">أنت بحاجة إلى <span id="modal-missing-amount" class="text-white font-bold"></span> إضافية لتأكيد هذا الطلب.</p>
             </div>
             <div class="stack gap-3 mt-2">
                 <a href="{% url 'dashboard_deposits' %}" class="btn btn-primary w-full py-4 font-black rounded-2xl">
-                    <i class="fas fa-plus-circle ml-2"></i> اودع الآن
+                    <i class="fas fa-plus-circle ml-2"></i> شحن المحفظة الآن
                 </a>
-                <button onclick="closeBalanceModal()" class="text-slate-500 text-xs font-bold hover:text-white transition">إغلاق</button>
+                <button onclick="closeBalanceModal()" class="text-slate-500 text-xs font-bold hover:text-white transition">إلغاء</button>
             </div>
         </div>
         <div class="bg-white/5 p-4 text-center">
