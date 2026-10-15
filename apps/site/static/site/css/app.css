@@ -672,18 +672,21 @@ textarea { min-height: 120px; resize: vertical; }
 }
 
 body {
-  overscroll-behavior-y: contain;
   -webkit-user-select: none;
   user-select: none;
-  touch-action: manipulation;
+  touch-action: pan-x pan-y;
+  -webkit-overflow-scrolling: touch;
 }
 
 input, textarea, select, [contenteditable="true"], .selectable, pre, code {
   -webkit-user-select: text !important;
   user-select: text !important;
+  touch-action: auto !important;
 }
 
-* {
-  -webkit-overflow-scrolling: touch;
+/* Allow horizontal scrollable containers to pan-x seamlessly */
+.overflow-x-auto, [class*="overflow-x"] {
+  touch-action: pan-x pan-y !important;
+  -webkit-overflow-scrolling: touch !important;
 }
 

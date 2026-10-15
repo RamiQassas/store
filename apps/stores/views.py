@@ -142,9 +142,9 @@ def employee_required(permission_name=None):
 # ==========================================
 def store_home(request):
     store = request.store
-    categories = Category.objects.filter(store=store, is_active=True).order_by("sort_order", "name")
+    categories = Category.objects.filter(store=store, is_active=True, is_publicly_visible=True).order_by("sort_order", "name")
     featured_products = Product.objects.filter(
-        store=store, is_active=True, is_featured=True
+        store=store, is_active=True, is_publicly_visible=True, is_featured=True
     ).select_related("category").prefetch_related("variants")[:12]
     
     return render(request, "stores/frontend/home.html", {
@@ -159,8 +159,8 @@ def store_catalog(request):
     cat_id = request.GET.get("category")
     sort = request.GET.get("sort", "newest")
     
-    categories = Category.objects.filter(store=store, is_active=True).order_by("sort_order", "name")
-    products = Product.objects.filter(store=store, is_active=True).select_related("category").prefetch_related("variants")
+    categories = Category.objects.filter(store=store, is_active=True, is_publicly_visible=True).order_by("sort_order", "name")
+    products = Product.objects.filter(store=store, is_active=True, is_publicly_visible=True).select_related("category").prefetch_related("variants")
     
     if cat_id:
         products = products.filter(category_id=cat_id)
@@ -189,7 +189,7 @@ def store_catalog(request):
 
 def store_product_detail(request, pk):
     store = request.store
-    product = get_object_or_404(Product, pk=pk, store=store, is_active=True)
+    product = get_object_or_404(Product, pk=pk, store=store, is_active=True, is_publicly_visible=True)
     
     # Adjust variant pricing if dealer/VIP is logged in, ordered from cheapest to most expensive
     variants_data = []
@@ -224,7 +224,7 @@ def store_checkout(request, variant_pk):
     with bypass_tenant_filter():
         variant = get_object_or_404(ProductVariant, pk=variant_pk, is_active=True)
         product = variant.product
-        if product.store != store:
+        if product.store != store or not product.is_publicly_visible or not product.is_active:
             raise Http404()
             
     # Check limit of monthly orders on store plan

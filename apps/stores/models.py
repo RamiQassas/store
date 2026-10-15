@@ -125,6 +125,37 @@ class Store(TimeStampedModel):
     
     is_active = models.BooleanField(default=True, verbose_name="نشط")
     is_featured = models.BooleanField(default=False, verbose_name="متجر مميز للترويج")
+    
+    # ── Sham Cash & Commercial Compliance / Safe Visibility Controls ──
+    is_publicly_visible = models.BooleanField(
+        default=True,
+        db_index=True,
+        verbose_name="ظاهر للعامة في الدليل",
+        help_text="التحكم الآمن في ظهور المتجر الفرعي دون حذف بيانات التاجر"
+    )
+    compliance_status = models.CharField(
+        max_length=30,
+        choices=(
+            ("compliant", "متوافق مع سياسات المنصة والدفع"),
+            ("under_review", "قيد المراجعة والتدقيق"),
+            ("non_compliant", "غير مسموح بعرضه حالياً"),
+            ("hidden_admin", "مخفي إدارياً بقرار الإدارة"),
+        ),
+        default="compliant",
+        db_index=True,
+        verbose_name="حالة التوافق"
+    )
+    hide_reason = models.TextField(blank=True, verbose_name="سبب الإخفاء / ملاحظة التدقيق")
+    hidden_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="hidden_stores",
+        verbose_name="المسؤول المعدل"
+    )
+    hidden_at = models.DateTimeField(null=True, blank=True, verbose_name="تاريخ تعديل الظهور")
+
     display_order = models.IntegerField(default=0, verbose_name="ترتيب الظهور")
     auto_renew = models.BooleanField(default=True, verbose_name="تجديد تلقائي للاشتراك")
     import_products_from_raqamiyat = models.BooleanField(

@@ -1677,7 +1677,7 @@ def get_category_with_descendants_ids(category_id):
     if not category_id:
         return set()
     
-    all_pairs = Category.objects.filter(is_active=True).values_list("id", "parent_id")
+    all_pairs = Category.objects.filter(is_active=True, is_publicly_visible=True).values_list("id", "parent_id")
     children_map = {}
     for cid, pid in all_pairs:
         if pid is not None:
@@ -1713,7 +1713,7 @@ def annotate_category_counts(categories):
         return categories
 
     direct_counts = dict(
-        Product.objects.filter(is_active=True)
+        Product.objects.filter(is_active=True, is_publicly_visible=True)
         .values("category_id")
         .annotate(c=Count("id"))
         .values_list("category_id", "c")
@@ -1751,19 +1751,19 @@ def home(request):
 
     if ctx is None:
         # Categories with total product count (including subcategories) — 2 SQL queries total!
-        all_cats = list(Category.objects.filter(is_active=True).order_by("sort_order", "name"))
+        all_cats = list(Category.objects.filter(is_active=True, is_publicly_visible=True).order_by("sort_order", "name"))
         annotate_category_counts(all_cats)
 
         active_categories = [cat for cat in all_cats if cat.product_count > 0 or cat.parent_id is None]
 
         featured_qs = list(Product.objects.filter(
-            is_active=True, is_featured=True
+            is_active=True, is_publicly_visible=True, is_featured=True
         ).select_related("category").prefetch_related("variants")[:12])
 
         if len(featured_qs) < 8:
             existing_ids = [p.id for p in featured_qs]
             extra_products = list(Product.objects.filter(
-                is_active=True
+                is_active=True, is_publicly_visible=True
             ).exclude(id__in=existing_ids).select_related("category").prefetch_related("variants")[:12 - len(featured_qs)])
             featured_products = featured_qs + extra_products
         else:
@@ -1772,12 +1772,13 @@ def home(request):
         sale_qs = list(Product.objects.filter(
             Q(is_sale=True) | Q(variants__is_sale=True),
             is_active=True,
+            is_publicly_visible=True,
         ).select_related("category").prefetch_related("variants").distinct()[:6])
 
         if len(sale_qs) < 4:
             existing_ids = [p.id for p in sale_qs]
             extra_sales = list(Product.objects.filter(
-                is_active=True
+                is_active=True, is_publicly_visible=True
             ).exclude(id__in=existing_ids).select_related("category").prefetch_related("variants")[:4 - len(sale_qs)])
             sale_products = sale_qs + extra_sales
         else:
@@ -1865,7 +1866,7 @@ def stores_directory(request):
     from django.db.models import Q
     
     q = request.GET.get("q", "").strip()
-    stores_qs = Store.objects.filter(is_active=True)
+    stores_qs = Store.objects.filter(is_active=True, is_publicly_visible=True)
     if q:
         stores_qs = stores_qs.filter(Q(name__icontains=q) | Q(description__icontains=q))
     
@@ -1873,7 +1874,7 @@ def stores_directory(request):
     
     stores_data = []
     for s in stores:
-        p_count = Product.all_objects.filter(store=s, is_active=True).count()
+        p_count = Product.all_objects.filter(store=s, is_active=True, is_publicly_visible=True).count()
         stores_data.append({
             "store": s,
             "product_count": p_count,
@@ -1903,11 +1904,11 @@ def catalog(request):
         view_type = "categories"
 
     if store:
-        all_cats = list(Category.objects.filter(store=store, is_active=True).order_by("sort_order", "name"))
-        base_products = Product.objects.filter(store=store, is_active=True).select_related("category").prefetch_related("variants")
+        all_cats = list(Category.objects.filter(store=store, is_active=True, is_publicly_visible=True).order_by("sort_order", "name"))
+        base_products = Product.objects.filter(store=store, is_active=True, is_publicly_visible=True).select_related("category").prefetch_related("variants")
     else:
-        all_cats = list(Category.objects.filter(is_active=True).order_by("sort_order", "name"))
-        base_products = Product.objects.filter(is_active=True).select_related("category").prefetch_related("variants")
+        all_cats = list(Category.objects.filter(is_active=True, is_publicly_visible=True).order_by("sort_order", "name"))
+        base_products = Product.objects.filter(is_active=True, is_publicly_visible=True).select_related("category").prefetch_related("variants")
 
     annotate_category_counts(all_cats)
     all_products_count = base_products.distinct().count()
@@ -2247,20 +2248,20 @@ def product_detail(request, pk):
 
     # 1. Numeric ID lookup
     if clean_pk.isdigit():
-        product = Product.objects.filter(pk=int(clean_pk), is_active=True).prefetch_related('variants').first()
+        product = Product.objects.filter(pk=int(clean_pk), is_active=True, is_publicly_visible=True).prefetch_related('variants').first()
         if not product:
-            product = Product.all_objects.filter(pk=int(clean_pk), is_active=True).prefetch_related('variants').first()
+            product = Product.all_objects.filter(pk=int(clean_pk), is_active=True, is_publicly_visible=True).prefetch_related('variants').first()
 
     # 2. Direct PK lookup (tenant-aware first, then all_objects)
     if not product:
         try:
-            product = Product.objects.filter(pk=clean_pk, is_active=True).prefetch_related('variants').first()
+            product = Product.objects.filter(pk=clean_pk, is_active=True, is_publicly_visible=True).prefetch_related('variants').first()
         except Exception:
             pass
 
     if not product:
         try:
-            product = Product.all_objects.filter(pk=clean_pk, is_active=True).prefetch_related('variants').first()
+            product = Product.all_objects.filter(pk=clean_pk, is_active=True, is_publicly_visible=True).prefetch_related('variants').first()
         except Exception:
             pass
 
@@ -2268,9 +2269,9 @@ def product_detail(request, pk):
     if not product:
         try:
             val_uuid = uuid.UUID(clean_pk)
-            product = Product.objects.filter(pk=val_uuid, is_active=True).prefetch_related('variants').first()
+            product = Product.objects.filter(pk=val_uuid, is_active=True, is_publicly_visible=True).prefetch_related('variants').first()
             if not product:
-                product = Product.all_objects.filter(pk=val_uuid, is_active=True).prefetch_related('variants').first()
+                product = Product.all_objects.filter(pk=val_uuid, is_active=True, is_publicly_visible=True).prefetch_related('variants').first()
         except Exception:
             pass
 
@@ -2278,25 +2279,25 @@ def product_detail(request, pk):
     if not product:
         variant = None
         if clean_pk.isdigit():
-            variant = ProductVariant.all_objects.filter(api_product_id=int(clean_pk)).select_related('product').first()
+            variant = ProductVariant.all_objects.filter(api_product_id=int(clean_pk), product__is_publicly_visible=True).select_related('product').first()
         if not variant:
             try:
-                variant = ProductVariant.all_objects.filter(pk=clean_pk).select_related('product').first()
+                variant = ProductVariant.all_objects.filter(pk=clean_pk, product__is_publicly_visible=True).select_related('product').first()
             except Exception:
                 pass
         if not variant:
             try:
                 val_uuid = uuid.UUID(clean_pk)
-                variant = ProductVariant.all_objects.filter(pk=val_uuid).select_related('product').first()
+                variant = ProductVariant.all_objects.filter(pk=val_uuid, product__is_publicly_visible=True).select_related('product').first()
             except Exception:
                 pass
         if not variant:
-            variant = ProductVariant.all_objects.filter(sku__iexact=clean_pk).select_related('product').first()
+            variant = ProductVariant.all_objects.filter(sku__iexact=clean_pk, product__is_publicly_visible=True).select_related('product').first()
 
         if variant and variant.product:
             product = variant.product
 
-    # 5. Inactive Product Fallback (Graceful display instead of 404)
+    # 5. Inactive or Hidden Product Fallback (Graceful display instead of 404)
     if not product:
         try:
             val_uuid = uuid.UUID(clean_pk)
@@ -2309,11 +2310,11 @@ def product_detail(request, pk):
         if product:
             is_inactive_product = True
 
-    if not product:
+    if not product or is_inactive_product:
         from apps.catalog.models import Category
-        cat_filter = Product.objects.filter(is_active=True, is_out_of_stock=False)
+        cat_filter = Product.objects.filter(is_active=True, is_publicly_visible=True, is_out_of_stock=False)
         suggested_products = cat_filter.select_related('category')[:8]
-        categories = Category.objects.filter(is_active=True, parent__isnull=True)[:10]
+        categories = Category.objects.filter(is_active=True, is_publicly_visible=True, parent__isnull=True)[:10]
         return render(request, "site/product_unavailable.html", {
             "requested_id": clean_pk,
             "suggested_products": suggested_products,
@@ -2321,10 +2322,10 @@ def product_detail(request, pk):
         }, status=200)
 
     if request.method == "POST":
-        if is_inactive_product or not product.is_active or product.is_out_of_stock:
+        if is_inactive_product or not product.is_active or not product.is_publicly_visible or product.is_out_of_stock:
             if request.headers.get('x-requested-with') == 'XMLHttpRequest' or request.POST.get('ajax') == '1':
-                return JsonResponse({"success": False, "error": "⚠️ هذا المنتج غير متوفر للطلب حالياً، يجري تحديثه لدى المزود."}, status=400)
-            messages.error(request, "⚠️ هذا المنتج غير متوفر للطلب حالياً، يجري تحديثه لدى المزود.")
+                return JsonResponse({"success": False, "error": "⚠️ هذا المنتج غير متوفر للطلب حالياً."}, status=400)
+            messages.error(request, "⚠️ هذا المنتج غير متوفر للطلب حالياً.")
             return redirect("catalog")
         if not request.user.is_authenticated: return redirect("site_login")
 
@@ -10769,5 +10770,225 @@ def control_system_updates(request):
         "is_paused": is_paused,
     }
     return render(request, "site/control_system_updates.html", context)
+
+
+# ==============================================================================
+# --- COMMERCIAL & SHAM CASH COMPLIANCE MANAGEMENT VIEWS ---
+# ==============================================================================
+
+@support_required
+def control_compliance_dashboard(request):
+    """
+    Centralized administrative control center for Commercial Register & Payment Compliance (Sham Cash).
+    Provides safe visibility toggling, risk-level classifications, audit logging,
+    and bulk visibility control without deleting records.
+    """
+    from django.core.paginator import Paginator
+    from django.utils import timezone
+    from apps.catalog.models import Product, Category
+    from apps.stores.models import Store
+    from apps.common.models import SystemAuditLog
+    from apps.common.services import log_system_action
+
+    tab = request.GET.get("tab", "products")  # products, categories, stores, audit
+    q = request.GET.get("q", "").strip()
+    status_filter = request.GET.get("status", "").strip()
+    category_type_filter = request.GET.get("compliance_cat", "").strip()
+
+    if request.method == "POST":
+        action = request.POST.get("action")
+        target_type = request.POST.get("target_type")  # product, category, store
+        target_id = request.POST.get("target_id")
+        reason = request.POST.get("reason", "").strip()
+        new_status = request.POST.get("compliance_status", "").strip()
+        visibility_action = request.POST.get("visibility_action")  # hide, show, set_status
+
+        now = timezone.now()
+
+        if action == "single_toggle":
+            target_obj = None
+            if target_type == "product":
+                target_obj = Product.all_objects.filter(id=target_id).first()
+            elif target_type == "category":
+                target_obj = Category.all_objects.filter(id=target_id).first()
+            elif target_type == "store":
+                target_obj = Store.objects.filter(id=target_id).first()
+
+            if target_obj:
+                old_visible = target_obj.is_publicly_visible
+                old_status = target_obj.compliance_status
+                old_reason = target_obj.hide_reason
+
+                if visibility_action == "hide":
+                    target_obj.is_publicly_visible = False
+                    if new_status:
+                        target_obj.compliance_status = new_status
+                    elif target_obj.compliance_status == "compliant":
+                        target_obj.compliance_status = "hidden_admin"
+                    target_obj.hide_reason = reason or "تم الإخفاء بواسطة الإدارة لغايات الامتثال"
+                    target_obj.hidden_by = request.user
+                    target_obj.hidden_at = now
+                    target_obj.save()
+                    log_system_action(
+                        actor=request.user,
+                        action_type=f"compliance_hide_{target_type}",
+                        target=target_obj,
+                        description=f"إخفاء آمن للعنصر [{target_obj.name}] عن الواجهة العامة والكتالوج",
+                        before_state={"is_publicly_visible": old_visible, "compliance_status": old_status},
+                        after_state={"is_publicly_visible": False, "compliance_status": target_obj.compliance_status},
+                        reason=target_obj.hide_reason,
+                    )
+                    messages.success(request, f"تم إخفاء [{target_obj.name}] بنجاح وأمان عن العرض العام.")
+
+                elif visibility_action == "show":
+                    target_obj.is_publicly_visible = True
+                    if new_status:
+                        target_obj.compliance_status = new_status
+                    target_obj.hidden_by = request.user
+                    target_obj.hidden_at = now
+                    target_obj.save()
+                    log_system_action(
+                        actor=request.user,
+                        action_type=f"compliance_show_{target_type}",
+                        target=target_obj,
+                        description=f"إعادة إظهار العنصر [{target_obj.name}] في الواجهة العامة والكتالوج",
+                        before_state={"is_publicly_visible": old_visible, "compliance_status": old_status},
+                        after_state={"is_publicly_visible": True, "compliance_status": target_obj.compliance_status},
+                        reason=reason or "إعادة إظهار يدوية",
+                    )
+                    messages.success(request, f"تمت إعادة إظهار [{target_obj.name}] في الواجهة العامة بنجاح.")
+
+                elif visibility_action == "update_status":
+                    if new_status:
+                        target_obj.compliance_status = new_status
+                    if reason:
+                        target_obj.hide_reason = reason
+                    if target_type == "product" and request.POST.get("compliance_category"):
+                        target_obj.compliance_category = request.POST.get("compliance_category")
+                    target_obj.hidden_by = request.user
+                    target_obj.hidden_at = now
+                    target_obj.save()
+                    log_system_action(
+                        actor=request.user,
+                        action_type=f"compliance_update_{target_type}",
+                        target=target_obj,
+                        description=f"تحديث تصنيف الامتثال للعنصر [{target_obj.name}] إلى {target_obj.compliance_status}",
+                        before_state={"compliance_status": old_status, "reason": old_reason},
+                        after_state={"compliance_status": target_obj.compliance_status, "reason": target_obj.hide_reason},
+                        reason=reason,
+                    )
+                    messages.success(request, f"تم تحديث بيانات الامتثال للعنصر [{target_obj.name}] بنجاح.")
+
+            return redirect(f"{request.path}?tab={tab}")
+
+        elif action == "bulk_category_type_control":
+            # Bulk action based on compliance category (e.g. hide all gaming topups or all financial items)
+            comp_cat = request.POST.get("bulk_comp_cat")
+            bulk_visible = request.POST.get("bulk_visible") == "1"
+            bulk_reason = request.POST.get("bulk_reason", "").strip() or "تعديل جماعي لحالة الظهور حسب نوع الامتثال"
+            
+            if comp_cat:
+                p_qs = Product.all_objects.filter(compliance_category=comp_cat)
+                updated_count = p_qs.count()
+                p_qs.update(
+                    is_publicly_visible=bulk_visible,
+                    hide_reason=bulk_reason if not bulk_visible else "",
+                    hidden_by=request.user,
+                    hidden_at=now,
+                )
+                log_system_action(
+                    actor=request.user,
+                    action_type="compliance_bulk_category_toggle",
+                    description=f"تعديل جماعي لظهور فئة الامتثال ({comp_cat}) - الحالة الجديدة: {'ظاهر' if bulk_visible else 'مخفي'} لـ {updated_count} منتج",
+                    reason=bulk_reason,
+                )
+                messages.success(request, f"تم تطبيق الإجراء الجماعي على {updated_count} منتج بنجاح.")
+            return redirect(f"{request.path}?tab=products")
+
+    # Metrics Overview
+    total_products = Product.all_objects.count()
+    visible_products = Product.all_objects.filter(is_publicly_visible=True).count()
+    hidden_products = Product.all_objects.filter(is_publicly_visible=False).count()
+    compliant_products = Product.all_objects.filter(compliance_status="compliant").count()
+    under_review_products = Product.all_objects.filter(compliance_status="under_review").count()
+    non_compliant_products = Product.all_objects.filter(compliance_status="non_compliant").count()
+
+    total_categories = Category.all_objects.count()
+    visible_categories = Category.all_objects.filter(is_publicly_visible=True).count()
+    hidden_categories = Category.all_objects.filter(is_publicly_visible=False).count()
+
+    total_stores = Store.objects.count()
+    visible_stores = Store.objects.filter(is_publicly_visible=True).count()
+    hidden_stores = Store.objects.filter(is_publicly_visible=False).count()
+
+    # Data lists with pagination
+    page_obj = None
+    if tab == "products":
+        qs = Product.all_objects.select_related("category", "store", "hidden_by").order_by("-updated_at")
+        if q:
+            qs = qs.filter(Q(name__icontains=q) | Q(category__name__icontains=q) | Q(hide_reason__icontains=q))
+        if status_filter:
+            if status_filter in ("visible", "hidden"):
+                qs = qs.filter(is_publicly_visible=(status_filter == "visible"))
+            else:
+                qs = qs.filter(compliance_status=status_filter)
+        if category_type_filter:
+            qs = qs.filter(compliance_category=category_type_filter)
+        paginator = Paginator(qs, 30)
+        page_obj = paginator.get_page(request.GET.get("page"))
+
+    elif tab == "categories":
+        qs = Category.all_objects.select_related("store", "parent", "hidden_by").order_by("sort_order", "name")
+        if q:
+            qs = qs.filter(Q(name__icontains=q) | Q(hide_reason__icontains=q))
+        if status_filter:
+            if status_filter in ("visible", "hidden"):
+                qs = qs.filter(is_publicly_visible=(status_filter == "visible"))
+            else:
+                qs = qs.filter(compliance_status=status_filter)
+        paginator = Paginator(qs, 30)
+        page_obj = paginator.get_page(request.GET.get("page"))
+
+    elif tab == "stores":
+        qs = Store.objects.select_related("owner", "hidden_by").order_by("-created_at")
+        if q:
+            qs = qs.filter(Q(name__icontains=q) | Q(subdomain__icontains=q) | Q(hide_reason__icontains=q))
+        if status_filter:
+            if status_filter in ("visible", "hidden"):
+                qs = qs.filter(is_publicly_visible=(status_filter == "visible"))
+            else:
+                qs = qs.filter(compliance_status=status_filter)
+        paginator = Paginator(qs, 30)
+        page_obj = paginator.get_page(request.GET.get("page"))
+
+    elif tab == "audit":
+        qs = SystemAuditLog.objects.filter(action_type__startswith="compliance_").select_related("actor").order_by("-created_at")
+        if q:
+            qs = qs.filter(Q(description__icontains=q) | Q(reason__icontains=q) | Q(actor__email__icontains=q))
+        paginator = Paginator(qs, 30)
+        page_obj = paginator.get_page(request.GET.get("page"))
+
+    return render(request, "site/control_compliance_dashboard.html", {
+        "tab": tab,
+        "query": q,
+        "status_filter": status_filter,
+        "category_type_filter": category_type_filter,
+        "page_obj": page_obj,
+        "total_products": total_products,
+        "visible_products": visible_products,
+        "hidden_products": hidden_products,
+        "compliant_products": compliant_products,
+        "under_review_products": under_review_products,
+        "non_compliant_products": non_compliant_products,
+        "total_categories": total_categories,
+        "visible_categories": visible_categories,
+        "hidden_categories": hidden_categories,
+        "total_stores": total_stores,
+        "visible_stores": visible_stores,
+        "hidden_stores": hidden_stores,
+        "compliance_categories_choices": Product._meta.get_field("compliance_category").choices,
+        "compliance_status_choices": Product._meta.get_field("compliance_status").choices,
+    })
+
 
 

@@ -61,9 +61,9 @@ def sitemap_xml_view(request):
 
     # 2. Active Categories
     if store:
-        categories = Category.objects.filter(store=store, is_active=True).order_by("sort_order", "name")
+        categories = Category.objects.filter(store=store, is_active=True, is_publicly_visible=True).order_by("sort_order", "name")
     else:
-        categories = Category.objects.filter(is_active=True).order_by("sort_order", "name")
+        categories = Category.objects.filter(is_active=True, is_publicly_visible=True).order_by("sort_order", "name")
 
     for cat in categories[:100]:
         cat_url = f"{base_url}/catalog/?category={cat.id}"
@@ -88,9 +88,9 @@ def sitemap_xml_view(request):
 
     # 3. Active Products
     if store:
-        products = Product.objects.filter(store=store, is_active=True).select_related("category")
+        products = Product.objects.filter(store=store, is_active=True, is_publicly_visible=True).select_related("category")
     else:
-        products = Product.objects.filter(is_active=True).select_related("category")
+        products = Product.objects.filter(is_active=True, is_publicly_visible=True).select_related("category")
 
     for p in products.order_by("-updated_at")[:1500]:
         p_url = f"{base_url}/catalog/{p.id}/"

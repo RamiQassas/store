@@ -1,0 +1,743 @@
+{% extends "site/control_base.html" %}
+{% load static site_tags %}
+
+{% block title %}مركز الامتثال والربط المالي (شام كاش) | Raqamiyat Admin{% endblock %}
+
+{% block extra_head %}
+<style>
+.compliance-stat-card {
+    background: rgba(15, 23, 42, 0.7);
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    border-radius: 1.25rem;
+    padding: 1.25rem 1.5rem;
+    transition: all 0.3s ease;
+    backdrop-filter: blur(12px);
+}
+.compliance-stat-card:hover {
+    border-color: rgba(6, 182, 212, 0.3);
+    transform: translateY(-2px);
+}
+.tab-btn {
+    padding: 0.75rem 1.5rem;
+    font-weight: 800;
+    font-size: 0.85rem;
+    border-radius: 1rem;
+    transition: all 0.2s ease;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    border: 1px solid transparent;
+}
+.tab-btn.active {
+    background: rgba(6, 182, 212, 0.15);
+    color: #22d3ee;
+    border-color: rgba(34, 211, 238, 0.3);
+    box-shadow: 0 4px 15px -3px rgba(6, 182, 212, 0.2);
+}
+.tab-btn:not(.active) {
+    background: rgba(255, 255, 255, 0.02);
+    color: #94a3b8;
+    border-color: rgba(255, 255, 255, 0.05);
+}
+.tab-btn:not(.active):hover {
+    background: rgba(255, 255, 255, 0.06);
+    color: #fff;
+}
+.badge-compliant {
+    background: rgba(16, 185, 129, 0.12);
+    color: #10b981;
+    border: 1px solid rgba(16, 185, 129, 0.25);
+}
+.badge-review {
+    background: rgba(245, 158, 11, 0.12);
+    color: #f59e0b;
+    border: 1px solid rgba(245, 158, 11, 0.25);
+}
+.badge-non-compliant {
+    background: rgba(239, 68, 68, 0.12);
+    color: #ef4444;
+    border: 1px solid rgba(239, 68, 68, 0.25);
+}
+.badge-hidden-admin {
+    background: rgba(148, 163, 184, 0.12);
+    color: #94a3b8;
+    border: 1px solid rgba(148, 163, 184, 0.25);
+}
+</style>
+{% endblock %}
+
+{% block control_content %}
+<div class="space-y-8">
+
+    {# ── Page Header ── #}
+    <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-4 border-b border-white/5">
+        <div>
+            <div class="flex items-center gap-2 mb-1">
+                <span class="badge primary"><i class="fas fa-shield-halved mr-1"></i> تدقيق رسمي وسياسات الدفع</span>
+                <span class="text-xs text-slate-500 font-mono">Sham Cash API Readiness</span>
+            </div>
+            <h1 class="text-2xl md:text-3xl font-black text-white tracking-tight">
+                مركز الامتثال والربط المالي (شام كاش)
+            </h1>
+            <p class="text-xs md:text-sm text-slate-400 mt-1">
+                إدارة التوافق مع السجل التجاري (تجارة المعدات والأجهزة الإلكترونية والبرمجيات بالجملة) والتحكم في ظهور الكتالوج دون حذف بيانات.
+            </p>
+        </div>
+        <div class="flex items-center gap-3">
+            <button onclick="toggleBulkModal()" class="btn btn-outline text-xs">
+                <i class="fas fa-sliders text-cyan-400"></i> التحكم الجماعي بالفئات
+            </button>
+            <a href="{% url 'catalog' %}" target="_blank" class="btn btn-primary text-xs">
+                <i class="fas fa-external-link-alt"></i> معاينة الكتالوج العام
+            </a>
+        </div>
+    </div>
+
+    {# ── Policy Banner ── #}
+    <div class="p-4 md:p-5 rounded-2xl bg-gradient-to-r from-cyan-950/40 via-slate-900 to-emerald-950/30 border border-cyan-500/20 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+        <div class="flex items-start gap-4">
+            <div class="w-10 h-10 rounded-xl bg-cyan-500/10 border border-cyan-500/30 flex items-center justify-center text-cyan-400 text-lg flex-shrink-0 mt-0.5">
+                <i class="fas fa-file-contract"></i>
+            </div>
+            <div>
+                <h3 class="text-sm font-black text-white">النشاط المسجل في السجل التجاري الرسمي</h3>
+                <p class="text-xs text-slate-300 mt-0.5">
+                    <strong>1. تجارة المعدات والأجهزة الإلكترونية وأجزائها.</strong> &nbsp;|&nbsp; 
+                    <strong>2. تجارة البرمجيات بالجملة.</strong>
+                </p>
+                <p class="text-[11px] text-amber-400/90 mt-1 font-medium">
+                    <i class="fas fa-triangle-exclamation ml-1"></i> تنبيه: إعادة إظهار منتج مخفي لا تعني اعتماده كمتوافق مع شام كاش. تأكد من توافق النشاط قبل العرض للعامة.
+                </p>
+            </div>
+        </div>
+        <div class="flex items-center gap-2 self-end md:self-center">
+            <span class="text-xs font-mono px-3 py-1.5 rounded-lg bg-black/40 border border-white/10 text-emerald-400">
+                <i class="fas fa-check-circle ml-1"></i> قاعدة البيانات محمية بالكامل (بدون حذف)
+            </span>
+        </div>
+    </div>
+
+    {# ── Stats KPI Grid ── #}
+    <div class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-3">
+        <div class="compliance-stat-card">
+            <span class="text-[10px] font-black uppercase tracking-wider text-slate-400 block mb-1">إجمالي المنتجات</span>
+            <div class="text-2xl font-black text-white">{{ total_products }}</div>
+            <span class="text-[11px] text-slate-500 mt-1 block">في قاعدة البيانات</span>
+        </div>
+        <div class="compliance-stat-card border-emerald-500/20 bg-emerald-950/10">
+            <span class="text-[10px] font-black uppercase tracking-wider text-emerald-400 block mb-1">المنتجات الظاهرة</span>
+            <div class="text-2xl font-black text-emerald-400">{{ visible_products }}</div>
+            <span class="text-[11px] text-emerald-500/70 mt-1 block">معروضة للعامة</span>
+        </div>
+        <div class="compliance-stat-card border-rose-500/20 bg-rose-950/10">
+            <span class="text-[10px] font-black uppercase tracking-wider text-rose-400 block mb-1">المنتجات المخفية</span>
+            <div class="text-2xl font-black text-rose-400">{{ hidden_products }}</div>
+            <span class="text-[11px] text-rose-500/70 mt-1 block">محجوبة بأمان</span>
+        </div>
+        <div class="compliance-stat-card">
+            <span class="text-[10px] font-black uppercase tracking-wider text-cyan-400 block mb-1">متوافقة مع السجل</span>
+            <div class="text-2xl font-black text-cyan-400">{{ compliant_products }}</div>
+            <span class="text-[11px] text-slate-500 mt-1 block">برمجيات ومعدات</span>
+        </div>
+        <div class="compliance-stat-card">
+            <span class="text-[10px] font-black uppercase tracking-wider text-amber-400 block mb-1">قيد المراجعة</span>
+            <div class="text-2xl font-black text-amber-400">{{ under_review_products }}</div>
+            <span class="text-[11px] text-slate-500 mt-1 block">تحتاج توثيق</span>
+        </div>
+        <div class="compliance-stat-card">
+            <span class="text-[10px] font-black uppercase tracking-wider text-red-400 block mb-1">غير مسموح بها</span>
+            <div class="text-2xl font-black text-red-400">{{ non_compliant_products }}</div>
+            <span class="text-[11px] text-slate-500 mt-1 block">تحويلات أو خدمات مالية</span>
+        </div>
+    </div>
+
+    {# ── Navigation Tabs ── #}
+    <div class="flex items-center gap-2 overflow-x-auto pb-2 border-b border-white/10">
+        <a href="?tab=products" class="tab-btn {% if tab == 'products' %}active{% endif %}">
+            <i class="fas fa-boxes-stacked"></i> المنتجات ({{ total_products }})
+        </a>
+        <a href="?tab=categories" class="tab-btn {% if tab == 'categories' %}active{% endif %}">
+            <i class="fas fa-folder-tree"></i> التصنيفات ({{ total_categories }})
+        </a>
+        <a href="?tab=stores" class="tab-btn {% if tab == 'stores' %}active{% endif %}">
+            <i class="fas fa-store"></i> المتاجر الفرعية ({{ total_stores }})
+        </a>
+        <a href="?tab=audit" class="tab-btn {% if tab == 'audit' %}active{% endif %}">
+            <i class="fas fa-clock-rotate-left"></i> سجل عمليات الامتثال
+        </a>
+    </div>
+
+    {# ── Search & Filter Controls ── #}
+    <form method="GET" class="glass-panel p-4 flex flex-wrap items-center gap-3">
+        <input type="hidden" name="tab" value="{{ tab }}">
+        
+        <div class="relative flex-1 min-w-[220px]">
+            <i class="fas fa-search absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-500 text-xs"></i>
+            <input type="text" name="q" value="{{ query }}" placeholder="بحث بالاسم أو سبب الإخفاء..."
+                   class="w-full bg-slate-950/80 border border-white/10 rounded-xl pr-9 pl-4 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-cyan-400">
+        </div>
+
+        <div class="min-w-[160px]">
+            <select name="status" class="w-full bg-slate-950/80 border border-white/10 rounded-xl px-3 py-2 text-xs text-slate-300 focus:outline-none focus:border-cyan-400">
+                <option value="">-- كل حالات الظهور والامتثال --</option>
+                <option value="visible" {% if status_filter == 'visible' %}selected{% endif %}>ظاهر فقط (Publicly Visible)</option>
+                <option value="hidden" {% if status_filter == 'hidden' %}selected{% endif %}>مخفي فقط (Hidden)</option>
+                <option value="compliant" {% if status_filter == 'compliant' %}selected{% endif %}>متوافق (Compliant)</option>
+                <option value="under_review" {% if status_filter == 'under_review' %}selected{% endif %}>قيد المراجعة (Under Review)</option>
+                <option value="non_compliant" {% if status_filter == 'non_compliant' %}selected{% endif %}>غير مسموح (Non-Compliant)</option>
+            </select>
+        </div>
+
+        {% if tab == 'products' %}
+        <div class="min-w-[180px]">
+            <select name="category_type" class="w-full bg-slate-950/80 border border-white/10 rounded-xl px-3 py-2 text-xs text-slate-300 focus:outline-none focus:border-cyan-400">
+                <option value="">-- كل فئات الامتثال --</option>
+                {% for code, label in compliance_categories_choices %}
+                    <option value="{{ code }}" {% if category_type_filter == code %}selected{% endif %}>{{ label }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        {% endif %}
+
+        <div class="flex items-center gap-2">
+            <button type="submit" class="btn btn-outline text-xs px-4 py-2">
+                <i class="fas fa-filter text-cyan-400"></i> تصفية
+            </button>
+            {% if query or status_filter or category_type_filter %}
+                <a href="?tab={{ tab }}" class="btn btn-outline text-xs px-3 py-2 text-rose-400 hover:text-rose-300">
+                    <i class="fas fa-times"></i> إعادة ضبط
+                </a>
+            {% endif %}
+        </div>
+    </form>
+
+    {# ── Tab 1: Products ── #}
+    {% if tab == 'products' %}
+    <div class="glass-panel overflow-hidden">
+        <div class="overflow-x-auto">
+            <table class="w-full text-right text-xs">
+                <thead>
+                    <tr class="border-b border-white/5 bg-slate-950/40 text-slate-400 uppercase tracking-wider text-[11px]">
+                        <th class="p-4">المنتج والخدمة</th>
+                        <th class="p-4">التصنيف والمتجر</th>
+                        <th class="p-4">طبيعة النشاط (الامتثال)</th>
+                        <th class="p-4">حالة الامتثال</th>
+                        <th class="p-4">الظهور للعامة</th>
+                        <th class="p-4">سبب الإخفاء / آخر تعديل</th>
+                        <th class="p-4 text-center">الإجراءات</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-white/5 text-slate-300">
+                    {% for item in page_obj %}
+                    <tr class="hover:bg-white/[0.02] transition">
+                        <td class="p-4">
+                            <div class="flex items-center gap-3">
+                                <div class="w-10 h-10 rounded-xl bg-slate-900 border border-white/10 overflow-hidden flex-shrink-0 flex items-center justify-center">
+                                    {% if item.image %}
+                                        <img src="{{ item.image.url }}" alt="{{ item.name }}" class="w-full h-full object-cover">
+                                    {% else %}
+                                        <i class="fas fa-box text-slate-600"></i>
+                                    {% endif %}
+                                </div>
+                                <div>
+                                    <span class="font-bold text-white block">{{ item.name }}</span>
+                                    <span class="text-[10px] text-slate-500 font-mono">ID: {{ item.id|slice:":8" }}</span>
+                                </div>
+                            </div>
+                        </td>
+                        <td class="p-4">
+                            <span class="block text-slate-300">{{ item.category.name|default:"بدون تصنيف" }}</span>
+                            {% if item.store %}
+                                <span class="text-[10px] text-cyan-400 block"><i class="fas fa-store mr-1"></i> {{ item.store.name }}</span>
+                            {% else %}
+                                <span class="text-[10px] text-emerald-400 block"><i class="fas fa-bolt mr-1"></i> رقميات الرسمية</span>
+                            {% endif %}
+                        </td>
+                        <td class="p-4">
+                            <span class="px-2 py-1 rounded-md text-[10px] font-bold bg-white/5 border border-white/10 text-slate-300">
+                                {{ item.get_compliance_category_display }}
+                            </span>
+                        </td>
+                        <td class="p-4">
+                            {% if item.compliance_status == 'compliant' %}
+                                <span class="badge badge-compliant"><i class="fas fa-check-circle ml-1"></i> متوافق مع السجل</span>
+                            {% elif item.compliance_status == 'under_review' %}
+                                <span class="badge badge-review"><i class="fas fa-clock ml-1"></i> قيد المراجعة</span>
+                            {% elif item.compliance_status == 'non_compliant' %}
+                                <span class="badge badge-non-compliant"><i class="fas fa-ban ml-1"></i> غير مسموح</span>
+                            {% else %}
+                                <span class="badge badge-hidden-admin"><i class="fas fa-eye-slash ml-1"></i> محجوب إدارياً</span>
+                            {% endif %}
+                        </td>
+                        <td class="p-4">
+                            {% if item.is_publicly_visible %}
+                                <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-black bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+                                    <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span> ظاهر للعامة
+                                </span>
+                            {% else %}
+                                <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-black bg-rose-500/10 text-rose-400 border border-rose-500/20">
+                                    <span class="w-1.5 h-1.5 rounded-full bg-rose-400"></span> مخفي بأمان
+                                </span>
+                            {% endif %}
+                        </td>
+                        <td class="p-4 max-w-xs">
+                            {% if item.hide_reason %}
+                                <p class="text-[11px] text-slate-300 truncate" title="{{ item.hide_reason }}">
+                                    <i class="fas fa-comment-dots text-slate-500 ml-1"></i> {{ item.hide_reason }}
+                                </p>
+                            {% else %}
+                                <span class="text-slate-600 text-[10px]">لا توجد ملاحظات</span>
+                            {% endif %}
+                            {% if item.hidden_by %}
+                                <span class="text-[10px] text-slate-500 block mt-0.5">
+                                    بواسطة {{ item.hidden_by.email }} ({{ item.hidden_at|date:"Y-m-d H:i" }})
+                                </span>
+                            {% endif %}
+                        </td>
+                        <td class="p-4 text-center">
+                            <button onclick="openComplianceModal('product', '{{ item.id }}', '{{ item.name|escapejs }}', '{{ item.compliance_status }}', '{{ item.compliance_category }}', '{{ item.is_publicly_visible|yesno:'1,0' }}', '{{ item.hide_reason|escapejs }}')"
+                                    class="btn btn-outline text-[11px] py-1.5 px-3 hover:border-cyan-400 hover:text-cyan-400">
+                                <i class="fas fa-pen-to-square"></i> تعديل الحالة
+                            </button>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="7" class="p-8 text-center text-slate-500">
+                            <i class="fas fa-inbox text-3xl mb-2 block"></i> لا توجد منتجات تطابق معايير البحث.
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    {% endif %}
+
+    {# ── Tab 2: Categories ── #}
+    {% if tab == 'categories' %}
+    <div class="glass-panel overflow-hidden">
+        <div class="overflow-x-auto">
+            <table class="w-full text-right text-xs">
+                <thead>
+                    <tr class="border-b border-white/5 bg-slate-950/40 text-slate-400 uppercase tracking-wider text-[11px]">
+                        <th class="p-4">اسم التصنيف</th>
+                        <th class="p-4">التصنيف الرئيسي</th>
+                        <th class="p-4">المتجر</th>
+                        <th class="p-4">حالة الامتثال</th>
+                        <th class="p-4">الظهور للعامة</th>
+                        <th class="p-4">سبب الإخفاء والتدقيق</th>
+                        <th class="p-4 text-center">الإجراءات</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-white/5 text-slate-300">
+                    {% for item in page_obj %}
+                    <tr class="hover:bg-white/[0.02] transition">
+                        <td class="p-4 font-bold text-white">
+                            <div class="flex items-center gap-2">
+                                <div class="w-8 h-8 rounded-lg bg-slate-900 border border-white/10 overflow-hidden flex items-center justify-center flex-shrink-0">
+                                    {% if item.image %}
+                                        <img src="{{ item.image.url }}" alt="{{ item.name }}" class="w-full h-full object-cover">
+                                    {% else %}
+                                        <i class="fas fa-folder text-slate-600"></i>
+                                    {% endif %}
+                                </div>
+                                <span>{{ item.name }}</span>
+                            </div>
+                        </td>
+                        <td class="p-4 text-slate-400">{{ item.parent.name|default:"تصنيف رئيسي" }}</td>
+                        <td class="p-4">
+                            {% if item.store %}
+                                <span class="text-cyan-400 text-[11px]"><i class="fas fa-store mr-1"></i> {{ item.store.name }}</span>
+                            {% else %}
+                                <span class="text-emerald-400 text-[11px]"><i class="fas fa-bolt mr-1"></i> منصة رقميات</span>
+                            {% endif %}
+                        </td>
+                        <td class="p-4">
+                            {% if item.compliance_status == 'compliant' %}
+                                <span class="badge badge-compliant"><i class="fas fa-check-circle ml-1"></i> متوافق</span>
+                            {% elif item.compliance_status == 'under_review' %}
+                                <span class="badge badge-review"><i class="fas fa-clock ml-1"></i> قيد المراجعة</span>
+                            {% elif item.compliance_status == 'non_compliant' %}
+                                <span class="badge badge-non-compliant"><i class="fas fa-ban ml-1"></i> غير مسموح</span>
+                            {% else %}
+                                <span class="badge badge-hidden-admin"><i class="fas fa-eye-slash ml-1"></i> محجوب إدارياً</span>
+                            {% endif %}
+                        </td>
+                        <td class="p-4">
+                            {% if item.is_publicly_visible %}
+                                <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-black bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+                                    <span class="w-1.5 h-1.5 rounded-full bg-emerald-400"></span> ظاهر
+                                </span>
+                            {% else %}
+                                <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-black bg-rose-500/10 text-rose-400 border border-rose-500/20">
+                                    <span class="w-1.5 h-1.5 rounded-full bg-rose-400"></span> مخفي
+                                </span>
+                            {% endif %}
+                        </td>
+                        <td class="p-4 max-w-xs">
+                            {% if item.hide_reason %}
+                                <p class="text-[11px] text-slate-300 truncate" title="{{ item.hide_reason }}">
+                                    {{ item.hide_reason }}
+                                </p>
+                            {% else %}
+                                <span class="text-slate-600 text-[10px]">-</span>
+                            {% endif %}
+                            {% if item.hidden_by %}
+                                <span class="text-[10px] text-slate-500 block mt-0.5">
+                                    بواسطة {{ item.hidden_by.email }} ({{ item.hidden_at|date:"Y-m-d H:i" }})
+                                </span>
+                            {% endif %}
+                        </td>
+                        <td class="p-4 text-center">
+                            <button onclick="openComplianceModal('category', '{{ item.id }}', '{{ item.name|escapejs }}', '{{ item.compliance_status }}', '', '{{ item.is_publicly_visible|yesno:'1,0' }}', '{{ item.hide_reason|escapejs }}')"
+                                    class="btn btn-outline text-[11px] py-1.5 px-3 hover:border-cyan-400 hover:text-cyan-400">
+                                <i class="fas fa-pen-to-square"></i> تعديل الحالة
+                            </button>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="7" class="p-8 text-center text-slate-500">لا توجد تصنيفات مطابقة.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    {% endif %}
+
+    {# ── Tab 3: Stores ── #}
+    {% if tab == 'stores' %}
+    <div class="glass-panel overflow-hidden">
+        <div class="overflow-x-auto">
+            <table class="w-full text-right text-xs">
+                <thead>
+                    <tr class="border-b border-white/5 bg-slate-950/40 text-slate-400 uppercase tracking-wider text-[11px]">
+                        <th class="p-4">المتجر الفرعي</th>
+                        <th class="p-4">النطاق الفرعي (Subdomain)</th>
+                        <th class="p-4">مالك المتجر</th>
+                        <th class="p-4">حالة الامتثال</th>
+                        <th class="p-4">الظهور في الدليل العام</th>
+                        <th class="p-4">سبب الإخفاء والتدقيق</th>
+                        <th class="p-4 text-center">الإجراءات</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-white/5 text-slate-300">
+                    {% for item in page_obj %}
+                    <tr class="hover:bg-white/[0.02] transition">
+                        <td class="p-4 font-bold text-white">
+                            <i class="fas fa-store text-cyan-400 ml-1.5"></i> {{ item.name }}
+                        </td>
+                        <td class="p-4 font-mono text-cyan-300">{{ item.subdomain }}</td>
+                        <td class="p-4 text-slate-400">{{ item.owner.email }}</td>
+                        <td class="p-4">
+                            {% if item.compliance_status == 'compliant' %}
+                                <span class="badge badge-compliant"><i class="fas fa-check-circle ml-1"></i> متوافق</span>
+                            {% elif item.compliance_status == 'under_review' %}
+                                <span class="badge badge-review"><i class="fas fa-clock ml-1"></i> قيد المراجعة</span>
+                            {% elif item.compliance_status == 'non_compliant' %}
+                                <span class="badge badge-non-compliant"><i class="fas fa-ban ml-1"></i> غير مسموح</span>
+                            {% else %}
+                                <span class="badge badge-hidden-admin"><i class="fas fa-eye-slash ml-1"></i> محجوب إدارياً</span>
+                            {% endif %}
+                        </td>
+                        <td class="p-4">
+                            {% if item.is_publicly_visible %}
+                                <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-black bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+                                    ظاهر
+                                </span>
+                            {% else %}
+                                <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-black bg-rose-500/10 text-rose-400 border border-rose-500/20">
+                                    مخفي من الدليل
+                                </span>
+                            {% endif %}
+                        </td>
+                        <td class="p-4 max-w-xs">
+                            {% if item.hide_reason %}
+                                <p class="text-[11px] text-slate-300 truncate" title="{{ item.hide_reason }}">{{ item.hide_reason }}</p>
+                            {% else %}
+                                <span class="text-slate-600 text-[10px]">-</span>
+                            {% endif %}
+                            {% if item.hidden_by %}
+                                <span class="text-[10px] text-slate-500 block mt-0.5">
+                                    بواسطة {{ item.hidden_by.email }} ({{ item.hidden_at|date:"Y-m-d H:i" }})
+                                </span>
+                            {% endif %}
+                        </td>
+                        <td class="p-4 text-center">
+                            <button onclick="openComplianceModal('store', '{{ item.id }}', '{{ item.name|escapejs }}', '{{ item.compliance_status }}', '', '{{ item.is_publicly_visible|yesno:'1,0' }}', '{{ item.hide_reason|escapejs }}')"
+                                    class="btn btn-outline text-[11px] py-1.5 px-3 hover:border-cyan-400 hover:text-cyan-400">
+                                <i class="fas fa-pen-to-square"></i> تعديل الحالة
+                            </button>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="7" class="p-8 text-center text-slate-500">لا توجد متاجر فرعية.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    {% endif %}
+
+    {# ── Tab 4: Audit Logs ── #}
+    {% if tab == 'audit' %}
+    <div class="glass-panel overflow-hidden">
+        <div class="overflow-x-auto">
+            <table class="w-full text-right text-xs">
+                <thead>
+                    <tr class="border-b border-white/5 bg-slate-950/40 text-slate-400 uppercase tracking-wider text-[11px]">
+                        <th class="p-4">التاريخ والوقت</th>
+                        <th class="p-4">المسؤول (Actor)</th>
+                        <th class="p-4">نوع الإجراء</th>
+                        <th class="p-4">الوصف والتفاصيل</th>
+                        <th class="p-4">السبب الموثق (Audit Reason)</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-white/5 text-slate-300">
+                    {% for log in page_obj %}
+                    <tr class="hover:bg-white/[0.02] transition">
+                        <td class="p-4 font-mono text-slate-400 text-[11px] whitespace-nowrap">
+                            {{ log.created_at|date:"Y-m-d H:i:s" }}
+                        </td>
+                        <td class="p-4 font-bold text-white">
+                            {{ log.actor.email|default:"النظام الآلي" }}
+                        </td>
+                        <td class="p-4">
+                            <span class="px-2 py-0.5 rounded text-[10px] font-mono bg-cyan-950/50 border border-cyan-500/20 text-cyan-300">
+                                {{ log.action_type }}
+                            </span>
+                        </td>
+                        <td class="p-4 text-slate-200">
+                            {{ log.description }}
+                        </td>
+                        <td class="p-4 text-amber-300 font-medium">
+                            {{ log.reason|default:"-" }}
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="5" class="p-8 text-center text-slate-500">
+                            لا توجد سجلات تدقيق سابقة لعمليات الامتثال.
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    {% endif %}
+
+    {# ── Pagination ── #}
+    {% if page_obj and page_obj.has_other_pages %}
+    <div class="flex items-center justify-between glass-panel p-4 text-xs">
+        <span class="text-slate-400">
+            صفحة {{ page_obj.number }} من {{ page_obj.paginator.num_pages }} (إجمالي العناصر: {{ page_obj.paginator.count }})
+        </span>
+        <div class="flex items-center gap-2">
+            {% if page_obj.has_previous %}
+                <a href="?tab={{ tab }}&page={{ page_obj.previous_page_number }}&q={{ query }}&status={{ status_filter }}&category_type={{ category_type_filter }}"
+                   class="btn btn-outline text-xs px-3 py-1.5">السابق</a>
+            {% endif %}
+            {% if page_obj.has_next %}
+                <a href="?tab={{ tab }}&page={{ page_obj.next_page_number }}&q={{ query }}&status={{ status_filter }}&category_type={{ category_type_filter }}"
+                   class="btn btn-outline text-xs px-3 py-1.5">التالي</a>
+            {% endif %}
+        </div>
+    </div>
+    {% endif %}
+
+</div>
+
+{# ════ MODAL: Single Item Edit ════ #}
+<div id="compliance-modal" class="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm hidden items-center justify-center p-4">
+    <div class="bg-slate-900 border border-cyan-500/30 rounded-2xl max-w-lg w-full p-6 shadow-2xl space-y-5 animate-in fade-in duration-200">
+        <div class="flex items-center justify-between pb-3 border-b border-white/10">
+            <h3 class="text-base font-black text-white flex items-center gap-2">
+                <i class="fas fa-shield-halved text-cyan-400"></i>
+                <span id="modal-title">تعديل حالة الامتثال والظهور</span>
+            </h3>
+            <button onclick="closeComplianceModal()" class="text-slate-400 hover:text-white text-lg">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+
+        <form method="POST" id="compliance-single-form" class="space-y-4">
+            {% csrf_token %}
+            <input type="hidden" name="action" value="single_toggle">
+            <input type="hidden" name="item_type" id="modal-item-type">
+            <input type="hidden" name="item_id" id="modal-item-id">
+
+            <div class="p-3 rounded-xl bg-slate-950 border border-white/5 text-xs text-slate-300">
+                العنصر المحدد: <strong class="text-white" id="modal-item-name">-</strong>
+            </div>
+
+            {# Product Category Type (Only for products) #}
+            <div id="modal-comp-cat-wrapper" class="space-y-1.5">
+                <label class="block text-xs font-bold text-slate-300">طبيعة تصنيف الامتثال:</label>
+                <select name="compliance_category" id="modal-comp-cat" class="w-full bg-slate-950 border border-white/10 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-cyan-400">
+                    {% for code, label in compliance_categories_choices %}
+                        <option value="{{ code }}">{{ label }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            {# Compliance Status #}
+            <div class="space-y-1.5">
+                <label class="block text-xs font-bold text-slate-300">حالة التوافق مع السياسات (Compliance Status):</label>
+                <select name="compliance_status" id="modal-comp-status" onchange="checkComplianceWarning()" class="w-full bg-slate-950 border border-white/10 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-cyan-400">
+                    {% for code, label in compliance_status_choices %}
+                        <option value="{{ code }}">{{ label }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            {# Visibility Toggle #}
+            <div class="space-y-1.5">
+                <label class="block text-xs font-bold text-slate-300">الظهور في الكتالوج العام والبحث:</label>
+                <select name="is_publicly_visible" id="modal-comp-visible" onchange="checkComplianceWarning()" class="w-full bg-slate-950 border border-white/10 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-cyan-400">
+                    <option value="1">ظاهر للعامة (Publicly Visible)</option>
+                    <option value="0">مخفي عن الكتالوج والبحث (Hidden Safely)</option>
+                </select>
+            </div>
+
+            {# Dynamic Sham Cash Warning #}
+            <div id="modal-warning-box" class="hidden p-3.5 rounded-xl bg-rose-950/40 border border-rose-500/40 text-xs text-rose-300 leading-relaxed">
+                <div class="flex items-start gap-2">
+                    <i class="fas fa-triangle-exclamation text-rose-400 text-sm mt-0.5 flex-shrink-0"></i>
+                    <div>
+                        <strong class="font-black text-rose-200">تحذير تدقيق شام كاش:</strong>
+                        <p class="mt-0.5">
+                            أنت بصدد جعل هذا العنصر ظاهراً للعامة بالرغم من أن حالته ليست "متوافق" أو أنه يحمل مخاطرة عدم تطابق مع السجل التجاري (معدات إلكترونية أو برمجيات بالجملة). قد يعرض ذلك طلب ربط API مع شام كاش للرفض.
+                        </p>
+                    </div>
+                </div>
+            </div>
+
+            {# Reason Input (Mandatory) #}
+            <div class="space-y-1.5">
+                <label class="block text-xs font-bold text-slate-300">سبب الإجراء والملاحظات التدقيقية (مطلوب للتوثيق):</label>
+                <textarea name="hide_reason" id="modal-comp-reason" rows="3" required placeholder="يرجى كتابة سبب الإخفاء أو سبب إعادة الإظهار بدقة لتدوينه في سجل التدقيق..."
+                          class="w-full bg-slate-950 border border-white/10 rounded-xl p-3 text-xs text-white focus:outline-none focus:border-cyan-400"></textarea>
+            </div>
+
+            <div class="flex items-center justify-end gap-3 pt-3 border-t border-white/10">
+                <button type="button" onclick="closeComplianceModal()" class="btn btn-outline text-xs">إلغاء</button>
+                <button type="submit" class="btn btn-primary text-xs">
+                    <i class="fas fa-check"></i> حفظ وتوثيق التغيير
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+{# ════ MODAL: Bulk Category Type Control ════ #}
+<div id="bulk-modal" class="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm hidden items-center justify-center p-4">
+    <div class="bg-slate-900 border border-cyan-500/30 rounded-2xl max-w-lg w-full p-6 shadow-2xl space-y-5 animate-in fade-in duration-200">
+        <div class="flex items-center justify-between pb-3 border-b border-white/10">
+            <h3 class="text-base font-black text-white flex items-center gap-2">
+                <i class="fas fa-sliders text-cyan-400"></i>
+                <span>التحكم الجماعي بفئات الامتثال</span>
+            </h3>
+            <button onclick="toggleBulkModal()" class="text-slate-400 hover:text-white text-lg">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+
+        <form method="POST" class="space-y-4">
+            {% csrf_token %}
+            <input type="hidden" name="action" value="bulk_category_type_control">
+
+            <div class="p-3 rounded-xl bg-cyan-950/30 border border-cyan-500/20 text-xs text-slate-300">
+                يتيح هذا الخيار إخفاء أو إظهار كافة المنتجات التابعة لفئة معينة دفعة واحدة وبطريقة آمنة تماماً بدون حذف أي بيانات.
+            </div>
+
+            <div class="space-y-1.5">
+                <label class="block text-xs font-bold text-slate-300">اختر الفئة المستهدفة:</label>
+                <select name="compliance_category" required class="w-full bg-slate-950 border border-white/10 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-cyan-400">
+                    {% for code, label in compliance_categories_choices %}
+                        <option value="{{ code }}">{{ label }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div class="space-y-1.5">
+                <label class="block text-xs font-bold text-slate-300">الإجراء المطلوب:</label>
+                <select name="is_publicly_visible" class="w-full bg-slate-950 border border-white/10 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-cyan-400">
+                    <option value="0">إخفاء جميع منتجات هذه الفئة عن الكتالوج والواجهة العامة (موصى به للخدمات المخالفة)</option>
+                    <option value="1">إظهار جميع منتجات هذه الفئة للعامة (تحذير: للمنتجات المتوافقة فقط)</option>
+                </select>
+            </div>
+
+            <div class="space-y-1.5">
+                <label class="block text-xs font-bold text-slate-300">سبب الإجراء الجماعي (موثق في سجل التدقيق):</label>
+                <textarea name="bulk_reason" rows="3" required placeholder="مثال: إخفاء احترازي لكافة خدمات التحويلات المالية قبل تقديم طلب شام كاش..."
+                          class="w-full bg-slate-950 border border-white/10 rounded-xl p-3 text-xs text-white focus:outline-none focus:border-cyan-400"></textarea>
+            </div>
+
+            <div class="flex items-center justify-end gap-3 pt-3 border-t border-white/10">
+                <button type="button" onclick="toggleBulkModal()" class="btn btn-outline text-xs">إلغاء</button>
+                <button type="submit" class="btn btn-primary text-xs">
+                    <i class="fas fa-check"></i> تطبيق الإجراء الجماعي
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+function openComplianceModal(itemType, itemId, itemName, compStatus, compCat, isVisible, hideReason) {
+    document.getElementById('modal-item-type').value = itemType;
+    document.getElementById('modal-item-id').value = itemId;
+    document.getElementById('modal-item-name').innerText = itemName;
+    document.getElementById('modal-comp-status').value = compStatus || 'under_review';
+    document.getElementById('modal-comp-visible').value = (isVisible === '1' || isVisible === 1) ? '1' : '0';
+    document.getElementById('modal-comp-reason').value = hideReason || '';
+
+    const catWrapper = document.getElementById('modal-comp-cat-wrapper');
+    if (itemType === 'product') {
+        catWrapper.style.display = 'block';
+        document.getElementById('modal-comp-cat').value = compCat || 'other';
+    } else {
+        catWrapper.style.display = 'none';
+    }
+
+    checkComplianceWarning();
+    const modal = document.getElementById('compliance-modal');
+    modal.classList.remove('hidden');
+    modal.classList.add('flex');
+}
+
+function closeComplianceModal() {
+    const modal = document.getElementById('compliance-modal');
+    modal.classList.add('hidden');
+    modal.classList.remove('flex');
+}
+
+function checkComplianceWarning() {
+    const status = document.getElementById('modal-comp-status').value;
+    const isVisible = document.getElementById('modal-comp-visible').value;
+    const warningBox = document.getElementById('modal-warning-box');
+
+    if (isVisible === '1' && (status === 'non_compliant' || status === 'under_review' || status === 'hidden_admin')) {
+        warningBox.classList.remove('hidden');
+    } else {
+        warningBox.classList.add('hidden');
+    }
+}
+
+function toggleBulkModal() {
+    const modal = document.getElementById('bulk-modal');
+    if (modal.classList.contains('hidden')) {
+        modal.classList.remove('hidden');
+        modal.classList.add('flex');
+    } else {
+        modal.classList.add('hidden');
+        modal.classList.remove('flex');
+    }
+}
+</script>
+{% endblock %}

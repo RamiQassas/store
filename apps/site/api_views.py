@@ -259,9 +259,9 @@ def api_live_product_search(request):
         return JsonResponse(cached_res)
 
     if store:
-        qs = Product.objects.filter(store=store, is_active=True)
+        qs = Product.objects.filter(store=store, is_active=True, is_publicly_visible=True)
     else:
-        qs = Product.objects.filter(is_active=True)
+        qs = Product.objects.filter(is_active=True, is_publicly_visible=True)
 
     # Tier 1: Search by product name (instant indexed scan)
     name_q = Q(name__icontains=q)
@@ -276,7 +276,7 @@ def api_live_product_search(request):
         seen_ids = {p.id for p in primary_products}
         extra_products = list(
             qs.exclude(id__in=seen_ids)
-            .filter(category__name__icontains=q)
+            .filter(category__name__icontains=q, category__is_publicly_visible=True)
             .select_related("category")
             .prefetch_related("variants")[:10 - len(primary_products)]
         )

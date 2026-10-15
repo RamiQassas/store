@@ -24,6 +24,37 @@ class Category(TimeStampedModel):
         related_name="categories",
         verbose_name="المتجر"
     )
+    
+    # ── Sham Cash & Commercial Compliance / Safe Visibility Controls ──
+    is_publicly_visible = models.BooleanField(
+        default=True,
+        db_index=True,
+        verbose_name="ظاهر للعامة",
+        help_text="التحكم الآمن في الظهور في المتجر والكتالوج دون حذف البيانات"
+    )
+    compliance_status = models.CharField(
+        max_length=30,
+        choices=(
+            ("compliant", "متوافق مع السجل التجاري وسياسات الدفع"),
+            ("under_review", "قيد المراجعة والتدقيق"),
+            ("non_compliant", "غير مسموح بعرضه حالياً (محتمل التعارض)"),
+            ("hidden_admin", "مخفي إدارياً بقرار الإدارة"),
+        ),
+        default="compliant",
+        db_index=True,
+        verbose_name="حالة التوافق"
+    )
+    hide_reason = models.TextField(blank=True, verbose_name="سبب الإخفاء / ملاحظة التدقيق")
+    hidden_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="hidden_categories",
+        verbose_name="المسؤول المعدل"
+    )
+    hidden_at = models.DateTimeField(null=True, blank=True, verbose_name="تاريخ تعديل الظهور")
+
     objects = TenantManager()
     all_objects = models.Manager()
 
@@ -130,6 +161,51 @@ class Product(TimeStampedModel):
         help_text='مثال: {"version": 1, "fields": [{"label": "اسم المستخدم", "type": "text", "required": true}]}'
     )
     
+    # ── Sham Cash & Commercial Compliance / Safe Visibility Controls ──
+    is_publicly_visible = models.BooleanField(
+        default=True,
+        db_index=True,
+        verbose_name="ظاهر للعامة",
+        help_text="التحكم الآمن في الظهور في المتجر والكتالوج والبحث دون حذف أي بيانات"
+    )
+    compliance_status = models.CharField(
+        max_length=30,
+        choices=(
+            ("compliant", "متوافق مع السجل التجاري وسياسات الدفع"),
+            ("under_review", "قيد المراجعة والتدقيق"),
+            ("non_compliant", "غير مسموح بعرضه حالياً (محتمل التعارض)"),
+            ("hidden_admin", "مخفي إدارياً بقرار الإدارة"),
+        ),
+        default="compliant",
+        db_index=True,
+        verbose_name="حالة التوافق"
+    )
+    compliance_category = models.CharField(
+        max_length=40,
+        choices=(
+            ("software_wholesale", "برمجيات وتراخيص جملة (نشاط السجل التجاري)"),
+            ("electronics_hardware", "معدات وأجهزة إلكترونية وأجزاؤها (نشاط السجل)"),
+            ("service_subscription", "اشتراكات خدمات وبرامج سحابية (SaaS)"),
+            ("digital_cards", "بطاقات رقمية وقسائم إلكترونية"),
+            ("gaming_topup", "شحن ألعاب إلكترونية"),
+            ("financial_services", "خدمات مالية وتحويلات (عالية المخاطر)"),
+            ("other", "أخرى"),
+        ),
+        default="software_wholesale",
+        db_index=True,
+        verbose_name="تصنيف النشاط والامتثال"
+    )
+    hide_reason = models.TextField(blank=True, verbose_name="سبب الإخفاء / ملاحظة التدقيق")
+    hidden_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="hidden_products",
+        verbose_name="المسؤول المعدل"
+    )
+    hidden_at = models.DateTimeField(null=True, blank=True, verbose_name="تاريخ تعديل الظهور")
+
     metadata = models.JSONField(default=dict, blank=True)
 
     class Meta:
@@ -138,6 +214,8 @@ class Product(TimeStampedModel):
         ordering = ("sort_order", "name")
         indexes = [
             models.Index(fields=["is_active", "is_featured"]),
+            models.Index(fields=["is_active", "is_publicly_visible"]),
+            models.Index(fields=["compliance_status"]),
         ]
 
     def __str__(self):

@@ -13,7 +13,13 @@
         --sham-cyan: #06b6d4;
     }
 
-    body { background: var(--admin-bg) !important; color: #f8fafc; font-family: 'Cairo', sans-serif; }
+    html, body { 
+        background: var(--admin-bg) !important; 
+        color: #f8fafc; 
+        font-family: 'Cairo', sans-serif; 
+        touch-action: pan-x pan-y;
+        -webkit-overflow-scrolling: touch;
+    }
 
     .admin-layout {
         display: grid;
@@ -264,6 +270,9 @@
                 <i class="fas fa-lightbulb"></i> مقترحات العملاء
             </a>
             <div class="admin-nav-group"><span>الربط ومزودو الخدمة (API)</span></div>
+            <a href="{% url 'control_compliance_dashboard' %}" class="admin-nav-link text-emerald-400 font-bold {% if 'compliance' in request.path %}active{% endif %}">
+                <i class="fas fa-shield-halved text-emerald-400"></i> الامتثال والربط المالي (شام كاش)
+            </a>
             <a href="{% url 'control_apicontrol_dashboard' %}" class="admin-nav-link {% if 'apicontrol' in request.path %}active{% endif %}">
                 <i class="fas fa-plug text-sky-400"></i> إدارة الربط والمزودين
             </a>
