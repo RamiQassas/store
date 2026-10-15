@@ -236,7 +236,7 @@ BRAND_STATIC_SVG_MAP = {
     'بروكسي': 'site/img/brands/vpn.svg',
 }
 
-DEFAULT_FALLBACK_SVG = 'site/img/brands/generic_digital.svg'
+DEFAULT_FALLBACK_SVG = 'site/img/raqamiyat_logo_square.jpg'
 
 # Keys sorted by length descending so longer, more specific brand names always match first
 _SORTED_BRAND_KEYS = sorted(BRAND_STATIC_SVG_MAP.keys(), key=lambda k: len(k), reverse=True)

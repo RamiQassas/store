@@ -42,14 +42,29 @@
 
 /* ── Reset & Base ── */
 * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
-html { scroll-behavior: smooth; direction: rtl; font-size: 16px; width: 100%; max-width: 100vw; overflow-x: hidden; }
+html {
+  scroll-behavior: smooth;
+  direction: rtl;
+  font-size: 16px;
+  width: 100%;
+  max-width: 100vw;
+  overflow-x: hidden;
+  overflow-y: scroll;
+  touch-action: pan-y !important;
+  -webkit-overflow-scrolling: touch !important;
+  overscroll-behavior-y: auto !important;
+}
 
 body {
   margin: 0;
   min-height: 100vh;
   width: 100%;
   max-width: 100vw;
-  overflow-x: clip;
+  overflow-x: hidden !important;
+  overflow-y: visible !important;
+  touch-action: pan-y !important;
+  -webkit-overflow-scrolling: touch !important;
+  overscroll-behavior-y: auto !important;
   font-family: "Tajawal", "Cairo", sans-serif;
   background-color: var(--bg);
   background-image:
@@ -671,13 +686,13 @@ textarea { min-height: 120px; resize: vertical; }
   -webkit-tap-highlight-color: transparent !important;
 }
 
-body {
-  touch-action: auto !important;
-  -webkit-overflow-scrolling: touch;
+body, .shell, main {
+  touch-action: pan-y !important;
+  -webkit-overflow-scrolling: touch !important;
 }
 
 input, textarea, select, [contenteditable="true"], .selectable, pre, code {
-  touch-action: auto !important;
+  touch-action: manipulation !important;
 }
 
 /* Allow horizontal scrollable containers to pan smoothly without locking vertical scroll */

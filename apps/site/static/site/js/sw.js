@@ -6,7 +6,7 @@
  * - Background Sync for Offline Orders
  */
 
-const CACHE_VERSION = 'raqamiyat-offline-v20261007';
+const CACHE_VERSION = 'raqamiyat-v20261015-scroll-touch-final';
 const STATIC_CACHE = `${CACHE_VERSION}-static`;
 const DYNAMIC_CACHE = `${CACHE_VERSION}-dynamic`;
 const IMAGE_CACHE = `${CACHE_VERSION}-images`;

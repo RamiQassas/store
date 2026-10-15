@@ -1784,52 +1784,70 @@ def home(request):
         }
 
         if not store:
-            from apps.common.models import PlatformStatistic, Testimonial
+            try:
+                from apps.common.models import PlatformStatistic, Testimonial
 
-            base_stats = {
-                "orders": Order.objects.count(),
-                "users": User.objects.count(),
-                "tickets": ChatRoom.objects.count(),
-                "deposits": DepositRequest.objects.filter(status=DepositRequest.Status.COMPLETED).count(),
-                "withdrawals": WithdrawalRequest.objects.filter(status=WithdrawalRequest.Status.COMPLETED).count(),
-                "products": Product.objects.filter(is_active=True).count()
-            }
+                base_stats = {
+                    "orders": Order.objects.count(),
+                    "users": User.objects.count(),
+                    "tickets": ChatRoom.objects.count(),
+                    "deposits": DepositRequest.objects.filter(status=DepositRequest.Status.COMPLETED).count(),
+                    "withdrawals": WithdrawalRequest.objects.filter(status=WithdrawalRequest.Status.COMPLETED).count(),
+                    "products": Product.objects.filter(is_active=True, is_publicly_visible=True).count()
+                }
 
-            custom_stats_qs = PlatformStatistic.objects.filter(is_active=True).order_by('display_order')
-            display_stats = []
-            for stat in custom_stats_qs:
-                val = stat.value_override
-                if stat.stat_type == PlatformStatistic.StatType.USERS:
-                    val += base_stats['users']
-                elif stat.stat_type == PlatformStatistic.StatType.ORDERS:
-                    val += base_stats['orders']
-                elif stat.stat_type == PlatformStatistic.StatType.DEPOSITS:
-                    val += base_stats['deposits']
-                elif stat.stat_type == PlatformStatistic.StatType.WITHDRAWALS:
-                    val += base_stats['withdrawals']
-                elif stat.stat_type == PlatformStatistic.StatType.PRODUCTS:
-                    val += base_stats['products']
+                custom_stats_qs = PlatformStatistic.objects.filter(is_active=True).order_by('display_order')
+                display_stats = []
+                for stat in custom_stats_qs:
+                    val = stat.value_override or 0
+                    if stat.stat_type == PlatformStatistic.StatType.USERS:
+                        val += base_stats['users']
+                    elif stat.stat_type == PlatformStatistic.StatType.ORDERS:
+                        val += base_stats['orders']
+                    elif stat.stat_type == PlatformStatistic.StatType.DEPOSITS:
+                        val += base_stats['deposits']
+                    elif stat.stat_type == PlatformStatistic.StatType.WITHDRAWALS:
+                        val += base_stats['withdrawals']
+                    elif stat.stat_type == PlatformStatistic.StatType.PRODUCTS:
+                        val += base_stats['products']
 
-                display_stats.append({
-                    'label': stat.label,
-                    'value': stat.string_value or f"{val}{stat.value_suffix}",
-                    'icon_class': stat.icon_class or 'fas fa-star',
-                    'stat_type': stat.stat_type
-                })
+                    display_stats.append({
+                        'label': stat.label,
+                        'value': stat.string_value or f"{val}{stat.value_suffix or '+'}",
+                        'icon_class': stat.icon_class or 'fas fa-star',
+                        'stat_type': stat.stat_type
+                    })
 
-            testimonials = list(Testimonial.objects.filter(is_approved=True).order_by('-created_at')[:6])
-            ctx["display_stats"] = display_stats
-            ctx["testimonials"] = testimonials
+                testimonials = list(Testimonial.objects.filter(is_approved=True).order_by('-created_at')[:6])
+                ctx["display_stats"] = display_stats
+                ctx["testimonials"] = testimonials
 
-            from apps.stores.models import Store
-            from apps.common.tenant_utils import bypass_tenant_filter
-            with bypass_tenant_filter():
-                platform_stores = list(Store.objects.filter(is_active=True).order_by('-is_featured', 'display_order', 'name')[:8])
-            ctx["platform_stores"] = platform_stores
+                from apps.stores.models import Store
+                from apps.common.tenant_utils import bypass_tenant_filter
+                with bypass_tenant_filter():
+                    platform_stores = list(Store.objects.filter(is_active=True, is_publicly_visible=True).order_by('-is_featured', 'display_order', 'name')[:8])
+                ctx["platform_stores"] = platform_stores
+            except Exception as e:
+                logger.warning("Error computing platform stats or stores for home: %s", e)
+                ctx["display_stats"] = []
+                ctx["testimonials"] = []
+                ctx["platform_stores"] = []
 
         cache.set(cache_key, ctx, 120)
 
-    return render(request, "site/home.html", ctx)
+    try:
+        return render(request, "site/home.html", ctx)
+    except Exception as e:
+        logger.exception("Home view render error: %s", e)
+        fallback_ctx = {
+            "featured_products": list(Product.objects.filter(is_active=True, is_publicly_visible=True)[:8]),
+            "sale_products": [],
+            "categories": list(Category.objects.filter(is_active=True, is_publicly_visible=True)[:10]),
+            "display_stats": [],
+            "testimonials": [],
+            "platform_stores": [],
+        }
+        return render(request, "site/home.html", fallback_ctx)
 
 
 def visit_store(request, subdomain):

@@ -26,7 +26,14 @@ def protected_media(request, path):
             if not _user_owns_private_media(request.user, normalized_path):
                 raise Http404
 
-    response = serve(request, normalized_path, document_root=settings.MEDIA_ROOT)
+    try:
+        response = serve(request, normalized_path, document_root=settings.MEDIA_ROOT)
+    except Http404:
+        if normalized_path.startswith(("products/", "categories/")):
+            from config.urls import platform_logo_view
+            return platform_logo_view(request, variant="square")
+        raise
+
     if normalized_path.startswith(_PRIVATE_MEDIA_PREFIXES):
         patch_cache_control(response, private=True, no_cache=True, no_store=True)
     else:

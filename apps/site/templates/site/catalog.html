@@ -1606,11 +1606,9 @@
                         <a href="{% url 'product_detail' p.id %}" class="card-img-wrap">
                             {% product_display_image p as p_img %}
                             {% if p_img %}
-                            <img src="{{ p_img }}" alt="{{ p.name }}" loading="lazy" onerror="this.onerror=null; this.src='{% static 'site/img/brands/generic_digital.svg' %}';">
+                            <img src="{{ p_img }}" alt="{{ p.name }}" loading="lazy" onerror="this.onerror=null; this.src='{% static 'site/img/raqamiyat_logo_square.jpg' %}';">
                             {% else %}
-                            <div class="card-no-img">
-                                <i class="fas fa-bolt text-gold/30"></i>
-                            </div>
+                            <img src="{% static 'site/img/raqamiyat_logo_square.jpg' %}" alt="{{ p.name }}" loading="lazy">
                             {% endif %}
                             {% if p.is_out_of_stock %}
                             <div class="card-img-oos-strip"><span>غير متوفر حالياً</span></div>
