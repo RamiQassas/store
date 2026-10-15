@@ -1567,16 +1567,16 @@ body.is-native-app .rq-section-link {
         <div class="rq-hero-content">
           <div class="rq-meta-pill">
             <span class="rq-pulse-dot"></span>
-            <span>المنظومة الرقمية الموحدة • تطبيق رسمي وهاتف أصيل • تسليم فوري</span>
+            <span>بوابة التجارة المعتمدة • توريد برمجيات بالجملة ومعدات إلكترونية</span>
           </div>
 
           <h1 class="rq-hero-title">
-            بوابتك الرقمية الذكية <br>
-            <span class="rq-gradient-text">للشحن، البطاقات والاشتراكات السحابية</span>
+            رقميات | RAQAMIYAT <br>
+            <span class="rq-gradient-text">لتجارة البرمجيات بالجملة والمعدات الإلكترونية</span>
           </h1>
 
           <p class="rq-hero-desc">
-            المنصة الأولى المعتمدة للوصول الفوري لأحدث الاشتراكات السحابية، شدات الألعاب، البرمجيات التخصصية، ومحفظة رقمية متقدمة بتسليم فوري وتطبيق أندرويد رسمي فائق السرعة.
+            المنصة التجارية المعتمدة لتوريد تراخيص وحلول البرمجيات بالجملة، وتجارة واستيراد وتصدير كافة أنواع المعدات والأجهزة الإلكترونية الخاصة بالاتصالات وفق السجل التجاري المعتمد.
           </p>
 
           <!-- Interactive User Action Cluster (App Download + Auth/Dashboard) -->
@@ -1605,7 +1605,7 @@ body.is-native-app .rq-section-link {
             </a>
             <a href="{% url 'dashboard_wallet' %}" class="inline-flex items-center gap-2 px-4 py-3 rounded-2xl bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/30 text-emerald-300 font-bold text-sm transition-all">
               <i class="fas fa-wallet text-xs"></i>
-              <span>المحفظة والرصيد</span>
+              <span>المحفظة والفواتير</span>
             </a>
             {% endif %}
           </div>
@@ -1613,7 +1613,7 @@ body.is-native-app .rq-section-link {
           <!-- Omni Search Dock -->
           <form action="{% url 'catalog' %}" method="get" class="rq-omni-search" id="rq-hero-search-form">
             <i class="fas fa-search"></i>
-            <input type="text" name="q" id="rq-hero-search-input" class="rq-omni-input" placeholder="ابحث في الكتالوج الموحد (ألعاب، برامج، بطاقات، اشتراكات سحابية)..." autocomplete="off">
+            <input type="text" name="q" id="rq-hero-search-input" class="rq-omni-input" placeholder="ابحث في حلول البرمجيات بالجملة، تراخيص الشركات، والمعدات الإلكترونية..." autocomplete="off">
             <button type="submit" class="rq-omni-submit">
               <span>استكشف الكتالوج</span>
               <i class="fas fa-arrow-left"></i>
@@ -1624,10 +1624,11 @@ body.is-native-app .rq-section-link {
           <!-- Quick Discovery Chips -->
           <div class="rq-quick-tags">
             <span class="rq-tag-label"><i class="fas fa-bolt text-amber-400"></i> وصول سريع:</span>
-            <a href="{% url 'catalog' %}?q=Canva" class="rq-tag-chip">Canva Pro سحابي</a>
-            <a href="{% url 'catalog' %}?q=VPN" class="rq-tag-chip">اشتراكات VPN</a>
-            <a href="{% url 'catalog' %}?q=PUBG" class="rq-tag-chip">شدات ببجي</a>
-            <a href="{% url 'catalog' %}?q=بطاقات" class="rq-tag-chip">بطاقات رقمية</a>
+            <a href="{% url 'catalog' %}?q=برمجيات" class="rq-tag-chip">برمجيات بالجملة</a>
+            <a href="{% url 'catalog' %}?q=معدات" class="rq-tag-chip">معدات إلكترونية</a>
+            <a href="{% url 'catalog' %}?q=اتصالات" class="rq-tag-chip">أنظمة اتصالات</a>
+            <a href="{% url 'catalog' %}?q=Canva" class="rq-tag-chip">تراخيص Canva Pro</a>
+            <a href="{% url 'catalog' %}?q=VPN" class="rq-tag-chip">حلول الشبكات NordVPN</a>
             {% if not is_tenant %}
             <a href="{% url 'stores_directory' %}" class="rq-tag-chip text-indigo-400 font-bold">دليل المتاجر ⟵</a>
             <a href="{% url 'store_registration' %}" class="rq-tag-chip font-bold text-amber-400 border-amber-400/30" style="background: rgba(245, 158, 11, 0.12);"><i class="fas fa-rocket ml-1"></i> أنشئ متجرك</a>
@@ -1781,8 +1782,8 @@ body.is-native-app .rq-section-link {
             <i class="fas fa-bolt"></i>
           </div>
           <div>
-            <h4 class="rq-protocol-title">بروتوكول التسليم اللحظي</h4>
-            <p class="rq-protocol-text">ربط سحابي مؤتمت يضمن وصول الأكواد والشحنات فور إتمام الدفع خلال 15 ثانية.</p>
+            <h4 class="rq-protocol-title">بروتوكول التوريد والتسليم</h4>
+            <p class="rq-protocol-text">ربط مؤتمت لتوريد التراخيص والحلول البرمجية فور تأكيد الطلب للشركات والمؤسسات.</p>
           </div>
         </div>
 
@@ -1792,7 +1793,7 @@ body.is-native-app .rq-section-link {
           </div>
           <div>
             <h4 class="rq-protocol-title">حماية وتشفير مصرفي</h4>
-            <p class="rq-protocol-text">معايير تشفير مصرفية صارمة مع عزل كامل لحسابات ورصيد المحافظ الرقمية.</p>
+            <p class="rq-protocol-text">معايير أمان مصرفية معتمدة لحماية الفواتير والمدفوعات الإلكترونية.</p>
           </div>
         </div>
 
@@ -1802,7 +1803,7 @@ body.is-native-app .rq-section-link {
           </div>
           <div>
             <h4 class="rq-protocol-title">تسوية متعددة العملات</h4>
-            <p class="rq-protocol-text">دعم التسعير والتحويل الفوري بالليرة السورية، الليرة التركية، والدولار الأمريكي.</p>
+            <p class="rq-protocol-text">دعم الفوترة والتسعير بالليرة السورية، الليرة التركية، والدولار الأمريكي.</p>
           </div>
         </div>
 
@@ -1812,7 +1813,7 @@ body.is-native-app .rq-section-link {
           </div>
           <div>
             <h4 class="rq-protocol-title">تراخيص ومصادر أصلية</h4>
-            <p class="rq-protocol-text">كافة الخدمات والبطاقات موثقة ومضمونة 100% ومستوردة مباشرة من موزعيها الرسميين.</p>
+            <p class="rq-protocol-text">كافة البرمجيات والمعدات الإلكترونية موثقة ومضمونة 100% ومستوردة من الوكلاء المعتمدين.</p>
           </div>
         </div>
 

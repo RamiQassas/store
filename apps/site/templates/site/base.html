@@ -7,8 +7,8 @@
   <title>{% filter tenant_title %}{% block title %}{% if is_tenant %}{{ STORE_NAME }}{% else %}Raqamiyat | رقميات{% endif %}{% endblock %}{% endfilter %}</title>
   
   <!-- Primary SEO Meta Tags for Google & Search Engines -->
-  <meta name="description" content="منصة رقميات - وجهتك الرائدة لشراء وتفعيل الاشتراكات الرقمية، شحن التطبيقات والألعاب، التراخيص البرمجية، وبطاقات الهدايا فورياً بأعلى معايير الأمان.">
-  <meta name="keywords" content="رقميات, متجر رقميات, شحن تطبيقات, شحن ألعاب, بطاقات رقمية, اشتراكات, برامج, مفاتيح برامج, VPN, Canva, Raqamiyat">
+  <meta name="description" content="منصة رقميات - تجارة وحلول البرمجيات بالجملة، وتوريد المعدات والأجهزة الإلكترونية الخاصة بالاتصالات وأجزائها وفق السجل التجاري المعتمد.">
+  <meta name="keywords" content="رقميات, تجارة البرمجيات بالجملة, معدات إلكترونية, أجهزة الاتصالات, برمجيات الشركات, تراخيص برمجية, Raqamiyat">
   <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1">
   <meta property="og:site_name" content="رقميات | Raqamiyat">
   <meta property="og:locale" content="ar_AR">
@@ -19,7 +19,7 @@
   {
     "@context": "https://schema.org",
     "@type": "WebSite",
-    "name": "رقميات | Raqamiyat Store",
+    "name": "رقميات | Raqamiyat",
     "url": "https://raqamiyatapp.com/",
     "potentialAction": {
       "@type": "SearchAction",
@@ -62,11 +62,16 @@
   {% endif %}
   
   <style>
-    html, body {
-        max-width: 100vw !important;
-        overflow-x: hidden !important;
+    html {
+        max-width: 100vw;
+        overflow-x: hidden;
+        touch-action: auto;
+    }
+    body {
+        max-width: 100vw;
+        overflow-x: clip;
         width: 100%;
-        touch-action: pan-x pan-y;
+        touch-action: auto !important;
         -webkit-overflow-scrolling: touch;
     }
 
@@ -298,6 +303,7 @@
         z-index: 99999;
         opacity: 0;
         visibility: hidden;
+        pointer-events: none;
         transition: opacity 0.25s ease, visibility 0.25s ease;
         display: flex;
         align-items: flex-end;
@@ -306,6 +312,7 @@
     .currency-modal-backdrop.active {
         opacity: 1;
         visibility: visible;
+        pointer-events: auto;
     }
     .currency-modal-sheet {
         background: #0f0f17;
@@ -746,9 +753,10 @@
         z-index: 1050;
         opacity: 0;
         visibility: hidden;
+        pointer-events: none;
         transition: all 0.3s;
     }
-    .drawer-overlay.active { opacity: 1; visibility: visible; }
+    .drawer-overlay.active { opacity: 1; visibility: visible; pointer-events: auto; }
 
     .drawer-link {
         display: flex;

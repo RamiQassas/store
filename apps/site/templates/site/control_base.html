@@ -13,11 +13,17 @@
         --sham-cyan: #06b6d4;
     }
 
-    html, body { 
+    html { 
+        background: var(--admin-bg) !important; 
+        overflow-x: hidden;
+        touch-action: auto;
+    }
+    body { 
         background: var(--admin-bg) !important; 
         color: #f8fafc; 
         font-family: 'Cairo', sans-serif; 
-        touch-action: pan-x pan-y;
+        overflow-x: clip;
+        touch-action: auto !important;
         -webkit-overflow-scrolling: touch;
     }
 
@@ -26,7 +32,7 @@
         grid-template-columns: var(--admin-sidebar-w) 1fr;
         min-height: 100vh;
         gap: 0;
-        overflow-x: hidden;
+        overflow-x: clip;
     }
 
     /* Elite Sidebar */

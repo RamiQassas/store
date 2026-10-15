@@ -1060,17 +1060,10 @@ from django.contrib.auth.hashers import make_password, check_password as check_p
 def transfer_page(request):
     from apps.wallets.services import execute_p2p_transfer
     from django.core.exceptions import ValidationError
+    from apps.common.models import SiteFeatureFlag
     
-    # â”€â”€ Maintenance Mode Check â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-    from apps.common.models import SiteMaintenanceMode
-    _maint = SiteMaintenanceMode.get_settings()
-    if not _maint.transfers_enabled:
-        messages.error(request, f"⚠️ خدمة التحويل بين المستخدمين موقوفة مؤقتاً. {_maint.maintenance_message}")
-        return redirect("dashboard")
-
-    settings_obj = KYCSettings.get_settings()
-    if not settings_obj.p2p_transfer_enabled:
-        messages.error(request, "ميزة التحويل معطلة حالياً.")
+    if not SiteFeatureFlag.is_feature_enabled("feature_p2p_transfers"):
+        messages.error(request, "⚠️ خدمة التحويل بين المستخدمين غير متاحة وفق نطاق الأنشطة التجارية المرخصة للمنصة (تجارة المعدات والبرمجيات بالجملة).")
         return redirect("dashboard")
         
     wallet = get_or_create_wallet(request.user)
