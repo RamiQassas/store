@@ -2,13 +2,14 @@
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
+  <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-  <meta name="theme-color" content="#0a0a0f">
-  <title>{% filter tenant_title %}{% block title %}{% if is_tenant %}{{ STORE_NAME }}{% else %}Raqamiyat | رقميات{% endif %}{% endblock %}{% endfilter %}</title>
+  <meta name="theme-color" content="#07090e">
+  <title>{% filter tenant_title %}{% block title %}{% if is_tenant %}{{ STORE_NAME }}{% else %}رقميات | RAQAMIYAT — عالم الأجهزة والتقنيات الذكية{% endif %}{% endblock %}{% endfilter %}</title>
   
   <!-- Primary SEO Meta Tags for Google & Search Engines -->
-  <meta name="description" content="رقميات | RAQAMIYAT - وجهتك المتكاملة للتكنولوجيا، إكسسوارات الهواتف، أجهزة الشبكات، كاميرات المراقبة، الشواحن، السماعات، والأجهزة والبرمجيات.">
-  <meta name="keywords" content="رقميات, إكسسوارات هواتف, أجهزة شبكات, كاميرات مراقبة, شواحن, سماعات, إلكترونيات, Raqamiyat">
+  <meta name="description" content="رقميات | RAQAMIYAT - وجهتك المعتمدة للهواتف الذكية، الحواسيب المحمولة والمكتبية، أجهزة الشبكات والاتصالات، الكاميرات، والشواحن والإكسسوارات الأصلية.">
+  <meta name="keywords" content="رقميات, هواتف ذكية, لابتوبات, حواسيب, إكسسوارات أصلية, راوترات, كاميرات مراقبة, شواحن, Raqamiyat">
   <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1">
   <meta property="og:site_name" content="رقميات | Raqamiyat">
   <meta property="og:locale" content="ar_AR">
@@ -33,11 +34,11 @@
   <link rel="icon" href="{% static 'site/img/app-icon.svg' %}" type="image/svg+xml">
   <link rel="apple-touch-icon" href="{% static 'site/img/app-icon.svg' %}">
   
+  <!-- Precision Fonts & FontAwesome -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;800;900&family=Cairo:wght@400;600;700;900&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
-  <link rel="stylesheet" href="{% static 'site/css/app.css' %}?v=20261015_scroll_touch_v12">
+  <link rel="stylesheet" href="{% static 'site/css/app.css' %}?v=20261017_hardware_studio_v1">
 
   {% if META_PIXEL_ID and not '/control/' in request.path and not '/admin/' in request.path %}
   <!-- Meta Pixel Code -->
@@ -58,1606 +59,560 @@
   <noscript><img height="1" width="1" style="display:none"
   src="https://www.facebook.net/tr?id={{ META_PIXEL_ID }}&ev=PageView&noscript=1"
   /></noscript>
-  <!-- End Meta Pixel Code -->
   {% endif %}
-  
-  <style>
-    html {
-        max-width: 100vw;
-        overflow-x: hidden;
-        overflow-y: scroll;
-        touch-action: pan-y !important;
-        -webkit-overflow-scrolling: touch !important;
-        overscroll-behavior-y: auto !important;
-    }
-    body {
-        max-width: 100vw;
-        overflow-x: hidden !important;
-        overflow-y: visible !important;
-        width: 100%;
-        touch-action: pan-y !important;
-        -webkit-overflow-scrolling: touch !important;
-        overscroll-behavior-y: auto !important;
-    }
-    *, *::before, *::after {
-        -webkit-tap-highlight-color: transparent;
-    }
 
-    /* ═══════════════════════════════════════════
-       VELVET NOIR & ROYAL GOLD — Header System
-       ═══════════════════════════════════════════ */
-
-    /* Desktop Header — Slim & Proportional */
-    .desktop-header {
-        position: sticky;
-        top: 0;
-        z-index: 1000;
-        background: rgba(10, 14, 26, 0.94);
-        backdrop-filter: blur(20px);
-        -webkit-backdrop-filter: blur(20px);
-        border-bottom: 1px solid rgba(255, 255, 255, 0.08);
-        padding: 0.5rem 0;
-        transition: all 0.25s ease;
-        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.35);
-        max-width: 100vw;
-        box-sizing: border-box;
-    }
-
-    .header-container {
-        width: min(100% - 2rem, 1320px);
-        margin-inline: auto;
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        gap: 1.25rem;
-        box-sizing: border-box;
-    }
-
-    .brand {
-        display: flex;
-        align-items: center;
-        gap: 0.75rem;
-        text-decoration: none;
-        font-weight: 800;
-        font-size: 1.5rem;
-        color: #fff;
-        flex-shrink: 0;
-    }
-
-    .brand i { color: var(--gold); text-shadow: 0 0 20px rgba(212, 168, 83, 0.4); }
-
-    .nav-links {
-        display: flex;
-        align-items: center;
-        gap: 1.25rem;
-        flex-grow: 1;
-        justify-content: center;
-    }
-
-    .nav-links a {
-        color: var(--muted);
-        text-decoration: none;
-        font-weight: 700;
-        font-size: 0.85rem;
-        transition: all 0.3s ease;
-        position: relative;
-        padding: 0.5rem 0.25rem;
-    }
-
-    .nav-links a:hover, .nav-links a.active { color: var(--gold); }
-    .nav-links a::after {
-        content: '';
-        position: absolute;
-        bottom: 0;
-        left: 0;
-        width: 0;
-        height: 2px;
-        background: linear-gradient(90deg, var(--gold), var(--gold-light));
-        transition: width 0.3s ease;
-        border-radius: 1px;
-    }
-    .nav-links a:hover::after, .nav-links a.active::after { width: 100%; }
-
-    .admin-link {
-        color: var(--gold) !important;
-        background: rgba(212, 168, 83, 0.08);
-        padding: 0.4rem 1rem !important;
-        border-radius: 100px;
-        border: 1px solid rgba(212, 168, 83, 0.15);
-    }
-    .admin-link:hover { background: rgba(212, 168, 83, 0.15) !important; }
-
-    .header-actions {
-        display: flex;
-        align-items: center;
-        gap: 1.5rem;
-        flex-shrink: 0;
-    }
-
-    .currency-selector select {
-        background: rgba(255, 255, 255, 0.06);
-        border: 1px solid rgba(212, 168, 83, 0.12);
-        color: #fff;
-        padding: 0.4rem 0.75rem;
-        border-radius: 10px;
-        font-weight: 700;
-        font-size: 0.75rem;
-        cursor: pointer;
-        outline: none;
-    }
-
-    .currency-selector select option {
-        background: #12121a;
-        color: #fff;
-    }
-
-    .notification-trigger i {
-        font-size: 1.25rem;
-        color: var(--muted);
-        transition: color 0.3s;
-    }
-    .notification-trigger:hover i { color: var(--gold); }
-    .count-badge {
-        position: absolute;
-        top: -8px;
-        right: -8px;
-        background: var(--danger);
-        color: #fff;
-        font-size: 0.6rem;
-        font-weight: 900;
-        width: 18px;
-        height: 18px;
-        border-radius: 50%;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        border: 2px solid #0a0a0f;
-    }
-
-    .user-profile-hub {
-        display: flex;
-        align-items: center;
-        gap: 1rem;
-        padding-left: 1rem;
-        border-left: 1px solid rgba(212, 168, 83, 0.08);
-    }
-
-    .user-meta {
-        display: flex;
-        flex-direction: column;
-        text-align: left;
-    }
-
-    .user-name {
-        color: #fff;
-        font-weight: 800;
-        font-size: 0.85rem;
-        max-width: 150px;
-        white-space: nowrap;
-        overflow: hidden;
-        text-overflow: ellipsis;
-    }
-
-    .user-balance {
-        color: var(--gold);
-        font-weight: 800;
-        font-size: 0.75rem;
-    }
-
-    .logout-btn {
-        width: 36px;
-        height: 36px;
-        border-radius: 10px;
-        background: rgba(232, 93, 117, 0.08);
-        color: var(--danger);
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        text-decoration: none;
-        transition: all 0.3s;
-        border: 1px solid rgba(232, 93, 117, 0.15);
-    }
-    .logout-btn:hover { background: var(--danger); color: #fff; }
-
-    .btn-premium-sm {
-        padding: 0.5rem 1.25rem;
-        border-radius: 10px;
-        font-weight: 800;
-        font-size: 0.8rem;
-        text-decoration: none;
-        transition: all 0.3s;
-    }
-    .btn-premium-sm.primary {
-        background: linear-gradient(135deg, var(--gold) 0%, var(--gold-light) 100%);
-        color: #0a0a0f;
-    }
-    .btn-premium-sm.ghost { border: 1px solid rgba(212, 168, 83, 0.12); color: #fff; }
-
-    
-    /* Mobile Currency Button & Bottom Sheet Modal */
-    .mobile-currency-btn {
-        display: inline-flex;
-        align-items: center;
-        gap: 4px;
-        background: rgba(255, 255, 255, 0.05);
-        border: 1px solid rgba(255, 255, 255, 0.1);
-        color: #f1f5f9;
-        padding: 0.26rem 0.55rem;
-        border-radius: 9999px;
-        font-weight: 800;
-        font-size: 0.72rem;
-        cursor: pointer;
-        flex-shrink: 0;
-        transition: all 0.2s ease;
-        line-height: 1;
-        outline: none;
-    }
-    .mobile-currency-btn:hover, .mobile-currency-btn:active {
-        background: rgba(245, 158, 11, 0.12);
-        border-color: rgba(245, 158, 11, 0.35);
-        color: #fbbf24;
-    }
-    .mobile-currency-btn i.fa-coins {
-        color: var(--gold);
-        font-size: 0.72rem;
-    }
-
-    .currency-modal-backdrop {
-        position: fixed;
-        inset: 0;
-        background: rgba(0, 0, 0, 0.8);
-        backdrop-filter: blur(10px);
-        -webkit-backdrop-filter: blur(10px);
-        z-index: 99999;
-        opacity: 0;
-        visibility: hidden;
-        pointer-events: none;
-        transition: opacity 0.25s ease, visibility 0.25s ease;
-        display: flex;
-        align-items: flex-end;
-        justify-content: center;
-    }
-    .currency-modal-backdrop.active {
-        opacity: 1;
-        visibility: visible;
-        pointer-events: auto;
-    }
-    .currency-modal-sheet {
-        background: #0f0f17;
-        border: 1px solid rgba(212, 168, 83, 0.1);
-        border-bottom: none;
-        border-radius: 24px 24px 0 0;
-        width: 100%;
-        max-width: 480px;
-        padding: 1.25rem 1.25rem 2.25rem;
-        transform: translateY(100%);
-        transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
-        box-shadow: 0 -15px 50px rgba(0, 0, 0, 0.8);
-        max-height: 85vh;
-        overflow-y: auto;
-        direction: rtl;
-        text-align: right;
-    }
-    .currency-modal-backdrop.active .currency-modal-sheet {
-        transform: translateY(0);
-    }
-    .currency-modal-handle {
-        width: 44px;
-        height: 5px;
-        background: rgba(212, 168, 83, 0.15);
-        border-radius: 3px;
-        margin: 0 auto 1.25rem;
-    }
-    .currency-modal-header {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        margin-bottom: 0.75rem;
-    }
-    .currency-modal-close {
-        background: rgba(255, 255, 255, 0.05);
-        border: 1px solid rgba(255, 255, 255, 0.08);
-        color: var(--muted);
-        width: 34px;
-        height: 34px;
-        border-radius: 50%;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        cursor: pointer;
-        font-size: 0.95rem;
-        transition: all 0.2s;
-    }
-    .currency-modal-close:hover {
-        background: rgba(232, 93, 117, 0.15);
-        color: var(--danger);
-    }
-    .currency-modal-list {
-        display: flex;
-        flex-direction: column;
-        gap: 0.65rem;
-        margin-top: 1rem;
-    }
-    .currency-option-item {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        padding: 0.85rem 1.1rem;
-        background: rgba(255, 255, 255, 0.02);
-        border: 1px solid rgba(255, 255, 255, 0.05);
-        border-radius: 16px;
-        text-decoration: none;
-        color: #fff;
-        transition: all 0.2s ease;
-    }
-    .currency-option-item:hover, .currency-option-item:active {
-        background: rgba(212, 168, 83, 0.06);
-        border-color: rgba(212, 168, 83, 0.3);
-        transform: translateY(-1px);
-    }
-    .currency-option-item.active {
-        background: rgba(212, 168, 83, 0.08);
-        border-color: var(--gold);
-        box-shadow: 0 0 20px rgba(212, 168, 83, 0.1);
-    }
-    .currency-flag-circle {
-        width: 42px;
-        height: 42px;
-        border-radius: 12px;
-        background: rgba(255, 255, 255, 0.04);
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        font-size: 1.4rem;
-        flex-shrink: 0;
-    }
-    .currency-title-row {
-        display: flex;
-        align-items: center;
-        gap: 0.5rem;
-        margin-bottom: 2px;
-    }
-    .currency-name {
-        font-weight: 800;
-        font-size: 0.95rem;
-        color: #fff;
-    }
-    .currency-badge-code {
-        background: rgba(212, 168, 83, 0.1);
-        padding: 0.15rem 0.45rem;
-        border-radius: 6px;
-        font-size: 0.72rem;
-        font-weight: 900;
-        color: var(--gold);
-        font-family: monospace;
-    }
-    .currency-inactive-circle {
-        width: 20px;
-        height: 20px;
-        border-radius: 50%;
-        border: 2px solid rgba(255, 255, 255, 0.12);
-        display: block;
-    }
-
-    /* Prevent mobile brand text from overflowing */
-    .mobile-header .brand span {
-        max-width: 140px;
-        overflow: hidden;
-        text-overflow: ellipsis;
-        white-space: nowrap;
-        display: inline-block;
-        vertical-align: middle;
-    }
-
-    /* ══════════════════════════════════════════════════════════
-       RADICAL 360° MOBILE REDESIGN — ULTRA LUXURY FINTECH BENTO
-       ══════════════════════════════════════════════════════════ */
-
-    /* Root Mobile Header — Glass Bento Nav */
-    .mobile-header {
-        position: sticky;
-        top: 0;
-        z-index: 1000;
-        background: rgba(9, 13, 24, 0.92);
-        backdrop-filter: blur(24px) saturate(180%);
-        -webkit-backdrop-filter: blur(24px) saturate(180%);
-        border-bottom: 1px solid rgba(255, 255, 255, 0.08);
-        box-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.5);
-        height: 54px;
-        padding: 0 0.75rem;
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        gap: 0.5rem;
-        max-width: 100vw;
-        box-sizing: border-box;
-        overflow: hidden;
-    }
-
-    /* Left Brand & Menu Hub */
-    .mobile-brand-group {
-        display: flex;
-        align-items: center;
-        gap: 0.5rem;
-        flex-shrink: 0;
-        min-width: 0;
-    }
-
-    .mobile-nav-toggle {
-        width: 34px;
-        height: 34px;
-        border-radius: 11px;
-        background: rgba(255, 255, 255, 0.04);
-        border: 1px solid rgba(255, 255, 255, 0.08);
-        color: #94a3b8;
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        font-size: 0.95rem;
-        cursor: pointer;
-        transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
-        flex-shrink: 0;
-        outline: none;
-    }
-    .mobile-nav-toggle:active {
-        background: rgba(212, 168, 83, 0.15);
-        border-color: rgba(212, 168, 83, 0.35);
-        color: #fbbf24;
-        transform: scale(0.94);
-    }
-
-    .mobile-brand-link {
-        display: flex;
-        align-items: center;
-        gap: 0.45rem;
-        text-decoration: none;
-        min-width: 0;
-    }
-
-    .mobile-brand-glyph {
-        width: 32px;
-        height: 32px;
-        border-radius: 10px;
-        background: linear-gradient(135deg, rgba(212, 168, 83, 0.2), rgba(99, 102, 241, 0.1));
-        border: 1px solid rgba(212, 168, 83, 0.3);
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        color: #fbbf24;
-        font-size: 0.85rem;
-        flex-shrink: 0;
-        box-shadow: 0 2px 10px rgba(245, 158, 11, 0.15);
-    }
-
-    .mobile-brand-img {
-        height: 24px;
-        max-height: 24px;
-        max-width: 85px;
-        width: auto;
-        border-radius: 6px;
-        object-fit: contain;
-    }
-
-    .mobile-brand-text {
-        display: flex;
-        flex-direction: column;
-        justify-content: center;
-        min-width: 0;
-        line-height: 1.1;
-    }
-
-    .mobile-brand-title {
-        font-weight: 900;
-        font-size: 0.88rem;
-        color: #f8fafc;
-        letter-spacing: -0.02em;
-        white-space: nowrap;
-        overflow: hidden;
-        text-overflow: ellipsis;
-        max-width: 85px;
-    }
-
-    .mobile-brand-chip {
-        display: inline-flex;
-        align-items: center;
-        gap: 3px;
-        font-size: 8px;
-        font-weight: 800;
-        color: #94a3b8;
-        letter-spacing: 0.02em;
-    }
-
-    .chip-pulse {
-        width: 5px;
-        height: 5px;
-        border-radius: 50%;
-        background: #10b981;
-        box-shadow: 0 0 6px #10b981;
-        animation: pulseLive 2s infinite;
-    }
-
-    @keyframes pulseLive {
-        0%, 100% { opacity: 1; transform: scale(1); }
-        50% { opacity: 0.4; transform: scale(0.85); }
-    }
-
-    /* Right Action Capsule & Notifications Hub */
-    .mobile-header-actions {
-        display: flex;
-        align-items: center;
-        gap: 0.45rem;
-        flex-shrink: 0;
-    }
-
-    /* Bento Action Capsule (Unified Currency + Wallet/Login) */
-    .mobile-action-capsule {
-        display: inline-flex;
-        align-items: center;
-        background: rgba(255, 255, 255, 0.035);
-        border: 1px solid rgba(255, 255, 255, 0.09);
-        border-radius: 9999px;
-        padding: 2px 4px;
-        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.25);
-        backdrop-filter: blur(16px);
-        flex-shrink: 0;
-    }
-
-    .mobile-capsule-currency {
-        background: transparent;
-        border: none;
-        color: #cbd5e1;
-        display: inline-flex;
-        align-items: center;
-        gap: 4px;
-        font-size: 0.72rem;
-        font-weight: 800;
-        padding: 0.25rem 0.45rem;
-        border-radius: 9999px;
-        cursor: pointer;
-        outline: none;
-        transition: all 0.15s ease;
-        line-height: 1;
-    }
-    .mobile-capsule-currency:active {
-        background: rgba(255, 255, 255, 0.08);
-        color: #fff;
-    }
-
-    .mobile-currency-flag {
-        font-size: 0.78rem;
-        line-height: 1;
-    }
-
-    .mobile-currency-arrow {
-        font-size: 7px;
-        opacity: 0.6;
-        margin-right: 1px;
-    }
-
-    .mobile-capsule-divider {
-        width: 1px;
-        height: 14px;
-        background: rgba(255, 255, 255, 0.14);
-        margin: 0 1px;
-    }
-
-    .mobile-capsule-wallet {
-        display: inline-flex;
-        align-items: center;
-        gap: 5px;
-        background: linear-gradient(135deg, rgba(245, 158, 11, 0.16), rgba(212, 168, 83, 0.08));
-        border: 1px solid rgba(245, 158, 11, 0.3);
-        color: #fbbf24 !important;
-        padding: 0.28rem 0.55rem;
-        border-radius: 9999px;
-        font-weight: 850;
-        font-size: 0.72rem;
-        text-decoration: none;
-        transition: all 0.15s ease;
-        line-height: 1;
-        white-space: nowrap;
-        box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.1);
-    }
-    .mobile-capsule-wallet:active {
-        background: rgba(245, 158, 11, 0.28);
-        transform: scale(0.96);
-    }
-
-    .mobile-wallet-val {
-        max-width: 82px;
-        overflow: hidden;
-        text-overflow: ellipsis;
-        white-space: nowrap;
-    }
-
-    .mobile-capsule-login {
-        display: inline-flex;
-        align-items: center;
-        gap: 4px;
-        background: linear-gradient(135deg, #d4a853, #f59e0b);
-        color: #0b0f19 !important;
-        padding: 0.3rem 0.65rem;
-        border-radius: 9999px;
-        font-weight: 900;
-        font-size: 0.72rem;
-        text-decoration: none;
-        line-height: 1;
-        box-shadow: 0 2px 8px rgba(245, 158, 11, 0.35);
-        transition: all 0.15s ease;
-    }
-    .mobile-capsule-login:active {
-        transform: scale(0.95);
-    }
-
-    /* Isolated Notification Button */
-    .mobile-bell-capsule {
-        width: 34px;
-        height: 34px;
-        border-radius: 11px;
-        background: rgba(255, 255, 255, 0.04);
-        border: 1px solid rgba(255, 255, 255, 0.08);
-        color: #94a3b8;
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        position: relative;
-        text-decoration: none;
-        flex-shrink: 0;
-        transition: all 0.15s ease;
-        font-size: 0.95rem;
-    }
-    .mobile-bell-capsule:active {
-        background: rgba(255, 255, 255, 0.1);
-        color: #fff;
-        transform: scale(0.94);
-    }
-
-    .mobile-bell-dot {
-        position: absolute;
-        top: 6px;
-        right: 7px;
-        width: 7px;
-        height: 7px;
-        border-radius: 50%;
-        background: #ef4444;
-        border: 1.5px solid #090d18;
-        box-shadow: 0 0 6px #ef4444;
-    }
-
-    .mobile-drawer {
-        position: fixed;
-        top: 0;
-        right: 0;
-        transform: translateX(100%);
-        width: 85%;
-        max-width: 320px;
-        height: 100vh;
-        background: #0a0e1a;
-        z-index: 1100;
-        transition: transform 0.35s cubic-bezier(0.23, 1, 0.32, 1);
-        padding: 2rem;
-        box-shadow: -10px 0 40px rgba(0,0,0,0.6);
-        display: flex;
-        flex-direction: column;
-        overflow-y: auto;
-        -webkit-overflow-scrolling: touch;
-        border-left: 1px solid rgba(255, 255, 255, 0.08);
-        visibility: hidden;
-        pointer-events: none;
-    }
-
-    .mobile-drawer.open {
-        transform: translateX(0);
-        visibility: visible;
-        pointer-events: auto;
-    }
-
-    .drawer-overlay {
-        position: fixed;
-        inset: 0;
-        background: rgba(0,0,0,0.75);
-        backdrop-filter: blur(6px);
-        -webkit-backdrop-filter: blur(6px);
-        z-index: 1050;
-        opacity: 0;
-        visibility: hidden;
-        pointer-events: none;
-        transition: all 0.3s;
-    }
-    .drawer-overlay.active { opacity: 1; visibility: visible; pointer-events: auto; }
-
-    .drawer-link {
-        display: flex;
-        align-items: center;
-        gap: 1rem;
-        padding: 0.9rem 1rem;
-        color: var(--muted);
-        font-weight: 700;
-        text-decoration: none;
-        border-radius: 14px;
-        transition: all 0.2s;
-    }
-    .drawer-link:active, .drawer-link:hover { background: rgba(212, 168, 83, 0.08); color: var(--gold); }
-    .drawer-link i { width: 24px; text-align: center; font-size: 1.2rem; }
-    .drawer-link.active { background: rgba(212, 168, 83, 0.1); color: var(--gold); }
-
-    /* ══════════════════════════════════════════════════════════
-       NATIVE APP EXCLUSIVE LUXURY THEMING (body.is-native-app)
-       Creates a distinct, native-app UI feel radically different from web
-       ══════════════════════════════════════════════════════════ */
-    body.is-native-app .mobile-nav-bar,
-    body.is-native-app #top-app-download-ribbon,
-    body.is-native-app #home-native-app-section,
-    body.is-native-app .announcement-bar,
-    body.is-native-app header.desktop-header {
-        display: none !important;
-    }
-
-    body.is-native-app {
-        background-color: #030712 !important;
-        -webkit-user-select: none;
-        user-select: none;
-        -webkit-tap-highlight-color: transparent;
-    }
-
-    body.is-native-app .shell {
-        padding-top: 0.25rem !important;
-        padding-bottom: 70px !important;
-    }
-
-    body.is-native-app .mobile-header {
-        background: rgba(3, 7, 18, 0.95) !important;
-        backdrop-filter: blur(20px) !important;
-        border-bottom: 1px solid rgba(255, 255, 255, 0.06) !important;
-        padding: 0.65rem 1rem !important;
-    }
-
-    /* Transform cards into tactile native touch surfaces */
-    body.is-native-app .rq-service-card,
-    body.is-native-app .product-card,
-    body.is-native-app .panel,
-    body.is-native-app .wallet-hero,
-    body.is-native-app .side-card {
-        border-radius: 24px !important;
-        border: 1px solid rgba(255, 255, 255, 0.06) !important;
-        background: rgba(15, 23, 42, 0.8) !important;
-        box-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.7) !important;
-        transition: transform 0.15s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.15s ease !important;
-    }
-
-    body.is-native-app .rq-service-card:active,
-    body.is-native-app .product-card:active,
-    body.is-native-app .qa-btn:active {
-        transform: scale(0.97) !important;
-    }
-
-    /* Native App Button styling - tactile pill ergonomics */
-    body.is-native-app .btn,
-    body.is-native-app .btn-primary,
-    body.is-native-app .btn-premium,
-    body.is-native-app .rq-omni-submit {
-        border-radius: 18px !important;
-        font-weight: 850 !important;
-        box-shadow: 0 4px 14px rgba(6, 182, 212, 0.25) !important;
-        letter-spacing: -0.01em !important;
-    }
-
-    body.is-native-app .btn:active,
-    body.is-native-app .btn-primary:active {
-        transform: scale(0.95) !important;
-    }
-
-    .mobile-nav-bar {
-        position: fixed;
-        bottom: 12px;
-        left: 12px;
-        right: 12px;
-        max-width: 440px;
-        margin: 0 auto;
-        height: 60px;
-        background: rgba(11, 16, 32, 0.92);
-        backdrop-filter: blur(28px) saturate(190%);
-        -webkit-backdrop-filter: blur(28px) saturate(190%);
-        border: 1px solid rgba(255, 255, 255, 0.12);
-        border-radius: 22px;
-        box-shadow: 0 16px 36px -6px rgba(0, 0, 0, 0.8), 0 0 20px -2px rgba(212, 168, 83, 0.12);
-        display: flex;
-        justify-content: space-around;
-        align-items: center;
-        z-index: 1000;
-        padding: 4px 6px;
-        box-sizing: border-box;
-    }
-
-    .mobile-nav-item {
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        justify-content: center;
-        color: #64748b;
-        font-size: 10px;
-        font-weight: 750;
-        text-decoration: none;
-        transition: all 0.22s cubic-bezier(0.16, 1, 0.3, 1);
-        padding: 0.35rem 0.5rem;
-        border-radius: 15px;
-        flex: 1;
-        max-width: 68px;
-        position: relative;
-        border: 1px solid transparent;
-    }
-
-    .mobile-nav-item i {
-        font-size: 1.15rem;
-        margin-bottom: 3px;
-        transition: transform 0.22s ease, color 0.22s ease, filter 0.22s ease;
-    }
-
-    .mobile-nav-item:active {
-        transform: scale(0.9);
-    }
-
-    .mobile-nav-item.active {
-        color: #fbbf24;
-        background: linear-gradient(135deg, rgba(212, 168, 83, 0.16), rgba(245, 158, 11, 0.05));
-        border-color: rgba(245, 158, 11, 0.25);
-    }
-
-    .mobile-nav-item.active i {
-        color: #fbbf24;
-        transform: translateY(-2px);
-        filter: drop-shadow(0 0 8px rgba(245, 158, 11, 0.65));
-    }
-
-    .mobile-nav-item.active span {
-        font-weight: 900;
-    }
-
-    @media (min-width: 1024px) {
-        .mobile-nav-bar { display: none; }
-        .mobile-header { display: none; }
-    }
-
-    @media (max-width: 1023px) {
-        header.desktop-header { display: none; }
-        .shell { padding-top: 1rem; padding-bottom: 95px; }
-    }
-
-    /* ══════════════════════════════════════════════════════════
-       SOCIAL MEDIA ICONS — Luxury Fintech Edition
-       ══════════════════════════════════════════════════════════ */
-    .social-icon-btn {
-        width: 48px !important;
-        height: 48px !important;
-        display: inline-flex !important;
-        align-items: center !important;
-        justify-content: center !important;
-        background: rgba(15, 23, 42, 0.75) !important;
-        border: 1px solid rgba(255, 255, 255, 0.1) !important;
-        border-radius: 14px !important;
-        overflow: hidden !important;
-        color: #94a3b8 !important;
-        transition: all 0.35s cubic-bezier(0.16, 1, 0.3, 1) !important;
-        vertical-align: middle;
-        position: relative;
-        backdrop-filter: blur(14px);
-        -webkit-backdrop-filter: blur(14px);
-        box-shadow: 0 4px 14px rgba(0, 0, 0, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.08);
-    }
-    .social-icon-btn::before {
-        content: '';
-        position: absolute;
-        inset: 0;
-        border-radius: 14px;
-        background: radial-gradient(circle at center, rgba(99, 102, 241, 0.35), transparent 70%);
-        opacity: 0;
-        transition: opacity 0.35s ease;
-        pointer-events: none;
-    }
-    .social-icon-btn:hover {
-        border-color: rgba(99, 102, 241, 0.6) !important;
-        color: #fff !important;
-        transform: translateY(-4px) scale(1.08);
-        background: rgba(22, 32, 54, 0.95) !important;
-        box-shadow: 0 10px 25px -4px rgba(99, 102, 241, 0.45), 0 0 20px rgba(99, 102, 241, 0.3) !important;
-    }
-    .social-icon-btn:hover::before {
-        opacity: 1;
-    }
-    .social-icon-btn img, .social-icon-btn i {
-        width: 26px !important;
-        height: 26px !important;
-        object-fit: contain !important;
-        display: block !important;
-        position: relative;
-        z-index: 2;
-        transition: transform 0.35s ease, filter 0.35s ease;
-    }
-    .social-icon-btn:hover img, .social-icon-btn:hover i {
-        transform: scale(1.15);
-        filter: drop-shadow(0 2px 8px rgba(99, 102, 241, 0.5));
-    }
-    .social-icon-btn i {
-        line-height: 26px !important;
-        text-align: center;
-        font-size: 20px !important;
-    }
-
-    /* ══════════════════════════════════════════════════════════
-       FOOTER PAYMENT BADGES — Titanium & Glass Luxury Effects
-       ══════════════════════════════════════════════════════════ */
-    .footer-payments-wrap {
-        display: flex;
-        flex-wrap: wrap;
-        align-items: center;
-        justify-content: center;
-        gap: 0.85rem;
-    }
-    @media (min-width: 768px) {
-        .footer-payments-wrap {
-            justify-content: flex-end;
-        }
-    }
-    .footer-payment-card {
-        position: relative;
-        background: rgba(15, 23, 42, 0.75);
-        border: 1px solid rgba(255, 255, 255, 0.1);
-        border-radius: 14px;
-        padding: 0.45rem 1.15rem;
-        height: 48px;
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        backdrop-filter: blur(14px);
-        -webkit-backdrop-filter: blur(14px);
-        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.08);
-        transition: all 0.35s cubic-bezier(0.16, 1, 0.3, 1);
-        overflow: hidden;
-        cursor: pointer;
-    }
-    .footer-payment-card::before {
-        content: '';
-        position: absolute;
-        top: -50%;
-        left: -50%;
-        width: 200%;
-        height: 200%;
-        background: radial-gradient(circle at center, rgba(255, 255, 255, 0.12), transparent 60%);
-        transform: rotate(30deg);
-        opacity: 0;
-        transition: opacity 0.4s ease;
-        pointer-events: none;
-    }
-    .footer-payment-glow {
-        position: absolute;
-        inset: -1px;
-        border-radius: 14px;
-        padding: 1px;
-        background: linear-gradient(135deg, rgba(99, 102, 241, 0.6), rgba(6, 182, 212, 0.6), transparent 70%);
-        -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
-        -webkit-mask-composite: xor;
-        mask-composite: exclude;
-        opacity: 0;
-        transition: opacity 0.35s ease;
-        pointer-events: none;
-    }
-    .footer-payment-card:hover {
-        transform: translateY(-4px) scale(1.06);
-        background: rgba(22, 32, 54, 0.95);
-        border-color: rgba(99, 102, 241, 0.4);
-        box-shadow: 0 14px 30px -6px rgba(0, 0, 0, 0.6), 0 0 25px rgba(99, 102, 241, 0.35);
-    }
-    .footer-payment-card:hover .footer-payment-glow,
-    .footer-payment-card:hover::before {
-        opacity: 1;
-    }
-    .footer-payment-img {
-        height: 32px !important;
-        max-height: 32px !important;
-        max-width: 95px !important;
-        width: auto !important;
-        object-fit: contain !important;
-        display: block !important;
-        filter: drop-shadow(0 2px 6px rgba(0, 0, 0, 0.4));
-        transition: transform 0.35s cubic-bezier(0.16, 1, 0.3, 1), filter 0.35s ease;
-    }
-    .footer-payment-card:hover .footer-payment-img {
-        transform: scale(1.12);
-        filter: drop-shadow(0 4px 10px rgba(99, 102, 241, 0.4)) brightness(1.08);
-    }
-  </style>
   {% block extra_head %}{% endblock %}
-
-  {% if is_tenant %}
-  <style>
-    /* Multi-Tenant Theme Override: Applied by tenant_context processor */
-    :root {
-      --cyan: {{ STORE_PRIMARY }} !important;
-      --cyan-light: {{ STORE_SECONDARY }} !important;
-      --bg: {{ STORE_BG }} !important;
-      --bg-soft: {{ STORE_BG }} !important;
-      --text: {{ STORE_TEXT }} !important;
-      
-      /* Also map brand variables for home.html and other templates */
-      --brand-bg: {{ STORE_BG }} !important;
-      --brand-surface: {{ STORE_BG }} !important;
-      --brand-primary: {{ STORE_PRIMARY }} !important;
-      --brand-secondary: {{ STORE_SECONDARY }} !important;
-      --brand-accent: {{ STORE_PRIMARY }} !important;
-      --brand-sky: {{ STORE_SECONDARY }} !important;
-      --brand-text: {{ STORE_TEXT }} !important;
-      --brand-border: rgba(255, 255, 255, 0.06) !important;
-      --brand-glow: rgba(212, 168, 83, 0.2) !important;
-      --gradient-main: linear-gradient(135deg, {{ STORE_PRIMARY }} 0%, {{ STORE_SECONDARY }} 100%) !important;
-    }
-    
-    body {
-      font-family: "{{ STORE_FONT }}", "Cairo", sans-serif !important;
-      background-image: none !important;
-      background-color: var(--bg) !important;
-    }
-    
-    .shell {
-      background: transparent !important;
-    }
-
-    /* Dynamic Card Styles */
-    {% if STORE_CARD_STYLE == 'rounded' %}
-    .product-card, .card, .glass-panel, .panel, .premium-card { border-radius: 24px !important; }
-    {% elif STORE_CARD_STYLE == 'flat' %}
-    .product-card, .card, .glass-panel, .panel, .premium-card { border-radius: 0px !important; box-shadow: none !important; }
-    {% elif STORE_CARD_STYLE == 'shadow' %}
-    .product-card, .card, .glass-panel, .panel, .premium-card { border-radius: 12px !important; box-shadow: 0 10px 30px rgba(0,0,0,0.08) !important; }
-    {% elif STORE_CARD_STYLE == 'glass' %}
-    .product-card, .card, .glass-panel, .panel, .premium-card { border-radius: 16px !important; background: rgba(255,255,255,0.03) !important; backdrop-filter: blur(12px) !important; }
-    {% endif %}
-
-    /* Dynamic Button Style overrides using STORE_BUTTON_COLOR and STORE_BUTTON_STYLE */
-    .btn-primary, .btn-premium, .btn-premium-sm.primary, .btn-premium-action {
-      background: {{ STORE_BUTTON_COLOR }} !important;
-      color: #fff !important;
-      {% if STORE_BUTTON_STYLE == 'flat' %}
-      border-radius: 0px !important;
-      {% elif STORE_BUTTON_STYLE == 'rounded' %}
-      border-radius: 8px !important;
-      {% else %}
-      border-radius: 30px !important;
-      {% endif %}
-    }
-    .btn-primary:hover, .btn-premium:hover, .btn-premium-sm.primary:hover, .btn-premium-action:hover {
-      filter: brightness(1.1) !important;
-    }
-
-    /* Dynamic Card Shadow Style override */
-    {% if STORE_SHADOW_STYLE == 'none' %}
-    .product-card, .card, .glass-panel, .panel, .premium-card {
-      box-shadow: none !important;
-      border: 1px solid rgba(255, 255, 255, 0.05) !important;
-    }
-    {% elif STORE_SHADOW_STYLE == 'deep' %}
-    .product-card, .card, .glass-panel, .panel, .premium-card {
-      box-shadow: 0 15px 30px rgba(0, 0, 0, 0.3) !important;
-    }
-    {% else %}
-    .product-card, .card, .glass-panel, .panel, .premium-card {
-      box-shadow: 0 8px 20px rgba(0, 0, 0, 0.1) !important;
-    }
-    {% endif %}
-
-    /* Dynamic Header Styles */
-    {% if STORE_HEADER_STYLE == 'modern' %}
-    .desktop-header {
-      margin: 1rem auto !important;
-      max-width: 1320px !important;
-      border-radius: 16px !important;
-      width: calc(100% - 3rem) !important;
-      box-shadow: 0 10px 30px rgba(0,0,0,0.1) !important;
-    }
-    {% elif STORE_HEADER_STYLE == 'transparent' %}
-    .desktop-header {
-      background: transparent !important;
-      backdrop-filter: none !important;
-      -webkit-backdrop-filter: none !important;
-      border-bottom: none !important;
-    }
-    {% elif STORE_HEADER_STYLE == 'centered' %}
-    .header-container {
-      flex-direction: column !important;
-      gap: 1rem !important;
-      align-items: center !important;
-      justify-content: center !important;
-    }
-    .nav-links {
-      justify-content: center !important;
-      width: 100% !important;
-    }
-    {% endif %}
-
-    /* Dynamic Footer Styles */
-    {% if STORE_FOOTER_STYLE == 'simple' %}
-    footer .grid { display: none !important; }
-    footer { padding-top: 2rem !important; }
-    {% endif %}
-  </style>
 
   {% if STORE_CUSTOM_CSS %}
   <style>
-    /* Custom CSS from Theme Customizer */
     {{ STORE_CUSTOM_CSS|safe }}
   </style>
   {% endif %}
-
-  {% endif %}
 </head>
-<body class="{% if request.path|slice:':9' == '/control/' %}is-control{% else %}is-customer{% endif %}">
-  {% if FEATURES.feature_app_download %}
-  <!-- Top App Download Smart Ribbon (Visible to Web Visitors, Hidden in Native App) -->
-  <div id="top-app-download-ribbon" class="bg-gradient-to-r from-slate-950 via-slate-900 to-cyan-950 border-b border-cyan-500/25 py-2 px-3 sm:px-6 flex items-center justify-between text-xs transition-all relative z-50">
-      <div class="flex items-center gap-2 sm:gap-3 overflow-hidden">
-          <div class="w-7 h-7 sm:w-8 sm:h-8 rounded-xl bg-gradient-to-tr from-amber-400 to-cyan-400 p-0.5 flex-shrink-0 shadow-lg shadow-cyan-500/20">
-              <div class="w-full h-full bg-slate-950 rounded-[10px] flex items-center justify-center">
-                  <i class="fas fa-bolt text-xs text-amber-400"></i>
-              </div>
-          </div>
-          <div class="truncate">
-              <span class="font-black text-white text-xs block truncate">تطبيق رقميات الرسمي (Android)</span>
-              <span class="text-[10px] text-slate-400 hidden sm:block">تصفح بدون إنترنت، إشعارات فورية، واستوديو تصوير ذكي</span>
-          </div>
-      </div>
-      <div class="flex items-center gap-2 flex-shrink-0">
-          <a href="{% url 'download_android_apk' %}?direct=1" class="py-1 px-3 sm:px-4 rounded-xl bg-gradient-to-r from-cyan-400 to-emerald-400 hover:brightness-110 text-slate-950 font-black text-[11px] sm:text-xs flex items-center gap-1.5 shadow-md shadow-cyan-500/20 transition-all active:scale-95">
-              <i class="fas fa-cloud-arrow-down text-xs"></i>
-              <span>تحميل التطبيق</span>
-          </a>
-          <button type="button" onclick="document.getElementById('top-app-download-ribbon').style.display='none'" class="text-slate-400 hover:text-white p-1 text-xs" title="إغلاق">
-              <i class="fas fa-times"></i>
-          </button>
-      </div>
+<body class="{% if is_tenant %}tenant-mode{% endif %}">
+
+  <!-- Offline Status Toast -->
+  <div id="offline-toast" style="display: none; position: fixed; top: 1rem; left: 50%; transform: translateX(-50%); z-index: 99999; background: #e11d48; color: #fff; padding: 0.65rem 1.25rem; border-radius: 9999px; font-size: 0.8rem; font-weight: 800; box-shadow: 0 10px 25px rgba(0,0,0,0.5); align-items: center; gap: 0.5rem;">
+    <i class="fas fa-wifi-slash"></i>
+    <span>انقطع الاتصال بالإنترنت. يرجى التحقق من الشبكة للمتابعة بأمان.</span>
+  </div>
+
+  <!-- Announcement Bar (if present) -->
+  {% if active_announcement %}
+  <div class="rq-top-banner">
+    <i class="fas fa-bullhorn text-cyan-200"></i>
+    <span>{{ active_announcement.title }}: {{ active_announcement.content|truncatechars:120 }}</span>
+    {% if active_announcement.link_url %}
+    <a href="{{ active_announcement.link_url }}" class="ml-2 underline">{{ active_announcement.link_text|default:"التفاصيل" }} &larr;</a>
+    {% endif %}
   </div>
   {% endif %}
 
-  {% if active_announcement %}
-  <div class="announcement-bar group relative overflow-hidden" style="background: {{ active_announcement.background_color }}; color: {{ active_announcement.text_color }}; padding: 12px; text-align: center; font-size: 13px; position: sticky; top: 0; z-index: 9999; font-weight: 800; border-bottom: 1px solid rgba(255,255,255,0.1);">
-    <div class="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000"></div>
-    <div class="container mx-auto px-4 flex items-center justify-center gap-3 relative z-10">
-      <div class="w-6 h-6 rounded-full bg-white/10 flex items-center justify-center animate-pulse">
-          <i class="fas fa-bullhorn text-[10px]"></i>
+  <!-- ══════════════════════════════════════════════════════════════════════
+       DESKTOP MEGA NAVBAR (HARDWARE STUDIO)
+       ══════════════════════════════════════════════════════════════════════ -->
+  <header class="rq-header-desktop">
+    <div class="rq-container rq-nav-inner">
+      <!-- Brand & Emblem -->
+      <a href="{% url 'home' %}" class="rq-brand" title="الرئيسية | متجر رقميات">
+        <div class="rq-brand-emblem">
+          {% if is_tenant and STORE_LOGO %}
+          <img src="{{ STORE_LOGO.url }}" alt="{{ STORE_NAME }}">
+          {% else %}
+          <i class="fas fa-microchip text-cyan-400 text-lg"></i>
+          {% endif %}
+        </div>
+        <div class="rq-brand-text">
+          <span class="rq-brand-name">{% if is_tenant %}{{ STORE_NAME }}{% else %}رقميات | RAQAMIYAT{% endif %}</span>
+          <span class="rq-brand-tagline">Hardware & Tech Studio</span>
+        </div>
+      </a>
+
+      <!-- Navigation & Mega Menu -->
+      <nav class="rq-nav-menu">
+        <div class="rq-nav-item">
+          <a href="{% url 'home' %}" class="rq-nav-link {% if request.resolver_match.url_name == 'home' %}active{% endif %}">
+            <i class="fas fa-home text-xs"></i>
+            <span>الرئيسية</span>
+          </a>
+        </div>
+
+        <!-- Categories & Mega Menu -->
+        <div class="rq-nav-item">
+          <a href="{% url 'catalog' %}" class="rq-nav-link {% if request.resolver_match.url_name == 'catalog' %}active{% endif %}">
+            <i class="fas fa-layer-group text-xs"></i>
+            <span>الكتالوج والأجهزة</span>
+            <i class="fas fa-chevron-down text-[10px] opacity-60"></i>
+          </a>
+          <!-- Mega Menu Dropdown -->
+          <div class="rq-mega-dropdown">
+            <div class="rq-mega-grid">
+              <div>
+                <div class="rq-mega-col-title">
+                  <i class="fas fa-mobile-screen-button"></i>
+                  <span>الأجهزة والعتاد التقني</span>
+                </div>
+                <a href="{% url 'catalog' %}?q=هاتف" class="rq-mega-item">
+                  <div class="rq-mega-icon"><i class="fas fa-mobile-screen"></i></div>
+                  <div class="rq-mega-text">
+                    <h4>الهواتف الذكية</h4>
+                    <p>أحدث أجهزة Apple, Samsung, Xiaomi</p>
+                  </div>
+                </a>
+                <a href="{% url 'catalog' %}?q=لابتوب" class="rq-mega-item">
+                  <div class="rq-mega-icon"><i class="fas fa-laptop"></i></div>
+                  <div class="rq-mega-text">
+                    <h4>الحواسيب المحمولة</h4>
+                    <p>أجهزة الأعمال والألعاب والمونتاج</p>
+                  </div>
+                </a>
+                <a href="{% url 'catalog' %}?q=شبكات" class="rq-mega-item">
+                  <div class="rq-mega-icon"><i class="fas fa-network-wired"></i></div>
+                  <div class="rq-mega-text">
+                    <h4>الشبكات والراوترات</h4>
+                    <p>أجهزة 4G/5G وسويتشات وكبائن العتاد</p>
+                  </div>
+                </a>
+              </div>
+              <div>
+                <div class="rq-mega-col-title">
+                  <i class="fas fa-headphones"></i>
+                  <span>الإكسسوارات والملحقات</span>
+                </div>
+                <a href="{% url 'catalog' %}?q=سماعات" class="rq-mega-item">
+                  <div class="rq-mega-icon"><i class="fas fa-headphones-simple"></i></div>
+                  <div class="rq-mega-text">
+                    <h4>الصوتيات والسماعات</h4>
+                    <p>سماعات احترافية عازلة للضوضاء</p>
+                  </div>
+                </a>
+                <a href="{% url 'catalog' %}?q=شاحن" class="rq-mega-item">
+                  <div class="rq-mega-icon"><i class="fas fa-bolt"></i></div>
+                  <div class="rq-mega-text">
+                    <h4>الشواحن والبطاريات</h4>
+                    <p>شواحن GaN سريعة وبنوك طاقة أصلية</p>
+                  </div>
+                </a>
+                <a href="{% url 'catalog' %}?q=كاميرا" class="rq-mega-item">
+                  <div class="rq-mega-icon"><i class="fas fa-video"></i></div>
+                  <div class="rq-mega-text">
+                    <h4>كاميرات المراقبة والذكاء</h4>
+                    <p>أنظمة مراقبة متطورة بدقة فائقة</p>
+                  </div>
+                </a>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {% if not is_tenant and FEATURES.feature_sub_stores %}
+        <div class="rq-nav-item">
+          <a href="{% url 'stores_directory' %}" class="rq-nav-link {% if request.resolver_match.url_name == 'stores_directory' %}active{% endif %}">
+            <i class="fas fa-store text-xs"></i>
+            <span>المتاجر الشريكة</span>
+          </a>
+        </div>
+        {% endif %}
+
+        {% if FEATURES.feature_app_download %}
+        <div class="rq-nav-item">
+          <a href="{% url 'download_android_apk' %}" class="rq-nav-link" style="color: #34d399;">
+            <i class="fab fa-android text-emerald-400"></i>
+            <span>التطبيق</span>
+          </a>
+        </div>
+        {% endif %}
+
+        {% if user.is_authenticated %}
+        <div class="rq-nav-item">
+          <a href="{% url 'dashboard_orders' %}" class="rq-nav-link {% if request.resolver_match.url_name == 'dashboard_orders' %}active{% endif %}">
+            <i class="fas fa-box-open text-xs"></i>
+            <span>طلباتي</span>
+          </a>
+        </div>
+        {% endif %}
+      </nav>
+
+      <!-- Instant Search Trigger -->
+      <button type="button" class="rq-search-trigger" onclick="openSearchModal()" title="البحث السريع (Ctrl+K)">
+        <i class="fas fa-search text-cyan-400 text-xs"></i>
+        <span>ابحث عن جهاز أو قطعة...</span>
+        <span class="rq-search-shortcut">⌘K</span>
+      </button>
+
+      <!-- Actions Hub (Currency, Cart, User) -->
+      <div class="rq-nav-actions">
+        <!-- Currency Pill -->
+        <div class="rq-currency-pill">
+          <select class="rq-currency-select" onchange="location.href='{% url 'set_currency' %}?currency=' + this.value" title="تغيير عملة العرض">
+            {% for c in ALL_CURRENCIES %}
+            <option value="{{ c.id }}" {% if c.id == CURRENCY.id %}selected{% endif %}>{{ c.code }} ({{ c.symbol }})</option>
+            {% endfor %}
+          </select>
+          <i class="fas fa-chevron-down rq-currency-arrow"></i>
+        </div>
+
+        <!-- Slide-over Cart Trigger -->
+        <button type="button" class="rq-cart-btn" onclick="toggleCartDrawer()" title="سلة المشتريات السريعة">
+          <i class="fas fa-shopping-bag"></i>
+          <span class="rq-cart-badge" id="desktop-cart-counter">1</span>
+        </button>
+
+        <!-- User Authentication & Profile -->
+        {% if user.is_authenticated %}
+        <div class="rq-user-hub">
+          <a href="{% url 'dashboard_wallet' %}" class="rq-wallet-widget" title="رصيد المحفظة المتاح">
+            <i class="fas fa-wallet text-amber-400 text-xs"></i>
+            <span class="rq-wallet-val tabular-nums">{% currency_format user.wallet.available_balance user.wallet.currency mode="withdraw" %}</span>
+          </a>
+          <a href="{% url 'dashboard' %}" class="rq-btn-auth-login" title="لوحة تحكم الحساب">
+            <i class="fas fa-user-circle ml-1"></i>
+            <span>{{ user.first_name|default:user.display_name|truncatechars:12 }}</span>
+          </a>
+          {% if user.is_superuser or user.role == "super_admin" or user.role == "admin" %}
+          <a href="{% url 'control_dashboard' %}" class="rq-btn-auth-login" style="background: rgba(168, 85, 247, 0.15); border-color: rgba(168, 85, 247, 0.4); color: #c084fc;" title="لوحة التحكم الإدارية">
+            <i class="fas fa-shield-halved"></i>
+          </a>
+          {% endif %}
+          <a href="{% url 'site_logout' %}" class="text-slate-400 hover:text-rose-400 p-2 text-sm transition" title="تسجيل الخروج">
+            <i class="fas fa-arrow-right-from-bracket"></i>
+          </a>
+        </div>
+        {% else %}
+        <div class="flex items-center gap-2">
+          <a href="{% url 'site_login' %}" class="rq-btn-auth-login">دخول</a>
+          <a href="{% url 'site_register' %}" class="rq-btn-auth-register">حساب جديد</a>
+        </div>
+        {% endif %}
       </div>
-      <span class="tracking-tight">{{ active_announcement.text }}</span>
-      {% if active_announcement.link %}
-      <a href="{{ active_announcement.link }}" class="ml-3 px-4 py-1 rounded-full bg-white/10 hover:bg-white/20 transition-all border border-white/10 text-[11px] font-black uppercase">تعرف على المزيد <i class="fas fa-arrow-left mr-1"></i></a>
-      {% endif %}
+    </div>
+  </header>
+
+  <!-- ══════════════════════════════════════════════════════════════════════
+       MOBILE HEADER (SLIM HARDWARE BRANDING)
+       ══════════════════════════════════════════════════════════════════════ -->
+  <header class="rq-header-mobile">
+    <a href="{% url 'home' %}" class="rq-brand">
+      <div class="rq-brand-emblem" style="width: 32px; height: 32px; border-radius: 9px;">
+        {% if is_tenant and STORE_LOGO %}
+        <img src="{{ STORE_LOGO.url }}" alt="{{ STORE_NAME }}" style="width: 20px; height: 20px;">
+        {% else %}
+        <i class="fas fa-microchip text-cyan-400 text-xs"></i>
+        {% endif %}
+      </div>
+      <span class="rq-brand-name" style="font-size: 1.05rem;">{% if is_tenant %}{{ STORE_NAME }}{% else %}رقميات{% endif %}</span>
+    </a>
+
+    <div class="flex items-center gap-2">
+      <!-- Instant Search Trigger -->
+      <button type="button" onclick="openSearchModal()" class="w-8 h-8 rounded-full bg-white/5 border border-white/10 flex items-center justify-center text-cyan-400 text-xs cursor-pointer">
+        <i class="fas fa-search"></i>
+      </button>
+
+      <!-- Currency Switcher Pill -->
+      <div class="rq-currency-pill">
+        <select class="rq-currency-select !py-1 !px-2.5 !text-[11px]" onchange="location.href='{% url 'set_currency' %}?currency=' + this.value">
+          {% for c in ALL_CURRENCIES %}
+          <option value="{{ c.id }}" {% if c.id == CURRENCY.id %}selected{% endif %}>{{ c.code }}</option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <!-- Quick Cart Button -->
+      <button type="button" onclick="toggleCartDrawer()" class="rq-cart-btn !w-8 !h-8 !rounded-full !text-xs">
+        <i class="fas fa-shopping-bag"></i>
+        <span class="rq-cart-badge !w-4 !h-4 !text-[9px] !top-[-4px] !left-[-4px]">1</span>
+      </button>
+    </div>
+  </header>
+
+  <!-- System Messages / Alerts -->
+  {% if messages %}
+  <div class="rq-container mt-4">
+    <div class="stack gap-2">
+      {% for message in messages %}
+      <div style="background: rgba(14, 21, 38, 0.9); border: 1px solid {% if message.tags == 'error' %}rgba(244, 63, 94, 0.4){% else %}rgba(16, 185, 129, 0.4){% endif %}; border-radius: 14px; padding: 0.85rem 1.25rem; display: flex; align-items: center; justify-content: space-between; gap: 1rem; color: {% if message.tags == 'error' %}#fb7185{% else %}#34d399{% endif %}; font-size: 0.85rem; font-weight: 700;">
+        <div class="flex items-center gap-2">
+          <i class="fas {% if message.tags == 'error' %}fa-triangle-exclamation{% else %}fa-circle-check{% endif %}"></i>
+          <span>{{ message }}</span>
+        </div>
+        <button onclick="this.parentElement.remove()" style="color: inherit; opacity: 0.6; cursor: pointer; background: none; border: none; font-size: 1rem;">
+          <i class="fas fa-times"></i>
+        </button>
+      </div>
+      {% endfor %}
     </div>
   </div>
   {% endif %}
-  <!-- Mobile Header -->
-  <div class="mobile-header">
-      <!-- Left: Navigation Menu & Brand Identity -->
-      <div class="mobile-brand-group">
-          <button type="button" onclick="toggleDrawer()" class="mobile-nav-toggle" aria-label="القائمة" title="القائمة">
-              <i class="fas fa-bars-staggered"></i>
-          </button>
-          <a href="{% url 'home' %}" class="mobile-brand-link">
-              {% if is_tenant and STORE_LOGO %}
-              <img src="{{ STORE_LOGO.url }}" alt="{{ STORE_NAME }}" class="mobile-brand-img">
-              <span class="mobile-brand-title">{{ STORE_NAME }}</span>
-              {% else %}
-              <div class="mobile-brand-glyph">
-                  <i class="fas fa-bolt"></i>
-              </div>
-              <div class="mobile-brand-text">
-                  <span class="mobile-brand-title">{% if is_tenant %}{{ STORE_NAME }}{% else %}رقميات{% endif %}</span>
-                  <span class="mobile-brand-chip"><span class="chip-pulse"></span>سحابي</span>
-              </div>
-              {% endif %}
-          </a>
-      </div>
 
-      <!-- Right: Action Island (Currency + Wallet/Login) & Isolated Bell -->
-      <div class="mobile-header-actions">
-          <!-- Bento Capsule -->
-          <div class="mobile-action-capsule">
-              {% if ALL_CURRENCIES %}
-              <button type="button" onclick="openCurrencyModal()" class="mobile-capsule-currency" aria-label="تبديل العملة" title="تبديل العملة">
-                  <span class="mobile-currency-flag">🪙</span>
-                  <span class="mobile-currency-code">{{ CURRENCY.code }}</span>
-                  <i class="fas fa-chevron-down mobile-currency-arrow"></i>
-              </button>
-              <span class="mobile-capsule-divider"></span>
-              {% endif %}
-
-              {% if user.is_authenticated %}
-              <a href="{% url 'dashboard_wallet' %}" class="mobile-capsule-wallet" title="رصيد المحفظة">
-                  <i class="fas fa-wallet text-amber-400 text-[10px]"></i>
-                  <span class="mobile-wallet-val">{% currency_format user.wallet.available_balance user.wallet.currency mode="withdraw" %}</span>
-              </a>
-              {% else %}
-              <a href="{% url 'site_login' %}" class="mobile-capsule-login" title="تسجيل الدخول">
-                  <i class="fas fa-arrow-right-to-bracket text-[10px]"></i>
-                  <span>دخول</span>
-              </a>
-              {% endif %}
-          </div>
-
-          {% if user.is_authenticated %}
-          <!-- Isolated Notification Bell Button -->
-          <a href="{% url 'notifications_list' %}" class="mobile-bell-capsule" aria-label="الإشعارات" title="الإشعارات">
-              <i class="fas fa-bell"></i>
-              {% if UNREAD_NOTIFICATIONS_COUNT > 0 %}
-              <span class="mobile-bell-dot"></span>
-              {% endif %}
-          </a>
-          {% endif %}
-      </div>
-  </div>
-
-  <!-- Mobile Drawer -->
-  <div class="drawer-overlay" id="drawer-overlay" onclick="toggleDrawer()"></div>
-  <div class="mobile-drawer" id="mobile-drawer">
-      <div class="flex justify-between items-center mb-8">
-          <span class="text-[10px] font-black uppercase tracking-widest text-slate-500">القائمة</span>
-          <button onclick="toggleDrawer()" class="text-slate-500"><i class="fas fa-times text-xl"></i></button>
-      </div>
-
-      {% if user.is_authenticated %}
-      <div class="flex items-center gap-4 mb-8 p-4 bg-white/[0.03] rounded-2xl border border-white/5">
-          <div class="w-10 h-10 rounded-xl flex items-center justify-center text-black font-black" style="background: linear-gradient(135deg, #d4a853, #f0c674);">
-              {{ user.display_name|slice:":1"|upper }}
-          </div>
-          <div>
-              <div class="font-bold text-white text-sm truncate max-w-[150px]">{% if user.first_name %}{{ user.get_full_name }}{% else %}{{ user.display_name }}{% endif %}</div>
-              <div class="text-[10px]" style="color: var(--gold);">{{ user.get_tier_display }}</div>
-          </div>
-      </div>
-      {% endif %}
-
-      <!-- Mobile Drawer Currency Switcher -->
-      {% if ALL_CURRENCIES %}
-      <div class="p-3 bg-white/[0.04] rounded-xl border border-white/5 flex items-center justify-between mb-4">
-          <span class="text-xs font-bold text-slate-300 flex items-center gap-2">
-              <i class="fas fa-coins text-amber-400"></i> العملة:
-          </span>
-          <div class="currency-selector">
-              <select onchange="location.href='{% url 'set_currency' %}?currency=' + this.value" style="background: rgba(15,23,42,0.9); border: 1px solid rgba(255,255,255,0.15); color: #fff; padding: 0.35rem 0.65rem; border-radius: 8px; font-weight: 700; font-size: 0.75rem; cursor: pointer;">
-                  {% for c in ALL_CURRENCIES %}
-                  <option value="{{ c.id }}" {% if c.id == CURRENCY.id %}selected{% endif %}>{{ c.code }} ({{ c.symbol }})</option>
-                  {% endfor %}
-              </select>
-          </div>
-      </div>
-      {% endif %}
-
-      <nav class="stack gap-2">
-          <a href="{% url 'home' %}" class="drawer-link {% if request.resolver_match.url_name == 'home' %}active{% endif %}">
-              <i class="fas fa-house"></i> الرئيسية
-          </a>
-          {% if not is_tenant and FEATURES.feature_sub_stores %}
-          <a href="{% url 'stores_directory' %}" class="drawer-link {% if request.resolver_match.url_name == 'stores_directory' %}active{% endif %}">
-              <i class="fas fa-store"></i> المتاجر
-          </a>
-          {% endif %}
-          <a href="{% url 'catalog' %}" class="drawer-link {% if request.resolver_match.url_name == 'catalog' %}active{% endif %}">
-              <i class="fas fa-boxes-stacked"></i> الكتالوج
-          </a>
-          {% if FEATURES.feature_app_download %}
-          <a href="{% url 'download_android_apk' %}" class="drawer-link text-cyan {% if request.resolver_match.url_name == 'download_android_apk' %}active{% endif %}">
-              <i class="fab fa-android text-emerald-400"></i> تحميل تطبيق رقميات (APK)
-          </a>
-          {% endif %}
-
-          {% if user.is_authenticated %}
-          <div class="h-px bg-white/5 my-4"></div>
-          <a href="{% url 'dashboard' %}" class="drawer-link {% if request.resolver_match.url_name == 'dashboard' %}active{% endif %}">
-              <i class="fas fa-th-large"></i> حسابي
-          </a>
-          <a href="{% url 'dashboard_orders' %}" class="drawer-link {% if request.resolver_match.url_name == 'dashboard_orders' %}active{% endif %}">
-              <i class="fas fa-receipt"></i> طلباتي
-          </a>
-          <a href="{% url 'dashboard_wallet' %}" class="drawer-link {% if request.resolver_match.url_name == 'dashboard_wallet' %}active{% endif %}">
-              <i class="fas fa-wallet"></i> المحفظة
-          </a>
-          <a href="{% url 'notification_settings' %}" class="drawer-link {% if request.resolver_match.url_name == 'notification_settings' %}active{% endif %}">
-              <i class="fas fa-bell"></i> الإشعارات
-          </a>
-          <a href="{% url 'chat_list' %}" class="drawer-link {% if 'chat' in request.path %}active{% endif %}">
-              <i class="fas fa-comments"></i> الدعم المباشر
-          </a>
-          
-          <div class="h-px bg-white/5 my-4"></div>
-          <a href="{% url 'change_password' %}" class="drawer-link {% if request.resolver_match.url_name == 'change_password' %}active{% endif %}">
-              <i class="fas fa-key"></i> تغيير كلمة المرور
-          </a>
-
-          {% if not is_tenant %}
-              {% if user.is_superuser or user.role == "super_admin" or user.role == "admin" %}
-              <div class="h-px bg-white/5 my-4"></div>
-              <a href="{% url 'control_dashboard' %}" class="drawer-link text-amber-400">
-                  <i class="fas fa-shield-alt"></i> مركز التحكم
-              </a>
-              {% endif %}
-          {% endif %}
-
-          {% if is_tenant %}
-             {% if store.owner == user or user.store_employments.exists %}
-             <div class="h-px bg-white/5 my-4"></div>
-             <a href="{% url 'merchant_dashboard' %}" class="drawer-link text-indigo-400">
-                 <i class="fas fa-shop"></i> لوحة التاجر
-             </a>
-             {% endif %}
-          {% endif %}
-
-          <div class="mt-auto pt-8">
-              <a href="{% url 'site_logout' %}" class="drawer-link text-rose-500">
-                  <i class="fas fa-power-off"></i> تسجيل الخروج
-              </a>
-          </div>
-          {% else %}
-          <div class="mt-8 stack gap-3">
-              <a href="{% url 'site_login' %}" class="btn btn-primary w-full py-3">تسجيل الدخول</a>
-              <a href="{% url 'site_register' %}" class="btn btn-outline w-full py-3">إنشاء حساب جديد</a>
-          </div>
-          {% endif %}
-      </nav>
-  </div>
-
-  <div class="shell">
-    <header class="desktop-header">
-      <div class="header-container">
-        <a href="{% url 'home' %}" class="brand">
-          {% if is_tenant and STORE_LOGO %}
-          <img src="{{ STORE_LOGO.url }}" alt="{{ STORE_NAME }}" style="height: 32px; max-height: 32px; max-width: 120px; width: auto; border-radius: 8px; object-fit: contain; vertical-align: middle;">
-          <span class="text-xl font-black">{{ STORE_NAME }}</span>
-          {% else %}
-          <i class="fas fa-bolt"></i>
-          <span>{% if is_tenant %}{{ STORE_NAME }}{% else %}RAQAMIYAT{% endif %}</span>
-          {% endif %}
-        </a>
-
-        <nav class="nav-links">
-          <a href="{% url 'home' %}" class="{% if request.resolver_match.url_name == 'home' %}active{% endif %}">الرئيسية</a>
-          {% if not is_tenant and FEATURES.feature_sub_stores %}
-          <a href="{% url 'stores_directory' %}" class="{% if request.resolver_match.url_name == 'stores_directory' %}active{% endif %}">المتاجر</a>
-          {% endif %}
-          <a href="{% url 'catalog' %}" class="{% if request.resolver_match.url_name == 'catalog' %}active{% endif %}">المنتجات</a>
-          {% if FEATURES.feature_app_download %}
-          <a href="{% url 'download_android_apk' %}" class="{% if request.resolver_match.url_name == 'download_android_apk' %}active{% endif %} text-cyan hover:text-cyan font-bold flex items-center gap-1.5" title="تحميل تطبيق الأندرويد">
-              <i class="fab fa-android text-emerald-400"></i>
-              <span>التطبيق</span>
-          </a>
-          {% endif %}
-          {% if user.is_authenticated %}
-             <a href="{% url 'dashboard' %}" class="{% if request.resolver_match.url_name == 'dashboard' %}active{% endif %}">حسابي</a>
-             <a href="{% url 'dashboard_orders' %}" class="{% if request.resolver_match.url_name == 'dashboard_orders' %}active{% endif %}">طلباتي</a>
-             <a href="{% url 'dashboard_wallet' %}" class="{% if request.resolver_match.url_name == 'dashboard_wallet' %}active{% endif %}">المحفظة</a>
-             {% if FEATURES.feature_live_support_chat %}
-             <a href="{% url 'chat_list' %}" class="{% if 'chat' in request.path %}active{% endif %}">الدعم المباشر</a>
-             {% endif %}
-             {% if not is_tenant %}
-                 {% if user.is_superuser or user.role == "super_admin" or user.role == "admin" %}
-                    <a href="{% url 'control_dashboard' %}" class="admin-link">لوحة التحكم</a>
-                 {% endif %}
-             {% endif %}
-             {% if is_tenant %}
-                {% if store.owner == user or user.store_employments.exists %}
-                   <a href="{% url 'merchant_dashboard' %}" class="merchant-link" style="color: #818cf8; font-weight: bold;">لوحة التاجر</a>
-                {% endif %}
-             {% endif %}
-          {% endif %}
-        </nav>
-
-        <div class="header-actions">
-          <!-- Currency & Notifications -->
-          <div class="flex items-center gap-3">
-              <div class="currency-selector">
-                  <select onchange="location.href='{% url 'set_currency' %}?currency=' + this.value">
-                      {% for c in ALL_CURRENCIES %}
-                      <option value="{{ c.id }}" {% if c.id == CURRENCY.id %}selected{% endif %}>{{ c.code }}</option>
-                      {% endfor %}
-                  </select>
-              </div>
-
-              {% if user.is_authenticated %}
-              <div class="notification-trigger">
-                  <a href="{% url 'notifications_list' %}" class="relative">
-                      <i class="fas fa-bell"></i>
-                      {% if UNREAD_NOTIFICATIONS_COUNT > 0 %}
-                      <span class="count-badge">{{ UNREAD_NOTIFICATIONS_COUNT }}</span>
-                      {% endif %}
-                  </a>
-              </div>
-              {% endif %}
-          </div>
-
-          <!-- User Identity -->
-          {% if user.is_authenticated %}
-            <div class="user-profile-hub">
-                <div class="user-meta">
-                    <span class="user-name">{% if user.first_name %}{{ user.get_full_name }}{% else %}{{ user.display_name }}{% endif %}</span>
-                    <span class="user-balance">{% currency_format user.wallet.available_balance user.wallet.currency mode="withdraw" %}</span>
-                </div>
-                <a href="{% url 'site_logout' %}" class="logout-btn" title="تسجيل الخروج">
-                    <i class="fas fa-sign-out-alt"></i>
-                </a>
-            </div>
-          {% else %}
-            <div class="flex gap-2">
-                <a href="{% url 'site_login' %}" class="btn-premium-sm ghost">دخول</a>
-                <a href="{% url 'site_register' %}" class="btn-premium-sm primary">حساب جديد</a>
-            </div>
-          {% endif %}
-        </div>
-      </div>
-    </header>
-
-    {% if messages %}
-      <div class="messages-container stack gap-2 mb-6">
-        {% for message in messages %}
-          <div class="panel p-4 {% if message.tags == 'error' %}border-danger/30 bg-danger/5 text-danger{% else %}border-success/30 bg-success/5 text-success{% endif %} flex justify-between items-center msg-dismissible" style="transition: all 0.4s ease;">
-            <span class="text-sm font-bold">{{ message }}</span>
-            <button onclick="this.parentElement.style.opacity='0';this.parentElement.style.transform='translateY(-10px)';setTimeout(()=>this.parentElement.remove(),400)" class="text-lg opacity-50 hover:opacity-100 cursor-pointer" style="background:none;border:none;color:inherit;padding:0 0.5rem;">
-              <i class="fas fa-times"></i>
-            </button>
-          </div>
-        {% endfor %}
-      </div>
-    {% endif %}
-
+  <!-- Main Viewport Content Block -->
+  <main id="main-content">
     {% block content %}{% endblock %}
+  </main>
 
-    <footer class="mt-24 pt-20 pb-10 border-t border-white/5 bg-white/[0.01]">
-      <div class="container">
-        {% if is_tenant %}
-        <div class="legal-disclaimer-box" style="margin-bottom: 3rem; padding: 1.5rem; background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.05); border-radius: 16px; text-align: right;">
-            <p style="font-size: 0.8rem; color: #94a3b8; line-height: 1.7; margin-bottom: 1rem;">
-                <strong>تنويه هام:</strong> رقميات منصة تقنية تتيح للمستخدمين إنشاء وإدارة متاجر إلكترونية مستقلة. لا تبيع رقميات المنتجات أو الخدمات المعروضة داخل المتاجر الفرعية ولا تمثل أصحابها قانونياً أو تجارياً. كل متجر على منصة رقميات مملوك ومدار بشكل مستقل من قبل صاحبه، وهو المسؤول الوحيد عن المنتجات والخدمات والأسعار والمحتوى والعروض والالتزامات القانونية. لا تستلم رقميات أموال المبيعات ولا تعمل كوسيط مالي، وتتم المدفوعات مباشرة إلى صاحب المتجر. لا تعتبر رقميات طرفاً في تعاملات البيع والشراء وتخلي مسؤوليتها عن أي نزاع أو خسارة.
-            </p>
-            <div style="display: flex; justify-content: flex-start;">
-                <button onclick="showReportStoreModal()" style="background: rgba(239, 68, 68, 0.1); border: 1px solid rgba(239, 68, 68, 0.2); color: #ef4444; padding: 0.5rem 1rem; border-radius: 10px; font-size: 0.8rem; font-weight: bold; cursor: pointer; display: flex; align-items: center; gap: 0.35rem; transition: all 0.3s;" onmouseover="this.style.background='#ef4444'; this.style.color='#fff';" onmouseout="this.style.background='rgba(239, 68, 68, 0.1)'; this.style.color='#ef4444';">
-                    🚩 الإبلاغ عن متجر
-                </button>
+  <!-- ══════════════════════════════════════════════════════════════════════
+       HARDWARE STUDIO FOOTER
+       ══════════════════════════════════════════════════════════════════════ -->
+  <footer class="rq-footer">
+    <div class="rq-container">
+      <div class="rq-footer-grid">
+        <!-- Store Identity & Hardware Positioning -->
+        <div>
+          <div class="rq-brand mb-4">
+            <div class="rq-brand-emblem">
+              <i class="fas fa-microchip text-cyan-400 text-lg"></i>
             </div>
+            <div class="rq-brand-text">
+              <span class="rq-brand-name">{% if is_tenant %}{{ STORE_NAME }}{% else %}رقميات | RAQAMIYAT{% endif %}</span>
+              <span class="rq-brand-tagline">Hardware & Tech Studio</span>
+            </div>
+          </div>
+          <p style="font-size: 0.825rem; color: var(--rq-text-secondary); line-height: 1.7; max-width: 380px;">
+            منصة متخصصة في توفير أحدث الهواتف الذكية، الحواسيب المحمولة والمكتبية، وتجهيزات الشبكات والاتصالات، والكاميرات، والإكسسوارات الأصلية مع ضمان التوافق والاعتمادية وأعلى معايير الجودة.
+          </p>
+          <div class="rq-payment-badges">
+            <span class="rq-pm-chip"><i class="fas fa-shield-alt text-cyan ml-1"></i> بوابات دفع آمنة</span>
+            <span class="rq-pm-chip">شام كاش</span>
+            <span class="rq-pm-chip">سيريتل كاش</span>
+            <span class="rq-pm-chip">MTN كاش</span>
+            <span class="rq-pm-chip">بيميرا (Paymera)</span>
+            <span class="rq-pm-chip">USDT</span>
+          </div>
         </div>
-        {% endif %}
-        <div class="grid grid-cols-1 md:grid-cols-4 gap-12 mb-16">
-            <div class="md:col-span-2">
-                <div class="brand mb-6" style="font-size: 1.75rem;">
-                    {% if is_tenant and STORE_LOGO %}
-                    <img src="{{ STORE_LOGO.url }}" alt="{{ STORE_NAME }}" style="height: 38px; max-height: 38px; max-width: 130px; width: auto; border-radius: 8px; object-fit: contain; vertical-align: middle;">
-                    <span>{{ STORE_NAME }}</span>
-                    {% else %}
-                    <i class="fas fa-bolt" style="color: var(--gold);"></i>
-                    <span>{% if is_tenant %}{{ STORE_NAME }}{% else %}RAQAMIYAT{% endif %}</span>
-                    {% endif %}
-                </div>
-                <p class="text-slate-500 text-sm max-w-sm leading-relaxed mb-8">
-                    {% if is_tenant %}
-                    {{ STORE_DESCRIPTION|default:"مرحباً بكم في متجرنا الرقمي المميز!" }}
-                    {% else %}
-                    رقميات هي وجهتك المتكاملة لأحدث منتجات التكنولوجيا، إكسسوارات الهواتف، معدات الشبكات والإنترنت، كاميرات المراقبة، والأجهزة الإلكترونية والبرمجيات.
-                    {% endif %}
-                </p>
-                <p class="text-[11px] font-black uppercase tracking-widest text-slate-400 mb-4 flex items-center gap-2">
-                    <span class="w-1.5 h-1.5 rounded-full bg-indigo-400"></span>
-                    <span>تابعنا على منصات التواصل الاجتماعي</span>
-                </p>
-                <div class="flex gap-3">
-                    {% if is_tenant %}
-                        {# Store social links from tenant_context #}
-                        {% if STORE_FACEBOOK %}
-                        <a href="{{ STORE_FACEBOOK }}" target="_blank" class="social-icon-btn" title="فيسبوك"><i class="fab fa-facebook-f"></i></a>
-                        {% endif %}
-                        {% if STORE_INSTAGRAM %}
-                        <a href="{{ STORE_INSTAGRAM }}" target="_blank" class="social-icon-btn" title="إنستغرام"><i class="fab fa-instagram"></i></a>
-                        {% endif %}
-                        {% if STORE_TWITTER %}
-                        <a href="{{ STORE_TWITTER }}" target="_blank" class="social-icon-btn" title="تويتر/إكس"><i class="fab fa-x-twitter"></i></a>
-                        {% endif %}
-                        {% if STORE_TIKTOK %}
-                        <a href="{{ STORE_TIKTOK }}" target="_blank" class="social-icon-btn" title="تيك توك"><i class="fab fa-tiktok"></i></a>
-                        {% endif %}
-                        {% if STORE_PHONE %}
-                        <a href="tel:{{ STORE_PHONE }}" class="social-icon-btn" title="{{ STORE_PHONE }}"><i class="fas fa-phone"></i></a>
-                        {% endif %}
-                        {% if STORE_EMAIL %}
-                        <a href="mailto:{{ STORE_EMAIL }}" class="social-icon-btn" title="{{ STORE_EMAIL }}"><i class="fas fa-envelope"></i></a>
-                        {% endif %}
-                    {% else %}
-                        {# Main platform social links from database #}
-                        {% for link in SOCIAL_LINKS %}
-                        <a href="{{ link.url }}" target="_blank" class="social-icon-btn" title="{{ link.name }}">
-                            {% if link.icon_image %}
-                            <img src="{{ link.icon_image.url }}" alt="{{ link.name }}">
-                            {% else %}
-                            <i class="{{ link.icon_class|default:'fas fa-link' }}"></i>
-                            {% endif %}
-                        </a>
-                        {% endfor %}
-                    {% endif %}
-                </div>
-            </div>
-            
-            <div>
-                <h4 class="font-black text-xs uppercase tracking-widest text-white mb-6">روابط سريعة</h4>
-                <div class="stack gap-4 text-sm text-slate-500">
-                    <a href="{% url 'catalog' %}" class="hover:text-cyan transition-colors">تصفح المنتجات</a>
-                    {% if FEATURES.feature_app_download %}
-                    <a href="{% url 'download_android_apk' %}" class="text-cyan font-bold hover:text-cyan-300 transition-colors flex items-center gap-1.5">
-                        <i class="fab fa-android text-emerald-400"></i> تطبيق رقميات (Android)
-                    </a>
-                    {% endif %}
-                    {% if not user.is_authenticated %}
-                    <a href="{% url 'site_login' %}" class="hover:text-cyan transition-colors">تسجيل الدخول</a>
-                    <a href="{% url 'site_register' %}" class="hover:text-cyan transition-colors">إنشاء حساب</a>
-                    {% else %}
-                    <a href="{% url 'dashboard' %}" class="hover:text-cyan transition-colors">لوحة التحكم</a>
-                    <a href="{% url 'dashboard_orders' %}" class="hover:text-cyan transition-colors">طلباتي</a>
-                    {% endif %}
-                </div>
-            </div>
 
-            <div>
-                <h4 class="font-black text-xs uppercase tracking-widest text-white mb-6">الدعم والخصوصية</h4>
-                <div class="stack gap-4 text-sm text-slate-500">
-                    <a href="{% url 'privacy_policy' %}" class="hover:text-cyan transition-colors">سياسة الخصوصية</a>
-                    <a href="{% url 'terms_of_service' %}" class="hover:text-cyan transition-colors">شروط الاستخدام</a>
-                    <a href="{% url 'refund_policy' %}" class="hover:text-cyan transition-colors">سياسة الاسترجاع</a>
-                    <a href="{% url 'contact' %}" class="hover:text-cyan transition-colors">اتصل بنا</a>
-                </div>
-            </div>
+        <!-- Quick Links -->
+        <div>
+          <h4 class="rq-footer-title">استكشف الكتالوج</h4>
+          <ul class="rq-footer-links">
+            <li><a href="{% url 'catalog' %}">كافة الأجهزة والمنتجات</a></li>
+            <li><a href="{% url 'catalog' %}?q=هاتف">الهواتف الذكية</a></li>
+            <li><a href="{% url 'catalog' %}?q=لابتوب">الحواسيب المحمولة</a></li>
+            <li><a href="{% url 'catalog' %}?q=شبكات">تجهيزات الشبكات والراوترات</a></li>
+            <li><a href="{% url 'catalog' %}?q=شاحن">الشواحن والإكسسوارات</a></li>
+          </ul>
         </div>
-        
-        <div class="flex flex-col md:flex-row justify-between items-center pt-10 border-t border-white/5 gap-8">
-            <div class="text-[10px] text-slate-600 font-bold tracking-wider">
-                {% if is_tenant %}
-                © 2026 جميع الحقوق محفوظة لـ {{ STORE_NAME }}.
-                {% if not store.subscription_plan or not store.subscription_plan.remove_branding_enabled %}
-                <span class="block mt-1 opacity-70">تم الإنشاء والتشغيل بواسطة <a href="https://raqamiyatapp.com" target="_blank" style="color: #06b6d4; text-decoration: none;">منصة رقميات</a></span>
-                {% endif %}
-                {% else %}
-                © 2026 جميع الحقوق محفوظة لمؤسسة رامي قصاص بن ماهر.
-                {% endif %}
-            </div>
-            
-            <div class="flex flex-col items-center md:items-end gap-3">
-                <div class="flex items-center gap-2">
-                    <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
-                    <h4 class="text-[10px] font-black uppercase tracking-widest text-slate-400">طرق الدفع المتوفرة</h4>
-                </div>
-                <div class="footer-payments-wrap">
-                    {% for method in payment_methods %}
-                        {% if method.logo %}
-                        <div class="footer-payment-card" title="{{ method.name }}">
-                            <img src="{{ method.logo.url }}" alt="{{ method.name }}" class="footer-payment-img">
-                            <span class="footer-payment-glow"></span>
-                        </div>
-                        {% endif %}
-                    {% endfor %}
-                </div>
-            </div>
+
+        <!-- Customer Support & Trust -->
+        <div>
+          <h4 class="rq-footer-title">خدمة العملاء</h4>
+          <ul class="rq-footer-links">
+            <li><a href="{% url 'dashboard_orders' %}">تتبع وحالة الطلبات</a></li>
+            <li><a href="{% url 'dashboard_wallet' %}">المحفظة الرقمية</a></li>
+            <li><a href="{% url 'terms_of_service' %}">شروط الخدمة والضمان</a></li>
+            <li><a href="{% url 'privacy_policy' %}">سياسة الخصوصية</a></li>
+            <li><a href="{% url 'refund_policy' %}">سياسة الاسترجاع والاستبدال</a></li>
+          </ul>
+        </div>
+
+        <!-- Android App & Contact -->
+        <div>
+          <h4 class="rq-footer-title">تطبيق الجوال والتواصل</h4>
+          <p style="font-size: 0.78rem; color: var(--rq-text-secondary); line-height: 1.6; margin-bottom: 1rem;">
+            تسوّق أجهزتك وإكسسواراتك المفضلة مباشرة عبر تطبيق الأندرويد مع إشعارات فورية لحالة التجهيز والشحن.
+          </p>
+          {% if FEATURES.feature_app_download %}
+          <a href="{% url 'download_android_apk' %}" class="rq-btn-auth-register" style="display: inline-flex; align-items: center; gap: 0.5rem; text-decoration: none;">
+            <i class="fab fa-android text-base"></i>
+            <span>تحميل تطبيق الأندرويد</span>
+          </a>
+          {% endif %}
         </div>
       </div>
-    </footer>
+
+      <div class="rq-footer-bottom">
+        <div>
+          <span>&copy; 2026 رقميات | RAQAMIYAT. كافة الحقوق محفوظة.</span>
+        </div>
+        <div class="flex items-center gap-4 text-xs">
+          <span>توثيق رقمي فوري</span>
+          <span>&bull;</span>
+          <span>شحن وتوصيل آمن</span>
+          <span>&bull;</span>
+          <span>ضمان أصالة 100%</span>
+        </div>
+      </div>
+    </div>
+  </footer>
+
+  <!-- ══════════════════════════════════════════════════════════════════════
+       MOBILE FLOATING GLASS BOTTOM NAVIGATION DOCK (NATIVE ERGONOMICS)
+       ══════════════════════════════════════════════════════════════════════ -->
+  <nav class="rq-mobile-dock" aria-label="الشريط السفلي">
+    <a href="{% url 'home' %}" class="rq-dock-item {% if request.resolver_match.url_name == 'home' %}active{% endif %}">
+      <i class="fas fa-home"></i>
+      <span class="rq-dock-label">الرئيسية</span>
+    </a>
+    <a href="{% url 'catalog' %}" class="rq-dock-item {% if request.resolver_match.url_name == 'catalog' %}active{% endif %}">
+      <i class="fas fa-layer-group"></i>
+      <span class="rq-dock-label">الكتالوج</span>
+    </a>
+    <div class="rq-dock-item" onclick="openSearchModal()">
+      <i class="fas fa-search"></i>
+      <span class="rq-dock-label">البحث</span>
+    </div>
+    <div class="rq-dock-item" onclick="toggleCartDrawer()">
+      <i class="fas fa-shopping-bag"></i>
+      <span class="rq-dock-badge">1</span>
+      <span class="rq-dock-label">السلة</span>
+    </div>
+    {% if user.is_authenticated %}
+    <a href="{% url 'dashboard' %}" class="rq-dock-item {% if request.resolver_match.url_name == 'dashboard' %}active{% endif %}">
+      <i class="fas fa-user-circle"></i>
+      <span class="rq-dock-label">حسابي</span>
+    </a>
+    {% else %}
+    <a href="{% url 'site_login' %}" class="rq-dock-item {% if request.resolver_match.url_name == 'site_login' %}active{% endif %}">
+      <i class="fas fa-arrow-right-to-bracket"></i>
+      <span class="rq-dock-label">دخول</span>
+    </a>
+    {% endif %}
+  </nav>
+
+  <!-- ══════════════════════════════════════════════════════════════════════
+       SLIDE-OVER CART DRAWER
+       ══════════════════════════════════════════════════════════════════════ -->
+  <div class="rq-drawer-backdrop" id="cart-drawer-backdrop" onclick="closeCartDrawer()"></div>
+  <aside class="rq-cart-drawer" id="cart-drawer">
+    <div class="rq-cart-header">
+      <h3 class="rq-cart-title">
+        <i class="fas fa-shopping-bag text-cyan-400"></i>
+        <span>سلة المشتريات السريعة</span>
+      </h3>
+      <button type="button" class="rq-cart-close" onclick="closeCartDrawer()" title="إغلاق">
+        <i class="fas fa-times"></i>
+      </button>
+    </div>
+    <div class="rq-cart-body" id="cart-drawer-items">
+      <div style="background: rgba(255, 255, 255, 0.03); border: 1px solid var(--rq-border); border-radius: 14px; padding: 1rem; display: flex; gap: 0.75rem; align-items: center; margin-bottom: 0.75rem;">
+        <div style="width: 48px; height: 48px; border-radius: 10px; background: #0c1222; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+          <i class="fas fa-box text-cyan-400 text-lg"></i>
+        </div>
+        <div style="flex-grow: 1; min-width: 0;">
+          <h4 style="font-size: 0.825rem; font-weight: 800; color: #fff; line-height: 1.2; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">الطلب السريع</h4>
+          <span style="font-size: 0.7rem; color: var(--rq-text-muted);">تسوق مباشر وآمن</span>
+        </div>
+        <a href="{% url 'catalog' %}" style="font-size: 0.72rem; color: #38bdf8; font-weight: 700; text-decoration: underline;">تصفح</a>
+      </div>
+      <p style="font-size: 0.78rem; color: var(--rq-text-secondary); text-align: center; margin-top: 2rem;">
+        اختر جهازك أو ملحقاتك المفضلة من الكتالوج واضغط "شراء الآن" للتنفيذ الفوري.
+      </p>
+    </div>
+    <div class="rq-cart-footer">
+      <a href="{% url 'catalog' %}" class="rq-btn-auth-register" style="width: 100%; display: flex; align-items: center; justify-content: center; gap: 0.5rem; padding: 0.85rem; border-radius: 14px; font-weight: 800; font-size: 0.9rem; text-decoration: none;">
+        <i class="fas fa-arrow-left"></i>
+        <span>متابعة التسوق في الكتالوج</span>
+      </a>
+    </div>
+  </aside>
+
+  <!-- ══════════════════════════════════════════════════════════════════════
+       INSTANT SEARCH MODAL
+       ══════════════════════════════════════════════════════════════════════ -->
+  <div class="rq-search-modal" id="search-modal" onclick="if(event.target === this) closeSearchModal()">
+    <div class="rq-search-box">
+      <form action="{% url 'catalog' %}" method="get" class="rq-search-input-wrap">
+        <i class="fas fa-search text-cyan-400 text-base"></i>
+        <input type="text" name="q" id="instant-search-input" class="rq-search-modal-input" placeholder="اكتب اسم الهاتف، اللابتوب، أو نوع القطعة..." autocomplete="off">
+        <button type="button" onclick="closeSearchModal()" class="text-slate-400 hover:text-white text-sm p-1">
+          <i class="fas fa-times"></i>
+        </button>
+      </form>
+      <div class="rq-search-chips">
+        <span style="font-size: 0.7rem; color: var(--rq-text-muted); font-weight: 700;">الأكثر بحثاً:</span>
+        <a href="{% url 'catalog' %}?q=هاتف" class="rq-search-chip-tag">هواتف ذكية</a>
+        <a href="{% url 'catalog' %}?q=لابتوب" class="rq-search-chip-tag">حواسيب محمولة</a>
+        <a href="{% url 'catalog' %}?q=راوتر" class="rq-search-chip-tag">راوترات 5G</a>
+        <a href="{% url 'catalog' %}?q=كاميرا" class="rq-search-chip-tag">كاميرات مراقبة</a>
+        <a href="{% url 'catalog' %}?q=شاحن" class="rq-search-chip-tag">شواحن وبطاريات</a>
+        <a href="{% url 'catalog' %}?q=سماعات" class="rq-search-chip-tag">سماعات</a>
+      </div>
+      <div class="rq-search-results" id="search-modal-results">
+        <p style="text-align: center; font-size: 0.78rem; color: var(--rq-text-muted); padding: 2rem 0;">
+          ابدأ بالكتابة للبحث الفوري في كافة أقسام وأجهزة رقميات.
+        </p>
+      </div>
+    </div>
   </div>
 
-  <!-- Mobile Nav Bar -->
-  <div class="mobile-nav-bar">
-      <a href="{% url 'home' %}" class="mobile-nav-item {% if request.resolver_match.url_name == 'home' %}active{% endif %}">
-          <i class="fas fa-compass"></i>
-          <span>الرئيسية</span>
-      </a>
-      <a href="{% url 'catalog' %}" class="mobile-nav-item {% if request.resolver_match.url_name == 'catalog' %}active{% endif %}">
-          <i class="fas fa-boxes-stacked"></i>
-          <span>الكتالوج</span>
-      </a>
-      <a href="{% url 'dashboard_wallet' %}" class="mobile-nav-item {% if request.resolver_match.url_name == 'dashboard_wallet' %}active{% endif %}">
-          <i class="fas fa-wallet"></i>
-          <span>المحفظة</span>
-      </a>
-      <a href="{% url 'dashboard_orders' %}" class="mobile-nav-item {% if request.resolver_match.url_name == 'dashboard_orders' %}active{% endif %}">
-          <i class="fas fa-bag-shopping"></i>
-          <span>طلباتي</span>
-      </a>
-      <a href="{% url 'dashboard' %}" class="mobile-nav-item {% if request.resolver_match.url_name == 'dashboard' %}active{% endif %}">
+  <!-- Operational JavaScript for UI Drawers & Keyboard Shortcuts -->
+  <script>
+    function toggleCartDrawer() {
+      const drawer = document.getElementById('cart-drawer');
+      const backdrop = document.getElementById('cart-drawer-backdrop');
+      if (drawer && backdrop) {
+        drawer.classList.toggle('active');
+        backdrop.classList.toggle('active');
+        document.body.style.overflow = drawer.classList.contains('active') ? 'hidden' : '';
+      }
+    }
+    function closeCartDrawer() {
+      const drawer = document.getElementById('cart-drawer');
+      const backdrop = document.getElementById('cart-drawer-backdrop');
+      if (drawer && backdrop) {
+        drawer.classList.remove('active');
+        backdrop.classList.remove('active');
+        document.body.style.overflow = '';
+      }
+    }
+
+    function openSearchModal() {
+      const modal = document.getElementById('search-modal');
+      const input = document.getElementById('instant-search-input');
+      if (modal) {
+        modal.classList.add('active');
+        document.body.style.overflow = 'hidden';
+        setTimeout(() => { if (input) input.focus(); }, 150);
+      }
+    }
+    function closeSearchModal() {
+      const modal = document.getElementById('search-modal');
+      if (modal) {
+        modal.classList.remove('active');
+        document.body.style.overflow = '';
+      }
+    }
+
+    // Keyboard shortcut (Cmd+K / Ctrl+K & Escape)
+    document.addEventListener('keydown', function(e) {
+      if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
+        e.preventDefault();
+        openSearchModal();
+      }
+      if (e.key === 'Escape') {
+        closeSearchModal();
+        closeCartDrawer();
+      }
+    });
+
+    // Instant Search AJAX logic
+    const searchInput = document.getElementById('instant-search-input');
+    const searchResults = document.getElementById('search-modal-results');
+    let searchTimer = null;
+
+    if (searchInput && searchResults) {
+      searchInput.addEventListener('input', function() {
+        const query = this.value.trim();
+        clearTimeout(searchTimer);
+        if (query.length < 2) {
+          searchResults.innerHTML = '<p style="text-align: center; font-size: 0.78rem; color: var(--rq-text-muted); padding: 2rem 0;">ابدأ بالكتابة للبحث الفوري في كافة أقسام وأجهزة رقميات.</p>';
+          return;
+        }
+
+        searchTimer = setTimeout(() => {
+          fetch('/api/products/search-suggestions/?q=' + encodeURIComponent(query))
+            .then(res => res.json())
+            .then(data => {
+              if (data && data.suggestions && data.suggestions.length > 0) {
+                let html = '<div style="display: flex; flex-direction: column; gap: 0.5rem;">';
+                data.suggestions.forEach(item => {
+                  html += `
+                    <a href="${item.url}" style="display: flex; align-items: center; justify-content: space-between; padding: 0.65rem 0.85rem; border-radius: 10px; background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.06); text-decoration: none; transition: all 0.2s;">
+                      <div style="display: flex; align-items: center; gap: 0.75rem;">
+                        <img src="${item.image || '/static/site/img/raqamiyat_logo_square.jpg'}" alt="${item.name}" style="width: 36px; height: 36px; object-fit: contain; border-radius: 8px; background: #0c1222;">
+                        <div>
+                          <div style="font-size: 0.825rem; font-weight: 800; color: #fff;">${item.name}</div>
+                          <div style="font-size: 0.68rem; color: var(--rq-text-muted);">${item.category || 'أجهزة'}</div>
+                        </div>
+                      </div>
+                      <span style="font-size: 0.825rem; font-weight: 900; color: #38bdf8;" class="tabular-nums">${item.price_formatted || item.price}</span>
+                    </a>
+                  `;
+                });
+                html += '</div>';
+                searchResults.innerHTML = html;
+              } else {
+                searchResults.innerHTML = '<p style="text-align: center; font-size: 0.78rem; color: var(--rq-text-muted); padding: 2rem 0;">لم يتم العثور على أجهزة مطابقة. اضغط Enter لتصفح الكتالوج بالكامل.</p>';
+              }
+            })
+            .catch(() => {
+              searchResults.innerHTML = '<p style="text-align: center; font-size: 0.78rem; color: var(--rq-text-muted); padding: 2rem 0;">اضغط Enter لتصفح نتائج الكتالوج.</p>';
+            });
+        }, 250);
+      });
+    }
+  </script>
+
+
           <i class="fas fa-circle-user"></i>
           <span>حسابي</span>
       </a>

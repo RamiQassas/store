@@ -520,3 +520,23 @@ def product_display_image(product):
     return get_product_image_url(product)
 
 
+@register.simple_tag
+def category_display_image(category):
+    """
+    Returns image URL for a category if available, else empty string.
+    """
+    if not category:
+        return ""
+    if hasattr(category, 'image') and category.image:
+        try:
+            return category.image.url
+        except Exception:
+            pass
+    if hasattr(category, 'icon') and category.icon:
+        try:
+            return category.icon.url
+        except Exception:
+            pass
+    return ""
+
+
