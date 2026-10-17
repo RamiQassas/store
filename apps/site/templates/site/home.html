@@ -1,299 +1,390 @@
 {% extends "site/base.html" %}
 {% load static site_tags %}
 
-{% block title %}{% if is_tenant %}{{ STORE_NAME }} | المتجر الإلكتروني المعتمد{% else %}رقميات | RAQAMIYAT — المتجر المعتمد للهواتف والعتاد التقني الذكي{% endif %}{% endblock %}
+{% block title %}رقميات | المتجر الرقمي المتكامل للبطاقات والألعاب والعتاد التقني{% endblock %}
 
 {% block content %}
-<div class="rq-home-wrapper" style="padding-bottom: 4rem;">
+<div style="padding-bottom: 4rem;">
 
   <!-- ══════════════════════════════════════════════════════════════════════
-       1. BENTO HARDWARE SHOWCASE HERO
+       1. HERO FLAGSHIP SHOWCASE (NON-REPETITIVE, ELEGANT)
        ══════════════════════════════════════════════════════════════════════ -->
-  <section class="rq-container" style="padding-top: 2rem; padding-bottom: 2rem;">
-    <div class="bento-grid">
-      <!-- Main Flagship Hero Tile -->
-      <div class="bento-card" style="background: radial-gradient(circle at 80% 20%, rgba(0, 113, 227, 0.18) 0%, rgba(14, 20, 36, 0.95) 70%); border: 1.5px solid rgba(56, 189, 248, 0.25); display: flex; flex-direction: column; justify-content: space-between; min-height: 420px;">
-        <div>
-          <!-- Hardware Studio Tag -->
-          <div style="display: inline-flex; align-items: center; gap: 0.5rem; padding: 0.35rem 0.85rem; border-radius: var(--rq-radius-full); background: rgba(0, 113, 227, 0.15); border: 1px solid rgba(56, 189, 248, 0.3); color: #38bdf8; font-size: 0.75rem; font-weight: 800; margin-bottom: 1.25rem;">
-            <span style="width: 8px; height: 8px; border-radius: 50%; background: #38bdf8; box-shadow: 0 0 10px #38bdf8; display: inline-block;"></span>
-            <span>استوديو الأجهزة والعتاد التقني 2026</span>
+  <section class="rq-hero-section">
+    <div class="rq-container">
+      <div class="rq-hero-grid">
+
+        <!-- Main Banner -->
+        <div class="rq-hero-banner">
+          <div>
+            <div class="rq-hero-badge">
+              <span style="width: 8px; height: 8px; border-radius: 50%; background: #38bdf8; box-shadow: 0 0 10px #38bdf8; display: inline-block;"></span>
+              <span>المنصة المعتمدة الأولى 2026 • تفعيل وتسليم فوري</span>
+            </div>
+
+            <h1 class="rq-hero-title">
+              كل ما تحتاجه من عالم <br>
+              <span class="rq-hero-title-accent">البطاقات الرقمية، الألعاب، والعتاد التقني</span>
+            </h1>
+
+            <p class="rq-hero-desc">
+              وجهتك الموثوقة لشحن الألعاب الفوري، بطاقات الهدايا والتطبيقات، اشتراكات البث السحابي والذكاء الاصطناعي، وتجهيزات الشبكات والأجهزة الإلكترونية بضمان معتمد 100%.
+            </p>
           </div>
 
-          <!-- Main Hero Headline -->
-          <h1 style="font-size: clamp(2rem, 4.5vw, 3.2rem); font-weight: 900; line-height: 1.2; color: #fff; margin-bottom: 1rem; letter-spacing: -0.02em;">
-            كل ما تحتاجه من عالم التكنولوجيا <br>
-            <span style="background: linear-gradient(135deg, #38bdf8 0%, #0071e3 50%, #818cf8 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">بأعلى معايير الجودة والضمان</span>
-          </h1>
-
-          <p style="font-size: clamp(0.9rem, 1.6vw, 1.05rem); color: var(--rq-text-secondary); line-height: 1.7; max-width: 600px; margin-bottom: 1.75rem;">
-            اكتشف أحدث الهواتف الذكية، الحواسيب المحمولة والمكتبية، وتجهيزات الشبكات والاتصالات، والكاميرات، والشواحن والإكسسوارات الأصلية مع ضمان التوافق والاعتمادية.
-          </p>
-
-          <!-- 3 Quick Spec Highlights -->
-          <div style="display: flex; flex-wrap: wrap; gap: 0.75rem; margin-bottom: 2rem;">
-            <div style="display: flex; align-items: center; gap: 0.45rem; padding: 0.45rem 0.85rem; border-radius: 10px; background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08); font-size: 0.78rem; font-weight: 700; color: #cbd5e1;">
-              <i class="fas fa-shield-halved text-cyan-400"></i>
-              <span>ضمان أصالة 100%</span>
-            </div>
-            <div style="display: flex; align-items: center; gap: 0.45rem; padding: 0.45rem 0.85rem; border-radius: 10px; background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08); font-size: 0.78rem; font-weight: 700; color: #cbd5e1;">
-              <i class="fas fa-truck-fast text-emerald-400"></i>
-              <span>تجهيز وشحن فوري</span>
-            </div>
-            <div style="display: flex; align-items: center; gap: 0.45rem; padding: 0.45rem 0.85rem; border-radius: 10px; background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08); font-size: 0.78rem; font-weight: 700; color: #cbd5e1;">
-              <i class="fas fa-microchip text-amber-400"></i>
-              <span>أحدث إصدارات 2026</span>
-            </div>
-          </div>
-        </div>
-
-        <!-- Action CTAs -->
-        <div style="display: flex; flex-wrap: wrap; align-items: center; gap: 0.85rem;">
-          <a href="{% url 'catalog' %}" class="rq-btn-auth-register" style="padding: 0.85rem 1.75rem; font-size: 0.95rem; display: inline-flex; align-items: center; gap: 0.5rem; text-decoration: none;">
-            <i class="fas fa-shopping-bag"></i>
-            <span>تسوّق الأجهزة والمنتجات</span>
-          </a>
-          <a href="#categories-section" class="rq-btn-auth-login" style="padding: 0.85rem 1.5rem; font-size: 0.95rem; display: inline-flex; align-items: center; gap: 0.5rem; text-decoration: none;">
-            <i class="fas fa-layer-group text-cyan-400"></i>
-            <span>استكشف الأقسام</span>
-          </a>
-          {% if FEATURES.feature_sub_stores and not is_tenant %}
-          <a href="{% url 'store_registration' %}" style="padding: 0.85rem 1.35rem; border-radius: var(--rq-radius-full); font-size: 0.85rem; font-weight: 800; color: #fbbf24; background: rgba(245, 158, 11, 0.1); border: 1px solid rgba(245, 158, 11, 0.3); text-decoration: none; display: inline-flex; align-items: center; gap: 0.4rem;">
-            <i class="fas fa-store"></i>
-            <span>أنشئ متجرك مجاناً</span>
-          </a>
-          {% endif %}
-        </div>
-      </div>
-
-      <!-- Side Bento Tile: Spotlight Hardware Card -->
-      <div class="bento-card" style="background: linear-gradient(165deg, rgba(20, 28, 50, 0.9) 0%, rgba(10, 14, 26, 0.95) 100%); display: flex; flex-direction: column; justify-content: space-between;">
-        <div>
-          <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 1rem;">
-            <span style="font-size: 0.72rem; font-weight: 800; color: #38bdf8; text-transform: uppercase;">جهاز الأسبوع المختار</span>
-            <span style="font-size: 0.68rem; font-weight: 800; padding: 0.2rem 0.6rem; border-radius: 6px; background: rgba(16, 185, 129, 0.15); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.3);">متوفر فوراً</span>
-          </div>
-
-          {% with featured_products.0 as hero_prod %}
-          {% if hero_prod %}
-          {% product_display_image hero_prod as hp_img %}
-          <div style="width: 100%; height: 210px; border-radius: 16px; background: radial-gradient(circle, rgba(56, 189, 248, 0.1) 0%, rgba(8, 12, 22, 0.8) 100%); display: flex; align-items: center; justify-content: center; margin-bottom: 1.25rem; overflow: hidden; border: 1px solid rgba(255,255,255,0.06);">
-            <img src="{{ hp_img }}" alt="{{ hero_prod.name }}" style="max-height: 85%; max-width: 85%; object-fit: contain;">
-          </div>
-          <h3 style="font-size: 1.1rem; font-weight: 800; color: #fff; margin-bottom: 0.4rem; line-height: 1.3;">{{ hero_prod.name }}</h3>
-          <p style="font-size: 0.78rem; color: var(--rq-text-secondary); line-height: 1.5; margin-bottom: 1rem;">{{ hero_prod.category.name|default:"عتاد تقني أصلي" }}</p>
-          <div style="display: flex; align-items: center; justify-content: space-between; padding-top: 0.85rem; border-top: 1px solid rgba(255,255,255,0.06);">
-            <div>
-              <span style="font-size: 0.65rem; color: var(--rq-text-muted); display: block;">السعر المعتمد</span>
-              <span style="font-size: 1.2rem; font-weight: 900; color: #fbbf24;" class="tabular-nums">{% product_starting_price hero_prod %}</span>
-            </div>
-            <a href="{% url 'product_detail' hero_prod.id %}" class="tech-btn-action" style="padding: 0.65rem 1.25rem; font-size: 0.85rem;">
-              <span>طلب مباشر</span>
-              <i class="fas fa-arrow-left"></i>
+          <div class="rq-hero-actions">
+            <a href="{% url 'catalog' %}" class="rq-btn-auth-register" style="padding: 0.85rem 1.75rem; font-size: 0.95rem;">
+              <i class="fas fa-grid-2"></i>
+              <span>تصفح الكتالوج الشامل</span>
             </a>
+            <a href="#categories-section" class="rq-btn-auth-login" style="padding: 0.85rem 1.5rem; font-size: 0.95rem;">
+              <i class="fas fa-layer-group text-blue-400"></i>
+              <span>استكشف الأقسام</span>
+            </a>
+            {% if not is_tenant %}
+            <a href="{% url 'store_registration' %}" style="display: inline-flex; align-items: center; gap: 0.45rem; padding: 0.85rem 1.35rem; border-radius: var(--rq-radius-md); font-size: 0.85rem; font-weight: 800; color: #fbbf24; background: rgba(245, 158, 11, 0.12); border: 1px solid rgba(245, 158, 11, 0.3);">
+              <i class="fas fa-store"></i>
+              <span>أنشئ متجرك مجاناً</span>
+            </a>
+            {% endif %}
           </div>
-          {% else %}
-          <div style="text-center py-12 text-slate-500">
-            <i class="fas fa-microchip text-4xl mb-3 text-cyan-400/40"></i>
-            <p style="font-size: 0.85rem; color: #94a3b8;">تصفح الكتالوج لاختيار أحدث الأجهزة</p>
+        </div>
+
+        <!-- Spotlight Side Card -->
+        <div class="rq-hero-side-card">
+          <div>
+            <div class="rq-hero-side-header">
+              <span style="font-size: 0.72rem; font-weight: 800; color: #38bdf8; text-transform: uppercase;">منتج الأسبوع المختار</span>
+              <span style="font-size: 0.68rem; font-weight: 800; padding: 0.2rem 0.6rem; border-radius: 6px; background: rgba(16, 185, 129, 0.15); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.3);">
+                تسليم فوري ⚡
+              </span>
+            </div>
+
+            {% with featured_products|first as spot %}
+            {% if spot %}
+            {% product_display_image spot as spot_img %}
+            <a href="{% url 'product_detail' spot.id %}" style="display: block; text-decoration: none;">
+              <div style="width: 100%; height: 200px; border-radius: 16px; background: #080c16; display: flex; align-items: center; justify-content: center; margin-bottom: 1.25rem; overflow: hidden; border: 1px solid var(--rq-border); padding: 1rem;">
+                <img src="{{ spot_img }}" alt="{{ spot.name }}" style="max-height: 100%; max-width: 100%; object-fit: contain;">
+              </div>
+              <h3 style="font-size: 1.05rem; font-weight: 800; color: #fff; margin-bottom: 0.35rem; line-height: 1.3;">{{ spot.name }}</h3>
+              <p style="font-size: 0.75rem; color: var(--rq-text-muted); margin-bottom: 1rem;">{{ spot.category.name|default:'خدمة رقمية معتمدة' }}</p>
+            </a>
+            <div style="display: flex; align-items: center; justify-content: space-between; padding-top: 0.85rem; border-top: 1px solid var(--rq-border);">
+              <div>
+                <span class="rq-price-label">السعر يبدأ من</span>
+                <span class="tabular-nums" style="font-size: 1.15rem; font-weight: 900; color: #fbbf24;">{% product_starting_price spot %}</span>
+              </div>
+              <a href="{% url 'product_detail' spot.id %}" class="rq-btn-auth-register" style="padding: 0.55rem 1.15rem; font-size: 0.8rem;">
+                <span>طلب فوري</span>
+                <i class="fas fa-arrow-left text-[10px]"></i>
+              </a>
+            </div>
+            {% endif %}
+            {% endwith %}
           </div>
-          {% endif %}
-          {% endwith %}
+        </div>
+
+      </div>
+
+      <!-- 4 Trust Highlights -->
+      <div class="rq-trust-row">
+        <div class="rq-trust-box">
+          <div class="rq-trust-icon"><i class="fas fa-bolt"></i></div>
+          <div>
+            <div class="rq-trust-title">تسليم آلي فوري</div>
+            <div class="rq-trust-text">معالجة فورية للأكواد والخدمات الرقمية.</div>
+          </div>
+        </div>
+        <div class="rq-trust-box">
+          <div class="rq-trust-icon" style="color: #34d399; background: rgba(16, 185, 129, 0.1); border-color: rgba(16, 185, 129, 0.2);"><i class="fas fa-shield-check"></i></div>
+          <div>
+            <div class="rq-trust-title">ضمان رسمي 100%</div>
+            <div class="rq-trust-text">كافة المنتجات أصلية معتمدة من الموزعين.</div>
+          </div>
+        </div>
+        <div class="rq-trust-box">
+          <div class="rq-trust-icon" style="color: #fbbf24; background: rgba(245, 158, 11, 0.1); border-color: rgba(245, 158, 11, 0.2);"><i class="fas fa-wallet"></i></div>
+          <div>
+            <div class="rq-trust-title">بوابات دفع متنوعة</div>
+            <div class="rq-trust-text">شام كاش، Paymera، البطاقات، والكريبتو.</div>
+          </div>
+        </div>
+        <div class="rq-trust-box">
+          <div class="rq-trust-icon" style="color: #a78bfa; background: rgba(139, 92, 246, 0.1); border-color: rgba(139, 92, 246, 0.2);"><i class="fas fa-headset"></i></div>
+          <div>
+            <div class="rq-trust-title">دعم هندسي 24/7</div>
+            <div class="rq-trust-text">فريق دعم متواجد للإجابة على مدار الساعة.</div>
+          </div>
         </div>
       </div>
+
     </div>
   </section>
 
   <!-- ══════════════════════════════════════════════════════════════════════
-       2. VISUAL HARDWARE CATEGORIES (BENTO TILES)
+       2. INTERACTIVE CATEGORY STORY CIRCLES (DYNAMIC & RICH)
        ══════════════════════════════════════════════════════════════════════ -->
-  <section class="rq-container" id="categories-section" style="padding-top: 2.5rem; padding-bottom: 2rem;">
-    <div style="display: flex; align-items: flex-end; justify-content: space-between; margin-bottom: 1.75rem; flex-wrap: wrap; gap: 1rem;">
+  <section class="rq-container" id="categories-section" style="margin-bottom: 3rem;">
+    <div class="rq-section-header">
       <div>
-        <span style="font-size: 0.75rem; font-weight: 800; color: #38bdf8; text-transform: uppercase; letter-spacing: 0.05em;">تصفح حسب فئة العتاد</span>
-        <h2 style="font-size: clamp(1.4rem, 2.8vw, 2rem); font-weight: 900; color: #fff; margin-top: 0.25rem;">أقسام الأجهزة والإلكترونيات</h2>
+        <span class="rq-section-tag">استكشف حسب القسم</span>
+        <h2 class="rq-section-title">أقسام المتجر والخدمات</h2>
       </div>
-      <a href="{% url 'catalog' %}" style="display: inline-flex; align-items: center; gap: 0.4rem; font-size: 0.85rem; font-weight: 800; color: #38bdf8; padding: 0.5rem 1rem; border-radius: var(--rq-radius-full); background: rgba(0, 113, 227, 0.1); border: 1px solid rgba(56, 189, 248, 0.25);">
+      <a href="{% url 'catalog' %}" class="rq-section-link">
         <span>عرض كافة الأقسام</span>
         <i class="fas fa-chevron-left text-xs"></i>
       </a>
     </div>
 
-    <!-- Category Bento Grid -->
-    <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 1rem;">
+    <div class="rq-categories-scroller">
       {% for cat in categories %}
+      {% if cat.product_count > 0 %}
       {% category_display_image cat as cat_img %}
-      <a href="{% url 'catalog' %}?category={{ cat.id }}" style="background: var(--rq-surface-card); border: 1px solid var(--rq-border); border-radius: var(--rq-radius-lg); padding: 1.25rem; display: flex; flex-direction: column; align-items: center; text-align: center; gap: 0.75rem; transition: all 0.25s ease; position: relative; overflow: hidden;" onmouseover="this.style.borderColor='rgba(56, 189, 248, 0.4)'; this.style.transform='translateY(-3px)';" onmouseout="this.style.borderColor='var(--rq-border)'; this.style.transform='translateY(0)';">
-        <div style="width: 56px; height: 56px; border-radius: 14px; background: rgba(255, 255, 255, 0.04); border: 1px solid rgba(255, 255, 255, 0.08); display: flex; align-items: center; justify-content: center; overflow: hidden;">
+      <a href="{% url 'catalog' %}?category={{ cat.id }}" class="rq-category-item-chip" title="{{ cat.name }}">
+        <div class="rq-category-icon-wrapper">
           {% if cat_img %}
-          <img src="{{ cat_img }}" alt="{{ cat.name }}" style="width: 34px; height: 34px; object-fit: contain;">
+          <img src="{{ cat_img }}" alt="{{ cat.name }}">
+          {% elif cat.image %}
+          <img src="{{ cat.image.url }}" alt="{{ cat.name }}">
           {% else %}
-          <i class="fas fa-microchip text-cyan-400 text-xl"></i>
+          <i class="fas fa-layer-group text-blue-400 text-2xl"></i>
           {% endif %}
         </div>
-        <div>
-          <h3 style="font-size: 0.875rem; font-weight: 800; color: #fff; line-height: 1.3;">{{ cat.name }}</h3>
-          <span style="font-size: 0.68rem; color: var(--rq-text-muted); font-weight: 700; margin-top: 0.2rem; display: inline-block;">{{ cat.product_count|default:cat.products.count }} جهاز وقطعة</span>
-        </div>
+        <span class="rq-category-chip-name">{{ cat.name }}</span>
+        <span class="rq-category-chip-count">{{ cat.product_count }} عنصر</span>
       </a>
-      {% empty %}
-      <div style="grid-column: 1 / -1; text-align: center; padding: 2rem; color: var(--rq-text-muted);">
-        لا توجد أقسام مسجلة حالياً.
-      </div>
+      {% endif %}
       {% endfor %}
     </div>
   </section>
 
   <!-- ══════════════════════════════════════════════════════════════════════
-       3. FEATURED TECH HARDWARE (NEXT-GEN CARDS WITH SPEC PILLS)
+       3. FLASH DEALS / عروض خاصة لفترة محدودة (IF AVAILABLE)
        ══════════════════════════════════════════════════════════════════════ -->
-  <section class="rq-container" style="padding-top: 2.5rem; padding-bottom: 2.5rem;">
-    <div style="display: flex; align-items: flex-end; justify-content: space-between; margin-bottom: 1.75rem; flex-wrap: wrap; gap: 1rem;">
-      <div>
-        <span style="font-size: 0.75rem; font-weight: 800; color: #34d399; text-transform: uppercase; letter-spacing: 0.05em;">أحدث التجهيزات والعتاد</span>
-        <h2 style="font-size: clamp(1.4rem, 2.8vw, 2rem); font-weight: 900; color: #fff; margin-top: 0.25rem;">المنتجات التقنية المختارة</h2>
+  {% if sale_products %}
+  <section class="rq-container" style="margin-bottom: 3.5rem;">
+    <div style="background: linear-gradient(135deg, rgba(239, 68, 68, 0.08) 0%, rgba(20, 28, 48, 0.9) 100%); border: 1px solid rgba(239, 68, 68, 0.25); border-radius: var(--rq-radius-xl); padding: 1.75rem;">
+      <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.5rem; flex-wrap: wrap; gap: 1rem;">
+        <div style="display: flex; align-items: center; gap: 0.75rem;">
+          <div style="width: 40px; height: 40px; border-radius: 10px; background: rgba(239, 68, 68, 0.15); color: #ef4444; display: flex; align-items: center; justify-content: center; font-size: 1.2rem;">
+            <i class="fas fa-fire"></i>
+          </div>
+          <div>
+            <h3 style="font-size: 1.2rem; font-weight: 900; color: #fff; margin: 0;">عروض وخصومات حصرية</h3>
+            <span style="font-size: 0.72rem; color: #fca5a5; font-weight: 700;">أسعار مخفضة لفترة محدودة حتى نفاد الكمية</span>
+          </div>
+        </div>
+        <div style="display: inline-flex; align-items: center; gap: 0.4rem; padding: 0.35rem 0.85rem; border-radius: var(--rq-radius-full); background: rgba(239, 68, 68, 0.15); color: #f87171; font-size: 0.75rem; font-weight: 800;">
+          <i class="fas fa-clock"></i>
+          <span>العروض تتجدد أسبوعياً</span>
+        </div>
       </div>
-      <a href="{% url 'catalog' %}?sort=newest" style="display: inline-flex; align-items: center; gap: 0.4rem; font-size: 0.85rem; font-weight: 800; color: #34d399; padding: 0.5rem 1rem; border-radius: var(--rq-radius-full); background: rgba(16, 185, 129, 0.1); border: 1px solid rgba(16, 185, 129, 0.25);">
-        <span>تصفح أحدث الأجهزة</span>
+
+      <div class="rq-product-grid" style="margin-bottom: 0;">
+        {% for p in sale_products|slice:":4" %}
+        {% product_display_image p as p_img %}
+        <div class="rq-card">
+          <a href="{% url 'product_detail' p.id %}" class="rq-card-media">
+            <span class="rq-badge-sale">خصم خاص</span>
+            {% if p.product_type == 'physical' %}
+            <span class="rq-badge-delivery-physical"><i class="fas fa-truck text-[9px]"></i> شحن مادي</span>
+            {% else %}
+            <span class="rq-badge-delivery-instant"><i class="fas fa-bolt text-[9px]"></i> فوري</span>
+            {% endif %}
+            <img src="{{ p_img }}" alt="{{ p.name }}" loading="lazy" onerror="this.onerror=null; this.src='{% static 'site/img/raqamiyat_logo_square.jpg' %}';">
+          </a>
+          <div class="rq-card-body">
+            <div>
+              <span class="rq-card-category">{{ p.category.name|default:'عروض رقميات' }}</span>
+              <a href="{% url 'product_detail' p.id %}">
+                <h4 class="rq-card-title">{{ p.name }}</h4>
+              </a>
+            </div>
+            <div class="rq-card-footer">
+              <div>
+                <span class="rq-price-label">السعر المخفض</span>
+                <span class="tabular-nums rq-price-val" style="color: #fbbf24;">{% product_starting_price p %}</span>
+              </div>
+              <a href="{% url 'product_detail' p.id %}" class="rq-card-buy-btn">
+                <span>طلب</span>
+                <i class="fas fa-arrow-left text-[9px]"></i>
+              </a>
+            </div>
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+  </section>
+  {% endif %}
+
+  <!-- ══════════════════════════════════════════════════════════════════════
+       4. FEATURED PRODUCTS (DIVERSE, AUTHENTIC, BEST SELLERS)
+       ══════════════════════════════════════════════════════════════════════ -->
+  <section class="rq-container" style="margin-bottom: 3.5rem;">
+    <div class="rq-section-header">
+      <div>
+        <span class="rq-section-tag">الأعلى طلباً وتقييماً</span>
+        <h2 class="rq-section-title">أبرز المنتجات والخدمات المختارة</h2>
+      </div>
+      <a href="{% url 'catalog' %}" class="rq-section-link">
+        <span>تصفح كافة المنتجات</span>
         <i class="fas fa-chevron-left text-xs"></i>
       </a>
     </div>
 
-    <!-- Product Grid -->
-    <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 1.25rem;">
-      {% for product in featured_products %}
-      {% product_display_image product as prod_img %}
-      <div class="tech-product-card">
-        <!-- 1:1 Aspect Ratio Media Box -->
-        <a href="{% url 'product_detail' product.id %}" class="tech-media-box">
-          {% if product.is_out_of_stock %}
-          <span class="tech-stock-pill out-of-stock">
-            <span class="tech-pulse-dot"></span> نفد مؤقتاً
-          </span>
+    <div class="rq-product-grid">
+      {% for p in featured_products %}
+      {% product_display_image p as p_img %}
+      <div class="rq-card">
+        <a href="{% url 'product_detail' p.id %}" class="rq-card-media">
+          {% if p.product_type == 'physical' %}
+          <span class="rq-badge-delivery-physical"><i class="fas fa-truck text-[9px]"></i> شحن وتوصيل</span>
           {% else %}
-          <span class="tech-stock-pill in-stock">
-            <span class="tech-pulse-dot"></span> متوفر في المخزون
-          </span>
+          <span class="rq-badge-delivery-instant"><i class="fas fa-bolt text-[9px]"></i> تسليم فوري</span>
           {% endif %}
-
-          {% if product.product_type == 'physical' %}
-          <span class="tech-type-pill"><i class="fas fa-truck-fast ml-1"></i> شحن سريع</span>
-          {% else %}
-          <span class="tech-type-pill"><i class="fas fa-bolt ml-1"></i> تفعيل فوري</span>
-          {% endif %}
-
-          <img src="{{ prod_img }}" alt="{{ product.name }}" loading="lazy" onerror="this.onerror=null; this.src='{% static 'site/img/raqamiyat_logo_square.jpg' %}';">
+          <img src="{{ p_img }}" alt="{{ p.name }}" loading="lazy" onerror="this.onerror=null; this.src='{% static 'site/img/raqamiyat_logo_square.jpg' %}';">
         </a>
-
-        <!-- Card Body -->
-        <div class="tech-card-body">
-          <span class="tech-category-tag">{{ product.category.name|default:"أجهزة وتقنيات" }}</span>
-          <a href="{% url 'product_detail' product.id %}">
-            <h3 class="tech-product-name">{{ product.name }}</h3>
-          </a>
-
-          <!-- Quick Spec Pills Row -->
-          <div class="tech-spec-row">
-            {% if product.product_type == 'physical' %}
-            <span class="spec-pill">عتاد أصلي</span>
-            <span class="spec-pill">كفالة معتمدة</span>
-            {% else %}
-            <span class="spec-pill">رقمي</span>
-            <span class="spec-pill">تسليم فوري</span>
-            {% endif %}
-            <span class="spec-pill">2026</span>
+        <div class="rq-card-body">
+          <div>
+            <span class="rq-card-category">{{ p.category.name|default:'خدمة معتمدة' }}</span>
+            <a href="{% url 'product_detail' p.id %}">
+              <h4 class="rq-card-title">{{ p.name }}</h4>
+            </a>
           </div>
-
-          <!-- Card Footer -->
-          <div class="tech-card-footer">
-            <div class="tech-price-group">
-              <span class="tech-price-label">السعر يبدأ من</span>
-              <span class="tech-price-amount tabular-nums">{% product_starting_price product %}</span>
+          <div class="rq-card-footer">
+            <div>
+              <span class="rq-price-label">السعر يبدأ من</span>
+              <span class="tabular-nums rq-price-val">{% product_starting_price p %}</span>
             </div>
-            <a href="{% url 'product_detail' product.id %}" class="tech-btn-action">
-              <i class="fas fa-cart-plus"></i>
-              <span>طلب</span>
+            <a href="{% url 'product_detail' p.id %}" class="rq-card-buy-btn">
+              <span>طلب مباشر</span>
+              <i class="fas fa-arrow-left text-[9px]"></i>
             </a>
           </div>
         </div>
       </div>
       {% empty %}
-      <div style="grid-column: 1 / -1; text-align: center; padding: 3rem; color: var(--rq-text-muted);">
-        لا توجد منتجات معروضة حالياً.
+      <div style="grid-column: 1 / -1; text-align: center; padding: 3rem; background: var(--rq-surface-card); border-radius: var(--rq-radius-lg); border: 1px solid var(--rq-border);">
+        <p style="color: var(--rq-text-muted);">جاري تحديث قائمة المنتجات المختارة...</p>
       </div>
       {% endfor %}
     </div>
   </section>
 
   <!-- ══════════════════════════════════════════════════════════════════════
-       4. HARDWARE ASSURANCE & TRUST PILLARS
+       5. WHY CHOOSE RAQAMIYAT (VALUE PILLARS)
        ══════════════════════════════════════════════════════════════════════ -->
-  <section class="rq-container" style="padding-top: 2rem; padding-bottom: 2rem;">
-    <div style="background: rgba(14, 20, 36, 0.7); border: 1px solid var(--rq-border); border-radius: var(--rq-radius-2xl); padding: 2rem; display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 1.5rem;">
-      <div style="display: flex; gap: 1rem; align-items: flex-start;">
-        <div style="width: 44px; height: 44px; border-radius: 12px; background: rgba(0, 113, 227, 0.15); border: 1px solid rgba(0, 113, 227, 0.3); display: flex; align-items: center; justify-content: center; font-size: 1.15rem; color: #38bdf8; flex-shrink: 0;">
-          <i class="fas fa-shield-halved"></i>
-        </div>
-        <div>
-          <h4 style="font-size: 0.95rem; font-weight: 800; color: #fff; margin-bottom: 0.25rem;">أصالة وجودة معتمدة</h4>
-          <p style="font-size: 0.78rem; color: var(--rq-text-secondary); line-height: 1.5;">كافة الأجهزة والإلكترونيات تخضع للفحص والتوثيق لضمان مطابقتها للمواصفات الرسمية.</p>
-        </div>
+  <section class="rq-container" style="margin-bottom: 3.5rem;">
+    <div style="background: var(--rq-surface-card); border: 1px solid var(--rq-border); border-radius: var(--rq-radius-xl); padding: 2.5rem 2rem;">
+      <div style="text-align: center; max-width: 600px; margin: 0 auto 2.5rem;">
+        <span class="rq-section-tag">لماذا يختارنا الآلاف؟</span>
+        <h2 style="font-size: 1.6rem; font-weight: 900; color: #fff; margin-bottom: 0.5rem;">معايير الجودة والضمان في رقميات</h2>
+        <p style="font-size: 0.85rem; color: var(--rq-text-muted); line-height: 1.6;">نوفر لك أفضل بيئة شراء رقمية وهندسية تجمع بين السرعة الفائقة والأسعار التنافسية المعتمدة.</p>
       </div>
 
-      <div style="display: flex; gap: 1rem; align-items: flex-start;">
-        <div style="width: 44px; height: 44px; border-radius: 12px; background: rgba(16, 185, 129, 0.15); border: 1px solid rgba(16, 185, 129, 0.3); display: flex; align-items: center; justify-content: center; font-size: 1.15rem; color: #34d399; flex-shrink: 0;">
-          <i class="fas fa-bolt"></i>
+      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 1.5rem;">
+        <div style="background: rgba(255, 255, 255, 0.02); border: 1px solid var(--rq-border); border-radius: var(--rq-radius-lg); padding: 1.5rem; text-align: center;">
+          <div style="width: 50px; height: 50px; border-radius: 14px; background: rgba(37, 99, 235, 0.12); color: var(--rq-primary-light); font-size: 1.35rem; display: flex; align-items: center; justify-content: center; margin: 0 auto 1rem;">
+            <i class="fas fa-microchip"></i>
+          </div>
+          <h4 style="font-size: 0.95rem; font-weight: 800; color: #fff; margin-bottom: 0.4rem;">فحص وتوثيق هندسي</h4>
+          <p style="font-size: 0.78rem; color: var(--rq-text-muted); line-height: 1.6;">جميع الأجهزة والبطاقات تخضع لاختبارات توثيق مسبقة لضمان عملها فور الاستلام.</p>
         </div>
-        <div>
-          <h4 style="font-size: 0.95rem; font-weight: 800; color: #fff; margin-bottom: 0.25rem;">تجهيز وشحن فوري</h4>
-          <p style="font-size: 0.78rem; color: var(--rq-text-secondary); line-height: 1.5;">معالجة لحظية لكافة الطلبات مع نظام تتبع آلي لخطوات التجهيز والشحن حتى الاستلام.</p>
-        </div>
-      </div>
 
-      <div style="display: flex; gap: 1rem; align-items: flex-start;">
-        <div style="width: 44px; height: 44px; border-radius: 12px; background: rgba(245, 158, 11, 0.15); border: 1px solid rgba(245, 158, 11, 0.3); display: flex; align-items: center; justify-content: center; font-size: 1.15rem; color: #fbbf24; flex-shrink: 0;">
-          <i class="fas fa-headset"></i>
+        <div style="background: rgba(255, 255, 255, 0.02); border: 1px solid var(--rq-border); border-radius: var(--rq-radius-lg); padding: 1.5rem; text-align: center;">
+          <div style="width: 50px; height: 50px; border-radius: 14px; background: rgba(16, 185, 129, 0.12); color: #34d399; font-size: 1.35rem; display: flex; align-items: center; justify-content: center; margin: 0 auto 1rem;">
+            <i class="fas fa-lock"></i>
+          </div>
+          <h4 style="font-size: 0.95rem; font-weight: 800; color: #fff; margin-bottom: 0.4rem;">حماية وأمان مالي</h4>
+          <p style="font-size: 0.78rem; color: var(--rq-text-muted); line-height: 1.6;">معاملات مشفرة بالكامل عبر بوابات دفع معتمدة ومحفظة رقمية آمنة.</p>
         </div>
-        <div>
-          <h4 style="font-size: 0.95rem; font-weight: 800; color: #fff; margin-bottom: 0.25rem;">دعم فني متخصص 24/7</h4>
-          <p style="font-size: 0.78rem; color: var(--rq-text-secondary); line-height: 1.5;">فريق دعم تقني للإجابة عن استفسارات التوافق والمواصفات ومساعدتك في اختيار جهازك.</p>
+
+        <div style="background: rgba(255, 255, 255, 0.02); border: 1px solid var(--rq-border); border-radius: var(--rq-radius-lg); padding: 1.5rem; text-align: center;">
+          <div style="width: 50px; height: 50px; border-radius: 14px; background: rgba(245, 158, 11, 0.12); color: #fbbf24; font-size: 1.35rem; display: flex; align-items: center; justify-content: center; margin: 0 auto 1rem;">
+            <i class="fas fa-tags"></i>
+          </div>
+          <h4 style="font-size: 0.95rem; font-weight: 800; color: #fff; margin-bottom: 0.4rem;">أسعار جملة تنافسية</h4>
+          <p style="font-size: 0.78rem; color: var(--rq-text-muted); line-height: 1.6;">توفير مباشر من الموزعين الرئيسيين بدون وسطاء مع خصومات مستمرة.</p>
+        </div>
+
+        <div style="background: rgba(255, 255, 255, 0.02); border: 1px solid var(--rq-border); border-radius: var(--rq-radius-lg); padding: 1.5rem; text-align: center;">
+          <div style="width: 50px; height: 50px; border-radius: 14px; background: rgba(139, 92, 246, 0.12); color: #a78bfa; font-size: 1.35rem; display: flex; align-items: center; justify-content: center; margin: 0 auto 1rem;">
+            <i class="fas fa-comments"></i>
+          </div>
+          <h4 style="font-size: 0.95rem; font-weight: 800; color: #fff; margin-bottom: 0.4rem;">دعم فني استشاري</h4>
+          <p style="font-size: 0.78rem; color: var(--rq-text-muted); line-height: 1.6;">مساعدتك في اختيار أنسب بطاقة أو جهاز يلبي احتياجك بدقة تامة.</p>
         </div>
       </div>
     </div>
   </section>
 
   <!-- ══════════════════════════════════════════════════════════════════════
-       5. PARTNER STORES BENTO (IF APPLICABLE)
+       6. PARTNER STORES & PLATFORM ECOSYSTEM (IF PRESENT)
        ══════════════════════════════════════════════════════════════════════ -->
-  {% if platform_stores and not is_tenant %}
-  <section class="rq-container" style="padding-top: 2rem; padding-bottom: 3rem;">
-    <div style="display: flex; align-items: flex-end; justify-content: space-between; margin-bottom: 1.5rem; flex-wrap: wrap; gap: 1rem;">
+  {% if platform_stores %}
+  <section class="rq-container" style="margin-bottom: 3.5rem;">
+    <div class="rq-section-header">
       <div>
-        <span style="font-size: 0.75rem; font-weight: 800; color: #fbbf24; text-transform: uppercase;">شبكة المتاجر المستقلة</span>
-        <h2 style="font-size: clamp(1.3rem, 2.5vw, 1.8rem); font-weight: 900; color: #fff; margin-top: 0.25rem;">متاجر رقميات الشريكة</h2>
+        <span class="rq-section-tag">منظومة رقميات SaaS</span>
+        <h2 class="rq-section-title">المتاجر الشريكة المعتمدة</h2>
       </div>
-      <a href="{% url 'stores_directory' %}" style="display: inline-flex; align-items: center; gap: 0.4rem; font-size: 0.85rem; font-weight: 800; color: #fbbf24;">
-        <span>دليل المتاجر بالكامل</span>
+      <a href="{% url 'stores_directory' %}" class="rq-section-link">
+        <span>عرض كافة المتاجر</span>
         <i class="fas fa-chevron-left text-xs"></i>
       </a>
     </div>
 
     <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 1.25rem;">
-      {% for s in platform_stores %}
-      <a href="{% url 'visit_store' s.subdomain %}" style="background: var(--rq-surface-card); border: 1px solid var(--rq-border); border-radius: var(--rq-radius-lg); padding: 1.25rem; display: flex; align-items: center; gap: 1rem; transition: all 0.25s ease;" onmouseover="this.style.borderColor='rgba(245, 158, 11, 0.4)'; this.style.transform='translateY(-2px)';" onmouseout="this.style.borderColor='var(--rq-border)'; this.style.transform='translateY(0)';">
-        <div style="width: 48px; height: 48px; border-radius: 12px; background: #0c1222; border: 1px solid rgba(255,255,255,0.08); display: flex; align-items: center; justify-content: center; overflow: hidden; flex-shrink: 0;">
-          {% if s.logo %}
-          <img src="{{ s.logo.url }}" alt="{{ s.name }}" style="width: 100%; height: 100%; object-fit: contain;">
-          {% else %}
-          <i class="fas fa-store text-amber-400"></i>
-          {% endif %}
+      {% for st in platform_stores %}
+      <a href="{% url 'visit_store' st.subdomain %}" style="background: var(--rq-surface-card); border: 1px solid var(--rq-border); border-radius: var(--rq-radius-lg); padding: 1.25rem; display: flex; align-items: center; gap: 1rem; text-decoration: none; transition: all 0.25s;" onmouseover="this.style.borderColor='var(--rq-primary-light)'; this.style.transform='translateY(-3px)';" onmouseout="this.style.borderColor='var(--rq-border)'; this.style.transform='translateY(0)';">
+        {% if st.logo %}
+        <img src="{{ st.logo.url }}" alt="{{ st.name }}" style="width: 48px; height: 48px; border-radius: 12px; object-fit: cover;">
+        {% else %}
+        <div style="width: 48px; height: 48px; border-radius: 12px; background: rgba(37, 99, 235, 0.15); color: var(--rq-primary-light); display: flex; align-items: center; justify-content: center; font-size: 1.25rem;">
+          <i class="fas fa-store"></i>
         </div>
-        <div style="flex-grow: 1; min-width: 0;">
-          <h4 style="font-size: 0.9rem; font-weight: 800; color: #fff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">{{ s.name }}</h4>
-          <span style="font-size: 0.72rem; color: var(--rq-text-muted);">{{ s.subdomain }}.raqamiyatapp.com</span>
+        {% endif %}
+        <div>
+          <h4 style="font-size: 0.9rem; font-weight: 800; color: #fff; margin: 0 0 0.2rem;">{{ st.name }}</h4>
+          <span style="font-size: 0.72rem; color: #34d399; font-weight: 700;">متجر معتمد ومفعل</span>
         </div>
-        <i class="fas fa-arrow-left text-xs text-slate-500"></i>
       </a>
+      {% endfor %}
+    </div>
+  </section>
+  {% endif %}
+
+  <!-- ══════════════════════════════════════════════════════════════════════
+       7. VERIFIED CUSTOMER REVIEWS (TESTIMONIALS)
+       ══════════════════════════════════════════════════════════════════════ -->
+  {% if testimonials %}
+  <section class="rq-container" style="margin-bottom: 2rem;">
+    <div class="rq-section-header">
+      <div>
+        <span class="rq-section-tag">تجارب حقيقية موثقة</span>
+        <h2 class="rq-section-title">ماذا يقول عملاؤنا عن رقميات؟</h2>
+      </div>
+    </div>
+
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 1.25rem;">
+      {% for t in testimonials|slice:":3" %}
+      <div style="background: var(--rq-surface-card); border: 1px solid var(--rq-border); border-radius: var(--rq-radius-lg); padding: 1.5rem; display: flex; flex-direction: column; justify-content: space-between; gap: 1rem;">
+        <div>
+          <div style="display: flex; align-items: center; gap: 0.25rem; color: #fbbf24; font-size: 0.78rem; margin-bottom: 0.75rem;">
+            <i class="fas fa-star"></i>
+            <i class="fas fa-star"></i>
+            <i class="fas fa-star"></i>
+            <i class="fas fa-star"></i>
+            <i class="fas fa-star"></i>
+          </div>
+          <p style="font-size: 0.85rem; color: var(--rq-text-secondary); line-height: 1.6; margin: 0;">"{{ t.content }}"</p>
+        </div>
+        <div style="display: flex; align-items: center; justify-content: space-between; padding-top: 0.75rem; border-top: 1px solid var(--rq-border);">
+          <span style="font-size: 0.8rem; font-weight: 800; color: #fff;">{{ t.author_name|default:'عميل موثق' }}</span>
+          <span style="font-size: 0.7rem; color: #34d399; font-weight: 700;"><i class="fas fa-check-circle"></i> شراء مؤكد</span>
+        </div>
+      </div>
       {% endfor %}
     </div>
   </section>

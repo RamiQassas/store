@@ -4,44 +4,26 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-  <meta name="theme-color" content="#07090e">
-  <title>{% filter tenant_title %}{% block title %}{% if is_tenant %}{{ STORE_NAME }}{% else %}رقميات | RAQAMIYAT — عالم الأجهزة والتقنيات الذكية{% endif %}{% endblock %}{% endfilter %}</title>
+  <meta name="theme-color" content="#090d16">
+  <title>{% filter tenant_title %}{% block title %}{% if is_tenant %}{{ STORE_NAME }}{% else %}رقميات | RAQAMIYAT — وجهتك الأولى للبطاقات والخدمات الرقمية والعتاد التقني{% endif %}{% endblock %}{% endfilter %}</title>
   
-  <!-- Primary SEO Meta Tags for Google & Search Engines -->
-  <meta name="description" content="رقميات | RAQAMIYAT - وجهتك المعتمدة للهواتف الذكية، الحواسيب المحمولة والمكتبية، أجهزة الشبكات والاتصالات، الكاميرات، والشواحن والإكسسوارات الأصلية.">
-  <meta name="keywords" content="رقميات, هواتف ذكية, لابتوبات, حواسيب, إكسسوارات أصلية, راوترات, كاميرات مراقبة, شواحن, Raqamiyat">
-  <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1">
+  <meta name="description" content="متجر رقميات (Raqamiyat) - المنصة المتكاملة لبيع بطاقات الألعاب، الاشتراكات الرقمية، شحن الأرصدة، تراخيص البرامج، وأجهزة العتاد التقني والإكسسوارات الأصلية.">
+  <meta name="keywords" content="رقميات, بطاقات رقمية, شحن ببجي, شحن فري فاير, نتفلكس, شاهد VIP, إم تي إن, سيريتل, كروت شاشة, راوترات, Raqamiyat">
+  <meta name="robots" content="index, follow">
   <meta property="og:site_name" content="رقميات | Raqamiyat">
   <meta property="og:locale" content="ar_AR">
   <meta property="og:type" content="website">
-
-  <!-- SearchAction Schema for Google Sitelinks Searchbox -->
-  <script type="application/ld+json">
-  {
-    "@context": "https://schema.org",
-    "@type": "WebSite",
-    "name": "رقميات | Raqamiyat",
-    "url": "https://raqamiyatapp.com/",
-    "potentialAction": {
-      "@type": "SearchAction",
-      "target": "https://raqamiyatapp.com/catalog/?q={search_term_string}",
-      "query-input": "required name=search_term_string"
-    }
-  }
-  </script>
 
   <link rel="manifest" href="{% static 'site/manifest.webmanifest' %}">
   <link rel="icon" href="{% static 'site/img/app-icon.svg' %}" type="image/svg+xml">
   <link rel="apple-touch-icon" href="{% static 'site/img/app-icon.svg' %}">
   
-  <!-- Precision Fonts & FontAwesome -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
-  <link rel="stylesheet" href="{% static 'site/css/app.css' %}?v=20261017_hardware_studio_v1">
+  <link rel="stylesheet" href="{% static 'site/css/app.css' %}?v=20261017_premier_v2">
 
   {% if META_PIXEL_ID and not '/control/' in request.path and not '/admin/' in request.path %}
-  <!-- Meta Pixel Code -->
   <script>
   !function(f,b,e,v,n,t,s)
   {if(f.fbq)return;n=f.fbq=function(){n.callMethod?
@@ -62,831 +44,275 @@
   {% endif %}
 
   {% block extra_head %}{% endblock %}
-
-  {% if STORE_CUSTOM_CSS %}
-  <style>
-    {{ STORE_CUSTOM_CSS|safe }}
-  </style>
-  {% endif %}
 </head>
-<body class="{% if is_tenant %}tenant-mode{% endif %}">
+<body>
 
-  <!-- Offline Status Toast -->
-  <div id="offline-toast" style="display: none; position: fixed; top: 1rem; left: 50%; transform: translateX(-50%); z-index: 99999; background: #e11d48; color: #fff; padding: 0.65rem 1.25rem; border-radius: 9999px; font-size: 0.8rem; font-weight: 800; box-shadow: 0 10px 25px rgba(0,0,0,0.5); align-items: center; gap: 0.5rem;">
-    <i class="fas fa-wifi-slash"></i>
-    <span>انقطع الاتصال بالإنترنت. يرجى التحقق من الشبكة للمتابعة بأمان.</span>
+  <!-- Top Trust Ticker Bar -->
+  <div class="rq-top-ticker">
+    <div class="rq-ticker-items">
+      <div class="rq-ticker-item">
+        <i class="fas fa-bolt"></i>
+        <span>تسليم فوري وآلي على مدار 24 ساعة لجميع الطلبات الرقمية</span>
+      </div>
+      <div class="rq-ticker-item hide-mobile">
+        <i class="fas fa-shield-halved"></i>
+        <span>ضمان أصالة 100% وتشفير مالي معتمد</span>
+      </div>
+      <div class="rq-ticker-item hide-mobile">
+        <i class="fas fa-headset"></i>
+        <span>دعم فني مباشر متواجد لخدمتك دائماً</span>
+      </div>
+    </div>
   </div>
 
-  <!-- Announcement Bar (if present) -->
-  {% if active_announcement %}
-  <div class="rq-top-banner">
-    <i class="fas fa-bullhorn text-cyan-200"></i>
-    <span>{{ active_announcement.title }}: {{ active_announcement.content|truncatechars:120 }}</span>
-    {% if active_announcement.link_url %}
-    <a href="{{ active_announcement.link_url }}" class="ml-2 underline">{{ active_announcement.link_text|default:"التفاصيل" }} &larr;</a>
-    {% endif %}
-  </div>
-  {% endif %}
+  <!-- Flagship Header -->
+  <header class="rq-header">
+    <div class="rq-container">
+      <div class="rq-navbar-inner">
 
-  <!-- ══════════════════════════════════════════════════════════════════════
-       DESKTOP MEGA NAVBAR (HARDWARE STUDIO)
-       ══════════════════════════════════════════════════════════════════════ -->
-  <header class="rq-header-desktop">
-    <div class="rq-container rq-nav-inner">
-      <!-- Brand & Emblem -->
-      <a href="{% url 'home' %}" class="rq-brand" title="الرئيسية | متجر رقميات">
-        <div class="rq-brand-emblem">
-          {% if is_tenant and STORE_LOGO %}
-          <img src="{{ STORE_LOGO.url }}" alt="{{ STORE_NAME }}">
+        <!-- Brand Logo -->
+        <a href="{% url 'home' %}" class="rq-brand" title="الرئيسية">
+          {% if is_tenant and tenant_logo %}
+          <img src="{{ tenant_logo }}" alt="{{ STORE_NAME }}" class="rq-brand-logo">
           {% else %}
-          <i class="fas fa-microchip text-cyan-400 text-lg"></i>
+          <img src="{% static 'site/img/raqamiyat_logo_square.jpg' %}" alt="رقميات" class="rq-brand-logo">
           {% endif %}
-        </div>
-        <div class="rq-brand-text">
-          <span class="rq-brand-name">{% if is_tenant %}{{ STORE_NAME }}{% else %}رقميات | RAQAMIYAT{% endif %}</span>
-          <span class="rq-brand-tagline">Hardware & Tech Studio</span>
-        </div>
-      </a>
+          <div>
+            <div class="rq-brand-title">{% if is_tenant %}{{ STORE_NAME }}{% else %}رقميات{% endif %}</div>
+            <div class="rq-brand-subtitle">RAQAMIYAT STORE</div>
+          </div>
+        </a>
 
-      <!-- Navigation & Mega Menu -->
-      <nav class="rq-nav-menu">
-        <div class="rq-nav-item">
-          <a href="{% url 'home' %}" class="rq-nav-link {% if request.resolver_match.url_name == 'home' %}active{% endif %}">
+        <!-- Global Search Bar (Desktop) -->
+        <div class="rq-search-bar">
+          <form method="get" action="{% url 'catalog' %}">
+            <i class="fas fa-search rq-search-icon"></i>
+            <input type="text" name="q" placeholder="ابحث عن بطاقات، ألعاب، اشتراكات، راوترات، برامج..." class="rq-search-input" value="{{ request.GET.q|default:'' }}" autocomplete="off">
+          </form>
+        </div>
+
+        <!-- Navigation Menu -->
+        <nav class="rq-nav-menu">
+          <a href="{% url 'home' %}" class="rq-nav-link {% if request.path == '/' %}active{% endif %}">
             <i class="fas fa-home text-xs"></i>
             <span>الرئيسية</span>
           </a>
-        </div>
-
-        <!-- Categories & Mega Menu -->
-        <div class="rq-nav-item">
-          <a href="{% url 'catalog' %}" class="rq-nav-link {% if request.resolver_match.url_name == 'catalog' %}active{% endif %}">
-            <i class="fas fa-layer-group text-xs"></i>
-            <span>الكتالوج والأجهزة</span>
-            <i class="fas fa-chevron-down text-[10px] opacity-60"></i>
+          <a href="{% url 'catalog' %}" class="rq-nav-link {% if '/catalog/' in request.path %}active{% endif %}">
+            <i class="fas fa-grid-2 text-xs"></i>
+            <span>الكتالوج الشامل</span>
           </a>
-          <!-- Mega Menu Dropdown -->
-          <div class="rq-mega-dropdown">
-            <div class="rq-mega-grid">
-              <div>
-                <div class="rq-mega-col-title">
-                  <i class="fas fa-mobile-screen-button"></i>
-                  <span>الأجهزة والعتاد التقني</span>
-                </div>
-                <a href="{% url 'catalog' %}?q=هاتف" class="rq-mega-item">
-                  <div class="rq-mega-icon"><i class="fas fa-mobile-screen"></i></div>
-                  <div class="rq-mega-text">
-                    <h4>الهواتف الذكية</h4>
-                    <p>أحدث أجهزة Apple, Samsung, Xiaomi</p>
-                  </div>
-                </a>
-                <a href="{% url 'catalog' %}?q=لابتوب" class="rq-mega-item">
-                  <div class="rq-mega-icon"><i class="fas fa-laptop"></i></div>
-                  <div class="rq-mega-text">
-                    <h4>الحواسيب المحمولة</h4>
-                    <p>أجهزة الأعمال والألعاب والمونتاج</p>
-                  </div>
-                </a>
-                <a href="{% url 'catalog' %}?q=شبكات" class="rq-mega-item">
-                  <div class="rq-mega-icon"><i class="fas fa-network-wired"></i></div>
-                  <div class="rq-mega-text">
-                    <h4>الشبكات والراوترات</h4>
-                    <p>أجهزة 4G/5G وسويتشات وكبائن العتاد</p>
-                  </div>
-                </a>
-              </div>
-              <div>
-                <div class="rq-mega-col-title">
-                  <i class="fas fa-headphones"></i>
-                  <span>الإكسسوارات والملحقات</span>
-                </div>
-                <a href="{% url 'catalog' %}?q=سماعات" class="rq-mega-item">
-                  <div class="rq-mega-icon"><i class="fas fa-headphones-simple"></i></div>
-                  <div class="rq-mega-text">
-                    <h4>الصوتيات والسماعات</h4>
-                    <p>سماعات احترافية عازلة للضوضاء</p>
-                  </div>
-                </a>
-                <a href="{% url 'catalog' %}?q=شاحن" class="rq-mega-item">
-                  <div class="rq-mega-icon"><i class="fas fa-bolt"></i></div>
-                  <div class="rq-mega-text">
-                    <h4>الشواحن والبطاريات</h4>
-                    <p>شواحن GaN سريعة وبنوك طاقة أصلية</p>
-                  </div>
-                </a>
-                <a href="{% url 'catalog' %}?q=كاميرا" class="rq-mega-item">
-                  <div class="rq-mega-icon"><i class="fas fa-video"></i></div>
-                  <div class="rq-mega-text">
-                    <h4>كاميرات المراقبة والذكاء</h4>
-                    <p>أنظمة مراقبة متطورة بدقة فائقة</p>
-                  </div>
-                </a>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {% if not is_tenant and FEATURES.feature_sub_stores %}
-        <div class="rq-nav-item">
-          <a href="{% url 'stores_directory' %}" class="rq-nav-link {% if request.resolver_match.url_name == 'stores_directory' %}active{% endif %}">
+          <a href="{% url 'stores_directory' %}" class="rq-nav-link {% if '/stores/' in request.path %}active{% endif %}">
             <i class="fas fa-store text-xs"></i>
             <span>المتاجر الشريكة</span>
           </a>
-        </div>
-        {% endif %}
-
-        {% if FEATURES.feature_app_download %}
-        <div class="rq-nav-item">
-          <a href="{% url 'download_android_apk' %}" class="rq-nav-link" style="color: #34d399;">
-            <i class="fab fa-android text-emerald-400"></i>
+          <a href="{% url 'download_app' %}" class="rq-nav-link" style="color: #34d399;">
+            <i class="fab fa-android text-xs"></i>
             <span>التطبيق</span>
           </a>
-        </div>
-        {% endif %}
+        </nav>
 
-        {% if user.is_authenticated %}
-        <div class="rq-nav-item">
-          <a href="{% url 'dashboard_orders' %}" class="rq-nav-link {% if request.resolver_match.url_name == 'dashboard_orders' %}active{% endif %}">
-            <i class="fas fa-box-open text-xs"></i>
-            <span>طلباتي</span>
-          </a>
-        </div>
-        {% endif %}
-      </nav>
-
-      <!-- Instant Search Trigger -->
-      <button type="button" class="rq-search-trigger" onclick="openSearchModal()" title="البحث السريع (Ctrl+K)">
-        <i class="fas fa-search text-cyan-400 text-xs"></i>
-        <span>ابحث عن جهاز أو قطعة...</span>
-        <span class="rq-search-shortcut">⌘K</span>
-      </button>
-
-      <!-- Actions Hub (Currency, Cart, User) -->
-      <div class="rq-nav-actions">
-        <!-- Currency Pill -->
-        <div class="rq-currency-pill">
-          <select class="rq-currency-select" onchange="location.href='{% url 'set_currency' %}?currency=' + this.value" title="تغيير عملة العرض">
-            {% for c in ALL_CURRENCIES %}
-            <option value="{{ c.id }}" {% if c.id == CURRENCY.id %}selected{% endif %}>{{ c.code }} ({{ c.symbol }})</option>
+        <!-- User Actions (Currency, Cart, Account) -->
+        <div class="rq-nav-actions">
+          
+          <!-- Currency Switcher -->
+          <select class="rq-currency-select" onchange="location.href='{% url 'set_currency' %}?currency=' + this.value" title="اختر العملة">
+            {% for curr in available_currencies %}
+            <option value="{{ curr.id }}" {% if current_currency.id == curr.id %}selected{% endif %}>{{ curr.code }}</option>
             {% endfor %}
           </select>
-          <i class="fas fa-chevron-down rq-currency-arrow"></i>
-        </div>
 
-        <!-- Slide-over Cart Trigger -->
-        <button type="button" class="rq-cart-btn" onclick="toggleCartDrawer()" title="سلة المشتريات السريعة">
-          <i class="fas fa-shopping-bag"></i>
-          <span class="rq-cart-badge" id="desktop-cart-counter">1</span>
-        </button>
+          <!-- Slide-over Cart Trigger -->
+          <button type="button" onclick="toggleCartDrawer()" class="rq-cart-btn" title="سلة المشتريات">
+            <i class="fas fa-bag-shopping"></i>
+            <span class="rq-cart-badge" id="nav-cart-badge">{{ cart_items_count|default:0 }}</span>
+          </button>
 
-        <!-- User Authentication & Profile -->
-        {% if user.is_authenticated %}
-        <div class="rq-user-hub">
-          <a href="{% url 'dashboard_wallet' %}" class="rq-wallet-widget" title="رصيد المحفظة المتاح">
-            <i class="fas fa-wallet text-amber-400 text-xs"></i>
-            <span class="rq-wallet-val tabular-nums">{% currency_format user.wallet.available_balance user.wallet.currency mode="withdraw" %}</span>
+          <!-- User Hub -->
+          {% if request.user.is_authenticated %}
+          <a href="{% url 'dashboard' %}" class="rq-user-pill" title="لوحة التحكم">
+            <div class="rq-user-avatar">
+              <i class="fas fa-user text-xs"></i>
+            </div>
+            <div class="hidden sm:block text-right">
+              <span class="block text-[11px] font-bold text-slate-300 leading-tight">{{ request.user.get_short_name|default:request.user.email|truncatechars:12 }}</span>
+              <span class="rq-wallet-badge">{% currency_format request.user.wallet.available_balance|default:0 %}</span>
+            </div>
           </a>
-          <a href="{% url 'dashboard' %}" class="rq-btn-auth-login" title="لوحة تحكم الحساب">
-            <i class="fas fa-user-circle ml-1"></i>
-            <span>{{ user.first_name|default:user.display_name|truncatechars:12 }}</span>
-          </a>
-          {% if user.is_superuser or user.role == "super_admin" or user.role == "admin" %}
-          <a href="{% url 'control_dashboard' %}" class="rq-btn-auth-login" style="background: rgba(168, 85, 247, 0.15); border-color: rgba(168, 85, 247, 0.4); color: #c084fc;" title="لوحة التحكم الإدارية">
-            <i class="fas fa-shield-halved"></i>
-          </a>
+          {% else %}
+          <div style="display: flex; align-items: center; gap: 0.5rem;">
+            <a href="{% url 'site_login' %}?next={{ request.path }}" class="rq-btn-auth-login">
+              <span>دخول</span>
+            </a>
+            <a href="{% url 'site_register' %}" class="rq-btn-auth-register">
+              <span>إنشاء حساب</span>
+            </a>
+          </div>
           {% endif %}
-          <a href="{% url 'site_logout' %}" class="text-slate-400 hover:text-rose-400 p-2 text-sm transition" title="تسجيل الخروج">
-            <i class="fas fa-arrow-right-from-bracket"></i>
-          </a>
+
         </div>
-        {% else %}
-        <div class="flex items-center gap-2">
-          <a href="{% url 'site_login' %}" class="rq-btn-auth-login">دخول</a>
-          <a href="{% url 'site_register' %}" class="rq-btn-auth-register">حساب جديد</a>
-        </div>
-        {% endif %}
+
       </div>
     </div>
   </header>
-
-  <!-- ══════════════════════════════════════════════════════════════════════
-       MOBILE HEADER (SLIM HARDWARE BRANDING)
-       ══════════════════════════════════════════════════════════════════════ -->
-  <header class="rq-header-mobile">
-    <a href="{% url 'home' %}" class="rq-brand">
-      <div class="rq-brand-emblem" style="width: 32px; height: 32px; border-radius: 9px;">
-        {% if is_tenant and STORE_LOGO %}
-        <img src="{{ STORE_LOGO.url }}" alt="{{ STORE_NAME }}" style="width: 20px; height: 20px;">
-        {% else %}
-        <i class="fas fa-microchip text-cyan-400 text-xs"></i>
-        {% endif %}
-      </div>
-      <span class="rq-brand-name" style="font-size: 1.05rem;">{% if is_tenant %}{{ STORE_NAME }}{% else %}رقميات{% endif %}</span>
-    </a>
-
-    <div class="flex items-center gap-2">
-      <!-- Instant Search Trigger -->
-      <button type="button" onclick="openSearchModal()" class="w-8 h-8 rounded-full bg-white/5 border border-white/10 flex items-center justify-center text-cyan-400 text-xs cursor-pointer">
-        <i class="fas fa-search"></i>
-      </button>
-
-      <!-- Currency Switcher Pill -->
-      <div class="rq-currency-pill">
-        <select class="rq-currency-select !py-1 !px-2.5 !text-[11px]" onchange="location.href='{% url 'set_currency' %}?currency=' + this.value">
-          {% for c in ALL_CURRENCIES %}
-          <option value="{{ c.id }}" {% if c.id == CURRENCY.id %}selected{% endif %}>{{ c.code }}</option>
-          {% endfor %}
-        </select>
-      </div>
-
-      <!-- Quick Cart Button -->
-      <button type="button" onclick="toggleCartDrawer()" class="rq-cart-btn !w-8 !h-8 !rounded-full !text-xs">
-        <i class="fas fa-shopping-bag"></i>
-        <span class="rq-cart-badge !w-4 !h-4 !text-[9px] !top-[-4px] !left-[-4px]">1</span>
-      </button>
-    </div>
-  </header>
-
-  <!-- System Messages / Alerts -->
-  {% if messages %}
-  <div class="rq-container mt-4">
-    <div class="stack gap-2">
-      {% for message in messages %}
-      <div style="background: rgba(14, 21, 38, 0.9); border: 1px solid {% if message.tags == 'error' %}rgba(244, 63, 94, 0.4){% else %}rgba(16, 185, 129, 0.4){% endif %}; border-radius: 14px; padding: 0.85rem 1.25rem; display: flex; align-items: center; justify-content: space-between; gap: 1rem; color: {% if message.tags == 'error' %}#fb7185{% else %}#34d399{% endif %}; font-size: 0.85rem; font-weight: 700;">
-        <div class="flex items-center gap-2">
-          <i class="fas {% if message.tags == 'error' %}fa-triangle-exclamation{% else %}fa-circle-check{% endif %}"></i>
-          <span>{{ message }}</span>
-        </div>
-        <button onclick="this.parentElement.remove()" style="color: inherit; opacity: 0.6; cursor: pointer; background: none; border: none; font-size: 1rem;">
-          <i class="fas fa-times"></i>
-        </button>
-      </div>
-      {% endfor %}
-    </div>
-  </div>
-  {% endif %}
 
   <!-- Main Viewport Content Block -->
-  <main id="main-content">
+  <main id="main-content" style="flex: 1;">
     {% block content %}{% endblock %}
   </main>
 
-  <!-- ══════════════════════════════════════════════════════════════════════
-       HARDWARE STUDIO FOOTER
-       ══════════════════════════════════════════════════════════════════════ -->
+  <!-- Slide-Over Cart Drawer -->
+  <div id="cart-drawer-backdrop" class="rq-drawer-backdrop" onclick="if(event.target===this) toggleCartDrawer()">
+    <div class="rq-cart-drawer">
+      <div class="rq-drawer-head">
+        <div style="display: flex; align-items: center; gap: 0.5rem;">
+          <i class="fas fa-bag-shopping text-blue-500"></i>
+          <h3 style="font-size: 1.05rem; font-weight: 900; color: #fff; margin: 0;">سلة المشتريات</h3>
+        </div>
+        <button type="button" onclick="toggleCartDrawer()" style="background: none; border: none; color: #94a3b8; font-size: 1.2rem; cursor: pointer;">
+          <i class="fas fa-times"></i>
+        </button>
+      </div>
+
+      <div class="rq-drawer-body">
+        {% if cart_items %}
+        <div style="display: flex; flex-direction: column; gap: 0.85rem;">
+          {% for item in cart_items %}
+          <div style="display: flex; align-items: center; justify-content: space-between; gap: 0.75rem; padding: 0.85rem; border-radius: 12px; background: rgba(255,255,255,0.03); border: 1px solid var(--rq-border);">
+            <div style="display: flex; align-items: center; gap: 0.75rem;">
+              <img src="{{ item.product.image.url }}" alt="{{ item.product.name }}" style="width: 44px; height: 44px; border-radius: 10px; object-fit: contain; background: #080c16; padding: 4px;">
+              <div>
+                <h4 style="font-size: 0.825rem; font-weight: 800; color: #fff; margin: 0;">{{ item.product.name }}</h4>
+                <span style="font-size: 0.72rem; color: var(--rq-text-muted);">الكمية: {{ item.quantity }}</span>
+              </div>
+            </div>
+            <div style="text-align: left;">
+              <span class="tabular-nums" style="font-size: 0.9rem; font-weight: 900; color: #fbbf24;">{% currency_format item.total_price %}</span>
+            </div>
+          </div>
+          {% endfor %}
+        </div>
+        {% else %}
+        <div style="text-align: center; padding: 4rem 1rem; color: var(--rq-text-muted);">
+          <i class="fas fa-cart-arrow-down text-4xl mb-3 block opacity-30"></i>
+          <p style="font-size: 0.9rem; font-weight: 700; color: #fff; margin-bottom: 0.35rem;">سلة المشتريات فارغة</p>
+          <p style="font-size: 0.78rem;">تصفح الكتالوج وأضف المنتجات والبطاقات لسلتك بسهولة.</p>
+        </div>
+        {% endif %}
+      </div>
+
+      <div class="rq-drawer-footer">
+        <a href="{% url 'catalog' %}" style="display: block; width: 100%; padding: 0.85rem; border-radius: 12px; background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%); color: #fff; text-align: center; font-weight: 900; font-size: 0.88rem; box-shadow: 0 4px 14px rgba(37, 99, 235, 0.4);">
+          استعراض وشراء المنتجات
+        </a>
+      </div>
+    </div>
+  </div>
+
+  <!-- Mobile Floating Bottom Dock (Native App Ergonomics) -->
+  <div class="rq-bottom-dock">
+    <a href="{% url 'home' %}" class="rq-dock-btn {% if request.path == '/' %}active{% endif %}">
+      <i class="fas fa-home"></i>
+      <span class="rq-dock-text">الرئيسية</span>
+    </a>
+    <a href="{% url 'catalog' %}" class="rq-dock-btn {% if '/catalog/' in request.path %}active{% endif %}">
+      <i class="fas fa-grid-2"></i>
+      <span class="rq-dock-text">الكتالوج</span>
+    </a>
+    <a href="{% url 'catalog' %}?focus_search=1" class="rq-dock-btn">
+      <i class="fas fa-search"></i>
+      <span class="rq-dock-text">البحث</span>
+    </a>
+    <a href="javascript:void(0)" onclick="toggleCartDrawer()" class="rq-dock-btn">
+      <i class="fas fa-bag-shopping"></i>
+      <span class="rq-dock-text">السلة</span>
+      {% if cart_items_count %}
+      <span class="rq-dock-pill-badge">{{ cart_items_count }}</span>
+      {% endif %}
+    </a>
+    <a href="{% if request.user.is_authenticated %}{% url 'dashboard' %}{% else %}{% url 'site_login' %}{% endif %}" class="rq-dock-btn {% if '/dashboard/' in request.path %}active{% endif %}">
+      <i class="fas fa-user"></i>
+      <span class="rq-dock-text">حسابي</span>
+    </a>
+  </div>
+
+  <!-- Flagship Modern Footer -->
   <footer class="rq-footer">
     <div class="rq-container">
       <div class="rq-footer-grid">
-        <!-- Store Identity & Hardware Positioning -->
-        <div>
-          <div class="rq-brand mb-4">
-            <div class="rq-brand-emblem">
-              <i class="fas fa-microchip text-cyan-400 text-lg"></i>
-            </div>
-            <div class="rq-brand-text">
-              <span class="rq-brand-name">{% if is_tenant %}{{ STORE_NAME }}{% else %}رقميات | RAQAMIYAT{% endif %}</span>
-              <span class="rq-brand-tagline">Hardware & Tech Studio</span>
-            </div>
+        
+        <div class="rq-footer-col">
+          <div style="display: flex; align-items: center; gap: 0.65rem; margin-bottom: 1rem;">
+            <img src="{% static 'site/img/raqamiyat_logo_square.jpg' %}" alt="رقميات" style="width: 36px; height: 36px; border-radius: 10px;">
+            <span style="font-size: 1.15rem; font-weight: 900; color: #fff;">رقميات RAQAMIYAT</span>
           </div>
-          <p style="font-size: 0.825rem; color: var(--rq-text-secondary); line-height: 1.7; max-width: 380px;">
-            منصة متخصصة في توفير أحدث الهواتف الذكية، الحواسيب المحمولة والمكتبية، وتجهيزات الشبكات والاتصالات، والكاميرات، والإكسسوارات الأصلية مع ضمان التوافق والاعتمادية وأعلى معايير الجودة.
+          <p style="font-size: 0.825rem; color: var(--rq-text-muted); line-height: 1.6; margin-bottom: 1.25rem;">
+            المنصة المعتمدة الرائدة للتجارة الرقمية، شحن الألعاب الفوري، بطاقات الهدايا والتطبيقات، وتجهيزات الشبكات والأجهزة التقنية بأعلى معايير الأمان والسرعة.
           </p>
-          <div class="rq-payment-badges">
-            <span class="rq-pm-chip"><i class="fas fa-shield-alt text-cyan ml-1"></i> بوابات دفع آمنة</span>
-            <span class="rq-pm-chip">شام كاش</span>
-            <span class="rq-pm-chip">سيريتل كاش</span>
-            <span class="rq-pm-chip">MTN كاش</span>
-            <span class="rq-pm-chip">بيميرا (Paymera)</span>
-            <span class="rq-pm-chip">USDT</span>
+          <div class="rq-pm-badges-row">
+            <span class="rq-pm-badge">شام كاش ShamCash</span>
+            <span class="rq-pm-badge">Paymera</span>
+            <span class="rq-pm-badge">Visa / Master</span>
+            <span class="rq-pm-badge">USDT Crypto</span>
           </div>
         </div>
 
-        <!-- Quick Links -->
-        <div>
-          <h4 class="rq-footer-title">استكشف الكتالوج</h4>
+        <div class="rq-footer-col">
+          <h4>الأقسام السريعة</h4>
           <ul class="rq-footer-links">
             <li><a href="{% url 'catalog' %}">كافة الأجهزة والمنتجات</a></li>
-            <li><a href="{% url 'catalog' %}?q=هاتف">الهواتف الذكية</a></li>
-            <li><a href="{% url 'catalog' %}?q=لابتوب">الحواسيب المحمولة</a></li>
-            <li><a href="{% url 'catalog' %}?q=شبكات">تجهيزات الشبكات والراوترات</a></li>
-            <li><a href="{% url 'catalog' %}?q=شاحن">الشواحن والإكسسوارات</a></li>
+            <li><a href="{% url 'catalog' %}?q=ألعاب">شحن الألعاب والشدات</a></li>
+            <li><a href="{% url 'catalog' %}?q=بطاقات">البطاقات الرقمية وقسائم الهدايا</a></li>
+            <li><a href="{% url 'catalog' %}?q=اشتراك">اشتراكات الترفيه والبث السحابي</a></li>
+            <li><a href="{% url 'catalog' %}?q=شبكات">تجهيزات الراوترات والشبكات</a></li>
           </ul>
         </div>
 
-        <!-- Customer Support & Trust -->
-        <div>
-          <h4 class="rq-footer-title">خدمة العملاء</h4>
+        <div class="rq-footer-col">
+          <h4>روابط هامة</h4>
           <ul class="rq-footer-links">
-            <li><a href="{% url 'dashboard_orders' %}">تتبع وحالة الطلبات</a></li>
-            <li><a href="{% url 'dashboard_wallet' %}">المحفظة الرقمية</a></li>
-            <li><a href="{% url 'terms_of_service' %}">شروط الخدمة والضمان</a></li>
+            <li><a href="{% url 'stores_directory' %}">دليل المتاجر الشريكة</a></li>
+            <li><a href="{% url 'download_app' %}">تحميل تطبيق الأندرويد</a></li>
+            <li><a href="{% url 'terms_of_service' %}">الشروط والأحكام</a></li>
             <li><a href="{% url 'privacy_policy' %}">سياسة الخصوصية</a></li>
-            <li><a href="{% url 'refund_policy' %}">سياسة الاسترجاع والاستبدال</a></li>
+            <li><a href="{% url 'refund_policy' %}">سياسة الاسترجاع والضمان</a></li>
           </ul>
         </div>
 
-        <!-- Android App & Contact -->
-        <div>
-          <h4 class="rq-footer-title">تطبيق الجوال والتواصل</h4>
-          <p style="font-size: 0.78rem; color: var(--rq-text-secondary); line-height: 1.6; margin-bottom: 1rem;">
-            تسوّق أجهزتك وإكسسواراتك المفضلة مباشرة عبر تطبيق الأندرويد مع إشعارات فورية لحالة التجهيز والشحن.
-          </p>
-          {% if FEATURES.feature_app_download %}
-          <a href="{% url 'download_android_apk' %}" class="rq-btn-auth-register" style="display: inline-flex; align-items: center; gap: 0.5rem; text-decoration: none;">
-            <i class="fab fa-android text-base"></i>
-            <span>تحميل تطبيق الأندرويد</span>
-          </a>
-          {% endif %}
+        <div class="rq-footer-col">
+          <h4>الدعم والمساعدة</h4>
+          <ul class="rq-footer-links">
+            <li><a href="{% url 'contact' %}">مركز الاتصال والدعم الفني</a></li>
+            <li><a href="{% url 'dashboard' %}">لوحة التحكم والمحفظة</a></li>
+            <li><a href="{% url 'dashboard_orders' %}">تتبع حالة الطلبات</a></li>
+            <li><a href="{% url 'dashboard_deposits' %}">شحن وتعبئة الرصيد</a></li>
+          </ul>
         </div>
+
       </div>
 
       <div class="rq-footer-bottom">
-        <div>
-          <span>&copy; 2026 رقميات | RAQAMIYAT. كافة الحقوق محفوظة.</span>
-        </div>
-        <div class="flex items-center gap-4 text-xs">
-          <span>توثيق رقمي فوري</span>
-          <span>&bull;</span>
-          <span>شحن وتوصيل آمن</span>
-          <span>&bull;</span>
-          <span>ضمان أصالة 100%</span>
+        <div>جميع الحقوق محفوظة © {% now "Y" %} متجر رقميات (Raqamiyat Platform).</div>
+        <div style="display: flex; gap: 1rem; align-items: center;">
+          <span>⚡ تفعيل فوري</span>
+          <span>•</span>
+          <span>🛡️ ضمان 100%</span>
+          <span>•</span>
+          <span>🔒 دفع إلكتروني آمن</span>
         </div>
       </div>
     </div>
   </footer>
 
-  <!-- ══════════════════════════════════════════════════════════════════════
-       MOBILE FLOATING GLASS BOTTOM NAVIGATION DOCK (NATIVE ERGONOMICS)
-       ══════════════════════════════════════════════════════════════════════ -->
-  <nav class="rq-mobile-dock" aria-label="الشريط السفلي">
-    <a href="{% url 'home' %}" class="rq-dock-item {% if request.resolver_match.url_name == 'home' %}active{% endif %}">
-      <i class="fas fa-home"></i>
-      <span class="rq-dock-label">الرئيسية</span>
-    </a>
-    <a href="{% url 'catalog' %}" class="rq-dock-item {% if request.resolver_match.url_name == 'catalog' %}active{% endif %}">
-      <i class="fas fa-layer-group"></i>
-      <span class="rq-dock-label">الكتالوج</span>
-    </a>
-    <div class="rq-dock-item" onclick="openSearchModal()">
-      <i class="fas fa-search"></i>
-      <span class="rq-dock-label">البحث</span>
-    </div>
-    <div class="rq-dock-item" onclick="toggleCartDrawer()">
-      <i class="fas fa-shopping-bag"></i>
-      <span class="rq-dock-badge">1</span>
-      <span class="rq-dock-label">السلة</span>
-    </div>
-    {% if user.is_authenticated %}
-    <a href="{% url 'dashboard' %}" class="rq-dock-item {% if request.resolver_match.url_name == 'dashboard' %}active{% endif %}">
-      <i class="fas fa-user-circle"></i>
-      <span class="rq-dock-label">حسابي</span>
-    </a>
-    {% else %}
-    <a href="{% url 'site_login' %}" class="rq-dock-item {% if request.resolver_match.url_name == 'site_login' %}active{% endif %}">
-      <i class="fas fa-arrow-right-to-bracket"></i>
-      <span class="rq-dock-label">دخول</span>
-    </a>
-    {% endif %}
-  </nav>
-
-  <!-- ══════════════════════════════════════════════════════════════════════
-       SLIDE-OVER CART DRAWER
-       ══════════════════════════════════════════════════════════════════════ -->
-  <div class="rq-drawer-backdrop" id="cart-drawer-backdrop" onclick="closeCartDrawer()"></div>
-  <aside class="rq-cart-drawer" id="cart-drawer">
-    <div class="rq-cart-header">
-      <h3 class="rq-cart-title">
-        <i class="fas fa-shopping-bag text-cyan-400"></i>
-        <span>سلة المشتريات السريعة</span>
-      </h3>
-      <button type="button" class="rq-cart-close" onclick="closeCartDrawer()" title="إغلاق">
-        <i class="fas fa-times"></i>
-      </button>
-    </div>
-    <div class="rq-cart-body" id="cart-drawer-items">
-      <div style="background: rgba(255, 255, 255, 0.03); border: 1px solid var(--rq-border); border-radius: 14px; padding: 1rem; display: flex; gap: 0.75rem; align-items: center; margin-bottom: 0.75rem;">
-        <div style="width: 48px; height: 48px; border-radius: 10px; background: #0c1222; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
-          <i class="fas fa-box text-cyan-400 text-lg"></i>
-        </div>
-        <div style="flex-grow: 1; min-width: 0;">
-          <h4 style="font-size: 0.825rem; font-weight: 800; color: #fff; line-height: 1.2; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">الطلب السريع</h4>
-          <span style="font-size: 0.7rem; color: var(--rq-text-muted);">تسوق مباشر وآمن</span>
-        </div>
-        <a href="{% url 'catalog' %}" style="font-size: 0.72rem; color: #38bdf8; font-weight: 700; text-decoration: underline;">تصفح</a>
-      </div>
-      <p style="font-size: 0.78rem; color: var(--rq-text-secondary); text-align: center; margin-top: 2rem;">
-        اختر جهازك أو ملحقاتك المفضلة من الكتالوج واضغط "شراء الآن" للتنفيذ الفوري.
-      </p>
-    </div>
-    <div class="rq-cart-footer">
-      <a href="{% url 'catalog' %}" class="rq-btn-auth-register" style="width: 100%; display: flex; align-items: center; justify-content: center; gap: 0.5rem; padding: 0.85rem; border-radius: 14px; font-weight: 800; font-size: 0.9rem; text-decoration: none;">
-        <i class="fas fa-arrow-left"></i>
-        <span>متابعة التسوق في الكتالوج</span>
-      </a>
-    </div>
-  </aside>
-
-  <!-- ══════════════════════════════════════════════════════════════════════
-       INSTANT SEARCH MODAL
-       ══════════════════════════════════════════════════════════════════════ -->
-  <div class="rq-search-modal" id="search-modal" onclick="if(event.target === this) closeSearchModal()">
-    <div class="rq-search-box">
-      <form action="{% url 'catalog' %}" method="get" class="rq-search-input-wrap">
-        <i class="fas fa-search text-cyan-400 text-base"></i>
-        <input type="text" name="q" id="instant-search-input" class="rq-search-modal-input" placeholder="اكتب اسم الهاتف، اللابتوب، أو نوع القطعة..." autocomplete="off">
-        <button type="button" onclick="closeSearchModal()" class="text-slate-400 hover:text-white text-sm p-1">
-          <i class="fas fa-times"></i>
-        </button>
-      </form>
-      <div class="rq-search-chips">
-        <span style="font-size: 0.7rem; color: var(--rq-text-muted); font-weight: 700;">الأكثر بحثاً:</span>
-        <a href="{% url 'catalog' %}?q=هاتف" class="rq-search-chip-tag">هواتف ذكية</a>
-        <a href="{% url 'catalog' %}?q=لابتوب" class="rq-search-chip-tag">حواسيب محمولة</a>
-        <a href="{% url 'catalog' %}?q=راوتر" class="rq-search-chip-tag">راوترات 5G</a>
-        <a href="{% url 'catalog' %}?q=كاميرا" class="rq-search-chip-tag">كاميرات مراقبة</a>
-        <a href="{% url 'catalog' %}?q=شاحن" class="rq-search-chip-tag">شواحن وبطاريات</a>
-        <a href="{% url 'catalog' %}?q=سماعات" class="rq-search-chip-tag">سماعات</a>
-      </div>
-      <div class="rq-search-results" id="search-modal-results">
-        <p style="text-align: center; font-size: 0.78rem; color: var(--rq-text-muted); padding: 2rem 0;">
-          ابدأ بالكتابة للبحث الفوري في كافة أقسام وأجهزة رقميات.
-        </p>
-      </div>
-    </div>
-  </div>
-
-  <!-- Operational JavaScript for UI Drawers & Keyboard Shortcuts -->
-  <script>
-    function toggleCartDrawer() {
-      const drawer = document.getElementById('cart-drawer');
-      const backdrop = document.getElementById('cart-drawer-backdrop');
-      if (drawer && backdrop) {
-        drawer.classList.toggle('active');
-        backdrop.classList.toggle('active');
-        document.body.style.overflow = drawer.classList.contains('active') ? 'hidden' : '';
-      }
-    }
-    function closeCartDrawer() {
-      const drawer = document.getElementById('cart-drawer');
-      const backdrop = document.getElementById('cart-drawer-backdrop');
-      if (drawer && backdrop) {
-        drawer.classList.remove('active');
-        backdrop.classList.remove('active');
-        document.body.style.overflow = '';
-      }
-    }
-
-    function openSearchModal() {
-      const modal = document.getElementById('search-modal');
-      const input = document.getElementById('instant-search-input');
-      if (modal) {
-        modal.classList.add('active');
-        document.body.style.overflow = 'hidden';
-        setTimeout(() => { if (input) input.focus(); }, 150);
-      }
-    }
-    function closeSearchModal() {
-      const modal = document.getElementById('search-modal');
-      if (modal) {
-        modal.classList.remove('active');
-        document.body.style.overflow = '';
-      }
-    }
-
-    // Keyboard shortcut (Cmd+K / Ctrl+K & Escape)
-    document.addEventListener('keydown', function(e) {
-      if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
-        e.preventDefault();
-        openSearchModal();
-      }
-      if (e.key === 'Escape') {
-        closeSearchModal();
-        closeCartDrawer();
-      }
-    });
-
-    // Instant Search AJAX logic
-    const searchInput = document.getElementById('instant-search-input');
-    const searchResults = document.getElementById('search-modal-results');
-    let searchTimer = null;
-
-    if (searchInput && searchResults) {
-      searchInput.addEventListener('input', function() {
-        const query = this.value.trim();
-        clearTimeout(searchTimer);
-        if (query.length < 2) {
-          searchResults.innerHTML = '<p style="text-align: center; font-size: 0.78rem; color: var(--rq-text-muted); padding: 2rem 0;">ابدأ بالكتابة للبحث الفوري في كافة أقسام وأجهزة رقميات.</p>';
-          return;
-        }
-
-        searchTimer = setTimeout(() => {
-          fetch('/api/products/search-suggestions/?q=' + encodeURIComponent(query))
-            .then(res => res.json())
-            .then(data => {
-              if (data && data.suggestions && data.suggestions.length > 0) {
-                let html = '<div style="display: flex; flex-direction: column; gap: 0.5rem;">';
-                data.suggestions.forEach(item => {
-                  html += `
-                    <a href="${item.url}" style="display: flex; align-items: center; justify-content: space-between; padding: 0.65rem 0.85rem; border-radius: 10px; background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.06); text-decoration: none; transition: all 0.2s;">
-                      <div style="display: flex; align-items: center; gap: 0.75rem;">
-                        <img src="${item.image || '/static/site/img/raqamiyat_logo_square.jpg'}" alt="${item.name}" style="width: 36px; height: 36px; object-fit: contain; border-radius: 8px; background: #0c1222;">
-                        <div>
-                          <div style="font-size: 0.825rem; font-weight: 800; color: #fff;">${item.name}</div>
-                          <div style="font-size: 0.68rem; color: var(--rq-text-muted);">${item.category || 'أجهزة'}</div>
-                        </div>
-                      </div>
-                      <span style="font-size: 0.825rem; font-weight: 900; color: #38bdf8;" class="tabular-nums">${item.price_formatted || item.price}</span>
-                    </a>
-                  `;
-                });
-                html += '</div>';
-                searchResults.innerHTML = html;
-              } else {
-                searchResults.innerHTML = '<p style="text-align: center; font-size: 0.78rem; color: var(--rq-text-muted); padding: 2rem 0;">لم يتم العثور على أجهزة مطابقة. اضغط Enter لتصفح الكتالوج بالكامل.</p>';
-              }
-            })
-            .catch(() => {
-              searchResults.innerHTML = '<p style="text-align: center; font-size: 0.78rem; color: var(--rq-text-muted); padding: 2rem 0;">اضغط Enter لتصفح نتائج الكتالوج.</p>';
-            });
-        }, 250);
-      });
-    }
-  </script>
-
-
-          <i class="fas fa-circle-user"></i>
-          <span>حسابي</span>
-      </a>
-  </div>
-
-  <script>
-      window.isUserAuthenticated = {% if user.is_authenticated %}true{% else %}false{% endif %};
-      window.VAPID_PUBLIC_KEY = "{{ VAPID_PUBLIC_KEY }}";
-
-      
-      function openCurrencyModal() {
-          const modal = document.getElementById('currencyModal');
-          if (modal) {
-              modal.classList.add('active');
-              document.body.style.overflow = 'hidden';
-          }
-      }
-      function closeCurrencyModal(e) {
-          const modal = document.getElementById('currencyModal');
-          if (modal) {
-              modal.classList.remove('active');
-              document.body.style.overflow = '';
-          }
-      }
-
-      function toggleDrawer() {
-          const drawer = document.getElementById('mobile-drawer');
-          const overlay = document.getElementById('drawer-overlay');
-          drawer.classList.toggle('open');
-          overlay.classList.toggle('active');
-          document.body.style.overflow = drawer.classList.contains('open') ? 'hidden' : '';
-      }
-  </script>
+  <!-- Scripts -->
   <script src="{% static 'site/js/app.js' %}?v=3"></script>
   <script src="{% static 'site/js/push.js' %}?v=2"></script>
-  {% block modals %}{% endblock %}
-  {% block extra_js %}{% endblock %}
   <script>
-    // Auto-dismiss messages after 8 seconds
-    document.querySelectorAll('.msg-dismissible').forEach((msg, i) => {
-      setTimeout(() => {
-        msg.style.opacity = '0';
-        msg.style.transform = 'translateY(-10px)';
-        setTimeout(() => msg.remove(), 400);
-      }, 8000 + i * 500);
-    });
-  </script>
-  {% if is_tenant %}
-  <!-- Report Store Modal -->
-  <div id="report-store-modal" class="modal-overlay" style="display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.8); backdrop-filter: blur(8px); z-index: 99999; align-items: center; justify-content: center; padding: 1.5rem; transition: all 0.3s ease;">
-      <div style="background: #0f172a; border: 1px solid rgba(255,255,255,0.08); border-radius: 24px; max-width: 500px; width: 100%; padding: 2rem; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.5); position: relative; text-align: right; transform: scale(0.9); transition: all 0.3s ease;" id="report-store-modal-content">
-          <button onclick="closeReportStoreModal()" style="position: absolute; top: 1.5rem; left: 1.5rem; background: none; border: none; color: #94a3b8; font-size: 1.25rem; cursor: pointer; transition: color 0.2s;" onmouseover="this.style.color='#fff';" onmouseout="this.style.color='#94a3b8';">
-              <i class="fas fa-times"></i>
-          </button>
-          
-          <div style="width: 50px; height: 50px; border-radius: 12px; background: rgba(239, 68, 68, 0.1); border: 1px solid rgba(239, 68, 68, 0.2); color: #ef4444; display: grid; place-items: center; font-size: 1.5rem; margin-bottom: 1.5rem;">
-              🚩
-          </div>
-          
-          <h3 style="font-size: 1.5rem; font-weight: 800; color: #fff; margin-bottom: 1rem;">الإبلاغ عن مخالفة</h3>
-          <p style="font-size: 0.95rem; color: #94a3b8; line-height: 1.7; margin-bottom: 1.5rem;">
-              إذا كنت تعتقد أن أحد المتاجر ينتهك القوانين أو يمارس نشاطاً احتيالياً أو يقدم محتوى مخالفاً، يمكنك إرسال بلاغ إلى إدارة رقميات مع إرفاق الأدلة المتاحة. ستتم مراجعة البلاغ واتخاذ الإجراء المناسب وفق سياسات المنصة.
-          </p>
-          
-          <div style="display: flex; flex-direction: column; gap: 0.75rem; margin-bottom: 1.5rem;">
-              <span style="font-size: 0.8rem; color: #64748b; font-weight: bold;">بريد الشكاوى والبلاغات:</span>
-              <a href="mailto:support@raqamiyatapp.com?subject=Report Store: {{ STORE_NAME }}" style="display: flex; align-items: center; justify-content: space-between; background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.08); padding: 0.75rem 1rem; border-radius: 12px; color: var(--cyan); font-weight: bold; text-decoration: none; transition: background 0.3s;" onmouseover="this.style.background='rgba(255,255,255,0.06)';" onmouseout="this.style.background='rgba(255,255,255,0.03)';">
-                  <span>support@raqamiyatapp.com</span>
-                  <i class="fas fa-envelope" style="font-size: 0.85rem;"></i>
-              </a>
-          </div>
-
-          <div style="display: flex; gap: 1rem;">
-              <button onclick="closeReportStoreModal()" class="btn-premium-sm ghost" style="flex: 1; border-radius: 12px; padding: 0.75rem; text-align: center; cursor: pointer;">إغلاق</button>
-              <a href="mailto:support@raqamiyatapp.com?subject=Report Store: {{ STORE_NAME }}" class="btn-premium-sm primary" style="flex: 1; border-radius: 12px; padding: 0.75rem; text-align: center; display: inline-block;">إرسال إيميل</a>
-          </div>
-      </div>
-  </div>
-
-  <script>
-      function showReportStoreModal() {
-          const modal = document.getElementById('report-store-modal');
-          const content = document.getElementById('report-store-modal-content');
-          modal.style.display = 'flex';
-          setTimeout(() => {
-              content.style.transform = 'scale(1)';
-          }, 50);
-      }
-      function closeReportStoreModal() {
-          const modal = document.getElementById('report-store-modal');
-          const content = document.getElementById('report-store-modal-content');
-          content.style.transform = 'scale(0.9)';
-          setTimeout(() => {
-              modal.style.display = 'none';
-          }, 150);
-      }
-  </script>
-  {% endif %}
-  <!-- Global CSRF Token Auto-Sync & Native App Detection -->
-  <script>
-  (function() {
-      // Auto-detect native app environment to streamline UI
-      if (window.RaqamiyatNative || navigator.userAgent.indexOf('RaqamiyatAndroid') !== -1) {
-          document.documentElement.classList.add('is-native-app');
-          document.body.classList.add('is-native-app');
-      }
-
-      function getCookie(name) {
-          let cookieValue = null;
-          if (document.cookie && document.cookie !== '') {
-              const cookies = document.cookie.split(';');
-              for (let i = 0; i < cookies.length; i++) {
-                  const cookie = cookies[i].trim();
-                  if (cookie.substring(0, name.length + 1) === (name + '=')) {
-                      cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
-                      break;
-                  }
-              }
-          }
-          return cookieValue;
-      }
-
-      function syncCsrfTokens() {
-          const token = getCookie('csrftoken');
-          if (token) {
-              document.querySelectorAll('input[name="csrfmiddlewaretoken"]').forEach(function(el) {
-                  el.value = token;
-              });
-          }
-      }
-
-      document.addEventListener('DOMContentLoaded', syncCsrfTokens);
-      window.addEventListener('pageshow', syncCsrfTokens);
-
-      // Unified Offline Transaction Guard & Anti-Duplicate Protector
-      const SENSITIVE_PATTERNS = [
-          '/orders/', '/deposits/', '/withdrawals/', '/transfer/', '/recharge/',
-          '/buy/', '/checkout/', '/payment/', '/change-password/', '/change-email/'
-      ];
-
-      function isSensitiveAction(actionUrl) {
-          if (!actionUrl) return false;
-          const urlStr = actionUrl.toLowerCase();
-          return SENSITIVE_PATTERNS.some(function(p) { return urlStr.includes(p); });
-      }
-
-      function getOperationArabicName(actionUrl) {
-          const u = (actionUrl || '').toLowerCase();
-          if (u.includes('deposit') || u.includes('recharge')) return 'شحن الرصيد / الإيداع';
-          if (u.includes('withdraw')) return 'سحب الرصيد';
-          if (u.includes('transfer')) return 'تحويل الأموال';
-          if (u.includes('order') || u.includes('buy') || u.includes('checkout')) return 'تأكيد الطلب والشراء';
-          if (u.includes('password') || u.includes('email')) return 'تعديل بيانات الحساب والأمان';
-          return 'العملية المالية';
-      }
-
-      document.addEventListener('submit', function(e) {
-          if (e.target && e.target.tagName === 'FORM') {
-              syncCsrfTokens();
-
-              const form = e.target;
-              const action = form.getAttribute('action') || window.location.pathname;
-
-              if (isSensitiveAction(action) && form.method.toLowerCase() === 'post') {
-                  const isOnline = (window.RaqamiyatNative && typeof window.RaqamiyatNative.isOnline === 'function')
-                      ? window.RaqamiyatNative.isOnline()
-                      : navigator.onLine;
-
-                  if (!isOnline) {
-                      e.preventDefault();
-                      e.stopImmediatePropagation();
-                      const opName = getOperationArabicName(action);
-
-                      if (window.RaqamiyatNative && typeof window.RaqamiyatNative.showOfflineTransactionAlert === 'function') {
-                          window.RaqamiyatNative.showOfflineTransactionAlert(opName);
-                      } else {
-                          alert('⚠️ لا يوجد اتصال بالإنترنت\nعملية ' + opName + ' تحتاج إلى اتصال فعال بالإنترنت لحماية وتأكيد رصيدك وحسابك بأمان. يرجى التحقق من اتصالك والمحاولة مرة أخرى.');
-                      }
-                      return false;
-                  }
-
-                  // Anti-duplicate protection: prevent double submission
-                  if (form.dataset.submitting === 'true') {
-                      e.preventDefault();
-                      return false;
-                  }
-                  form.dataset.submitting = 'true';
-
-                  // Generate idempotency key if not present
-                  if (!form.querySelector('input[name="idempotency_key"]')) {
-                      const idempInput = document.createElement('input');
-                      idempInput.type = 'hidden';
-                      idempInput.name = 'idempotency_key';
-                      idempInput.value = 'txn_' + Date.now() + '_' + Math.random().toString(36).substring(2, 9);
-                      form.appendChild(idempInput);
-                  }
-
-                  const submitBtn = form.querySelector('button[type="submit"], input[type="submit"]');
-                  if (submitBtn) {
-                      submitBtn.disabled = true;
-                      if (submitBtn.tagName === 'BUTTON') {
-                          submitBtn.setAttribute('data-original-html', submitBtn.innerHTML);
-                          submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin ml-1"></i> جاري المعالجة بأمان...';
-                      }
-                  }
-              }
-          }
-      }, true);
-  })();
-  </script>
-
-  <!-- Mobile Currency Bottom Sheet Modal -->
-  <div id="currencyModal" class="currency-modal-backdrop" onclick="closeCurrencyModal(event)">
-      <div class="currency-modal-sheet" onclick="event.stopPropagation()">
-          <div class="currency-modal-handle"></div>
-          <div class="currency-modal-header">
-              <div class="flex items-center gap-2">
-                  <div class="w-8 h-8 rounded-lg bg-amber-400/10 flex items-center justify-center text-amber-400 text-base">
-                      <i class="fas fa-coins"></i>
-                  </div>
-                  <h3 class="text-base font-black text-white m-0">تغيير العملة</h3>
-              </div>
-              <button type="button" onclick="closeCurrencyModal()" class="currency-modal-close" aria-label="إغلاق">
-                  <i class="fas fa-times"></i>
-              </button>
-          </div>
-          <p class="text-xs text-slate-400 mb-3">اختر العملة المفضلة لعرض أسعار المنتجات والخدمات:</p>
-          <div class="currency-modal-list">
-              {% for c in ALL_CURRENCIES %}
-              <a href="{% url 'set_currency' %}?currency={{ c.id }}" class="currency-option-item {% if c.id == CURRENCY.id %}active{% endif %}">
-                  <div class="flex items-center gap-3">
-                      <div class="currency-flag-circle">
-                          {% if c.code == 'SYP' %}🇸🇾
-                          {% elif c.code == 'TRY' %}🇹🇷
-                          {% elif c.code == 'USD' %}🇺🇸
-                          {% elif c.code == 'EUR' %}🇪🇺
-                          {% elif c.code == 'AED' %}🇦🇪
-                          {% elif c.code == 'SAR' %}🇸🇦
-                          {% elif c.code == 'EGP' %}🇪🇬
-                          {% elif c.code == 'JOD' %}🇯🇴
-                          {% elif c.code == 'KWD' %}🇰🇼
-                          {% elif c.code == 'LBP' %}🇱🇧
-                          {% elif c.code == 'IQD' %}🇮🇶
-                          {% else %}🪙{% endif %}
-                      </div>
-                      <div>
-                          <div class="currency-title-row">
-                              <span class="currency-name">{{ c.name }}</span>
-                              <span class="currency-badge-code">{{ c.code }}</span>
-                          </div>
-                          <div class="text-[11px] text-slate-400 font-mono">الرمز: {{ c.symbol }}</div>
-                      </div>
-                  </div>
-                  <div>
-                      {% if c.id == CURRENCY.id %}
-                      <i class="fas fa-check-circle text-emerald-400 text-lg"></i>
-                      {% else %}
-                      <span class="currency-inactive-circle"></span>
-                      {% endif %}
-                  </div>
-              </a>
-              {% endfor %}
-          </div>
-      </div>
-  </div>
-
-  <form id="logout-post-form" method="post" action="{% url 'site_logout' %}" class="hidden">{% csrf_token %}</form>
-  <script>
-    document.querySelectorAll('a[href$="/auth/logout/"]').forEach(function(link) {
-      link.addEventListener('click', function(event) {
-        event.preventDefault();
-        document.getElementById('logout-post-form').submit();
-      });
-    });
+  function toggleCartDrawer() {
+    var drawer = document.getElementById('cart-drawer-backdrop');
+    if (drawer) {
+      drawer.classList.toggle('active');
+    }
+  }
   </script>
 </body>
 </html>

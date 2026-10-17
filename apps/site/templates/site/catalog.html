@@ -1,22 +1,22 @@
 {% extends "site/base.html" %}
 {% load static site_tags %}
 
-{% block title %}كتالوج التجهيزات والعتاد التقني | {% if is_tenant %}{{ STORE_NAME }}{% else %}رقميات RAQAMIYAT{% endif %}{% endblock %}
+{% block title %}الكتالوج الشامل للمنتجات والخدمات | {% if is_tenant %}{{ STORE_NAME }}{% else %}رقميات RAQAMIYAT{% endif %}{% endblock %}
 
 {% block content %}
-<div style="min-height: 100vh; padding: 2rem 0 5rem; background: var(--rq-bg-primary, #07090e); color: var(--rq-text-primary, #f8fafc);">
-  <div style="max-width: 1400px; margin: 0 auto; padding: 0 1.25rem;">
+<div style="min-height: 100vh; padding: 2rem 0 5rem;">
+  <div class="rq-container">
 
-    <!-- ── Breadcrumb & Tech Header ── -->
-    <div style="display: flex; flex-direction: column; gap: 1rem; margin-bottom: 2rem; border-bottom: 1px solid var(--rq-border-subtle); padding-bottom: 1.5rem;">
-      <nav style="display: flex; align-items: center; gap: 0.5rem; font-size: 0.8rem; color: var(--rq-text-muted);" aria-label="مسار التصفح">
-        <a href="{% url 'home' %}" style="color: var(--rq-text-muted); text-decoration: none; display: flex; align-items: center; gap: 0.35rem;" onmouseover="this.style.color='#38bdf8';" onmouseout="this.style.color='var(--rq-text-muted)';">
+    <!-- ── Breadcrumbs & Header ── -->
+    <div style="margin-bottom: 2rem; border-bottom: 1px solid var(--rq-border); padding-bottom: 1.5rem;">
+      <nav style="display: flex; align-items: center; gap: 0.5rem; font-size: 0.8rem; color: var(--rq-text-muted); margin-bottom: 0.85rem;" aria-label="مسار التصفح">
+        <a href="{% url 'home' %}" style="display: flex; align-items: center; gap: 0.35rem; color: var(--rq-text-muted);">
           <i class="fas fa-home text-xs"></i>
           <span>الرئيسية</span>
         </a>
         <i class="fas fa-chevron-left text-[10px] text-slate-600"></i>
-        <a href="{% url 'catalog' %}" style="color: var(--rq-accent-blue, #0071e3); text-decoration: none; font-weight: 700;">
-          كتالوج الأجهزة والعتاد
+        <a href="{% url 'catalog' %}" style="color: var(--rq-primary-light); font-weight: 700;">
+          الكتالوج الشامل
         </a>
         {% if selected_category %}
         <i class="fas fa-chevron-left text-[10px] text-slate-600"></i>
@@ -26,30 +26,26 @@
 
       <div style="display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 1.25rem;">
         <div>
-          <div style="display: inline-flex; align-items: center; gap: 0.5rem; background: rgba(56, 189, 248, 0.08); border: 1px solid rgba(56, 189, 248, 0.25); padding: 0.3rem 0.85rem; border-radius: 999px; font-size: 0.72rem; font-weight: 800; color: #38bdf8; margin-bottom: 0.5rem;">
-            <span style="width: 6px; height: 6px; border-radius: 50%; background: #38bdf8; box-shadow: 0 0 8px #38bdf8;"></span>
-            <span>تجهيزات أصلية معتمدة • ضمان تشغيل 100%</span>
-          </div>
-          <h1 style="font-size: clamp(1.6rem, 3.5vw, 2.4rem); font-weight: 900; letter-spacing: -0.02em; margin: 0; line-height: 1.2;">
+          <h1 style="font-size: clamp(1.6rem, 3.5vw, 2.3rem); font-weight: 900; color: #fff; margin: 0 0 0.35rem;">
             {% if selected_category %}
               {{ selected_category.name }}
             {% else %}
-              معرض العتاد والتجهيزات التقنية
+              كتالوج المنتجات والخدمات الرقمية
             {% endif %}
           </h1>
-          <p style="font-size: 0.9rem; color: var(--rq-text-secondary); margin: 0.4rem 0 0; max-width: 680px;">
-            تصفح أحدث الهواتف الذكية، كروت الشاشة، المعالجات، أجهزة الشبكات، الشواحن السريعة، وكاميرات المراقبة بأعلى معايير الدقة الهندسية.
+          <p style="font-size: 0.88rem; color: var(--rq-text-muted); margin: 0; max-width: 650px;">
+            تصفح أكثر من 60 خدمة وبطاقة رقمية، شدات ألعاب، اشتراكات ترفيهية، وتجهيزات شبكات وعتاد بأفضل أسعار السوق مع ضمان الاستلام الفوري.
           </p>
         </div>
 
-        <!-- Search Bar with Live Suggestions link -->
-        <div style="width: 100%; max-width: 420px;">
-          <form method="get" action="{% url 'catalog' %}" style="position: relative; display: flex; align-items: center;">
+        <!-- Search Bar within Catalog -->
+        <div style="width: 100%; max-width: 380px;">
+          <form method="get" action="{% url 'catalog' %}" style="position: relative;">
             {% if active_category %}<input type="hidden" name="category" value="{{ active_category }}">{% endif %}
-            <i class="fas fa-search" style="position: absolute; right: 1.1rem; color: #38bdf8; font-size: 0.95rem; pointer-events: none;"></i>
-            <input type="text" name="q" value="{{ query }}" placeholder="ابحث برقم الموديل، المعالج، السعة، أو الماركة..." style="width: 100%; background: var(--rq-surface-card, #0f1523); border: 1px solid var(--rq-border); border-radius: 14px; padding: 0.75rem 2.8rem 0.75rem 1rem; color: #fff; font-size: 0.85rem; outline: none; transition: all 0.2s;" onfocus="this.style.borderColor='#38bdf8'; this.style.boxShadow='0 0 0 3px rgba(56, 189, 248, 0.2)';" onblur="this.style.borderColor='var(--rq-border)'; this.style.boxShadow='none';">
+            <i class="fas fa-search" style="position: absolute; right: 1.1rem; top: 50%; transform: translateY(-50%); color: var(--rq-primary-light); font-size: 0.85rem; pointer-events: none;"></i>
+            <input type="text" name="q" value="{{ query }}" placeholder="ابحث باسم الخدمة، اللعبة، أو البطاقة..." class="rq-search-input" style="padding-right: 2.75rem;">
             {% if query %}
-            <a href="{% url 'catalog' %}{% if active_category %}?category={{ active_category }}{% endif %}" style="position: absolute; left: 0.85rem; color: var(--rq-text-muted); font-size: 0.85rem; text-decoration: none;" title="مسح البحث">
+            <a href="{% url 'catalog' %}{% if active_category %}?category={{ active_category }}{% endif %}" style="position: absolute; left: 0.85rem; top: 50%; transform: translateY(-50%); color: var(--rq-text-muted); font-size: 0.85rem;" title="مسح">
               <i class="fas fa-times"></i>
             </a>
             {% endif %}
@@ -59,13 +55,13 @@
     </div>
 
     <!-- ── Mobile Horizontal Category Pills ── -->
-    <div style="display: flex; gap: 0.5rem; overflow-x: auto; padding-bottom: 0.75rem; margin-bottom: 1.5rem; scrollbar-width: none;" class="lg:hidden">
-      <a href="{% url 'catalog' %}{% if query %}?q={{ query }}{% endif %}" style="flex-shrink: 0; padding: 0.45rem 1rem; border-radius: 999px; font-size: 0.8rem; font-weight: 800; text-decoration: none; border: 1px solid {% if not active_category %}#38bdf8{% else %}var(--rq-border){% endif %}; background: {% if not active_category %}rgba(56, 189, 248, 0.15){% else %}var(--rq-surface-card){% endif %}; color: {% if not active_category %}#fff{% else %}var(--rq-text-muted){% endif %};">
-        كافة الأجهزة ({{ all_products_count }})
+    <div class="rq-categories-scroller lg:hidden" style="margin-bottom: 1.5rem;">
+      <a href="{% url 'catalog' %}{% if query %}?q={{ query }}{% endif %}" style="flex-shrink: 0; padding: 0.45rem 1rem; border-radius: var(--rq-radius-full); font-size: 0.8rem; font-weight: 800; border: 1px solid {% if not active_category %}var(--rq-primary-light){% else %}var(--rq-border){% endif %}; background: {% if not active_category %}rgba(37, 99, 235, 0.15){% else %}var(--rq-surface-card){% endif %}; color: {% if not active_category %}#fff{% else %}var(--rq-text-muted){% endif %};">
+        كافة الأقسام ({{ all_products_count }})
       </a>
       {% for cat in categories %}
       {% if cat.product_count > 0 %}
-      <a href="?category={{ cat.id }}{% if query %}&q={{ query }}{% endif %}" style="flex-shrink: 0; padding: 0.45rem 1rem; border-radius: 999px; font-size: 0.8rem; font-weight: 800; text-decoration: none; border: 1px solid {% if active_category == cat.id|stringformat:'s' %}#38bdf8{% else %}var(--rq-border){% endif %}; background: {% if active_category == cat.id|stringformat:'s' %}rgba(56, 189, 248, 0.15){% else %}var(--rq-surface-card){% endif %}; color: {% if active_category == cat.id|stringformat:'s' %}#fff{% else %}var(--rq-text-muted){% endif %};">
+      <a href="?category={{ cat.id }}{% if query %}&q={{ query }}{% endif %}" style="flex-shrink: 0; padding: 0.45rem 1rem; border-radius: var(--rq-radius-full); font-size: 0.8rem; font-weight: 800; border: 1px solid {% if active_category == cat.id|stringformat:'s' %}var(--rq-primary-light){% else %}var(--rq-border){% endif %}; background: {% if active_category == cat.id|stringformat:'s' %}rgba(37, 99, 235, 0.15){% else %}var(--rq-surface-card){% endif %}; color: {% if active_category == cat.id|stringformat:'s' %}#fff{% else %}var(--rq-text-muted){% endif %};">
         {{ cat.name }} ({{ cat.product_count }})
       </a>
       {% endif %}
@@ -73,69 +69,46 @@
     </div>
 
     <!-- ── Main Grid Layout (Sidebar + Content) ── -->
-    <div style="display: grid; grid-template-columns: 1fr; gap: 2rem;" class="lg:grid-cols-[290px_1fr]">
+    <div style="display: grid; grid-template-columns: 1fr; gap: 2rem;" class="lg:grid-cols-[280px_1fr]">
 
-      <!-- ── Hardware Sidebar (Desktop) ── -->
+      <!-- Desktop Sidebar -->
       <aside style="display: none;" class="lg:block">
-        <div style="position: sticky; top: 5.5rem; background: var(--rq-surface-card, #0f1523); border: 1px solid var(--rq-border); border-radius: 20px; padding: 1.5rem; display: flex; flex-direction: column; gap: 1.5rem;">
+        <div style="position: sticky; top: 5.5rem; background: var(--rq-surface-card); border: 1px solid var(--rq-border); border-radius: var(--rq-radius-xl); padding: 1.5rem; display: flex; flex-direction: column; gap: 1.5rem;">
           
-          <!-- Categories Filter Tree -->
           <div>
             <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.85rem;">
-              <h3 style="font-size: 0.85rem; font-weight: 900; color: #fff; display: flex; align-items: center; gap: 0.5rem; margin: 0;">
-                <i class="fas fa-layer-group text-sky-400"></i>
-                <span>فئات التجهيزات</span>
+              <h3 style="font-size: 0.88rem; font-weight: 900; color: #fff; margin: 0; display: flex; align-items: center; gap: 0.5rem;">
+                <i class="fas fa-layer-group text-blue-500"></i>
+                <span>أقسام المتجر</span>
               </h3>
-              <span style="font-size: 0.7rem; color: var(--rq-text-muted); font-family: 'JetBrains Mono', monospace;">{{ categories|length }} فئة</span>
+              <span class="tabular-nums" style="font-size: 0.72rem; color: var(--rq-text-muted);">{{ categories|length }} فئات</span>
             </div>
 
-            <div style="display: flex; flex-direction: column; gap: 0.35rem; max-height: 380px; overflow-y: auto; padding-left: 0.25rem;">
-              <a href="{% url 'catalog' %}{% if query %}?q={{ query }}{% endif %}" style="display: flex; align-items: center; justify-content: space-between; padding: 0.6rem 0.85rem; border-radius: 12px; font-size: 0.82rem; font-weight: 700; text-decoration: none; transition: all 0.2s; background: {% if not active_category %}rgba(56, 189, 248, 0.12){% else %}transparent{% endif %}; color: {% if not active_category %}#fff{% else %}var(--rq-text-secondary){% endif %}; border: 1px solid {% if not active_category %}rgba(56, 189, 248, 0.3){% else %}transparent{% endif %};">
-                <span style="display: flex; align-items: center; gap: 0.5rem;">
-                  <i class="fas fa-microchip text-xs text-sky-400"></i>
-                  <span>جميع الأقسام</span>
-                </span>
-                <span style="font-family: 'JetBrains Mono', monospace; font-size: 0.75rem; font-weight: 800; color: #38bdf8; background: rgba(56, 189, 248, 0.1); padding: 0.15rem 0.5rem; border-radius: 999px;">{{ all_products_count }}</span>
+            <div style="display: flex; flex-direction: column; gap: 0.35rem; max-height: 420px; overflow-y: auto; padding-left: 0.25rem;">
+              <a href="{% url 'catalog' %}{% if query %}?q={{ query }}{% endif %}" style="display: flex; align-items: center; justify-content: space-between; padding: 0.6rem 0.85rem; border-radius: var(--rq-radius-md); font-size: 0.825rem; font-weight: 700; transition: all 0.2s; background: {% if not active_category %}rgba(37, 99, 235, 0.15){% else %}transparent{% endif %}; color: {% if not active_category %}#fff{% else %}var(--rq-text-secondary){% endif %}; border: 1px solid {% if not active_category %}rgba(59, 130, 246, 0.35){% else %}transparent{% endif %};">
+                <span>كافة المنتجات</span>
+                <span class="tabular-nums" style="font-size: 0.72rem; font-weight: 800; color: var(--rq-primary-light); background: rgba(37, 99, 235, 0.12); padding: 0.15rem 0.5rem; border-radius: var(--rq-radius-full);">{{ all_products_count }}</span>
               </a>
 
               {% for cat in categories %}
               {% if cat.product_count > 0 %}
-              <a href="?category={{ cat.id }}{% if query %}&q={{ query }}{% endif %}" style="display: flex; align-items: center; justify-content: space-between; padding: 0.6rem 0.85rem; border-radius: 12px; font-size: 0.82rem; font-weight: 700; text-decoration: none; transition: all 0.2s; background: {% if active_category == cat.id|stringformat:'s' %}rgba(56, 189, 248, 0.12){% else %}transparent{% endif %}; color: {% if active_category == cat.id|stringformat:'s' %}#fff{% else %}var(--rq-text-secondary){% endif %}; border: 1px solid {% if active_category == cat.id|stringformat:'s' %}rgba(56, 189, 248, 0.3){% else %}transparent{% endif %};" onmouseover="if(this.style.background!=='rgba(56, 189, 248, 0.12)') this.style.background='rgba(255,255,255,0.04)';" onmouseout="if(this.style.background!=='rgba(56, 189, 248, 0.12)') this.style.background='transparent';">
-                <span style="display: flex; align-items: center; gap: 0.5rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
-                  <i class="fas fa-angle-left text-[10px] text-slate-500"></i>
-                  <span>{{ cat.name }}</span>
-                </span>
-                <span style="font-family: 'JetBrains Mono', monospace; font-size: 0.72rem; font-weight: 800; color: #94a3b8; background: rgba(255, 255, 255, 0.05); padding: 0.15rem 0.5rem; border-radius: 999px;">{{ cat.product_count }}</span>
+              <a href="?category={{ cat.id }}{% if query %}&q={{ query }}{% endif %}" style="display: flex; align-items: center; justify-content: space-between; padding: 0.6rem 0.85rem; border-radius: var(--rq-radius-md); font-size: 0.825rem; font-weight: 700; transition: all 0.2s; background: {% if active_category == cat.id|stringformat:'s' %}rgba(37, 99, 235, 0.15){% else %}transparent{% endif %}; color: {% if active_category == cat.id|stringformat:'s' %}#fff{% else %}var(--rq-text-secondary){% endif %}; border: 1px solid {% if active_category == cat.id|stringformat:'s' %}rgba(59, 130, 246, 0.35){% else %}transparent{% endif %};">
+                <span style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">{{ cat.name }}</span>
+                <span class="tabular-nums" style="font-size: 0.72rem; font-weight: 800; color: var(--rq-text-muted); background: rgba(255, 255, 255, 0.04); padding: 0.15rem 0.5rem; border-radius: var(--rq-radius-full);">{{ cat.product_count }}</span>
               </a>
               {% endif %}
               {% endfor %}
             </div>
           </div>
 
-          <!-- Hardware Spec Tags Filter (UI Filter Quick Pills) -->
-          <div style="border-top: 1px solid var(--rq-border-subtle); padding-top: 1.25rem;">
-            <h4 style="font-size: 0.78rem; font-weight: 900; color: #fff; text-transform: uppercase; letter-spacing: 0.05em; margin: 0 0 0.75rem; display: flex; align-items: center; gap: 0.4rem;">
-              <i class="fas fa-sliders-h text-cyan-400"></i>
-              <span>الماركات والشركات المصنعة</span>
-            </h4>
-            <div style="display: flex; flex-wrap: wrap; gap: 0.4rem;">
-              <a href="{% url 'catalog' %}?q=Apple" style="padding: 0.3rem 0.65rem; border-radius: 8px; font-size: 0.72rem; font-weight: 700; background: rgba(255,255,255,0.04); border: 1px solid var(--rq-border); color: #cbd5e1; text-decoration: none;">Apple</a>
-              <a href="{% url 'catalog' %}?q=Samsung" style="padding: 0.3rem 0.65rem; border-radius: 8px; font-size: 0.72rem; font-weight: 700; background: rgba(255,255,255,0.04); border: 1px solid var(--rq-border); color: #cbd5e1; text-decoration: none;">Samsung</a>
-              <a href="{% url 'catalog' %}?q=Anker" style="padding: 0.3rem 0.65rem; border-radius: 8px; font-size: 0.72rem; font-weight: 700; background: rgba(255,255,255,0.04); border: 1px solid var(--rq-border); color: #cbd5e1; text-decoration: none;">Anker</a>
-              <a href="{% url 'catalog' %}?q=Xiaomi" style="padding: 0.3rem 0.65rem; border-radius: 8px; font-size: 0.72rem; font-weight: 700; background: rgba(255,255,255,0.04); border: 1px solid var(--rq-border); color: #cbd5e1; text-decoration: none;">Xiaomi</a>
-              <a href="{% url 'catalog' %}?q=Razer" style="padding: 0.3rem 0.65rem; border-radius: 8px; font-size: 0.72rem; font-weight: 700; background: rgba(255,255,255,0.04); border: 1px solid var(--rq-border); color: #cbd5e1; text-decoration: none;">Razer</a>
-              <a href="{% url 'catalog' %}?q=Sony" style="padding: 0.3rem 0.65rem; border-radius: 8px; font-size: 0.72rem; font-weight: 700; background: rgba(255,255,255,0.04); border: 1px solid var(--rq-border); color: #cbd5e1; text-decoration: none;">Sony</a>
-            </div>
-          </div>
-
-          <!-- Suggestion Shortcut Card -->
-          <div style="border-top: 1px solid var(--rq-border-subtle); padding-top: 1.25rem;">
-            <div style="background: rgba(0, 0, 0, 0.4); border: 1px dashed rgba(245, 158, 11, 0.35); border-radius: 14px; padding: 1rem; text-align: center;">
+          <!-- Suggestion Shortcut Box -->
+          <div style="border-top: 1px solid var(--rq-border); padding-top: 1.25rem;">
+            <div style="background: rgba(0, 0, 0, 0.3); border: 1px dashed rgba(245, 158, 11, 0.35); border-radius: var(--rq-radius-lg); padding: 1rem; text-align: center;">
               <i class="fas fa-lightbulb text-amber-400 text-lg mb-1 block"></i>
-              <h5 style="font-size: 0.8rem; font-weight: 900; color: #fff; margin: 0 0 0.25rem;">طلب قطعة أو جهاز خاص؟</h5>
-              <p style="font-size: 0.7rem; color: var(--rq-text-muted); margin: 0 0 0.75rem; line-height: 1.4;">وفر قطعتك بأفضل سعر مواصفة مع ضمان الوكيل.</p>
-              <button type="button" onclick="openSuggestionModal()" style="width: 100%; padding: 0.5rem; border-radius: 8px; background: rgba(245, 158, 11, 0.15); border: 1px solid rgba(245, 158, 11, 0.3); color: #fbbf24; font-size: 0.75rem; font-weight: 800; cursor: pointer; transition: all 0.2s;" onmouseover="this.style.background='rgba(245, 158, 11, 0.25)';" onmouseout="this.style.background='rgba(245, 158, 11, 0.15)';">
-                تقديم طلب مخصص
+              <h5 style="font-size: 0.825rem; font-weight: 800; color: #fff; margin: 0 0 0.25rem;">تبحث عن خدمة أو جهاز محدد؟</h5>
+              <p style="font-size: 0.72rem; color: var(--rq-text-muted); margin: 0 0 0.75rem; line-height: 1.4;">أرسل لنا طلبك وسنوفره لك بأسرع وقت وبأفضل سعر.</p>
+              <button type="button" onclick="openSuggestionModal()" style="width: 100%; padding: 0.5rem; border-radius: 8px; background: rgba(245, 158, 11, 0.15); border: 1px solid rgba(245, 158, 11, 0.3); color: #fbbf24; font-size: 0.75rem; font-weight: 800; cursor: pointer;">
+                اقتراح منتج جديد
               </button>
             </div>
           </div>
@@ -143,27 +116,25 @@
         </div>
       </aside>
 
-      <!-- ── Catalog Main Content ── -->
+      <!-- Main Content Area -->
       <main style="min-width: 0;">
 
-        <!-- ── Top Controls Bar (Sort & View Mode) ── -->
-        <div style="background: var(--rq-surface-card, #0f1523); border: 1px solid var(--rq-border); border-radius: 16px; padding: 0.85rem 1.25rem; margin-bottom: 1.5rem; display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 1rem;">
+        <!-- Controls Toolbar -->
+        <div style="background: var(--rq-surface-card); border: 1px solid var(--rq-border); border-radius: var(--rq-radius-lg); padding: 0.85rem 1.25rem; margin-bottom: 1.5rem; display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 1rem;">
           
-          <!-- View Modes (Products vs Categories) -->
           <div style="display: inline-flex; align-items: center; gap: 0.3rem; background: rgba(0, 0, 0, 0.4); padding: 0.25rem; border-radius: 12px; border: 1px solid var(--rq-border);">
-            <button type="button" id="tab-products-btn" onclick="switchCatalogView('products')" style="padding: 0.45rem 0.95rem; border-radius: 8px; border: none; font-size: 0.78rem; font-weight: 800; cursor: pointer; display: inline-flex; align-items: center; gap: 0.4rem; transition: all 0.2s; {% if view_type != 'categories' %}background: #0071e3; color: #fff; box-shadow: 0 2px 8px rgba(0, 113, 227, 0.4);{% else %}background: transparent; color: var(--rq-text-muted);{% endif %}">
-              <i class="fas fa-boxes-stacked"></i>
-              <span>الأجهزة والمنتجات</span>
+            <button type="button" id="tab-products-btn" onclick="switchCatalogView('products')" style="padding: 0.45rem 0.95rem; border-radius: 8px; border: none; font-size: 0.78rem; font-weight: 800; cursor: pointer; display: inline-flex; align-items: center; gap: 0.4rem; transition: all 0.2s; {% if view_type != 'categories' %}background: var(--rq-primary); color: #fff;{% else %}background: transparent; color: var(--rq-text-muted);{% endif %}">
+              <i class="fas fa-grid-2"></i>
+              <span>المنتجات</span>
             </button>
-            <button type="button" id="tab-categories-btn" onclick="switchCatalogView('categories')" style="padding: 0.45rem 0.95rem; border-radius: 8px; border: none; font-size: 0.78rem; font-weight: 800; cursor: pointer; display: inline-flex; align-items: center; gap: 0.4rem; transition: all 0.2s; {% if view_type == 'categories' %}background: #0071e3; color: #fff; box-shadow: 0 2px 8px rgba(0, 113, 227, 0.4);{% else %}background: transparent; color: var(--rq-text-muted);{% endif %}">
+            <button type="button" id="tab-categories-btn" onclick="switchCatalogView('categories')" style="padding: 0.45rem 0.95rem; border-radius: 8px; border: none; font-size: 0.78rem; font-weight: 800; cursor: pointer; display: inline-flex; align-items: center; gap: 0.4rem; transition: all 0.2s; {% if view_type == 'categories' %}background: var(--rq-primary); color: #fff;{% else %}background: transparent; color: var(--rq-text-muted);{% endif %}">
               <i class="fas fa-th-large"></i>
-              <span>فئات العتاد</span>
+              <span>الأقسام</span>
             </button>
           </div>
 
-          <!-- Sort & Count Summary -->
           <div style="display: flex; align-items: center; gap: 1rem;">
-            <span style="font-size: 0.78rem; color: var(--rq-text-muted); font-family: 'JetBrains Mono', monospace;" class="hidden sm:inline">
+            <span class="tabular-nums" style="font-size: 0.8rem; color: var(--rq-text-muted);" class="hidden sm:inline">
               النتائج: <strong style="color: #fff;">{{ total_products_count }}</strong> عنصر
             </span>
 
@@ -172,7 +143,7 @@
               {% if query %}<input type="hidden" name="q" value="{{ query }}">{% endif %}
               <input type="hidden" name="view" value="{{ view_type|default:'products' }}">
               <label for="sort-select" style="font-size: 0.78rem; color: var(--rq-text-muted); font-weight: 700;">ترتيب:</label>
-              <select id="sort-select" name="sort" onchange="this.form.submit()" style="background: rgba(7, 9, 14, 0.85); border: 1px solid var(--rq-border); color: #fff; padding: 0.4rem 0.85rem; border-radius: 10px; font-size: 0.78rem; font-weight: 700; cursor: pointer; outline: none;">
+              <select id="sort-select" name="sort" onchange="this.form.submit()" class="rq-currency-select">
                 <option value="newest" {% if sort == "newest" or not sort %}selected{% endif %}>الأحدث أولاً</option>
                 <option value="price_low" {% if sort == "price_low" %}selected{% endif %}>السعر: الأقل أولاً</option>
                 <option value="price_high" {% if sort == "price_high" %}selected{% endif %}>السعر: الأعلى أولاً</option>
@@ -181,205 +152,126 @@
           </div>
         </div>
 
-        <!-- ── Section 1: Products Grid View ── -->
+        <!-- Products Grid -->
         <div id="catalog-products-view" style="{% if view_type == 'categories' %}display: none;{% endif %}">
-          <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 1.25rem; margin-bottom: 2.5rem;">
+          <div class="rq-product-grid">
             {% for p in page_obj %}
-            <div class="tech-product-card" style="background: var(--rq-surface-card, #0f1523); border: 1px solid var(--rq-border); border-radius: var(--rq-radius-lg, 18px); overflow: hidden; display: flex; flex-direction: column; transition: all 0.28s ease; position: relative;" onmouseover="this.style.borderColor='rgba(56, 189, 248, 0.4)'; this.style.transform='translateY(-4px)'; this.style.boxShadow='0 14px 30px -10px rgba(0,0,0,0.8), 0 0 20px rgba(56, 189, 248, 0.1)';" onmouseout="this.style.borderColor='var(--rq-border)'; this.style.transform='translateY(0)'; this.style.boxShadow='none';">
-              
-              <!-- Media Box (1/1 aspect ratio) -->
-              <a href="{% url 'product_detail' p.id %}" style="display: block; position: relative; width: 100%; aspect-ratio: 1/1; background: #060910; overflow: hidden; text-decoration: none;">
-                {% product_display_image p as p_img %}
-                {% if p_img %}
-                <img src="{{ p_img }}" alt="{{ p.name }}" loading="lazy" style="width: 100%; height: 100%; object-fit: contain; padding: 1rem; transition: transform 0.35s ease;" onmouseover="this.style.transform='scale(1.05)';" onmouseout="this.style.transform='scale(1)';" onerror="this.onerror=null; this.src='{% static 'site/img/raqamiyat_logo_square.jpg' %}';">
+            {% product_display_image p as p_img %}
+            <div class="rq-card">
+              <a href="{% url 'product_detail' p.id %}" class="rq-card-media">
+                {% if p.product_type == 'physical' %}
+                <span class="rq-badge-delivery-physical"><i class="fas fa-truck text-[9px]"></i> شحن وتوصيل</span>
                 {% else %}
-                <img src="{% static 'site/img/raqamiyat_logo_square.jpg' %}" alt="{{ p.name }}" loading="lazy" style="width: 100%; height: 100%; object-fit: contain; padding: 1rem;">
+                <span class="rq-badge-delivery-instant"><i class="fas fa-bolt text-[9px]"></i> تسليم فوري</span>
                 {% endif %}
-
-                <!-- Top Floating Hardware Tags -->
-                <div style="position: absolute; top: 0.75rem; right: 0.75rem; display: flex; flex-direction: column; gap: 0.35rem; z-index: 2;">
-                  {% if p.category %}
-                  <span style="background: rgba(15, 23, 42, 0.85); backdrop-filter: blur(8px); border: 1px solid rgba(255, 255, 255, 0.1); color: #38bdf8; font-size: 0.65rem; font-weight: 800; padding: 0.2rem 0.55rem; border-radius: 999px;">
-                    {{ p.category.name }}
-                  </span>
-                  {% endif %}
-                </div>
-
-                <div style="position: absolute; top: 0.75rem; left: 0.75rem; display: flex; flex-direction: column; gap: 0.35rem; z-index: 2;">
-                  {% if p.catalog_index %}
-                  <span style="font-family: 'JetBrains Mono', monospace; font-size: 0.65rem; font-weight: 800; background: rgba(0, 0, 0, 0.75); color: #94a3b8; border: 1px solid rgba(255, 255, 255, 0.1); padding: 0.15rem 0.5rem; border-radius: 6px;">
-                    #{{ p.catalog_index }}
-                  </span>
-                  {% endif %}
-                  {% if p.product_type == 'physical' %}
-                  <span style="background: rgba(16, 185, 129, 0.15); border: 1px solid rgba(16, 185, 129, 0.3); color: #34d399; font-size: 0.62rem; font-weight: 800; padding: 0.15rem 0.45rem; border-radius: 6px; display: inline-flex; align-items: center; gap: 0.3rem;">
-                    <i class="fas fa-truck text-[8px]"></i> شحن مادي
-                  </span>
-                  {% else %}
-                  <span style="background: rgba(56, 189, 248, 0.15); border: 1px solid rgba(56, 189, 248, 0.3); color: #38bdf8; font-size: 0.62rem; font-weight: 800; padding: 0.15rem 0.45rem; border-radius: 6px; display: inline-flex; align-items: center; gap: 0.3rem;">
-                    <i class="fas fa-bolt text-[8px]"></i> تسليم فوري
-                  </span>
-                  {% endif %}
-                </div>
+                <img src="{{ p_img }}" alt="{{ p.name }}" loading="lazy" onerror="this.onerror=null; this.src='{% static 'site/img/raqamiyat_logo_square.jpg' %}';">
               </a>
-
-              <!-- Card Body -->
-              <div style="padding: 1.1rem; display: flex; flex-direction: column; flex-grow: 1; justify-content: space-between; gap: 1rem;">
+              <div class="rq-card-body">
                 <div>
-                  <h3 style="font-size: 0.88rem; font-weight: 800; color: #fff; line-height: 1.4; margin: 0 0 0.5rem; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; min-height: 2.5rem;">
-                    <a href="{% url 'product_detail' p.id %}" style="color: inherit; text-decoration: none;">
-                      {{ p.name }}
-                    </a>
-                  </h3>
-
-                  <!-- Technical Spec Badges Bar -->
-                  <div style="display: flex; flex-wrap: wrap; gap: 0.35rem; margin-bottom: 0.5rem;">
-                    <span style="background: rgba(255, 255, 255, 0.04); border: 1px solid var(--rq-border-subtle); color: var(--rq-text-muted); font-size: 0.65rem; font-family: 'JetBrains Mono', monospace; font-weight: 700; padding: 0.15rem 0.45rem; border-radius: 6px;">
-                      ORIGINAL
-                    </span>
-                    <span style="background: rgba(255, 255, 255, 0.04); border: 1px solid var(--rq-border-subtle); color: var(--rq-text-muted); font-size: 0.65rem; font-family: 'JetBrains Mono', monospace; font-weight: 700; padding: 0.15rem 0.45rem; border-radius: 6px;">
-                      WARRANTY
-                    </span>
-                    {% if p.brand %}
-                    <span style="background: rgba(56, 189, 248, 0.06); border: 1px solid rgba(56, 189, 248, 0.2); color: #38bdf8; font-size: 0.65rem; font-weight: 700; padding: 0.15rem 0.45rem; border-radius: 6px;">
-                      {{ p.brand }}
-                    </span>
-                    {% endif %}
-                  </div>
-                </div>
-
-                <!-- Price and Action Bottom Row -->
-                <div style="border-top: 1px solid var(--rq-border-subtle); padding-top: 0.85rem; display: flex; align-items: center; justify-content: space-between; gap: 0.5rem;">
-                  <div>
-                    <span style="display: block; font-size: 0.65rem; color: var(--rq-text-muted); font-weight: 700;">السعر يبدأ من</span>
-                    <div style="font-family: 'JetBrains Mono', monospace; font-size: 1.05rem; font-weight: 900; color: #fff; letter-spacing: -0.02em; font-feature-settings: 'tnum';" dir="ltr">
-                      {% product_starting_price p %}
-                    </div>
-                  </div>
-
-                  <a href="{% url 'product_detail' p.id %}" style="display: inline-flex; align-items: center; gap: 0.4rem; padding: 0.5rem 0.9rem; border-radius: 10px; background: linear-gradient(135deg, #0071e3 0%, #0284c7 100%); color: #fff; font-size: 0.78rem; font-weight: 800; text-decoration: none; transition: all 0.2s; box-shadow: 0 4px 12px rgba(0, 113, 227, 0.35);" onmouseover="this.style.filter='brightness(1.15)'; this.style.transform='translateY(-1px)';" onmouseout="this.style.filter='none'; this.style.transform='translateY(0)';">
-                    <span>المواصفات والطلب</span>
-                    <i class="fas fa-arrow-left text-[10px]"></i>
+                  <span class="rq-card-category">{{ p.category.name|default:'خدمة معتمدة' }}</span>
+                  <a href="{% url 'product_detail' p.id %}">
+                    <h4 class="rq-card-title">{{ p.name }}</h4>
                   </a>
                 </div>
-
+                <div class="rq-card-footer">
+                  <div>
+                    <span class="rq-price-label">السعر يبدأ من</span>
+                    <span class="tabular-nums rq-price-val">{% product_starting_price p %}</span>
+                  </div>
+                  <a href="{% url 'product_detail' p.id %}" class="rq-card-buy-btn">
+                    <span>طلب مباشر</span>
+                    <i class="fas fa-arrow-left text-[9px]"></i>
+                  </a>
+                </div>
               </div>
-
             </div>
             {% empty %}
-            <div style="grid-column: 1 / -1; padding: 4rem 1.5rem; text-align: center; background: var(--rq-surface-card); border: 1px solid var(--rq-border); border-radius: 20px;">
+            <div style="grid-column: 1 / -1; padding: 4rem 1.5rem; text-align: center; background: var(--rq-surface-card); border: 1px solid var(--rq-border); border-radius: var(--rq-radius-lg);">
               <i class="fas fa-search text-4xl text-slate-500 mb-3 block"></i>
-              <h3 style="font-size: 1.1rem; font-weight: 900; color: #fff; margin: 0 0 0.5rem;">لم يتم العثور على أجهزة مطابقة</h3>
-              <p style="font-size: 0.85rem; color: var(--rq-text-muted); margin: 0 0 1.25rem;">جرب تغيير كلمة البحث أو استكشاف الأقسام وفئات العتاد التقني.</p>
-              <a href="{% url 'catalog' %}" style="display: inline-block; padding: 0.65rem 1.5rem; border-radius: 12px; background: rgba(56, 189, 248, 0.1); border: 1px solid rgba(56, 189, 248, 0.3); color: #38bdf8; font-size: 0.82rem; font-weight: 800; text-decoration: none;">
-                إعادة ضبط البحث
+              <h3 style="font-size: 1.1rem; font-weight: 900; color: #fff; margin: 0 0 0.5rem;">لم يتم العثور على نتائج مطابقة</h3>
+              <p style="font-size: 0.85rem; color: var(--rq-text-muted); margin: 0 0 1.25rem;">جرب كتابة كلمات بحث أخرى أو استكشف كافة الأقسام المتاحة.</p>
+              <a href="{% url 'catalog' %}" class="rq-section-link">
+                تصفح كافة المنتجات
               </a>
             </div>
             {% endfor %}
           </div>
 
-          <!-- ── Pagination Bar (Hardware Studio Monospaced) ── -->
+          <!-- Pagination Dock -->
           {% if total_products_count > 0 %}
-          <div style="display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 1rem; background: var(--rq-surface-card, #0f1523); border: 1px solid var(--rq-border); border-radius: 16px; padding: 0.85rem 1.25rem;">
-            
+          <div style="display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 1rem; background: var(--rq-surface-card); border: 1px solid var(--rq-border); border-radius: var(--rq-radius-lg); padding: 0.85rem 1.25rem;">
             {% if page_obj.has_previous %}
-            <a href="?start={{ prev_start }}{% if query %}&q={{ query }}{% endif %}{% if active_category %}&category={{ active_category }}{% endif %}{% if sort %}&sort={{ sort }}{% endif %}&view=products" style="display: inline-flex; align-items: center; gap: 0.5rem; padding: 0.5rem 1.15rem; border-radius: 10px; background: rgba(56, 189, 248, 0.08); border: 1px solid rgba(56, 189, 248, 0.25); color: #38bdf8; font-size: 0.8rem; font-weight: 800; text-decoration: none; transition: all 0.2s;" onmouseover="this.style.background='#0071e3'; this.style.color='#fff';" onmouseout="this.style.background='rgba(56, 189, 248, 0.08)'; this.style.color='#38bdf8';">
+            <a href="?start={{ prev_start }}{% if query %}&q={{ query }}{% endif %}{% if active_category %}&category={{ active_category }}{% endif %}{% if sort %}&sort={{ sort }}{% endif %}&view=products" class="rq-section-link">
               <i class="fas fa-chevron-right text-xs"></i>
               <span>السابق</span>
             </a>
             {% else %}
-            <span style="display: inline-flex; align-items: center; gap: 0.5rem; padding: 0.5rem 1.15rem; border-radius: 10px; background: rgba(255, 255, 255, 0.03); border: 1px solid var(--rq-border-subtle); color: var(--rq-text-muted); font-size: 0.8rem; font-weight: 700; opacity: 0.4; cursor: not-allowed;">
+            <span style="opacity: 0.4; cursor: not-allowed;" class="rq-section-link">
               <i class="fas fa-chevron-right text-xs"></i>
               <span>السابق</span>
             </span>
             {% endif %}
 
-            <div style="font-size: 0.8rem; font-weight: 800; color: var(--rq-text-secondary); display: flex; align-items: center; gap: 0.4rem;">
-              <span>عرض</span>
-              <span style="font-family: 'JetBrains Mono', monospace; color: #fbbf24; font-weight: 900;">{{ start_num }} - {{ end_num }}</span>
-              <span>من أصل</span>
-              <span style="font-family: 'JetBrains Mono', monospace; color: #fff; font-weight: 900;">{{ total_products_count }}</span>
-              <span>جهاز</span>
+            <div style="font-size: 0.8rem; font-weight: 800; color: var(--rq-text-muted);">
+              عرض <span class="tabular-nums" style="color: #fbbf24;">{{ start_num }} - {{ end_num }}</span> من أصل <span class="tabular-nums" style="color: #fff;">{{ total_products_count }}</span> عنصر
             </div>
 
             {% if page_obj.has_next %}
-            <a href="?start={{ next_start }}{% if query %}&q={{ query }}{% endif %}{% if active_category %}&category={{ active_category }}{% endif %}{% if sort %}&sort={{ sort }}{% endif %}&view=products" style="display: inline-flex; align-items: center; gap: 0.5rem; padding: 0.5rem 1.15rem; border-radius: 10px; background: rgba(56, 189, 248, 0.08); border: 1px solid rgba(56, 189, 248, 0.25); color: #38bdf8; font-size: 0.8rem; font-weight: 800; text-decoration: none; transition: all 0.2s;" onmouseover="this.style.background='#0071e3'; this.style.color='#fff';" onmouseout="this.style.background='rgba(56, 189, 248, 0.08)'; this.style.color='#38bdf8';">
+            <a href="?start={{ next_start }}{% if query %}&q={{ query }}{% endif %}{% if active_category %}&category={{ active_category }}{% endif %}{% if sort %}&sort={{ sort }}{% endif %}&view=products" class="rq-section-link">
               <span>التالي</span>
               <i class="fas fa-chevron-left text-xs"></i>
             </a>
             {% else %}
-            <span style="display: inline-flex; align-items: center; gap: 0.5rem; padding: 0.5rem 1.15rem; border-radius: 10px; background: rgba(255, 255, 255, 0.03); border: 1px solid var(--rq-border-subtle); color: var(--rq-text-muted); font-size: 0.8rem; font-weight: 700; opacity: 0.4; cursor: not-allowed;">
+            <span style="opacity: 0.4; cursor: not-allowed;" class="rq-section-link">
               <span>التالي</span>
               <i class="fas fa-chevron-left text-xs"></i>
             </span>
             {% endif %}
-
           </div>
           {% endif %}
         </div>
 
-        <!-- ── Section 2: Categories Grid View ── -->
+        <!-- Categories Full Grid View -->
         <div id="catalog-categories-view" style="{% if view_type != 'categories' %}display: none;{% endif %}">
           <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 1rem; margin-bottom: 2.5rem;">
             {% for cat in categories %}
             {% if cat.product_count > 0 %}
             {% category_display_image cat as cat_img %}
-            <a href="?category={{ cat.id }}{% if query %}&q={{ query }}{% endif %}" style="background: var(--rq-surface-card, #0f1523); border: 1px solid var(--rq-border); border-radius: 18px; padding: 1.5rem 1.25rem; display: flex; flex-direction: column; align-items: center; text-align: center; gap: 1rem; text-decoration: none; transition: all 0.25s ease;" onmouseover="this.style.borderColor='rgba(56, 189, 248, 0.4)'; this.style.transform='translateY(-4px)';" onmouseout="this.style.borderColor='var(--rq-border)'; this.style.transform='translateY(0)';">
-              <div style="width: 64px; height: 64px; border-radius: 16px; background: rgba(255, 255, 255, 0.04); border: 1px solid rgba(255, 255, 255, 0.08); display: flex; align-items: center; justify-content: center; overflow: hidden;">
+            <a href="?category={{ cat.id }}{% if query %}&q={{ query }}{% endif %}" style="background: var(--rq-surface-card); border: 1px solid var(--rq-border); border-radius: var(--rq-radius-lg); padding: 1.5rem 1.25rem; display: flex; flex-direction: column; align-items: center; text-align: center; gap: 0.85rem; text-decoration: none; transition: all 0.25s;" onmouseover="this.style.borderColor='var(--rq-primary-light)'; this.style.transform='translateY(-3px)';" onmouseout="this.style.borderColor='var(--rq-border)'; this.style.transform='translateY(0)';">
+              <div class="rq-category-icon-wrapper" style="width: 64px; height: 64px;">
                 {% if cat_img %}
-                <img src="{{ cat_img }}" alt="{{ cat.name }}" style="width: 38px; height: 38px; object-fit: contain;">
+                <img src="{{ cat_img }}" alt="{{ cat.name }}">
                 {% elif cat.image %}
-                <img src="{{ cat.image.url }}" alt="{{ cat.name }}" style="width: 38px; height: 38px; object-fit: contain;">
+                <img src="{{ cat.image.url }}" alt="{{ cat.name }}">
                 {% else %}
-                <i class="fas fa-microchip text-sky-400 text-2xl"></i>
+                <i class="fas fa-layer-group text-blue-400 text-2xl"></i>
                 {% endif %}
               </div>
-              <div>
-                <h3 style="font-size: 0.92rem; font-weight: 800; color: #fff; margin: 0 0 0.3rem;">{{ cat.name }}</h3>
-                <span style="font-family: 'JetBrains Mono', monospace; font-size: 0.72rem; font-weight: 800; color: #38bdf8; background: rgba(56, 189, 248, 0.1); padding: 0.15rem 0.6rem; border-radius: 999px;">
-                  {{ cat.product_count }} قطعة وجهاز
-                </span>
-              </div>
+              <h4 style="font-size: 0.9rem; font-weight: 800; color: #fff; margin: 0;">{{ cat.name }}</h4>
+              <span class="tabular-nums" style="font-size: 0.72rem; color: var(--rq-primary-light); background: rgba(37, 99, 235, 0.12); padding: 0.15rem 0.6rem; border-radius: var(--rq-radius-full);">
+                {{ cat.product_count }} عنصر
+              </span>
             </a>
             {% endif %}
             {% endfor %}
           </div>
         </div>
 
-        <!-- ── Suggestion Dock Banner ── -->
-        <div style="margin-top: 3rem; background: linear-gradient(135deg, rgba(15, 23, 42, 0.9) 0%, rgba(7, 9, 14, 0.95) 100%); border: 1px solid rgba(245, 158, 11, 0.25); border-radius: 20px; padding: 2rem; display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 1.5rem;">
-          <div style="max-width: 580px;">
-            <div style="display: inline-flex; align-items: center; gap: 0.4rem; color: #fbbf24; font-size: 0.75rem; font-weight: 800; margin-bottom: 0.4rem;">
-              <i class="fas fa-bolt text-xs"></i>
-              <span>خدمة التوريد الخاص والمواصفات الدقيقة</span>
-            </div>
-            <h3 style="font-size: 1.15rem; font-weight: 900; color: #fff; margin: 0 0 0.35rem;">هل تبحث عن جهاز أو قطعة تقنية غير متوفرة؟</h3>
-            <p style="font-size: 0.82rem; color: var(--rq-text-secondary); margin: 0; line-height: 1.5;">
-              أرسل لنا اسم الموديل أو رابط المواصفة وسيقوم مهندسونا بتوفيرها لك مباشرة من الوكيل المعتمد بأفضل سعر وضمان.
-            </p>
-          </div>
-          <button type="button" onclick="openSuggestionModal()" style="display: inline-flex; align-items: center; gap: 0.5rem; padding: 0.75rem 1.5rem; border-radius: 12px; background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%); color: #0b1120; font-size: 0.85rem; font-weight: 900; border: none; cursor: pointer; transition: all 0.25s; box-shadow: 0 10px 20px -5px rgba(245, 158, 11, 0.4);" onmouseover="this.style.transform='translateY(-2px)';" onmouseout="this.style.transform='translateY(0)';">
-            <i class="fas fa-plus"></i>
-            <span>طلب توفير قطعة مخصصة</span>
-          </button>
-        </div>
-
       </main>
-
     </div>
 
   </div>
 </div>
 
-<!-- ── Suggestion Modal (100% Feature Parity) ── -->
+<!-- ── Suggestion Modal (100% Feature Parity Preserved) ── -->
 <div id="suggestion-modal" style="display: none; position: fixed; inset: 0; background: rgba(0, 0, 0, 0.85); backdrop-filter: blur(12px); z-index: 10000; align-items: center; justify-content: center; padding: 1.25rem;">
-  <div style="background: #0d1322; border: 1px solid rgba(56, 189, 248, 0.3); border-radius: 20px; padding: 2rem; max-width: 480px; width: 100%; position: relative; box-shadow: 0 25px 60px -15px rgba(0, 0, 0, 0.9);">
-    <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.25rem; border-bottom: 1px solid rgba(255, 255, 255, 0.1); padding-bottom: 0.85rem;">
+  <div style="background: var(--rq-surface); border: 1px solid var(--rq-border-light); border-radius: var(--rq-radius-xl); padding: 2rem; max-width: 480px; width: 100%; position: relative; box-shadow: var(--rq-shadow-lg);">
+    <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.25rem; border-bottom: 1px solid var(--rq-border); padding-bottom: 0.85rem;">
       <h3 style="font-size: 1rem; font-weight: 900; color: #fff; margin: 0; display: flex; align-items: center; gap: 0.5rem;">
         <i class="fas fa-lightbulb text-amber-400"></i>
-        <span>طلب توفير قطعة أو جهاز مخصص</span>
+        <span>اقتراح منتج أو خدمة جديدة</span>
       </h3>
-      <button type="button" onclick="closeSuggestionModal()" style="background: transparent; border: none; color: #94a3b8; font-size: 1.1rem; cursor: pointer;" onmouseover="this.style.color='#fff';" onmouseout="this.style.color='#94a3b8';">
+      <button type="button" onclick="closeSuggestionModal()" style="background: transparent; border: none; color: #94a3b8; font-size: 1.2rem; cursor: pointer;">
         <i class="fas fa-times"></i>
       </button>
     </div>
@@ -388,23 +280,23 @@
     <form id="suggestion-form" action="{% url 'site_product_suggestion' %}" method="post" style="display: flex; flex-direction: column; gap: 1rem;">
       {% csrf_token %}
       <div>
-        <label style="display: block; font-size: 0.78rem; font-weight: 800; color: #cbd5e1; margin-bottom: 0.4rem;">اسم الجهاز أو القطعة المطلوبة</label>
-        <input type="text" name="product_name" style="width: 100%; background: #07090e; border: 1px solid rgba(255, 255, 255, 0.15); border-radius: 10px; padding: 0.75rem; color: #fff; font-size: 0.82rem; outline: none;" placeholder="مثال: شاحن أنكر GaN 65W، بطاقة RTX 4070..." required>
+        <label style="display: block; font-size: 0.78rem; font-weight: 800; color: #cbd5e1; margin-bottom: 0.4rem;">اسم الخدمة أو المنتج المطلوب</label>
+        <input type="text" name="product_name" style="width: 100%; background: #080c16; border: 1px solid var(--rq-border); border-radius: 10px; padding: 0.75rem; color: #fff; font-size: 0.82rem; outline: none;" placeholder="مثال: بطاقة شحن خاصة، اشتراك سنوي..." required>
       </div>
       <div>
-        <label style="display: block; font-size: 0.78rem; font-weight: 800; color: #cbd5e1; margin-bottom: 0.4rem;">المواصفات المطلوبة أو رابط المنتج</label>
-        <textarea name="description" rows="3" style="width: 100%; background: #07090e; border: 1px solid rgba(255, 255, 255, 0.15); border-radius: 10px; padding: 0.75rem; color: #fff; font-size: 0.82rem; outline: none;" placeholder="اذكر رقم الموديل، السعة، أو رابط المنتج من الشركة المصنعة..." required></textarea>
+        <label style="display: block; font-size: 0.78rem; font-weight: 800; color: #cbd5e1; margin-bottom: 0.4rem;">تفاصيل إضافية أو رابط</label>
+        <textarea name="description" rows="3" style="width: 100%; background: #080c16; border: 1px solid var(--rq-border); border-radius: 10px; padding: 0.75rem; color: #fff; font-size: 0.82rem; outline: none;" placeholder="اذكر أية تفاصيل أو المتطلبات الخاصة..." required></textarea>
       </div>
-      <button type="submit" id="suggestion-submit-btn" style="width: 100%; padding: 0.8rem; border-radius: 10px; background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%); color: #0b1120; font-size: 0.85rem; font-weight: 900; border: none; cursor: pointer; transition: all 0.2s;">
-        إرسال الطلب للمهندسين
+      <button type="submit" id="suggestion-submit-btn" class="rq-btn-auth-register" style="width: 100%; justify-content: center; padding: 0.8rem;">
+        إرسال الاقتراح للإدارة
       </button>
       <div id="suggestion-feedback" style="font-size: 0.8rem; text-align: center; font-weight: 800;"></div>
     </form>
     {% else %}
     <div style="text-align: center; padding: 1.5rem 0; display: flex; flex-direction: column; align-items: center; gap: 1rem;">
       <i class="fas fa-lock text-3xl text-amber-400"></i>
-      <p style="font-size: 0.82rem; color: #cbd5e1; margin: 0;">يرجى تسجيل الدخول إلى حسابك لتتمكن من إرسال طلب التوفير ومتابعة حالته.</p>
-      <a href="{% url 'site_login' %}?next={{ request.path }}" style="display: inline-block; padding: 0.65rem 1.5rem; border-radius: 10px; background: #0071e3; color: #fff; font-size: 0.82rem; font-weight: 800; text-decoration: none;">
+      <p style="font-size: 0.82rem; color: #cbd5e1; margin: 0;">يرجى تسجيل الدخول إلى حسابك أولاً لتتمكن من إرسال اقتراح لمنتج جديد.</p>
+      <a href="{% url 'site_login' %}?next={{ request.path }}" class="rq-btn-auth-register" style="padding: 0.65rem 1.5rem;">
         تسجيل الدخول الآن
       </a>
     </div>
@@ -423,14 +315,12 @@ function switchCatalogView(view) {
     if (prodView) prodView.style.display = 'block';
     if (catView) catView.style.display = 'none';
     if (prodBtn) {
-      prodBtn.style.background = '#0071e3';
+      prodBtn.style.background = 'var(--rq-primary)';
       prodBtn.style.color = '#fff';
-      prodBtn.style.boxShadow = '0 2px 8px rgba(0, 113, 227, 0.4)';
     }
     if (catBtn) {
       catBtn.style.background = 'transparent';
       catBtn.style.color = 'var(--rq-text-muted)';
-      catBtn.style.boxShadow = 'none';
     }
   } else {
     if (prodView) prodView.style.display = 'none';
@@ -438,12 +328,10 @@ function switchCatalogView(view) {
     if (prodBtn) {
       prodBtn.style.background = 'transparent';
       prodBtn.style.color = 'var(--rq-text-muted)';
-      prodBtn.style.boxShadow = 'none';
     }
     if (catBtn) {
-      catBtn.style.background = '#0071e3';
+      catBtn.style.background = 'var(--rq-primary)';
       catBtn.style.color = '#fff';
-      catBtn.style.boxShadow = '0 2px 8px rgba(0, 113, 227, 0.4)';
     }
   }
 
@@ -485,18 +373,18 @@ function closeSuggestionModal() {
       .then(function(res) { return res.json(); })
       .then(function(data) {
         if (data.status === 'success') {
-          feedback.innerHTML = '<span style="color: #34d399;">✅ تم إرسال طلبك بنجاح، وسنتواصل معك فور توفره!</span>';
+          feedback.innerHTML = '<span style="color: #34d399;">✅ تم إرسال اقتراحك بنجاح، شكراً لك!</span>';
           setTimeout(closeSuggestionModal, 2200);
         } else {
           feedback.innerHTML = '<span style="color: #f87171;">⚠️ ' + (data.message || 'حدث خطأ أثناء الإرسال') + '</span>';
           btn.disabled = false;
-          btn.innerText = 'إرسال الطلب للمهندسين';
+          btn.innerText = 'إرسال الاقتراح للإدارة';
         }
       })
       .catch(function(err) {
-        feedback.innerHTML = '<span style="color: #f87171;">⚠️ حدث خطأ في الشبكة، يرجى المحاولة لاحقاً</span>';
+        feedback.innerHTML = '<span style="color: #f87171;">⚠️ حدث خطأ في الاتصال، يرجى المحاولة لاحقاً</span>';
         btn.disabled = false;
-        btn.innerText = 'إرسال الطلب للمهندسين';
+        btn.innerText = 'إرسال الاقتراح للإدارة';
       });
     });
   }
