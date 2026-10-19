@@ -76,11 +76,34 @@ def get_remote_commit_sha(bypass_cache=False):
 def restart_process_soon():
     def _exit():
         time.sleep(1)
-        logger.info("🔄 [AUTO-DEPLOY] Restarting ASGI container for clean code reload...")
+        logger.info("🔄 [AUTO-DEPLOY] Reloading server workers and updating timestamps...")
         try:
+            # 1. Touch wsgi.py and asgi.py to signal reloaders
+            for f in ["wsgi.py", "asgi.py"]:
+                target_path = os.path.join(str(settings.BASE_DIR), "config", f)
+                if os.path.exists(target_path):
+                    os.utime(target_path, None)
+        except Exception as e:
+            logger.debug(f"Touch wsgi/asgi error: {e}")
+
+        try:
+            # 2. Try sending HUP signal to Gunicorn processes
+            subprocess.run(["pkill", "-HUP", "-f", "gunicorn"], timeout=2)
+        except Exception:
+            pass
+
+        try:
+            # 3. Try systemctl or supervisor reload
+            subprocess.run(["systemctl", "restart", "gunicorn"], timeout=3)
+        except Exception:
+            pass
+
+        try:
+            # 4. In Docker / container environment
             subprocess.run(["sh", "-c", "kill -9 1"], timeout=2)
         except Exception:
             pass
+
         import os
         os._exit(0)
     threading.Thread(target=_exit, daemon=True).start()
@@ -90,8 +113,8 @@ def apply_git_update():
     success = False
     output = ""
     try:
-        cmd = "git config --global --add safe.directory '*' && git fetch origin master && git reset --hard origin/master && python manage.py migrate --noinput && python manage.py collectstatic --noinput"
-        proc = subprocess.run(cmd, shell=True, capture_output=True, text=True, timeout=240)
+        cmd = "git config --global --add safe.directory '*' && git fetch origin master && git reset --hard origin/master && python manage.py migrate --noinput && python manage.py collectstatic --noinput && python manage.py setup_flagship_storefront"
+        proc = subprocess.run(cmd, shell=True, cwd=str(settings.BASE_DIR), capture_output=True, text=True, timeout=240)
         logger.info(f"🚀 [AUTO-DEPLOY] Output: {proc.stdout[:300]}")
         if proc.stderr:
             logger.warning(f"🚀 [AUTO-DEPLOY] Stderr: {proc.stderr[:300]}")

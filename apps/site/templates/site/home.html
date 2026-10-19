@@ -4,44 +4,65 @@
 {% block title %}رقميات | المتجر الرقمي المتكامل للبطاقات والألعاب والعتاد التقني{% endblock %}
 
 {% block content %}
-<div style="padding-bottom: 4rem;">
+<div style="padding-bottom: 5rem;">
 
   <!-- ══════════════════════════════════════════════════════════════════════
-       1. HERO FLAGSHIP SHOWCASE (NON-REPETITIVE, ELEGANT)
+       1. NEXT-GEN CYBER HERO & LIVE COMMAND STAGE
        ══════════════════════════════════════════════════════════════════════ -->
-  <section class="rq-hero-section">
+  <section class="rq-hero-cyber">
     <div class="rq-container">
-      <div class="rq-hero-grid">
+      <div class="rq-hero-cyber-grid">
 
-        <!-- Main Banner -->
-        <div class="rq-hero-banner">
-          <div>
-            <div class="rq-hero-badge">
-              <span style="width: 8px; height: 8px; border-radius: 50%; background: #38bdf8; box-shadow: 0 0 10px #38bdf8; display: inline-block;"></span>
-              <span>المنصة المعتمدة الأولى 2026 • تفعيل وتسليم فوري</span>
-            </div>
-
-            <h1 class="rq-hero-title">
-              كل ما تحتاجه من عالم <br>
-              <span class="rq-hero-title-accent">البطاقات الرقمية، الألعاب، والعتاد التقني</span>
-            </h1>
-
-            <p class="rq-hero-desc">
-              وجهتك الموثوقة لشحن الألعاب الفوري، بطاقات الهدايا والتطبيقات، اشتراكات البث السحابي والذكاء الاصطناعي، وتجهيزات الشبكات والأجهزة الإلكترونية بضمان معتمد 100%.
-            </p>
+        <!-- Right Side: Headline, Pulse Badge, Search & Quick Actions -->
+        <div>
+          <!-- Live Operational Pulse Badge -->
+          <div class="rq-pulse-badge">
+            <span class="rq-pulse-dot"></span>
+            <span>نظام التسليم الفوري مؤتمت بالكامل • معالجة 24/7 دون توقف</span>
           </div>
 
-          <div class="rq-hero-actions">
-            <a href="{% url 'catalog' %}" class="rq-btn-auth-register" style="padding: 0.85rem 1.75rem; font-size: 0.95rem;">
+          <h1 class="rq-hero-title" style="margin-bottom: 1rem; line-height: 1.25;">
+            منصة رقميات المتطورة <br>
+            <span class="rq-hero-title-accent">البطاقات الرقمية، الألعاب، والعتاد التقني</span>
+          </h1>
+
+          <p class="rq-hero-desc" style="max-width: 620px; margin-bottom: 1.75rem; font-size: 0.95rem; line-height: 1.7;">
+            وجهتك الموثوقة الأولى لشحن الألعاب الفوري، بطاقات الهدايا والتطبيقات العالمية، اشتراكات الذكاء الاصطناعي والبث، وتجهيزات الشبكات والعتاد التقني بضمان معتمد 100% وأسعار منافسة.
+          </p>
+
+          <!-- Quick Search Bar -->
+          <div style="max-width: 540px; margin-bottom: 1.25rem;">
+            <form method="get" action="{% url 'catalog' %}" style="position: relative;">
+              <i class="fas fa-search" style="position: absolute; right: 1.25rem; top: 50%; transform: translateY(-50%); color: var(--rq-primary-light); font-size: 1rem; pointer-events: none;"></i>
+              <input type="text" name="q" placeholder="ابحث عن شدات، بطاقة، راوتر، اشتراك..." class="rq-search-input" style="padding: 0.9rem 3rem 0.9rem 1.25rem; font-size: 0.95rem; background: rgba(13, 20, 36, 0.85); border-color: rgba(59, 130, 246, 0.4);">
+              <button type="submit" class="rq-btn-auth-register" style="position: absolute; left: 0.4rem; top: 50%; transform: translateY(-50%); padding: 0.55rem 1.25rem; font-size: 0.85rem;">
+                بحث
+              </button>
+            </form>
+          </div>
+
+          <!-- Hot Quick Tags -->
+          <div class="rq-quick-tags">
+            <span style="font-size: 0.75rem; color: var(--rq-text-muted); font-weight: 800; align-self: center;">الأكثر بحثاً:</span>
+            <a href="{% url 'catalog' %}?q=ببجي" class="rq-quick-tag"><i class="fas fa-fire text-amber-400"></i> شدات ببجي</a>
+            <a href="{% url 'catalog' %}?q=بلايستيشن" class="rq-quick-tag"><i class="fab fa-playstation text-blue-400"></i> بلايستيشن</a>
+            <a href="{% url 'catalog' %}?q=سيريتل" class="rq-quick-tag"><i class="fas fa-bolt text-emerald-400"></i> رصيد سيريتل</a>
+            <a href="{% url 'catalog' %}?q=نتفلكس" class="rq-quick-tag"><i class="fas fa-tv text-red-400"></i> نتفلكس & شاهد</a>
+            <a href="{% url 'catalog' %}?q=راوتر" class="rq-quick-tag"><i class="fas fa-wifi text-purple-400"></i> شبكات وراوترات</a>
+          </div>
+
+          <!-- Primary Call-to-Actions -->
+          <div class="rq-hero-actions" style="margin-top: 2rem;">
+            <a href="{% url 'catalog' %}" class="rq-btn-auth-register" style="padding: 0.9rem 1.75rem; font-size: 0.95rem;">
               <i class="fas fa-grid-2"></i>
               <span>تصفح الكتالوج الشامل</span>
             </a>
-            <a href="#categories-section" class="rq-btn-auth-login" style="padding: 0.85rem 1.5rem; font-size: 0.95rem;">
-              <i class="fas fa-layer-group text-blue-400"></i>
-              <span>استكشف الأقسام</span>
+            <a href="#bento-showcase" class="rq-btn-auth-login" style="padding: 0.9rem 1.5rem; font-size: 0.95rem;">
+              <i class="fas fa-sparkles text-blue-400"></i>
+              <span>المختارات الحصرية</span>
             </a>
             {% if not is_tenant %}
-            <a href="{% url 'store_registration' %}" style="display: inline-flex; align-items: center; gap: 0.45rem; padding: 0.85rem 1.35rem; border-radius: var(--rq-radius-md); font-size: 0.85rem; font-weight: 800; color: #fbbf24; background: rgba(245, 158, 11, 0.12); border: 1px solid rgba(245, 158, 11, 0.3);">
+            <a href="{% url 'store_registration' %}" style="display: inline-flex; align-items: center; gap: 0.45rem; padding: 0.9rem 1.35rem; border-radius: var(--rq-radius-md); font-size: 0.85rem; font-weight: 800; color: #fbbf24; background: rgba(245, 158, 11, 0.12); border: 1px solid rgba(245, 158, 11, 0.3);">
               <i class="fas fa-store"></i>
               <span>أنشئ متجرك مجاناً</span>
             </a>
@@ -49,103 +70,235 @@
           </div>
         </div>
 
-        <!-- Spotlight Side Card -->
-        <div class="rq-hero-side-card">
-          <div>
-            <div class="rq-hero-side-header">
-              <span style="font-size: 0.72rem; font-weight: 800; color: #38bdf8; text-transform: uppercase;">منتج الأسبوع المختار</span>
-              <span style="font-size: 0.68rem; font-weight: 800; padding: 0.2rem 0.6rem; border-radius: 6px; background: rgba(16, 185, 129, 0.15); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.3);">
-                تسليم فوري ⚡
+        <!-- Left Side: Bento Interactive Spotlight Station -->
+        <div>
+          {% with featured_products|first as spot %}
+          {% if spot %}
+          {% product_display_image spot as spot_img %}
+          <div class="rq-bento-spotlight">
+            <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.25rem;">
+              <span style="font-size: 0.72rem; font-weight: 900; letter-spacing: 0.05em; color: #38bdf8; text-transform: uppercase;">
+                <i class="fas fa-award"></i> منتج الأسبوع الأكثر طلباً
+              </span>
+              <span style="font-size: 0.7rem; font-weight: 800; padding: 0.25rem 0.65rem; border-radius: 6px; background: rgba(16, 185, 129, 0.15); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.3);">
+                ⚡ تسليم فوري
               </span>
             </div>
 
-            {% with featured_products|first as spot %}
-            {% if spot %}
-            {% product_display_image spot as spot_img %}
             <a href="{% url 'product_detail' spot.id %}" style="display: block; text-decoration: none;">
-              <div style="width: 100%; height: 200px; border-radius: 16px; background: #080c16; display: flex; align-items: center; justify-content: center; margin-bottom: 1.25rem; overflow: hidden; border: 1px solid var(--rq-border); padding: 1rem;">
-                <img src="{{ spot_img }}" alt="{{ spot.name }}" style="max-height: 100%; max-width: 100%; object-fit: contain;">
+              <div style="width: 100%; height: 210px; border-radius: 16px; background: #060913; display: flex; align-items: center; justify-content: center; margin-bottom: 1.25rem; overflow: hidden; border: 1px solid var(--rq-border); padding: 1rem; position: relative;">
+                <img src="{{ spot_img }}" alt="{{ spot.name }}" style="max-height: 100%; max-width: 100%; object-fit: contain; transition: transform 0.3s;" onmouseover="this.style.transform='scale(1.05)'" onmouseout="this.style.transform='scale(1)'">
               </div>
-              <h3 style="font-size: 1.05rem; font-weight: 800; color: #fff; margin-bottom: 0.35rem; line-height: 1.3;">{{ spot.name }}</h3>
-              <p style="font-size: 0.75rem; color: var(--rq-text-muted); margin-bottom: 1rem;">{{ spot.category.name|default:'خدمة رقمية معتمدة' }}</p>
+              <h3 style="font-size: 1.15rem; font-weight: 900; color: #fff; margin-bottom: 0.4rem; line-height: 1.35;">{{ spot.name }}</h3>
+              <p style="font-size: 0.8rem; color: var(--rq-text-muted); margin-bottom: 1.25rem;">{{ spot.category.name|default:'خدمة رقمية معتمدة' }}</p>
             </a>
-            <div style="display: flex; align-items: center; justify-content: space-between; padding-top: 0.85rem; border-top: 1px solid var(--rq-border);">
-              <div>
-                <span class="rq-price-label">السعر يبدأ من</span>
-                <span class="tabular-nums" style="font-size: 1.15rem; font-weight: 900; color: #fbbf24;">{% product_starting_price spot %}</span>
+
+            <!-- Mini Specs Row -->
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.65rem; margin-bottom: 1.25rem;">
+              <div style="background: rgba(255, 255, 255, 0.03); border: 1px solid var(--rq-border); border-radius: 8px; padding: 0.5rem 0.75rem; font-size: 0.75rem; color: var(--rq-text-secondary); display: flex; align-items: center; gap: 0.4rem;">
+                <i class="fas fa-shield-check text-emerald-400"></i>
+                <span>ضمان أصالة 100%</span>
               </div>
-              <a href="{% url 'product_detail' spot.id %}" class="rq-btn-auth-register" style="padding: 0.55rem 1.15rem; font-size: 0.8rem;">
-                <span>طلب فوري</span>
-                <i class="fas fa-arrow-left text-[10px]"></i>
+              <div style="background: rgba(255, 255, 255, 0.03); border: 1px solid var(--rq-border); border-radius: 8px; padding: 0.5rem 0.75rem; font-size: 0.75rem; color: var(--rq-text-secondary); display: flex; align-items: center; gap: 0.4rem;">
+                <i class="fas fa-bolt text-amber-400"></i>
+                <span>شحن آلي فوري</span>
+              </div>
+            </div>
+
+            <!-- Price and Buy Action -->
+            <div style="display: flex; align-items: center; justify-content: space-between; padding-top: 1rem; border-top: 1px solid var(--rq-border);">
+              <div>
+                <span class="rq-price-label" style="display: block; font-size: 0.72rem; color: var(--rq-text-muted);">السعر المعتمد</span>
+                <span class="tabular-nums" style="font-size: 1.35rem; font-weight: 900; color: #fbbf24;">{% product_starting_price spot %}</span>
+              </div>
+              <a href="{% url 'product_detail' spot.id %}" class="rq-btn-auth-register" style="padding: 0.65rem 1.4rem; font-size: 0.88rem; box-shadow: 0 4px 15px rgba(37, 99, 235, 0.4);">
+                <span>طلب مباشر</span>
+                <i class="fas fa-arrow-left text-xs"></i>
               </a>
             </div>
-            {% endif %}
-            {% endwith %}
           </div>
+          {% endif %}
+          {% endwith %}
         </div>
 
       </div>
-
-      <!-- 4 Trust Highlights -->
-      <div class="rq-trust-row">
-        <div class="rq-trust-box">
-          <div class="rq-trust-icon"><i class="fas fa-bolt"></i></div>
-          <div>
-            <div class="rq-trust-title">تسليم آلي فوري</div>
-            <div class="rq-trust-text">معالجة فورية للأكواد والخدمات الرقمية.</div>
-          </div>
-        </div>
-        <div class="rq-trust-box">
-          <div class="rq-trust-icon" style="color: #34d399; background: rgba(16, 185, 129, 0.1); border-color: rgba(16, 185, 129, 0.2);"><i class="fas fa-shield-check"></i></div>
-          <div>
-            <div class="rq-trust-title">ضمان رسمي 100%</div>
-            <div class="rq-trust-text">كافة المنتجات أصلية معتمدة من الموزعين.</div>
-          </div>
-        </div>
-        <div class="rq-trust-box">
-          <div class="rq-trust-icon" style="color: #fbbf24; background: rgba(245, 158, 11, 0.1); border-color: rgba(245, 158, 11, 0.2);"><i class="fas fa-wallet"></i></div>
-          <div>
-            <div class="rq-trust-title">بوابات دفع متنوعة</div>
-            <div class="rq-trust-text">شام كاش، Paymera، البطاقات، والكريبتو.</div>
-          </div>
-        </div>
-        <div class="rq-trust-box">
-          <div class="rq-trust-icon" style="color: #a78bfa; background: rgba(139, 92, 246, 0.1); border-color: rgba(139, 92, 246, 0.2);"><i class="fas fa-headset"></i></div>
-          <div>
-            <div class="rq-trust-title">دعم هندسي 24/7</div>
-            <div class="rq-trust-text">فريق دعم متواجد للإجابة على مدار الساعة.</div>
-          </div>
-        </div>
-      </div>
-
     </div>
   </section>
 
   <!-- ══════════════════════════════════════════════════════════════════════
-       2. INTERACTIVE CATEGORY STORY CIRCLES (DYNAMIC & RICH)
+       2. REAL-TIME FINTECH TRUST & METRICS COUNTER
        ══════════════════════════════════════════════════════════════════════ -->
-  <section class="rq-container" id="categories-section" style="margin-bottom: 3rem;">
+  <section class="rq-container" style="margin-bottom: 3.5rem;">
+    <div class="rq-trust-row" style="background: var(--rq-surface-card); border: 1px solid var(--rq-border); border-radius: var(--rq-radius-xl); padding: 1.25rem;">
+      <div class="rq-trust-box" style="border: none;">
+        <div class="rq-trust-icon" style="color: #38bdf8; background: rgba(56, 189, 248, 0.1); border-color: rgba(56, 189, 248, 0.25);"><i class="fas fa-bolt"></i></div>
+        <div>
+          <div class="rq-trust-title">تسليم آلي &lt; 60 ثانية</div>
+          <div class="rq-trust-text">معالجة فورية مؤتمتة لكافة الأكواد والشحن.</div>
+        </div>
+      </div>
+      <div class="rq-trust-box" style="border: none;">
+        <div class="rq-trust-icon" style="color: #34d399; background: rgba(16, 185, 129, 0.1); border-color: rgba(16, 185, 129, 0.25);"><i class="fas fa-shield-halved"></i></div>
+        <div>
+          <div class="rq-trust-title">ضمان رسمي 100%</div>
+          <div class="rq-trust-text">كافة المنتجات معتمدة وتخضع لاختبار توثيق.</div>
+        </div>
+      </div>
+      <div class="rq-trust-box" style="border: none;">
+        <div class="rq-trust-icon" style="color: #fbbf24; background: rgba(245, 158, 11, 0.1); border-color: rgba(245, 158, 11, 0.25);"><i class="fas fa-wallet"></i></div>
+        <div>
+          <div class="rq-trust-title">بوابات دفع متعددة</div>
+          <div class="rq-trust-text">شام كاش، Paymera، البطاقات، والعملات الرقمية.</div>
+        </div>
+      </div>
+      <div class="rq-trust-box" style="border: none;">
+        <div class="rq-trust-icon" style="color: #a78bfa; background: rgba(139, 92, 246, 0.1); border-color: rgba(139, 92, 246, 0.25);"><i class="fas fa-headset"></i></div>
+        <div>
+          <div class="rq-trust-title">دعم هندسي واستشاري 24/7</div>
+          <div class="rq-trust-text">فريق دعم متواجد للإجابة والمساعدة المباشرة.</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ══════════════════════════════════════════════════════════════════════
+       3. INTERACTIVE BENTO GRID (NON-REPETITIVE, ASYMMETRIC SHOWCASE)
+       ══════════════════════════════════════════════════════════════════════ -->
+  <section class="rq-container" id="bento-showcase">
     <div class="rq-section-header">
       <div>
-        <span class="rq-section-tag">استكشف حسب القسم</span>
-        <h2 class="rq-section-title">أقسام المتجر والخدمات</h2>
+        <span class="rq-section-tag">تجربة تسوق فريدة</span>
+        <h2 class="rq-section-title">المختارات الاستثنائية لهذا الأسبوع</h2>
       </div>
       <a href="{% url 'catalog' %}" class="rq-section-link">
-        <span>عرض كافة الأقسام</span>
+        <span>عرض كافة المنتجات ({{ categories|length }} قسم)</span>
+        <i class="fas fa-chevron-left text-xs"></i>
+      </a>
+    </div>
+
+    <div class="rq-bento-showcase">
+      <!-- Bento Lead Card (Spans 8 columns) -->
+      {% with featured_products|slice:"1:2"|first as lead_prod %}
+      {% if lead_prod %}
+      {% product_display_image lead_prod as lead_img %}
+      <div class="rq-bento-col-8">
+        <div class="rq-bento-lead-card">
+          <!-- Image Box -->
+          <div style="height: 240px; background: #060913; border-radius: var(--rq-radius-lg); border: 1px solid var(--rq-border); display: flex; align-items: center; justify-content: center; padding: 1.5rem; overflow: hidden;">
+            <img src="{{ lead_img }}" alt="{{ lead_prod.name }}" style="max-height: 100%; max-width: 100%; object-fit: contain;">
+          </div>
+          <!-- Content Box -->
+          <div>
+            <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.65rem;">
+              <span style="font-size: 0.72rem; font-weight: 800; padding: 0.2rem 0.6rem; border-radius: 6px; background: rgba(56, 189, 248, 0.15); color: #38bdf8; border: 1px solid rgba(56, 189, 248, 0.3);">
+                {{ lead_prod.category.name|default:'باقة خاصة' }}
+              </span>
+              {% if lead_prod.product_type == 'physical' %}
+              <span style="font-size: 0.72rem; font-weight: 800; padding: 0.2rem 0.6rem; border-radius: 6px; background: rgba(245, 158, 11, 0.15); color: #fbbf24; border: 1px solid rgba(245, 158, 11, 0.3);">
+                <i class="fas fa-truck text-[10px]"></i> شحن وتوصيل
+              </span>
+              {% else %}
+              <span style="font-size: 0.72rem; font-weight: 800; padding: 0.2rem 0.6rem; border-radius: 6px; background: rgba(16, 185, 129, 0.15); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.3);">
+                <i class="fas fa-bolt text-[10px]"></i> تفعيل فوري
+              </span>
+              {% endif %}
+            </div>
+
+            <h3 style="font-size: 1.35rem; font-weight: 900; color: #fff; margin-bottom: 0.5rem; line-height: 1.3;">
+              <a href="{% url 'product_detail' lead_prod.id %}" style="color: #fff; text-decoration: none;">{{ lead_prod.name }}</a>
+            </h3>
+
+            <p style="font-size: 0.82rem; color: var(--rq-text-muted); margin-bottom: 1.25rem; line-height: 1.6;">
+              خدمة رقمية موثقة ومعتمدة من الموزع الرسمي مع ضمان الأداء والتفعيل السلس دون أي تعقيدات.
+            </p>
+
+            <div style="display: flex; align-items: center; justify-content: space-between; padding-top: 1rem; border-top: 1px solid var(--rq-border);">
+              <div>
+                <span class="rq-price-label">السعر يبدأ من</span>
+                <span class="tabular-nums" style="font-size: 1.3rem; font-weight: 900; color: #fbbf24;">{% product_starting_price lead_prod %}</span>
+              </div>
+              <a href="{% url 'product_detail' lead_prod.id %}" class="rq-btn-auth-register" style="padding: 0.7rem 1.5rem; font-size: 0.88rem;">
+                <span>اطلب الآن</span>
+                <i class="fas fa-arrow-left text-xs"></i>
+              </a>
+            </div>
+          </div>
+        </div>
+      </div>
+      {% endif %}
+      {% endwith %}
+
+      <!-- Bento Side Quick-Action Card (Spans 4 columns) -->
+      <div class="rq-bento-col-4">
+        <div style="background: linear-gradient(135deg, #101726 0%, #0a0f1d 100%); border: 1px solid var(--rq-border); border-radius: var(--rq-radius-xl); padding: 1.75rem; height: 100%; display: flex; flex-direction: column; justify-content: space-between;">
+          <div>
+            <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 1rem;">
+              <div style="width: 36px; height: 36px; border-radius: 10px; background: rgba(245, 158, 11, 0.15); color: #fbbf24; display: flex; align-items: center; justify-content: center; font-size: 1.1rem;">
+                <i class="fas fa-bolt"></i>
+              </div>
+              <h4 style="font-size: 1.05rem; font-weight: 900; color: #fff; margin: 0;">شحن الرصيد والخطوط</h4>
+            </div>
+            <p style="font-size: 0.8rem; color: var(--rq-text-muted); margin-bottom: 1.25rem; line-height: 1.6;">
+              اشحن خطك أو محفظتك الرقمية مباشرة بأفضل الأسعار الرسمية دون رسوم خفية.
+            </p>
+
+            <div style="display: flex; flex-direction: column; gap: 0.65rem; margin-bottom: 1.25rem;">
+              <a href="{% url 'catalog' %}?q=MTN" style="display: flex; align-items: center; justify-content: space-between; padding: 0.75rem 1rem; border-radius: 10px; background: rgba(255, 255, 255, 0.03); border: 1px solid var(--rq-border); text-decoration: none; color: #fff; transition: all 0.2s;" onmouseover="this.style.borderColor='var(--rq-primary-light)'" onmouseout="this.style.borderColor='var(--rq-border)'">
+                <span style="font-size: 0.85rem; font-weight: 800;"><i class="fas fa-mobile-screen text-amber-400"></i> رصيد MTN فوري</span>
+                <span style="font-size: 0.75rem; color: #34d399; font-weight: 800;">تسليم مباشر ←</span>
+              </a>
+              <a href="{% url 'catalog' %}?q=سيريتل" style="display: flex; align-items: center; justify-content: space-between; padding: 0.75rem 1rem; border-radius: 10px; background: rgba(255, 255, 255, 0.03); border: 1px solid var(--rq-border); text-decoration: none; color: #fff; transition: all 0.2s;" onmouseover="this.style.borderColor='var(--rq-primary-light)'" onmouseout="this.style.borderColor='var(--rq-border)'">
+                <span style="font-size: 0.85rem; font-weight: 800;"><i class="fas fa-signal text-red-400"></i> رصيد سيريتل كاش</span>
+                <span style="font-size: 0.75rem; color: #34d399; font-weight: 800;">تسليم مباشر ←</span>
+              </a>
+              <a href="{% url 'dashboard_deposits' %}" style="display: flex; align-items: center; justify-content: space-between; padding: 0.75rem 1rem; border-radius: 10px; background: rgba(37, 99, 235, 0.1); border: 1px solid rgba(37, 99, 235, 0.3); text-decoration: none; color: #fff;">
+                <span style="font-size: 0.85rem; font-weight: 800;"><i class="fas fa-wallet text-blue-400"></i> شحن المحفظة (شام كاش)</span>
+                <span style="font-size: 0.75rem; color: var(--rq-primary-light); font-weight: 800;">إيداع ←</span>
+              </a>
+            </div>
+          </div>
+
+          <div style="padding-top: 1rem; border-top: 1px solid var(--rq-border); text-align: center;">
+            <span style="font-size: 0.72rem; color: var(--rq-text-muted);">ضمان وصول الرصيد خلال 30 إلى 60 ثانية</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ══════════════════════════════════════════════════════════════════════
+       4. INTERACTIVE CATEGORIES COMMAND STRIP
+       ══════════════════════════════════════════════════════════════════════ -->
+  <section class="rq-container" style="margin-bottom: 3.5rem;">
+    <div class="rq-section-header">
+      <div>
+        <span class="rq-section-tag">الأقسام المتاحة</span>
+        <h2 class="rq-section-title">تصفح حسب فئة المنتجات والخدمات</h2>
+      </div>
+      <a href="{% url 'catalog' %}" class="rq-section-link">
+        <span>كافة الفئات</span>
         <i class="fas fa-chevron-left text-xs"></i>
       </a>
     </div>
 
     <div class="rq-categories-scroller">
+      <a href="{% url 'catalog' %}" class="rq-category-item-chip" title="كافة المنتجات">
+        <div class="rq-category-icon-wrapper" style="background: rgba(37, 99, 235, 0.15); border-color: rgba(37, 99, 235, 0.3);">
+          <i class="fas fa-grid-2 text-blue-400 text-2xl"></i>
+        </div>
+        <span class="rq-category-chip-name">كافة المنتجات</span>
+        <span class="rq-category-chip-count">الكتالوج الشامل</span>
+      </a>
+
       {% for cat in categories %}
       {% if cat.product_count > 0 %}
       {% category_display_image cat as cat_img %}
       <a href="{% url 'catalog' %}?category={{ cat.id }}" class="rq-category-item-chip" title="{{ cat.name }}">
         <div class="rq-category-icon-wrapper">
           {% if cat_img %}
-          <img src="{{ cat_img }}" alt="{{ cat.name }}">
+          <img src="{{ cat_img }}" alt="{{ cat.name }}" loading="lazy">
           {% elif cat.image %}
-          <img src="{{ cat.image.url }}" alt="{{ cat.name }}">
+          <img src="{{ cat.image.url }}" alt="{{ cat.name }}" loading="lazy">
           {% else %}
           <i class="fas fa-layer-group text-blue-400 text-2xl"></i>
           {% endif %}
@@ -159,24 +312,24 @@
   </section>
 
   <!-- ══════════════════════════════════════════════════════════════════════
-       3. FLASH DEALS / عروض خاصة لفترة محدودة (IF AVAILABLE)
+       5. FLASH DEALS / عروض خاصة ومخفضة (IF PRESENT)
        ══════════════════════════════════════════════════════════════════════ -->
   {% if sale_products %}
   <section class="rq-container" style="margin-bottom: 3.5rem;">
-    <div style="background: linear-gradient(135deg, rgba(239, 68, 68, 0.08) 0%, rgba(20, 28, 48, 0.9) 100%); border: 1px solid rgba(239, 68, 68, 0.25); border-radius: var(--rq-radius-xl); padding: 1.75rem;">
+    <div style="background: linear-gradient(135deg, rgba(239, 68, 68, 0.08) 0%, rgba(17, 24, 39, 0.95) 100%); border: 1.5px solid rgba(239, 68, 68, 0.25); border-radius: var(--rq-radius-xl); padding: 1.75rem;">
       <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.5rem; flex-wrap: wrap; gap: 1rem;">
         <div style="display: flex; align-items: center; gap: 0.75rem;">
-          <div style="width: 40px; height: 40px; border-radius: 10px; background: rgba(239, 68, 68, 0.15); color: #ef4444; display: flex; align-items: center; justify-content: center; font-size: 1.2rem;">
+          <div style="width: 42px; height: 42px; border-radius: 12px; background: rgba(239, 68, 68, 0.15); color: #ef4444; display: flex; align-items: center; justify-content: center; font-size: 1.25rem;">
             <i class="fas fa-fire"></i>
           </div>
           <div>
-            <h3 style="font-size: 1.2rem; font-weight: 900; color: #fff; margin: 0;">عروض وخصومات حصرية</h3>
-            <span style="font-size: 0.72rem; color: #fca5a5; font-weight: 700;">أسعار مخفضة لفترة محدودة حتى نفاد الكمية</span>
+            <h3 style="font-size: 1.25rem; font-weight: 900; color: #fff; margin: 0;">عروض وخصومات حصرية محدودة</h3>
+            <span style="font-size: 0.75rem; color: #fca5a5; font-weight: 700;">أسعار استثنائية متجددة أسبوعياً حتى نفاد الكمية</span>
           </div>
         </div>
-        <div style="display: inline-flex; align-items: center; gap: 0.4rem; padding: 0.35rem 0.85rem; border-radius: var(--rq-radius-full); background: rgba(239, 68, 68, 0.15); color: #f87171; font-size: 0.75rem; font-weight: 800;">
+        <div style="display: inline-flex; align-items: center; gap: 0.4rem; padding: 0.4rem 0.95rem; border-radius: var(--rq-radius-full); background: rgba(239, 68, 68, 0.15); color: #f87171; font-size: 0.78rem; font-weight: 800; border: 1px solid rgba(239, 68, 68, 0.3);">
           <i class="fas fa-clock"></i>
-          <span>العروض تتجدد أسبوعياً</span>
+          <span>تخفيض مباشر لفترة محدودة</span>
         </div>
       </div>
 
@@ -185,7 +338,7 @@
         {% product_display_image p as p_img %}
         <div class="rq-card">
           <a href="{% url 'product_detail' p.id %}" class="rq-card-media">
-            <span class="rq-badge-sale">خصم خاص</span>
+            <span class="rq-badge-sale">خصم مميز</span>
             {% if p.product_type == 'physical' %}
             <span class="rq-badge-delivery-physical"><i class="fas fa-truck text-[9px]"></i> شحن مادي</span>
             {% else %}
@@ -219,7 +372,7 @@
   {% endif %}
 
   <!-- ══════════════════════════════════════════════════════════════════════
-       4. FEATURED PRODUCTS (DIVERSE, AUTHENTIC, BEST SELLERS)
+       6. FEATURED PRODUCTS CATALOG SHELF (HIGH CONTRAST & BESPOKE)
        ══════════════════════════════════════════════════════════════════════ -->
   <section class="rq-container" style="margin-bottom: 3.5rem;">
     <div class="rq-section-header">
@@ -228,7 +381,7 @@
         <h2 class="rq-section-title">أبرز المنتجات والخدمات المختارة</h2>
       </div>
       <a href="{% url 'catalog' %}" class="rq-section-link">
-        <span>تصفح كافة المنتجات</span>
+        <span>تصفح كافة المعروضات في الكتالوج</span>
         <i class="fas fa-chevron-left text-xs"></i>
       </a>
     </div>
@@ -243,7 +396,7 @@
           {% else %}
           <span class="rq-badge-delivery-instant"><i class="fas fa-bolt text-[9px]"></i> تسليم فوري</span>
           {% endif %}
-          <img src="{{ p_img }}" alt="{{ p.name }}" loading="lazy" onerror="this.onerror=null; this.src='{% static 'site/img/raqamiyat_logo_square.jpg' %}';">
+          <img src="{{ p_img }}" alt="{{ p.name }}" loading="lazy" onerror="this.onerror=null; this.src='{% static 'site/img/raqamiyat_official_brand_product.jpg' %}';">
         </a>
         <div class="rq-card-body">
           <div>
@@ -273,54 +426,122 @@
   </section>
 
   <!-- ══════════════════════════════════════════════════════════════════════
-       5. WHY CHOOSE RAQAMIYAT (VALUE PILLARS)
+       7. HARDWARE & ACCESSORIES STUDIO SHELF
        ══════════════════════════════════════════════════════════════════════ -->
   <section class="rq-container" style="margin-bottom: 3.5rem;">
-    <div style="background: var(--rq-surface-card); border: 1px solid var(--rq-border); border-radius: var(--rq-radius-xl); padding: 2.5rem 2rem;">
-      <div style="text-align: center; max-width: 600px; margin: 0 auto 2.5rem;">
-        <span class="rq-section-tag">لماذا يختارنا الآلاف؟</span>
-        <h2 style="font-size: 1.6rem; font-weight: 900; color: #fff; margin-bottom: 0.5rem;">معايير الجودة والضمان في رقميات</h2>
-        <p style="font-size: 0.85rem; color: var(--rq-text-muted); line-height: 1.6;">نوفر لك أفضل بيئة شراء رقمية وهندسية تجمع بين السرعة الفائقة والأسعار التنافسية المعتمدة.</p>
+    <div class="rq-gear-container">
+      <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.5rem; flex-wrap: wrap; gap: 1rem;">
+        <div>
+          <span class="rq-section-tag" style="color: #38bdf8; background: rgba(56, 189, 248, 0.1); border-color: rgba(56, 189, 248, 0.25);">استوديو العتاد والشبكات</span>
+          <h3 style="font-size: 1.4rem; font-weight: 900; color: #fff; margin: 0.35rem 0 0;">أجهزة الشبكات، الإكسسوارات، والعتاد الأصلي</h3>
+        </div>
+        <a href="{% url 'catalog' %}?type=physical" class="rq-section-link" style="color: #38bdf8;">
+          <span>تصفح قسم العتاد المادي</span>
+          <i class="fas fa-chevron-left text-xs"></i>
+        </a>
       </div>
 
-      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 1.5rem;">
-        <div style="background: rgba(255, 255, 255, 0.02); border: 1px solid var(--rq-border); border-radius: var(--rq-radius-lg); padding: 1.5rem; text-align: center;">
-          <div style="width: 50px; height: 50px; border-radius: 14px; background: rgba(37, 99, 235, 0.12); color: var(--rq-primary-light); font-size: 1.35rem; display: flex; align-items: center; justify-content: center; margin: 0 auto 1rem;">
-            <i class="fas fa-microchip"></i>
+      <div class="rq-gear-grid">
+        <div class="rq-gear-card">
+          <div style="display: flex; align-items: center; gap: 0.75rem;">
+            <div style="width: 44px; height: 44px; border-radius: 12px; background: rgba(56, 189, 248, 0.15); color: #38bdf8; display: flex; align-items: center; justify-content: center; font-size: 1.25rem;">
+              <i class="fas fa-network-wired"></i>
+            </div>
+            <div>
+              <h5 style="font-size: 0.95rem; font-weight: 800; color: #fff; margin: 0;">راوترات وتجهيزات شبكات</h5>
+              <span style="font-size: 0.72rem; color: var(--rq-text-muted);">أجهزة TP-Link وملحقات الشبكة</span>
+            </div>
           </div>
-          <h4 style="font-size: 0.95rem; font-weight: 800; color: #fff; margin-bottom: 0.4rem;">فحص وتوثيق هندسي</h4>
-          <p style="font-size: 0.78rem; color: var(--rq-text-muted); line-height: 1.6;">جميع الأجهزة والبطاقات تخضع لاختبارات توثيق مسبقة لضمان عملها فور الاستلام.</p>
+          <p style="font-size: 0.78rem; color: var(--rq-text-muted); line-height: 1.6; margin: 0;">تغطية إشارة فائقة، إعدادات مسبقة، وشحن فوري للمحافظات.</p>
+          <a href="{% url 'catalog' %}?q=راوتر" class="rq-btn-auth-login" style="padding: 0.5rem 1rem; font-size: 0.8rem; text-align: center; justify-content: center;">
+            استعراض الراوترات
+          </a>
         </div>
 
-        <div style="background: rgba(255, 255, 255, 0.02); border: 1px solid var(--rq-border); border-radius: var(--rq-radius-lg); padding: 1.5rem; text-align: center;">
-          <div style="width: 50px; height: 50px; border-radius: 14px; background: rgba(16, 185, 129, 0.12); color: #34d399; font-size: 1.35rem; display: flex; align-items: center; justify-content: center; margin: 0 auto 1rem;">
-            <i class="fas fa-lock"></i>
+        <div class="rq-gear-card">
+          <div style="display: flex; align-items: center; gap: 0.75rem;">
+            <div style="width: 44px; height: 44px; border-radius: 12px; background: rgba(16, 185, 129, 0.15); color: #34d399; display: flex; align-items: center; justify-content: center; font-size: 1.25rem;">
+              <i class="fas fa-video"></i>
+            </div>
+            <div>
+              <h5 style="font-size: 0.95rem; font-weight: 800; color: #fff; margin: 0;">ملحقات كاميرات المراقبة</h5>
+              <span style="font-size: 0.72rem; color: var(--rq-text-muted);">موسعات HDMI ومحولات HD</span>
+            </div>
           </div>
-          <h4 style="font-size: 0.95rem; font-weight: 800; color: #fff; margin-bottom: 0.4rem;">حماية وأمان مالي</h4>
-          <p style="font-size: 0.78rem; color: var(--rq-text-muted); line-height: 1.6;">معاملات مشفرة بالكامل عبر بوابات دفع معتمدة ومحفظة رقمية آمنة.</p>
+          <p style="font-size: 0.78rem; color: var(--rq-text-muted); line-height: 1.6; margin: 0;">توصيلات فيديو فائقة الدقة بمسافات تصل إلى 60 متر بدون فقد بالجودة.</p>
+          <a href="{% url 'catalog' %}?q=HDMI" class="rq-btn-auth-login" style="padding: 0.5rem 1rem; font-size: 0.8rem; text-align: center; justify-content: center;">
+            استعراض الملحقات
+          </a>
         </div>
 
-        <div style="background: rgba(255, 255, 255, 0.02); border: 1px solid var(--rq-border); border-radius: var(--rq-radius-lg); padding: 1.5rem; text-align: center;">
-          <div style="width: 50px; height: 50px; border-radius: 14px; background: rgba(245, 158, 11, 0.12); color: #fbbf24; font-size: 1.35rem; display: flex; align-items: center; justify-content: center; margin: 0 auto 1rem;">
-            <i class="fas fa-tags"></i>
+        <div class="rq-gear-card">
+          <div style="display: flex; align-items: center; gap: 0.75rem;">
+            <div style="width: 44px; height: 44px; border-radius: 12px; background: rgba(245, 158, 11, 0.15); color: #fbbf24; display: flex; align-items: center; justify-content: center; font-size: 1.25rem;">
+              <i class="fas fa-microchip"></i>
+            </div>
+            <div>
+              <h5 style="font-size: 0.95rem; font-weight: 800; color: #fff; margin: 0;">ذواكر وباور بانك وبطاريات</h5>
+              <span style="font-size: 0.72rem; color: var(--rq-text-muted);">سعات تخزين وطاقة مضمونة</span>
+            </div>
           </div>
-          <h4 style="font-size: 0.95rem; font-weight: 800; color: #fff; margin-bottom: 0.4rem;">أسعار جملة تنافسية</h4>
-          <p style="font-size: 0.78rem; color: var(--rq-text-muted); line-height: 1.6;">توفير مباشر من الموزعين الرئيسيين بدون وسطاء مع خصومات مستمرة.</p>
-        </div>
-
-        <div style="background: rgba(255, 255, 255, 0.02); border: 1px solid var(--rq-border); border-radius: var(--rq-radius-lg); padding: 1.5rem; text-align: center;">
-          <div style="width: 50px; height: 50px; border-radius: 14px; background: rgba(139, 92, 246, 0.12); color: #a78bfa; font-size: 1.35rem; display: flex; align-items: center; justify-content: center; margin: 0 auto 1rem;">
-            <i class="fas fa-comments"></i>
-          </div>
-          <h4 style="font-size: 0.95rem; font-weight: 800; color: #fff; margin-bottom: 0.4rem;">دعم فني استشاري</h4>
-          <p style="font-size: 0.78rem; color: var(--rq-text-muted); line-height: 1.6;">مساعدتك في اختيار أنسب بطاقة أو جهاز يلبي احتياجك بدقة تامة.</p>
+          <p style="font-size: 0.78rem; color: var(--rq-text-muted); line-height: 1.6; margin: 0;">كروت ميموري أصلية عالية السرعة وبطاريات ذات عمر افتراضي طويل.</p>
+          <a href="{% url 'catalog' %}?q=باور" class="rq-btn-auth-login" style="padding: 0.5rem 1rem; font-size: 0.8rem; text-align: center; justify-content: center;">
+            استعراض الطاقة والذواكر
+          </a>
         </div>
       </div>
     </div>
   </section>
 
   <!-- ══════════════════════════════════════════════════════════════════════
-       6. PARTNER STORES & PLATFORM ECOSYSTEM (IF PRESENT)
+       8. WHY CHOOSE RAQAMIYAT (FINTECH & SECURITY PILLARS)
+       ══════════════════════════════════════════════════════════════════════ -->
+  <section class="rq-container" style="margin-bottom: 3.5rem;">
+    <div style="background: var(--rq-surface-card); border: 1px solid var(--rq-border); border-radius: var(--rq-radius-xl); padding: 2.5rem 2rem;">
+      <div style="text-align: center; max-width: 650px; margin: 0 auto 2.5rem;">
+        <span class="rq-section-tag">معايير رقميات 2026</span>
+        <h2 style="font-size: 1.65rem; font-weight: 900; color: #fff; margin-bottom: 0.5rem;">لماذا يثق بنا آلاف العملاء والشركاء؟</h2>
+        <p style="font-size: 0.85rem; color: var(--rq-text-muted); line-height: 1.6;">بنية تحتية هندسية متطورة توفر لك تجربة شراء آمنة، سرعة تسليم فائقة، ودعماً مخصصاً لكل عملية.</p>
+      </div>
+
+      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 1.5rem;">
+        <div style="background: rgba(255, 255, 255, 0.02); border: 1px solid var(--rq-border); border-radius: var(--rq-radius-lg); padding: 1.5rem; text-align: center;">
+          <div style="width: 52px; height: 52px; border-radius: 14px; background: rgba(37, 99, 235, 0.12); color: var(--rq-primary-light); font-size: 1.4rem; display: flex; align-items: center; justify-content: center; margin: 0 auto 1rem;">
+            <i class="fas fa-microchip"></i>
+          </div>
+          <h4 style="font-size: 0.98rem; font-weight: 800; color: #fff; margin-bottom: 0.4rem;">فحص وتوثيق هندسي مسبق</h4>
+          <p style="font-size: 0.78rem; color: var(--rq-text-muted); line-height: 1.6;">تخضع جميع الأكواد والأجهزة لاختبارات توثيق مسبقة لضمان تشغيلها الفوري دون عوائق.</p>
+        </div>
+
+        <div style="background: rgba(255, 255, 255, 0.02); border: 1px solid var(--rq-border); border-radius: var(--rq-radius-lg); padding: 1.5rem; text-align: center;">
+          <div style="width: 52px; height: 52px; border-radius: 14px; background: rgba(16, 185, 129, 0.12); color: #34d399; font-size: 1.4rem; display: flex; align-items: center; justify-content: center; margin: 0 auto 1rem;">
+            <i class="fas fa-lock"></i>
+          </div>
+          <h4 style="font-size: 0.98rem; font-weight: 800; color: #fff; margin-bottom: 0.4rem;">أمان مالي وتشفير معتمد</h4>
+          <p style="font-size: 0.78rem; color: var(--rq-text-muted); line-height: 1.6;">بيئة دفع مشفرة بالكامل عبر بوابات معتمدة ومحفظة رقمية آمنة لحفظ رصيدك وإدارته.</p>
+        </div>
+
+        <div style="background: rgba(255, 255, 255, 0.02); border: 1px solid var(--rq-border); border-radius: var(--rq-radius-lg); padding: 1.5rem; text-align: center;">
+          <div style="width: 52px; height: 52px; border-radius: 14px; background: rgba(245, 158, 11, 0.12); color: #fbbf24; font-size: 1.4rem; display: flex; align-items: center; justify-content: center; margin: 0 auto 1rem;">
+            <i class="fas fa-tags"></i>
+          </div>
+          <h4 style="font-size: 0.98rem; font-weight: 800; color: #fff; margin-bottom: 0.4rem;">أسعار مباشرة بلا وسطاء</h4>
+          <p style="font-size: 0.78rem; color: var(--rq-text-muted); line-height: 1.6;">توفير مباشر من الموزعين الرئيسيين لضمان أفضل سعر شراء في السوق مع خصومات دورية.</p>
+        </div>
+
+        <div style="background: rgba(255, 255, 255, 0.02); border: 1px solid var(--rq-border); border-radius: var(--rq-radius-lg); padding: 1.5rem; text-align: center;">
+          <div style="width: 52px; height: 52px; border-radius: 14px; background: rgba(139, 92, 246, 0.12); color: #a78bfa; font-size: 1.4rem; display: flex; align-items: center; justify-content: center; margin: 0 auto 1rem;">
+            <i class="fas fa-comments"></i>
+          </div>
+          <h4 style="font-size: 0.98rem; font-weight: 800; color: #fff; margin-bottom: 0.4rem;">فريق دعم فني متواجد دائماً</h4>
+          <p style="font-size: 0.78rem; color: var(--rq-text-muted); line-height: 1.6;">مساعدتك الفورية عبر الواتساب والمحادثة الحية في اختيار المنتج أو تتبع طلبك.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ══════════════════════════════════════════════════════════════════════
+       9. PARTNER STORES & PLATFORM ECOSYSTEM (IF PRESENT)
        ══════════════════════════════════════════════════════════════════════ -->
   {% if platform_stores %}
   <section class="rq-container" style="margin-bottom: 3.5rem;">
@@ -356,10 +577,10 @@
   {% endif %}
 
   <!-- ══════════════════════════════════════════════════════════════════════
-       7. VERIFIED CUSTOMER REVIEWS (TESTIMONIALS)
+       10. VERIFIED CUSTOMER TESTIMONIALS
        ══════════════════════════════════════════════════════════════════════ -->
   {% if testimonials %}
-  <section class="rq-container" style="margin-bottom: 2rem;">
+  <section class="rq-container" style="margin-bottom: 3.5rem;">
     <div class="rq-section-header">
       <div>
         <span class="rq-section-tag">تجارب حقيقية موثقة</span>
@@ -389,6 +610,60 @@
     </div>
   </section>
   {% endif %}
+
+  <!-- ══════════════════════════════════════════════════════════════════════
+       11. INTERACTIVE BUYER FAQ
+       ══════════════════════════════════════════════════════════════════════ -->
+  <section class="rq-container" style="margin-bottom: 2rem;">
+    <div style="background: var(--rq-surface-card); border: 1px solid var(--rq-border); border-radius: var(--rq-radius-xl); padding: 2.25rem 2rem;">
+      <div style="text-align: center; max-width: 600px; margin: 0 auto 2rem;">
+        <span class="rq-section-tag">الأسئلة الشائعة</span>
+        <h3 style="font-size: 1.45rem; font-weight: 900; color: #fff; margin-bottom: 0.4rem;">كل ما تحتاج لمعرفته حول الشراء والاستلام</h3>
+      </div>
+
+      <div style="max-width: 780px; margin: 0 auto; display: flex; flex-direction: column; gap: 0.85rem;">
+        <details style="background: rgba(255, 255, 255, 0.02); border: 1px solid var(--rq-border); border-radius: var(--rq-radius-md); padding: 1rem 1.25rem; cursor: pointer;">
+          <summary style="font-size: 0.92rem; font-weight: 800; color: #fff; list-style: none; display: flex; align-items: center; justify-content: space-between;">
+            <span>⚡ كيف يتم تسليم الأكواد والبطاقات بعد إتمام الدفع؟</span>
+            <i class="fas fa-chevron-down text-xs text-slate-500"></i>
+          </summary>
+          <p style="font-size: 0.82rem; color: var(--rq-text-muted); line-height: 1.7; margin: 0.85rem 0 0;">
+            يتم تسليم الأكواد الرقمية وبطاقات الشحن بشكل فوري وآلي فور نجاح عملية الدفع. يظهر الكود مباشرة على شاشة تأكيد الطلب، كما يُحفظ في لوحة تحكم حسابك بقسم "مشترياتي الرقمية"، ويصلك إشعار فوري به.
+          </p>
+        </details>
+
+        <details style="background: rgba(255, 255, 255, 0.02); border: 1px solid var(--rq-border); border-radius: var(--rq-radius-md); padding: 1rem 1.25rem; cursor: pointer;">
+          <summary style="font-size: 0.92rem; font-weight: 800; color: #fff; list-style: none; display: flex; align-items: center; justify-content: space-between;">
+            <span>💳 ما هي طرق ووسائل الدفع المقبولة في المتجر؟</span>
+            <i class="fas fa-chevron-down text-xs text-slate-500"></i>
+          </summary>
+          <p style="font-size: 0.82rem; color: var(--rq-text-muted); line-height: 1.7; margin: 0.85rem 0 0;">
+            نوفر مجموعة واسعة من وسائل الدفع لتسهيل الشراء: شام كاش (Cham Cash)، بوابة Paymera للدفع بالبطاقات المحلية، البطاقات الدولية فيزا/ماستركارد، رصيد المحفظة الداخلي، والعملات الرقمية المشفرة (USDT TRC20).
+          </p>
+        </details>
+
+        <details style="background: rgba(255, 255, 255, 0.02); border: 1px solid var(--rq-border); border-radius: var(--rq-radius-md); padding: 1rem 1.25rem; cursor: pointer;">
+          <summary style="font-size: 0.92rem; font-weight: 800; color: #fff; list-style: none; display: flex; align-items: center; justify-content: space-between;">
+            <span>📦 كيف يتم شحن المنتجات المادية وتجهيزات الشبكات؟</span>
+            <i class="fas fa-chevron-down text-xs text-slate-500"></i>
+          </summary>
+          <p style="font-size: 0.82rem; color: var(--rq-text-muted); line-height: 1.7; margin: 0.85rem 0 0;">
+            المنتجات المادية (مثل الراوترات، كروت الشبكة، ملحقات HDMI، والباور بانك) يتم تغليفها وشحنها عبر شركات الشحن المعتمدة لكافة المحافظات السورية مع تزويدك برقم تتبع الشحنة فور إرسالها.
+          </p>
+        </details>
+
+        <details style="background: rgba(255, 255, 255, 0.02); border: 1px solid var(--rq-border); border-radius: var(--rq-radius-md); padding: 1rem 1.25rem; cursor: pointer;">
+          <summary style="font-size: 0.92rem; font-weight: 800; color: #fff; list-style: none; display: flex; align-items: center; justify-content: space-between;">
+            <span>🎧 ماذا أفعل إذا واجهت مشكلة أو احتجت لاستشارة قبل الشراء؟</span>
+            <i class="fas fa-chevron-down text-xs text-slate-500"></i>
+          </summary>
+          <p style="font-size: 0.82rem; color: var(--rq-text-muted); line-height: 1.7; margin: 0.85rem 0 0;">
+            فريق الدعم الفني متواجد لمساعدتك على مدار الساعة عبر المحادثة المباشرة المدمجة بالموقع أو عبر الواتساب الرسمي وقسم <a href="{% url 'contact' %}" style="color: var(--rq-primary-light); font-weight: 700;">اتصل بنا</a>.
+          </p>
+        </details>
+      </div>
+    </div>
+  </section>
 
 </div>
 {% endblock %}
