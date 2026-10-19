@@ -223,7 +223,15 @@ def currency_format(context, amount, source_currency=None, mode="deposit"):
         formatted = f"{converted:,.{places}f}"
         return f"{prefix}{formatted} {target_currency.symbol}"
     except Exception:
-        return f"{amount} {target_currency.symbol if target_currency else '???'}"
+        return f"{amount} {target_currency.symbol if target_currency else 'USD'}"
+
+@register.simple_tag(takes_context=True, name="format_price")
+def format_price(context, amount, source_currency=None, mode="deposit"):
+    """
+    Convenient tag for formatting prices across all storefront templates.
+    """
+    return currency_format(context, amount, source_currency=source_currency, mode=mode)
+
 
 @register.filter
 def subtract(value, arg):

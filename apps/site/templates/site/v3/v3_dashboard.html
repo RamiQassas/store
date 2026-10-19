@@ -1,1090 +1,385 @@
 {% extends "site/base.html" %}
 {% load static site_tags %}
 
-{% block title %}لوحتي | {% if is_tenant %}{{ STORE_NAME }}{% else %}Raqamiyat - رقميات{% endif %}{% endblock %}
-
-{% block extra_head %}
-<style>
-    /* Redesigned Premium Fintech Layout System */
-    .dashboard-grid {
-        display: grid;
-        grid-template-columns: 1fr;
-        gap: 1.5rem;
-        width: 100%;
-        max-width: 100%;
-        min-width: 0;
-        box-sizing: border-box;
-    }
-    
-    .dashboard-main,
-    .dashboard-sidebar {
-        width: 100%;
-        max-width: 100%;
-        min-width: 0;
-        box-sizing: border-box;
-    }
-
-    .panel {
-        max-width: 100%;
-        min-width: 0;
-        box-sizing: border-box;
-        overflow-wrap: break-word;
-    }
-    
-    @media (min-width: 1024px) {
-        .dashboard-grid {
-            grid-template-columns: repeat(12, 1fr);
-        }
-        .dashboard-main {
-            grid-column: span 9;
-        }
-        .dashboard-sidebar {
-            grid-column: span 3;
-        }
-    }
-
-    /* Padding Utilities */
-    .p-2 { padding: 0.5rem !important; }
-    .p-3 { padding: 0.75rem !important; }
-    .p-4 { padding: 1rem !important; }
-    .p-6 { padding: 1.5rem !important; }
-    .p-8 { padding: 2rem !important; }
-    .px-2 { padding-left: 0.5rem !important; padding-right: 0.5rem !important; }
-    .px-4 { padding-left: 1rem !important; padding-right: 1rem !important; }
-    .px-8 { padding-left: 2rem !important; padding-right: 2rem !important; }
-    .py-2.5 { padding-top: 0.625rem !important; padding-bottom: 0.625rem !important; }
-    .py-3 { padding-top: 0.75rem !important; padding-bottom: 0.75rem !important; }
-    .py-4 { padding-top: 1rem !important; padding-bottom: 1rem !important; }
-    .pt-4 { padding-top: 1rem !important; }
-    .pt-6 { padding-top: 1.5rem !important; }
-    .pb-0 { padding-bottom: 0 !important; }
-    .pb-4 { padding-bottom: 1rem !important; }
-    .pr-6 { padding-right: 1.5rem !important; }
-    .pl-12 { padding-left: 3rem !important; }
-
-    /* Margin Utilities */
-    .mt-1 { margin-top: 0.25rem !important; }
-    .mt-2 { margin-top: 0.5rem !important; }
-    .mt-3 { margin-top: 0.75rem !important; }
-    .mt-4 { margin-top: 1rem !important; }
-    .mt-10 { margin-top: 2.5rem !important; }
-    .mt-20 { margin-top: 5rem !important; }
-    .mb-1 { margin-bottom: 0.25rem !important; }
-    .mb-2 { margin-bottom: 0.5rem !important; }
-    .mb-3 { margin-bottom: 0.75rem !important; }
-    .mb-4 { margin-bottom: 1rem !important; }
-    .mb-6 { margin-bottom: 1.5rem !important; }
-    .mb-8 { margin-bottom: 2rem !important; }
-    .mb-10 { margin-bottom: 2.5rem !important; }
-
-    /* Flex Utilities */
-    .flex { display: flex !important; }
-    .flex-col { flex-direction: column !important; }
-    .justify-between { justify-content: space-between !important; }
-    .items-center { align-items: center !important; }
-    .items-start { align-items: flex-start !important; }
-    .items-end { align-items: flex-end !important; }
-    .flex-grow { flex-grow: 1 !important; }
-    .flex-shrink-0 { flex-shrink: 0 !important; }
-    .gap-2 { gap: 0.5rem !important; }
-    .gap-3 { gap: 0.75rem !important; }
-    .gap-4 { gap: 1rem !important; }
-    .gap-6 { gap: 1.5rem !important; }
-    .gap-8 { gap: 2rem !important; }
-    
-    @media (min-width: 640px) {
-        .sm\:row { flex-direction: row !important; }
-        .sm\:flex-row { flex-direction: row !important; }
-    }
-
-    /* Grid Layouts */
-    .grid { display: grid !important; }
-    .grid-cols-1 { grid-template-columns: repeat(1, 1fr) !important; }
-    @media (min-width: 768px) {
-        .md\:grid-cols-2 { grid-template-columns: repeat(2, 1fr) !important; }
-    }
-    @media (min-width: 1024px) {
-        .lg\:grid-cols-3 { grid-template-columns: repeat(3, 1fr) !important; }
-    }
-
-    /* Position & Alignment */
-    .relative { position: relative !important; }
-    .absolute { position: absolute !important; }
-    .fixed { position: fixed !important; }
-    .top-24 { top: 6rem !important; }
-    .right-8 { right: 2rem !important; }
-    .z-50 { z-index: 50 !important; }
-
-    /* Backgrounds & Borders */
-    .bg-cyan\/5 { background-color: rgba(6, 182, 212, 0.05) !important; }
-    .border-cyan\/20 { border-color: rgba(6, 182, 212, 0.2) !important; }
-    .bg-slate-900\/50 { background-color: rgba(15, 23, 42, 0.5) !important; }
-    .bg-slate-900\/40 { background-color: rgba(15, 23, 42, 0.4) !important; }
-    .bg-slate-900\/30 { background-color: rgba(15, 23, 42, 0.3) !important; }
-    .bg-slate-900\/5 { background-color: rgba(15, 23, 42, 0.05) !important; }
-    .bg-white\/5 { background-color: rgba(255, 255, 255, 0.05) !important; }
-    .hover\:bg-white\/10:hover { background-color: rgba(255, 255, 255, 0.1) !important; }
-    .border-white\/5 { border-color: rgba(255, 255, 255, 0.05) !important; }
-    .border-white\/10 { border-color: rgba(255, 255, 255, 0.1) !important; }
-    .border-indigo-500\/10 { border-color: rgba(99, 102, 241, 0.1) !important; }
-    .border-r-4 { border-right-width: 4px !important; border-right-style: solid !important; }
-    .border-l-4 { border-left-width: 4px !important; border-left-style: solid !important; }
-
-    /* Alert / Banner Colors */
-    .bg-rose-950\/90 { background-color: rgba(76, 5, 25, 0.9) !important; }
-    .border-rose-500 { border-color: #f43f5e !important; }
-    .text-rose-100 { color: #ffe4e6 !important; }
-    .bg-emerald-950\/90 { background-color: rgba(2, 44, 34, 0.9) !important; }
-    .border-emerald-500 { border-color: #10b981 !important; }
-    .text-emerald-100 { color: #d1fae5 !important; }
-    
-    .bg-amber-500\/5 { background-color: rgba(245, 158, 11, 0.05) !important; }
-    .border-amber-500\/10 { border-color: rgba(245, 158, 11, 0.1) !important; }
-    .text-amber-500 { color: #f59e0b !important; }
-    .text-amber-400 { color: #fbbf24 !important; }
-    
-    .bg-emerald-500\/5 { background-color: rgba(34, 197, 94, 0.05) !important; }
-    .border-emerald-500\/10 { border-color: rgba(34, 197, 94, 0.1) !important; }
-    .text-emerald-500 { color: #22c55e !important; }
-
-    .text-rose-400 { color: #fb7185 !important; }
-    .text-rose-500 { color: #f43f5e !important; }
-    .text-success { color: var(--success) !important; }
-    .text-danger { color: var(--danger) !important; }
-    .text-muted { color: var(--muted) !important; }
-
-    /* Border Radii */
-    .rounded-xl { border-radius: 1rem !important; }
-    .rounded-2xl { border-radius: 1.5rem !important; }
-    .rounded-3xl { border-radius: 2rem !important; }
-
-    /* Typography */
-    .text-xs { font-size: 0.75rem !important; }
-    .text-sm { font-size: 0.875rem !important; }
-    .text-lg { font-size: 1.125rem !important; }
-    .text-xl { font-size: 1.25rem !important; }
-    .text-2xl { font-size: 1.5rem !important; }
-    .text-3xl { font-size: 1.875rem !important; }
-    .font-bold { font-weight: 700 !important; }
-    .font-black { font-weight: 900 !important; }
-    .font-mono { font-family: monospace !important; }
-    .uppercase { text-transform: uppercase !important; }
-    .tracking-wider { letter-spacing: 0.05em !important; }
-    .tracking-widest { letter-spacing: 0.1em !important; }
-    .line-clamp-2 {
-        display: -webkit-box;
-        -webkit-line-clamp: 2;
-        -webkit-box-orient: vertical;  
-        overflow: hidden;
-    }
-
-    /* Badges */
-    .badge {
-        display: inline-flex;
-        align-items: center;
-        padding: 0.25rem 0.75rem;
-        font-size: 0.75rem;
-        font-weight: 700;
-        border-radius: 100px;
-    }
-    .badge.primary { background: rgba(6, 182, 212, 0.1); color: var(--cyan); border: 1px solid rgba(6, 182, 212, 0.2); }
-    .badge.success { background: rgba(34, 197, 94, 0.1); color: var(--success); border: 1px solid rgba(34, 197, 94, 0.2); }
-    .badge.danger { background: rgba(239, 68, 68, 0.1); color: var(--danger); border: 1px solid rgba(239, 68, 68, 0.2); }
-    .badge.warning { background: rgba(245, 158, 11, 0.1); color: var(--warning); border: 1px solid rgba(245, 158, 11, 0.2); }
-
-    /* Buttons override */
-    .btn-sm { padding: 0.5rem 1rem !important; font-size: 0.8rem !important; }
-
-    /* Wallet Card */
-    .premium-wallet-card {
-        background: linear-gradient(135deg, #0e1628 0%, #152035 100%);
-        border: 1px solid rgba(6, 182, 212, 0.2);
-        position: relative;
-        overflow: hidden;
-        border-radius: 24px;
-        box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4);
-    }
-
-    .premium-wallet-card::before {
-        content: "";
-        position: absolute;
-        top: -50%;
-        left: -50%;
-        width: 200%;
-        height: 200%;
-        background: radial-gradient(circle, rgba(6, 182, 212, 0.05) 0%, transparent 70%);
-        pointer-events: none;
-    }
-
-    .balance-display {
-        font-size: 2.5rem;
-        font-weight: 900;
-        letter-spacing: -1px;
-        background: linear-gradient(to right, #fff, var(--cyan));
-        -webkit-background-clip: text;
-        -webkit-text-fill-color: transparent;
-    }
-
-    /* Grid divisions */
-    .grid-2 {
-        display: grid !important;
-        grid-template-columns: 1fr !important;
-        gap: 1.5rem !important;
-    }
-    @media (min-width: 640px) {
-        .grid-2 {
-            grid-template-columns: repeat(2, 1fr) !important;
-        }
-    }
-
-    .grid-4 {
-        display: grid !important;
-        grid-template-columns: repeat(2, 1fr) !important;
-        gap: 1.25rem !important;
-    }
-    @media (min-width: 1024px) {
-        .grid-4 {
-            grid-template-columns: repeat(4, 1fr) !important;
-        }
-    }
-
-    /* Quick Actions */
-    .quick-actions {
-        display: grid !important;
-        grid-template-columns: repeat(2, 1fr) !important;
-        gap: 1rem !important;
-    }
-    @media (min-width: 480px) {
-        .quick-actions {
-            grid-template-columns: repeat(3, 1fr) !important;
-        }
-    }
-    @media (min-width: 768px) {
-        .quick-actions {
-            grid-template-columns: repeat(4, 1fr) !important;
-        }
-    }
-
-    .action-btn {
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        gap: 0.75rem;
-        padding: 1.25rem;
-        background: var(--panel);
-        border: 1px solid var(--panel-border);
-        border-radius: 20px;
-        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-    }
-
-    .action-btn:hover {
-        border-color: var(--cyan);
-        background: rgba(6, 182, 212, 0.05);
-        transform: translateY(-3px);
-        box-shadow: 0 10px 20px -5px rgba(6, 182, 212, 0.15);
-    }
-
-    .action-btn i {
-        font-size: 1.5rem;
-        color: var(--cyan);
-    }
-
-    .action-btn span {
-        font-size: 0.8rem;
-        font-weight: 700;
-        color: var(--text);
-    }
-
-    /* Activity Items */
-    .activity-item {
-        display: flex;
-        align-items: center;
-        gap: 1rem;
-        padding: 1rem;
-        border-radius: 12px;
-        transition: background 0.2s;
-    }
-
-    .activity-item:hover {
-        background: rgba(255, 255, 255, 0.02);
-    }
-
-    .activity-icon {
-        width: 40px;
-        height: 40px;
-        border-radius: 10px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        flex-shrink: 0;
-    }
-
-    .activity-icon.order { background: rgba(59, 130, 246, 0.1); color: var(--blue); }
-    .activity-icon.deposit { background: rgba(34, 197, 94, 0.1); color: var(--success); }
-    .activity-icon.ticket { background: rgba(168, 85, 247, 0.1); color: #a855f7; }
-
-    /* Account Status Card */
-    .status-badge {
-        width: 8px;
-        height: 8px;
-        border-radius: 50%;
-        display: inline-block;
-        margin-left: 8px;
-    }
-    .status-badge.active { background-color: var(--success); box-shadow: 0 0 10px var(--success); }
-
-    /* Mobile Utility Fix */
-    @media (max-width: 768px) {
-        .hide-mobile { display: none !important; }
-        .p-6 { padding: 1rem !important; }
-        .p-8 { padding: 1.15rem 1rem !important; }
-        .px-8 { padding-left: 1rem !important; padding-right: 1rem !important; }
-        .dashboard-grid { gap: 1rem !important; }
-        .balance-display { font-size: 1.85rem !important; word-break: break-all; }
-        .quick-actions { grid-template-columns: repeat(2, 1fr) !important; gap: 0.65rem !important; }
-        .action-btn { padding: 0.85rem !important; gap: 0.5rem !important; }
-        .action-btn i { font-size: 1.25rem !important; }
-        .action-btn span { font-size: 0.72rem !important; }
-    }
-</style>
-{% endblock %}
+{% block title %}لوحة التحكم الشخصية | {% if is_tenant %}{{ STORE_NAME }}{% else %}رقميات RAQAMIYAT{% endif %}{% endblock %}
 
 {% block content %}
-<div class="page-head">
-    <div>
-        <span class="eyebrow">أهلاً بك، {{ user.display_name }}</span>
-        <h1>لوحة التحكم</h1>
-        <p class="text-muted">مرحباً بك مجدداً في {% if is_tenant %}متجر {{ STORE_NAME }}{% else %}منصة رقميات{% endif %}. إليك نظرة سريعة على حسابك.</p>
-    </div>
-    <div class="hide-mobile">
-        <span class="badge primary p-2 px-4">
-            <i class="fas fa-crown text-amber-400 ml-2"></i>
-            {{ user.get_tier_display }}
-        </span>
-    </div>
-</div>
+<div class="rq-dash-container">
 
-<!-- Digital Deliveries Section (Prominent) -->
-{% if digital_deliveries %}
-<div class="mb-10" id="digital-deliveries-section">
-    <div class="section-head mb-4">
-        <h2 class="text-xl font-black text-cyan flex items-center gap-3">
-            <i class="fas fa-gift"></i> منتجاتك الرقمية المستلمة
-        </h2>
-    </div>
-    <div class="grid grid-3 gap-4">
-        {% for order in digital_deliveries %}
-        <div class="panel p-6 bg-cyan/5 border-cyan/20 flex flex-col justify-between delivery-card">
-            <div class="flex gap-4 mb-4">
-                <div class="w-12 h-12 rounded-xl bg-slate-900 flex items-center justify-center text-cyan flex-shrink-0">
-                    <i class="fas fa-key text-xl"></i>
-                </div>
-                <div>
-                    <h4 class="font-bold text-white">{% with order.items.first as item %}{{ item.variant.product.name }}{% endwith %}</h4>
-                    <span class="text-[10px] text-slate-500 font-mono">الطلب #{{ order.number }}</span>
-                </div>
-            </div>
-            
-            <div class="stack gap-2 mb-4">
-                {% for key, val in order.fulfillment_data.items %}
-                {% if key != 'api_provider' and key != 'api_status' and key != 'api_last_response' and key != 'api_refunded' and key != 'response' and key != 'api_response' and key != 'api_error' and key != 'alkasr' %}
-                <div class="flex justify-between items-center p-2 bg-slate-900/50 rounded-lg border border-white/5">
-                    <span class="text-[10px] text-slate-500 font-black uppercase">{{ key }}</span>
-                    <div class="flex items-center gap-2">
-                        <span class="text-xs font-mono text-cyan">{{ val|truncatechars:20 }}</span>
-                        <button onclick="copyToClipboard('{{ val }}', this)" class="text-[10px] text-slate-400 hover:text-white"><i class="fas fa-copy"></i></button>
-                    </div>
-                </div>
-                {% endif %}
-                {% endfor %}
-            </div>
-
-            <div class="flex gap-2">
-                <a href="{% url 'dashboard_order_detail' order.id %}" class="btn btn-outline btn-sm flex-grow py-2.5 rounded-xl font-bold">التفاصيل</a>
-                <button onclick="markRead('{{ order.id }}', this)" class="btn btn-primary btn-sm flex-grow py-2.5 rounded-xl font-bold">تم الاستلام</button>
-            </div>
+  <!-- ── 1. Welcome & Account Overview Banner ── -->
+  <div class="rq-dash-banner">
+    <div style="display: flex; align-items: center; gap: 1rem;">
+      <div style="width: 54px; height: 54px; border-radius: 16px; background: rgba(37, 99, 235, 0.15); border: 1.5px solid rgba(59, 130, 246, 0.35); color: #3b82f6; display: flex; align-items: center; justify-content: center; font-size: 1.5rem; flex-shrink: 0;">
+        <i class="fas fa-user-astronaut"></i>
+      </div>
+      <div>
+        <div style="font-size: 0.78rem; font-weight: 800; color: var(--rq-primary-light); text-transform: uppercase;">
+          مركز إدارة الحساب
         </div>
-        {% endfor %}
+        <h1 style="font-size: clamp(1.25rem, 2.5vw, 1.75rem); font-weight: 900; color: #fff; margin: 0.15rem 0;">
+          أهلاً بك، {{ user.display_name|default:user.email }}
+        </h1>
+        <p style="font-size: 0.82rem; color: var(--rq-text-muted); margin: 0;">
+          نظرة شاملة ومحدثة على محفظتك، طلباتك، ومفاتيحك الرقمية المسلمة.
+        </p>
+      </div>
     </div>
-</div>
-{% endif %}
 
-{% if not user.email_verified %}
-<div class="panel p-6 border-r-4 border-amber-500 mb-8 flex flex-col sm:flex-row justify-between items-center bg-amber-500/5 gap-4">
-    <div class="flex items-center gap-4">
-        <div class="w-12 h-12 bg-amber-500/10 text-amber-500 rounded-full flex items-center justify-center flex-shrink-0">
-            <i class="fas fa-envelope-open-text text-xl"></i>
+    <div style="display: flex; align-items: center; gap: 0.65rem; flex-wrap: wrap;">
+      <span style="display: inline-flex; align-items: center; gap: 0.4rem; padding: 0.45rem 1rem; border-radius: var(--rq-radius-full); font-size: 0.78rem; font-weight: 800; background: rgba(245, 158, 11, 0.15); border: 1px solid rgba(245, 158, 11, 0.35); color: #fbbf24;">
+        <i class="fas fa-crown text-xs"></i>
+        <span>{{ user.get_tier_display }}</span>
+      </span>
+
+      {% if user.email_verified %}
+      <span style="display: inline-flex; align-items: center; gap: 0.4rem; padding: 0.45rem 0.85rem; border-radius: var(--rq-radius-full); font-size: 0.78rem; font-weight: 800; background: rgba(16, 185, 129, 0.15); border: 1px solid rgba(16, 185, 129, 0.3); color: #34d399;">
+        <i class="fas fa-check-circle text-xs"></i>
+        <span>حساب موثق</span>
+      </span>
+      {% else %}
+      <a href="{% url 'resend_verification' %}" style="display: inline-flex; align-items: center; gap: 0.4rem; padding: 0.45rem 0.85rem; border-radius: var(--rq-radius-full); font-size: 0.78rem; font-weight: 800; background: rgba(239, 68, 68, 0.15); border: 1px solid rgba(239, 68, 68, 0.3); color: #f87171; text-decoration: none;">
+        <i class="fas fa-exclamation-circle text-xs"></i>
+        <span>تأكيد البريد الإلكتروني</span>
+      </a>
+      {% endif %}
+    </div>
+  </div>
+
+  <!-- ── 2. Prominent Digital Deliveries Shelf (Keys & Codes) ── -->
+  {% if digital_deliveries %}
+  <div class="rq-keys-shelf">
+    <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.25rem;">
+      <div style="display: flex; align-items: center; gap: 0.65rem;">
+        <div style="width: 36px; height: 36px; border-radius: 10px; background: rgba(16, 185, 129, 0.2); color: #34d399; display: flex; align-items: center; justify-content: center; font-size: 1.1rem;">
+          <i class="fas fa-key"></i>
         </div>
         <div>
-            <h3 class="font-bold text-amber-500">يرجى تفعيل بريدك الإلكتروني</h3>
-            <p class="text-sm text-slate-400">تفعيل حسابك ضروري للتمكن من القيام بعمليات الشراء والإيداع بشكل آمن.</p>
+          <h3 style="font-size: 1.1rem; font-weight: 900; color: #fff; margin: 0;">المنتجات والمفاتيح الرقمية المستلمة</h3>
+          <span style="font-size: 0.72rem; color: #6ee7b7;">أكوادك وتراخيصك جاهزة للاستخدام الفوري</span>
         </div>
-    </div>
-    <a href="{% url 'resend_verification' %}" class="btn btn-sm btn-primary whitespace-nowrap">إعادة إرسال الرابط</a>
-</div>
-{% endif %}
-
-<div class="dashboard-grid">
-    <!-- Main Content -->
-    <div class="dashboard-main stack gap-6">
-        
-        <!-- Personal Account Information Card -->
-        <div class="panel p-6 border-cyan/20 bg-slate-900/40 relative overflow-hidden">
-            <div class="absolute top-0 right-0 w-48 h-48 bg-cyan/5 rounded-full blur-3xl pointer-events-none"></div>
-            <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6 pb-4 border-b border-white/5">
-                <div class="flex items-center gap-4 min-w-0 max-w-full">
-                    <div class="w-14 h-14 rounded-2xl bg-gradient-to-br from-cyan to-blue-600 flex items-center justify-center text-slate-950 font-black text-2xl shadow-lg shadow-cyan/20 flex-shrink-0">
-                        {{ user.display_name|slice:":1"|upper }}
-                    </div>
-                    <div class="min-w-0 flex-1">
-                        <div class="flex items-center gap-2 flex-wrap">
-                            <h2 class="text-xl font-black text-white break-words">{{ user.display_name }}</h2>
-                            <span class="badge primary text-[10px] flex-shrink-0"><i class="fas fa-crown text-amber-400 ml-1"></i> {{ user.get_tier_display }}</span>
-                        </div>
-                        <div class="flex items-center gap-2 flex-wrap text-xs text-slate-400 mt-1 font-mono">
-                            <span class="break-all font-bold text-slate-300">@{{ user.username }}</span>
-                            <span>•</span>
-                            <span class="flex items-center gap-1 break-all">
-                                <span>معرف (UID):</span> <strong class="text-cyan">{{ user.uid|default:user.public_uuid|truncatechars:18 }}</strong>
-                                <button type="button" onclick="copyToClipboard('{{ user.uid|default:user.public_uuid }}', this)" class="text-slate-400 hover:text-white" title="نسخ المعرف"><i class="fas fa-copy text-[10px]"></i></button>
-                            </span>
-                        </div>
-                    </div>
-                </div>
-                <div class="flex items-center gap-2 flex-wrap w-full md:w-auto">
-                    <a href="{% url 'change_email' %}" class="btn btn-outline btn-sm text-xs font-bold flex-1 md:flex-initial text-center"><i class="fas fa-envelope ml-1"></i> البريد</a>
-                    <a href="{% url 'change_password' %}" class="btn btn-outline btn-sm text-xs font-bold flex-1 md:flex-initial text-center"><i class="fas fa-key ml-1"></i> كلمة المرور</a>
-                    <a href="{% url 'site_security_triggers' %}" class="btn btn-outline btn-sm text-xs font-bold text-cyan border-cyan/20 flex-1 md:flex-initial text-center"><i class="fas fa-shield-alt ml-1"></i> الأمان</a>
-                </div>
-            </div>
-
-            <!-- Account Details Grid -->
-            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                <!-- Phone -->
-                <div class="p-4 bg-white/[0.02] border border-white/5 rounded-xl">
-                    <span class="text-[10px] font-black uppercase tracking-wider text-slate-500 block mb-1">رقم الهاتف</span>
-                    <div class="flex items-center gap-2">
-                        <i class="fas fa-phone text-emerald-400 text-sm"></i>
-                        <span class="text-sm font-bold text-white font-mono" dir="ltr">{{ user.phone|default:"غير محدد" }}</span>
-                    </div>
-                </div>
-
-                <!-- Email -->
-                <div class="p-4 bg-white/[0.02] border border-white/5 rounded-xl">
-                    <span class="text-[10px] font-black uppercase tracking-wider text-slate-500 block mb-1">البريد الإلكتروني</span>
-                    <div class="flex items-center justify-between gap-1">
-                        <div class="truncate text-sm font-bold text-white font-mono" title="{{ user.email }}">{{ user.email }}</div>
-                        {% if user.email_verified %}
-                            <span class="badge success text-[8px] flex-shrink-0">موثق</span>
-                        {% else %}
-                            <span class="badge warning text-[8px] flex-shrink-0">غير موثق</span>
-                        {% endif %}
-                    </div>
-                </div>
-
-                <!-- Preferred Currency -->
-                <div class="p-4 bg-white/[0.02] border border-white/5 rounded-xl">
-                    <span class="text-[10px] font-black uppercase tracking-wider text-slate-500 block mb-1">العملة المعتمدة</span>
-                    <div class="flex items-center gap-2">
-                        <i class="fas fa-coins text-amber-400 text-sm"></i>
-                        <span class="text-sm font-bold text-white">{{ user.preferred_currency.name|default:CURRENCY.name }} ({{ user.preferred_currency.code|default:CURRENCY.code }})</span>
-                    </div>
-                </div>
-
-                <!-- Join Date -->
-                <div class="p-4 bg-white/[0.02] border border-white/5 rounded-xl">
-                    <span class="text-[10px] font-black uppercase tracking-wider text-slate-500 block mb-1">تاريخ الانضمام</span>
-                    <div class="flex items-center gap-2">
-                        <i class="fas fa-calendar-check text-cyan text-sm"></i>
-                        <span class="text-sm font-bold text-white font-mono">{{ user.date_joined|date:"Y-m-d" }}</span>
-                    </div>
-                </div>
-
-                <!-- KYC Verification -->
-                <div class="p-4 bg-white/[0.02] border border-white/5 rounded-xl">
-                    <span class="text-[10px] font-black uppercase tracking-wider text-slate-500 block mb-1">توثيق الهوية (KYC)</span>
-                    <div class="flex items-center justify-between">
-                        <span class="text-sm font-bold {% if user.is_kyc_verified %}text-emerald-400{% else %}text-amber-400{% endif %}">
-                            {% if user.is_kyc_verified %}
-                            <i class="fas fa-check-circle ml-1"></i> موثق بالكامل
-                            {% else %}
-                            <i class="fas fa-id-card ml-1"></i> غير موثق
-                            {% endif %}
-                        </span>
-                        {% if not user.is_kyc_verified %}
-                        <a href="{% url 'site_kyc_request' %}" class="text-[10px] text-cyan hover:underline font-bold">توثيق</a>
-                        {% endif %}
-                    </div>
-                </div>
-
-                <!-- Account Status -->
-                <div class="p-4 bg-white/[0.02] border border-white/5 rounded-xl">
-                    <span class="text-[10px] font-black uppercase tracking-wider text-slate-500 block mb-1">حالة الحساب</span>
-                    <div class="flex items-center gap-2">
-                        <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
-                        <span class="text-sm font-bold text-emerald-400">{{ user.get_status_display }}</span>
-                    </div>
-                </div>
-
-                <!-- Two Factor Authentication -->
-                <div class="p-4 bg-white/[0.02] border border-white/5 rounded-xl">
-                    <span class="text-[10px] font-black uppercase tracking-wider text-slate-500 block mb-1">التحقق بخطوتين (2FA)</span>
-                    <div class="flex items-center justify-between">
-                        <span class="text-sm font-bold {% if user.totp_enabled or user.two_factor_enabled %}text-emerald-400{% else %}text-slate-400{% endif %}">
-                            {% if user.totp_enabled or user.two_factor_enabled %}مفعل{% else %}معطل{% endif %}
-                        </span>
-                        <a href="{% url 'site_2fa_setup' %}" class="text-[10px] text-cyan hover:underline font-bold">إدارة</a>
-                    </div>
-                </div>
-
-                <!-- Last Login -->
-                <div class="p-4 bg-white/[0.02] border border-white/5 rounded-xl">
-                    <span class="text-[10px] font-black uppercase tracking-wider text-slate-500 block mb-1">آخر تسجيل دخول</span>
-                    <div class="flex items-center gap-2">
-                        <i class="fas fa-clock text-slate-400 text-sm"></i>
-                        <span class="text-xs font-mono text-slate-300">{{ user.last_login|date:"Y-m-d H:i"|default:"اليوم" }}</span>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Wallet Summary Section -->
-        <div class="panel premium-wallet-card p-8">
-            <div class="flex justify-between items-start mb-6">
-                <div>
-                    <span class="text-sm font-bold text-cyan uppercase tracking-wider">الرصيد المتاح</span>
-                    <div class="balance-display mt-2">{% currency_format wallet.available_balance wallet.currency mode="withdraw" %}</div>
-                </div>
-                <div class="text-left">
-                    <i class="fas fa-wallet text-4xl text-slate-700 opacity-50"></i>
-                </div>
-            </div>
-            
-            {% if wallet.frozen_balance > 0 or wallet.held_balance > 0 or wallet.pending_balance > 0 or wallet.debt_balance > 0 %}
-            <div class="grid grid-4 gap-4 pt-6 border-t border-white/5">
-                {% if wallet.debt_balance > 0 %}
-                <div>
-                    <span class="text-xs text-rose-400 font-bold block mb-1">الديون المستحقة</span>
-                    <span class="text-sm font-bold text-rose-500">{% currency_format wallet.debt_balance wallet.currency %}</span>
-                </div>
-                {% endif %}
-                {% if wallet.pending_balance > 0 %}
-                <div>
-                    <span class="text-xs text-muted block mb-1">قيد الانتظار</span>
-                    <span class="text-sm font-bold">{% currency_format wallet.pending_balance wallet.currency %}</span>
-                </div>
-                {% endif %}
-                {% if wallet.frozen_balance > 0 %}
-                <div>
-                    <span class="text-xs text-muted block mb-1">مجمد</span>
-                    <span class="text-sm font-bold">{% currency_format wallet.frozen_balance wallet.currency %}</span>
-                </div>
-                {% endif %}
-                {% if wallet.held_balance > 0 %}
-                <div>
-                    <span class="text-xs text-muted block mb-1">محجوز</span>
-                    <span class="text-sm font-bold text-red-400">{% currency_format wallet.held_balance wallet.currency %}</span>
-                </div>
-                {% endif %}
-            </div>
-            {% endif %}
-        </div>
-
-        <!-- Quick Actions -->
-        <div class="quick-actions">
-            <a href="{% url 'catalog' %}" class="action-btn">
-                <i class="fas fa-shopping-cart"></i>
-                <span>شراء منتج</span>
-            </a>
-            <a href="{% url 'dashboard_deposits' %}" class="action-btn">
-                <i class="fas fa-plus-circle"></i>
-                <span>إيداع رصيد</span>
-            </a>
-            {% if FEATURES.feature_withdrawals %}
-            <a href="{% url 'dashboard_withdrawals' %}" class="action-btn">
-                <i class="fas fa-arrow-alt-circle-down"></i>
-                <span>طلب سحب</span>
-            </a>
-            {% endif %}
-            {% if FEATURES.feature_p2p_transfers %}
-            <a href="{% url 'dashboard_transfer' %}" class="action-btn">
-                <i class="fas fa-exchange-alt"></i>
-                <span>تحويل رصيد</span>
-            </a>
-            {% endif %}
-            <a href="{% url 'notification_settings' %}" class="action-btn">
-                <i class="fas fa-bell"></i>
-                <span>إعدادات الإشعارات</span>
-            </a>
-            <a href="{% url 'chat_list' %}" class="action-btn">
-                <i class="fas fa-headset"></i>
-                <span>الدعم المباشر</span>
-            </a>
-            {% if not is_tenant %}
-            <a href="{% url 'site_product_suggestion' %}" class="action-btn">
-                <i class="fas fa-lightbulb text-amber-400"></i>
-                <span>اقتراح خدمة</span>
-            </a>
-            {% endif %}
-        </div>
-
-        <!-- Recent Activity Sections -->
-        <div class="grid grid-2 gap-6">
-            <!-- Recent Orders -->
-            <div class="panel stack">
-                <div class="section-head p-6 pb-0">
-                    <h2 class="text-lg">أحدث الطلبات</h2>
-                    <a href="{% url 'dashboard_orders' %}" class="text-cyan text-sm font-bold">كل الطلبات</a>
-                </div>
-                <div class="p-4 stack">
-                    {% for order in orders %}
-                    <a href="{% url 'dashboard_order_detail' order.id %}" class="activity-item">
-                        <div class="activity-icon order">
-                            <i class="fas fa-box"></i>
-                        </div>
-                        <div class="flex-grow">
-                            <div class="flex justify-between">
-                                <span class="font-bold text-sm">طلب رقم {{ order.number|truncatechars:10 }}</span>
-                                <span class="text-xs text-muted">{{ order.created_at|date:"d M" }}</span>
-                            </div>
-                            <div class="flex justify-between mt-1">
-                                <span class="text-xs text-muted">{{ order.get_status_display }}</span>
-                                <span class="text-xs font-bold">{% currency_format order.total_amount %}</span>
-                            </div>
-                        </div>
-                    </a>
-                    {% empty %}
-                    <div class="p-8 text-center stack gap-3">
-                        <i class="fas fa-box-open text-3xl text-slate-700"></i>
-                        <p class="text-sm text-muted">لا توجد طلبات سابقة</p>
-                    </div>
-                    {% endfor %}
-                </div>
-            </div>
-
-            <!-- Recent Deposits -->
-            <div class="panel stack">
-                <div class="section-head p-6 pb-0">
-                    <h2 class="text-lg">آخر الإيداعات</h2>
-                    <a href="{% url 'dashboard_deposits' %}" class="text-cyan text-sm font-bold">كل العمليات</a>
-                </div>
-                <div class="p-4 stack">
-                    {% for deposit in deposits %}
-                    <div class="activity-item group">
-                        <div class="activity-icon deposit">
-                            <i class="fas fa-arrow-up"></i>
-                        </div>
-                        <div class="flex-grow">
-                            <div class="flex justify-between">
-                                <span class="font-bold text-sm">{{ deposit.amount|floatformat:2 }} {{ deposit.currency.code }}</span>
-                                <span class="text-xs text-muted">{{ deposit.created_at|date:"d M" }}</span>
-                            </div>
-                            <div class="flex justify-between items-center mt-1">
-                                <span class="text-[10px] text-slate-500">{{ deposit.payment_method.name }}</span>
-                                <div class="flex gap-2">
-                                    {% if deposit.proof_image %}
-                                    <button onclick="window.open('{{ deposit.proof_image.url }}')" class="text-[9px] text-cyan hover:underline font-bold">الوصل</button>
-                                    {% endif %}
-                                    <span class="badge {% if deposit.status == 'completed' or deposit.status == 'approved' %}success{% elif deposit.status == 'rejected' %}danger{% else %}warning{% endif %} text-[9px]">
-                                        {{ deposit.get_status_display }}
-                                    </span>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                    {% empty %}
-                    <div class="p-8 text-center stack gap-3">
-                        <i class="fas fa-receipt text-3xl text-slate-700"></i>
-                        <p class="text-sm text-muted">لا توجد عمليات إيداع</p>
-                    </div>
-                    {% endfor %}
-                </div>
-            </div>
-
-            <!-- Recent Withdrawals -->
-            {% if FEATURES.feature_withdrawals %}
-            <div class="panel stack">
-                <div class="section-head p-6 pb-0">
-                    <h2 class="text-lg">آخر السحوبات</h2>
-                    <a href="{% url 'dashboard_withdrawals' %}" class="text-cyan text-sm font-bold">سجل السحب</a>
-                </div>
-                <div class="p-4 stack">
-                    {% for withdrawal in withdrawals %}
-                    <div class="activity-item group">
-                        <div class="activity-icon order">
-                            <i class="fas fa-arrow-down text-rose-500"></i>
-                        </div>
-                        <div class="flex-grow">
-                            <div class="flex justify-between">
-                                <span class="font-bold text-sm text-rose-400">{{ withdrawal.amount|floatformat:2 }} {{ withdrawal.currency.code }}</span>
-                                <span class="text-xs text-muted">{{ withdrawal.created_at|date:"d M" }}</span>
-                            </div>
-                            <div class="flex justify-between items-center mt-1">
-                                <span class="text-[10px] text-slate-500">{{ withdrawal.payment_method.name }}</span>
-                                <div class="flex gap-2">
-                                    {% if withdrawal.proof_image %}
-                                    <button onclick="window.open('{{ withdrawal.proof_image.url }}')" class="text-[9px] text-cyan hover:underline font-bold">صورة</button>
-                                    {% endif %}
-                                    {% if withdrawal.proof_file %}
-                                    <a href="{{ withdrawal.proof_file.url }}" target="_blank" class="text-[9px] text-rose-400 hover:underline font-bold">PDF</a>
-                                    {% endif %}
-                                    <span class="badge {% if withdrawal.status == 'completed' %}success{% elif withdrawal.status == 'rejected' %}danger{% else %}warning{% endif %} text-[9px]">
-                                        {{ withdrawal.get_status_display }}
-                                    </span>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                    {% empty %}
-                    <div class="p-8 text-center stack gap-3">
-                        <i class="fas fa-money-bill-transfer text-3xl text-slate-700"></i>
-                        <p class="text-sm text-muted">لا توجد عمليات سحب</p>
-                    </div>
-                    {% endfor %}
-                </div>
-            </div>
-            {% endif %}
-        </div>
+      </div>
+      <span style="font-size: 0.72rem; font-weight: 800; padding: 0.25rem 0.65rem; border-radius: var(--rq-radius-full); background: rgba(16, 185, 129, 0.15); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.3);">
+        {{ digital_deliveries|length }} عناصر جديدة
+      </span>
     </div>
 
-    <!-- Sidebar Section -->
-    <div class="dashboard-sidebar stack gap-6">
-        <!-- Personal Navigation -->
-        <div class="panel p-6 border-indigo-500/10">
-            <h2 class="text-sm font-black text-white uppercase tracking-widest mb-4 flex items-center gap-2">
-                <i class="fas fa-compass text-indigo-400"></i> التنقل الشخصي
-            </h2>
-            <nav class="stack gap-2">
-                <a href="{% url 'catalog' %}" class="flex items-center gap-3 p-3 bg-white/5 rounded-xl hover:bg-white/10 transition-all text-xs font-bold text-slate-300">
-                    <i class="fas fa-shopping-basket w-5 text-center text-cyan"></i> متجر الخدمات
-                </a>
-                <a href="{% url 'dashboard_orders' %}" class="flex items-center gap-3 p-3 bg-white/5 rounded-xl hover:bg-white/10 transition-all text-xs font-bold text-slate-300">
-                    <i class="fas fa-history w-5 text-center text-cyan"></i> سجل طلباتي
-                </a>
-                <a href="{% url 'dashboard_deposits' %}" class="flex items-center gap-3 p-3 bg-white/5 rounded-xl hover:bg-white/10 transition-all text-xs font-bold text-slate-300">
-                    <i class="fas fa-wallet w-5 text-center text-cyan"></i> العمليات المالية
-                </a>
-                <a href="{% url 'chat_list' %}" class="flex items-center gap-3 p-3 bg-white/5 rounded-xl hover:bg-white/10 transition-all text-xs font-bold text-slate-300">
-                    <i class="fas fa-headset w-5 text-center text-cyan"></i> الدعم الفني المباشر
-                </a>
-                {% if is_tenant %}
-                   {% if store.owner == user or user.store_employments.exists %}
-                   <a href="{% url 'merchant_dashboard' %}" class="flex items-center gap-3 p-3 bg-indigo-500/10 rounded-xl hover:bg-indigo-500/20 transition-all text-xs font-bold text-indigo-400 border border-indigo-500/20">
-                       <i class="fas fa-shop w-5 text-center text-indigo-400"></i> لوحة تحكم التاجر
-                   </a>
-                   {% endif %}
-                {% endif %}
-            </nav>
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 1rem;">
+      {% for order in digital_deliveries %}
+      <div class="rq-key-card">
+        <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 0.5rem;">
+          <div>
+            <h4 style="font-size: 0.95rem; font-weight: 800; color: #fff; margin: 0 0 0.2rem;">
+              {% with order.items.first as item %}{{ item.variant.product.name|default:'خدمة رقمية' }}{% endwith %}
+            </h4>
+            <span style="font-size: 0.72rem; color: var(--rq-text-muted); font-family: monospace;">طلب رقم #{{ order.number }}</span>
+          </div>
+          <span class="rq-status-pill rq-status-completed">مكتمل</span>
         </div>
 
-        <!-- My Stores Panel -->
-        <div class="panel p-6 border-cyan-500/10">
-            <h2 class="text-sm font-black text-white uppercase tracking-widest mb-4 flex items-center gap-2">
-                <i class="fas fa-store text-cyan"></i> متاجري الخاصة
-            </h2>
-            <div class="stack gap-3">
-                {% for store in user_stores %}
-                 <div class="p-3 bg-white/[0.03] border border-white/5 rounded-xl stack gap-2">
-                     <div class="flex justify-between items-center">
-                         <span class="font-bold text-xs text-white">{{ store.name }}</span>
-                         <span class="badge {% if store.is_active %}success{% else %}danger{% endif %} text-[8px]">
-                             {{ store.get_subscription_status_display }}
-                         </span>
-                     </div>
-                     <div class="text-[10px] text-slate-500 truncate">
-                         {{ store.subdomain }}.raqamiyatapp.com
-                     </div>
-                     <div class="flex gap-2 mt-1">
-                         <a href="https://{{ store.subdomain }}.raqamiyatapp.com" target="_blank" class="text-[9px] text-cyan hover:underline font-bold">زيارة المتجر <i class="fas fa-external-link-alt ml-0.5"></i></a>
-                         <a href="https://{{ store.subdomain }}.raqamiyatapp.com/merchant/" target="_blank" class="text-[9px] text-indigo-400 hover:underline font-bold">لوحة التاجر <i class="fas fa-chevron-left ml-0.5"></i></a>
-                     </div>
-                     
-                     <!-- Detailed Subscription & Plan Management -->
-                     <details class="mt-2 border-t border-white/5 pt-2 cursor-pointer group">
-                         <summary class="text-[9px] text-slate-400 hover:text-white font-bold select-none flex items-center justify-between">
-                             <span>إدارة الاشتراك والتحكم <i class="fas fa-cog ml-1 text-slate-500 group-hover:rotate-45 transition-transform"></i></span>
-                             <i class="fas fa-chevron-down text-[8px] transform group-open:rotate-180 transition-transform"></i>
-                         </summary>
-                         
-                         <div class="mt-3 stack gap-3 cursor-default">
-                             <!-- Subscription Status Info -->
-                             <div class="grid grid-cols-2 gap-2 text-[10px] bg-black/20 p-2 rounded-lg">
-                                 <div><span class="opacity-60">الباقة:</span> <strong class="text-white">{{ store.subscription_plan.name }}</strong></div>
-                                 <div><span class="opacity-60">دورة الدفع:</span> <strong class="text-white">{% if store.billing_cycle == 'yearly' %}سنوي{% else %}شهري{% endif %}</strong></div>
-                                 <div><span class="opacity-60">تاريخ الانتهاء:</span> <strong class="text-white">{{ store.subscription_end|date:"Y-m-d" }}</strong></div>
-                                 <div><span class="opacity-60">تجديد تلقائي:</span> 
-                                     <strong class="{% if store.auto_renew %}text-emerald-400{% else %}text-slate-400{% endif %}">
-                                         {% if store.auto_renew %}مفعل{% else %}معطل{% endif %}
-                                     </strong>
-                                 </div>
-                             </div>
-                             
-                             <!-- Quick Management Forms -->
-                             <div class="stack gap-2 text-[10px]">
-                                 <!-- Auto Renew Toggle -->
-                                 <form method="POST" class="flex justify-between items-center bg-white/[0.02] p-2 rounded border border-white/5">
-                                     {% csrf_token %}
-                                     <input type="hidden" name="store_id" value="{{ store.id }}">
-                                     <input type="hidden" name="action" value="toggle_auto_renew">
-                                     <span>التجديد التلقائي:</span>
-                                     <button type="submit" class="btn {% if store.auto_renew %}btn-premium-sm danger{% else %}btn-premium-sm primary{% endif %} py-1 px-3 text-[9px]">
-                                         {% if store.auto_renew %}تعطيل التجديد{% else %}تفعيل التجديد{% endif %}
-                                     </button>
-                                 </form>
-                                 
-                                 <!-- Billing Cycle Change -->
-                                 <form method="POST" class="flex justify-between items-center bg-white/[0.02] p-2 rounded border border-white/5">
-                                     {% csrf_token %}
-                                     <input type="hidden" name="store_id" value="{{ store.id }}">
-                                     <input type="hidden" name="action" value="change_billing_cycle">
-                                     <span>تغيير دورة الدفع:</span>
-                                     <div class="flex gap-1.5 items-center">
-                                         <select name="billing_cycle" class="bg-slate-900 border border-white/10 text-white rounded p-1 text-[9px] focus:outline-none focus:border-cyan">
-                                             <option value="monthly" {% if store.billing_cycle == 'monthly' %}selected{% endif %}>شهري</option>
-                                             <option value="yearly" {% if store.billing_cycle == 'yearly' %}selected{% endif %}>سنوي</option>
-                                         </select>
-                                         <button type="submit" class="btn btn-premium-sm primary py-1 px-3 text-[9px]">تحديث</button>
-                                     </div>
-                                 </form>
-                                 
-                                 <!-- Plan Upgrade / Downgrade -->
-                                 <form method="POST" class="flex justify-between items-center bg-white/[0.02] p-2 rounded border border-white/5">
-                                     {% csrf_token %}
-                                     <input type="hidden" name="store_id" value="{{ store.id }}">
-                                     <input type="hidden" name="action" value="change_plan">
-                                     <span>تغيير الباقة:</span>
-                                     <div class="flex gap-1.5 items-center">
-                                         <select name="plan_id" class="bg-slate-900 border border-white/10 text-white rounded p-1 text-[9px] focus:outline-none focus:border-cyan">
-                                             {% for plan in plans %}
-                                             <option value="{{ plan.id }}" {% if store.subscription_plan_id == plan.id %}selected{% endif %}>{{ plan.name }} (${{ plan.price_monthly }}/ش)</option>
-                                             {% endfor %}
-                                         </select>
-                                         <button type="submit" class="btn btn-premium-sm primary py-1 px-3 text-[9px]">تطبيق</button>
-                                     </div>
-                                 </form>
-                                 
-                                 <!-- Manual Renewal -->
-                                 <form method="POST" class="flex justify-between items-center bg-white/[0.02] p-2 rounded border border-white/5">
-                                     {% csrf_token %}
-                                     <input type="hidden" name="store_id" value="{{ store.id }}">
-                                     <input type="hidden" name="action" value="renew_store">
-                                     <span>تجديد الاشتراك الآن:</span>
-                                     <button type="submit" class="btn btn-premium-sm success py-1 px-3 text-[9px]">تجديد فوري</button>
-                                 </form>
-                             </div>
-                         </div>
-                     </details>
-                 </div>
-                {% empty %}
-                <div class="p-4 text-center bg-white/[0.02] border border-dashed border-white/10 rounded-xl stack gap-2">
-                    <p class="text-[10px] text-slate-400">لم تقم بإنشاء متجر خاص بك بعد.</p>
-                    <a href="{{ PLATFORM_URL }}/create-store/" class="btn btn-premium-sm primary w-full text-center mt-1 py-2 text-[10px]">أنشئ متجر الآن</a>
-                </div>
-                {% endfor %}
+        <!-- Fulfillment Keys & Credentials -->
+        <div style="display: flex; flex-direction: column; gap: 0.45rem;">
+          {% for key, val in order.fulfillment_data.items %}
+          {% if key != 'api_provider' and key != 'api_status' and key != 'api_last_response' and key != 'api_refunded' and key != 'response' and key != 'api_response' and key != 'api_error' and key != 'alkasr' %}
+          <div class="rq-key-code-box">
+            <span style="font-size: 0.7rem; font-weight: 800; color: var(--rq-text-muted); text-transform: uppercase;">{{ key }}:</span>
+            <div style="display: flex; align-items: center; gap: 0.5rem;">
+              <span style="font-weight: 800;">{{ val|truncatechars:28 }}</span>
+              <button type="button" class="rq-copy-pill" onclick="navigator.clipboard.writeText('{{ val }}'); this.innerText='تم النسخ!'; setTimeout(() => this.innerText='نسخ', 2000);">
+                نسخ
+              </button>
             </div>
+          </div>
+          {% endif %}
+          {% endfor %}
         </div>
 
-        <!-- Account Status Card -->
-        <div class="panel p-6">
-            <h2 class="text-lg mb-4">حالة الحساب</h2>
-            <div class="stack gap-4">
-                <div class="flex items-center justify-between p-3 bg-slate-800/30 rounded-lg">
-                    <span class="text-sm text-muted">الحالة</span>
-                    <div class="flex items-center">
-                        <span class="status-badge active"></span>
-                        <span class="text-sm font-bold text-success">{{ user.get_status_display }}</span>
-                    </div>
-                </div>
+        <div style="display: flex; align-items: center; gap: 0.5rem; margin-top: 0.25rem;">
+          <a href="{% url 'dashboard_order_detail' order.id %}" class="rq-btn-auth-login" style="flex: 1; justify-content: center; padding: 0.5rem; font-size: 0.78rem;">
+            تفاصيل الطلب
+          </a>
+          <button type="button" onclick="markRead('{{ order.id }}', this)" class="rq-btn-auth-register" style="flex: 1; justify-content: center; padding: 0.5rem; font-size: 0.78rem;">
+            تم الاستلام ✓
+          </button>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+  {% endif %}
 
-                {% if not user.is_kyc_verified %}
-                    <div class="p-4 bg-amber-500/5 border border-amber-500/10 rounded-xl">
-                        <div class="flex items-center justify-between mb-2">
-                            <span class="text-xs font-bold text-amber-500">حالة التوثيق</span>
-                            <span class="badge warning text-[8px]">غير موثق</span>
-                        </div>
-                        <p class="text-[10px] text-slate-500 leading-relaxed mb-4">
-                            حسابك يعمل بحدود مالية أساسية. وثق حسابك لرفع حدود الإيداع والسحب اليومية.
-                        </p>
-                        {% if kyc_request %}
-                            <div class="flex flex-col gap-2">
-                                <div class="flex items-center gap-2 text-[10px] text-amber-400 font-bold">
-                                    <i class="fas fa-clock"></i>
-                                    طلب التوثيق {{ kyc_request.get_status_display }}
-                                </div>
-                                {% if kyc_request.status == 'rejected' %}
-                                    <a href="{% url 'site_kyc_request' %}" class="btn btn-sm btn-primary w-full text-[10px] py-2">إعادة تقديم الطلب</a>
-                                {% endif %}
-                            </div>
-                        {% else %}
-                            <a href="{% url 'site_kyc_request' %}" class="btn btn-sm btn-outline w-full text-[10px] py-2">بدء عملية التوثيق</a>
-                        {% endif %}
-                    </div>
+  <!-- ── 3. Wallet & Financial Hub Hero ── -->
+  <div class="rq-wallet-hero-card">
+    <div style="display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 1rem;">
+      <div style="display: flex; align-items: center; gap: 0.65rem;">
+        <i class="fas fa-wallet text-amber-400 text-xl"></i>
+        <span style="font-size: 0.85rem; font-weight: 800; color: #cbd5e1; text-transform: uppercase;">
+          محفظة الحساب الرقمية
+        </span>
+      </div>
+      <div style="display: flex; align-items: center; gap: 0.5rem;">
+        <span style="font-size: 0.75rem; color: var(--rq-text-muted);">العملة المعتمدة:</span>
+        <span style="font-size: 0.78rem; font-weight: 800; padding: 0.2rem 0.65rem; border-radius: var(--rq-radius-full); background: rgba(255, 255, 255, 0.08); color: #fff;">
+          {{ wallet.currency.code }} ({{ wallet.currency.symbol }})
+        </span>
+      </div>
+    </div>
+
+    <div class="rq-wallet-balance-row">
+      <div>
+        <span style="font-size: 0.78rem; color: var(--rq-text-muted); display: block; margin-bottom: 0.35rem;">الرصيد المتاح للاستخدام الفوري:</span>
+        <div class="rq-wallet-num tabular-nums">
+          {% format_price wallet.available_balance %}
+        </div>
+      </div>
+
+      {% if wallet.held_balance and wallet.held_balance > 0 %}
+      <div style="background: rgba(0, 0, 0, 0.35); border: 1px solid var(--rq-border); border-radius: var(--rq-radius-md); padding: 0.75rem 1.25rem;">
+        <span style="font-size: 0.72rem; color: var(--rq-text-muted); display: block;">رصيد معلق قيد التنفيذ:</span>
+        <span class="tabular-nums" style="font-size: 1.15rem; font-weight: 800; color: #f87171; font-family: monospace;">
+          {% format_price wallet.held_balance %}
+        </span>
+      </div>
+      {% endif %}
+    </div>
+
+    <div class="rq-wallet-quick-actions">
+      <a href="{% url 'dashboard_deposits' %}" class="rq-wallet-action-chip">
+        <i class="fas fa-arrow-down text-emerald-400"></i>
+        <span>إيداع رصيد</span>
+      </a>
+      <a href="{% url 'dashboard_withdrawals' %}" class="rq-wallet-action-chip">
+        <i class="fas fa-arrow-up text-amber-400"></i>
+        <span>طلب سحب</span>
+      </a>
+      <a href="{% url 'dashboard_recharge_wallet' %}" class="rq-wallet-action-chip">
+        <i class="fas fa-credit-card text-blue-400"></i>
+        <span>شحن بكرت</span>
+      </a>
+      <a href="{% url 'dashboard_transfer' %}" class="rq-wallet-action-chip">
+        <i class="fas fa-exchange-alt text-purple-400"></i>
+        <span>تحويل داخلي</span>
+      </a>
+      <a href="{% url 'dashboard_wallet' %}" class="rq-wallet-action-chip">
+        <i class="fas fa-list text-cyan-400"></i>
+        <span>كشف الحساب</span>
+      </a>
+    </div>
+  </div>
+
+  <!-- ── 4. Main 2-Column Dashboard Sections ── -->
+  <div style="display: grid; grid-template-columns: 1fr; gap: 2rem;" class="lg:grid-cols-[1fr_340px]">
+
+    <!-- Main Content Column: Recent Orders & Activity -->
+    <div style="display: flex; flex-direction: column; gap: 2rem;">
+
+      <!-- Recent Orders List -->
+      <div style="background: var(--rq-surface-card); border: 1px solid var(--rq-border); border-radius: var(--rq-radius-xl); padding: 1.75rem;">
+        <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.25rem;">
+          <div style="display: flex; align-items: center; gap: 0.65rem;">
+            <i class="fas fa-shopping-bag text-blue-400 text-lg"></i>
+            <h3 style="font-size: 1.05rem; font-weight: 900; color: #fff; margin: 0;">آخر الطلبات</h3>
+          </div>
+          <a href="{% url 'dashboard_orders' %}" class="rq-section-link">
+            <span>سجل الطلبات بالكامل</span>
+            <i class="fas fa-chevron-left text-xs"></i>
+          </a>
+        </div>
+
+        <div style="display: flex; flex-direction: column; gap: 0.85rem;">
+          {% for ord in orders %}
+          <div class="rq-order-card">
+            <div style="display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 0.75rem;">
+              <div style="display: flex; align-items: center; gap: 0.85rem;">
+                <div style="width: 44px; height: 44px; border-radius: 12px; background: rgba(0, 0, 0, 0.4); border: 1px solid var(--rq-border); display: flex; align-items: center; justify-content: center; font-size: 1.1rem; color: #60a5fa;">
+                  <i class="fas fa-cube"></i>
+                </div>
+                <div>
+                  <h5 style="font-size: 0.9rem; font-weight: 800; color: #fff; margin: 0 0 0.15rem;">
+                    {% with ord.items.first as item %}{{ item.variant.product.name|default:'خدمة متجر' }}{% endwith %}
+                  </h5>
+                  <span style="font-size: 0.72rem; color: var(--rq-text-muted); font-family: monospace;">#{{ ord.number }} • {{ ord.created_at|date:"Y-m-d H:i" }}</span>
+                </div>
+              </div>
+
+              <div style="display: flex; align-items: center; gap: 1rem;">
+                <span class="tabular-nums font-mono" style="font-size: 0.95rem; font-weight: 900; color: #fbbf24;">
+                  {% format_price ord.total_price %}
+                </span>
+
+                {% if ord.status == 'completed' %}
+                <span class="rq-status-pill rq-status-completed">مكتمل</span>
+                {% elif ord.status == 'processing' %}
+                <span class="rq-status-pill rq-status-processing">قيد المعالجة</span>
+                {% elif ord.status == 'pending' %}
+                <span class="rq-status-pill rq-status-pending">معلق</span>
                 {% else %}
-                    <div class="p-4 bg-emerald-500/5 border border-emerald-500/10 rounded-xl">
-                        <div class="flex items-center justify-between">
-                            <span class="text-xs font-bold text-emerald-500">حساب موثق</span>
-                            <i class="fas fa-check-circle text-emerald-500"></i>
-                        </div>
-                        <p class="text-[10px] text-slate-500 mt-2">لقد تم التحقق من هويتك بنجاح. تم رفع حدود حسابك.</p>
-                    </div>
+                <span class="rq-status-pill rq-status-cancelled">{{ ord.get_status_display }}</span>
                 {% endif %}
 
-                <div class="flex items-center justify-between p-3 bg-slate-800/30 rounded-lg">
-                    <span class="text-sm text-muted">ديون معلقة</span>
-                    <span class="text-sm font-bold {% if wallet.debt_balance > 0 %}text-rose-500{% else %}text-slate-500{% endif %}">{% currency_format wallet.debt_balance wallet.currency %}</span>
-                </div>
-                <div class="flex items-center justify-between p-3 bg-slate-800/30 rounded-lg">
-                    <span class="text-sm text-muted">الفئة</span>
-                    <span class="text-sm font-bold text-amber-400">{{ user.get_tier_display }}</span>
-                </div>
-
-                <!-- Limits Section -->
-                <div class="p-4 bg-slate-800/20 border border-white/5 rounded-xl mt-4">
-                    <div class="flex justify-between items-center mb-3">
-                        <span class="text-xs font-bold text-slate-300">حدود الحساب (USD)</span>
-                        {% if user.has_custom_limits %}
-                            <span class="badge primary text-[8px]">حدود مخصصة</span>
-                        {% else %}
-                            <span class="text-[8px] text-slate-500">حدود افتراضية</span>
-                        {% endif %}
-                    </div>
-                    <div class="stack gap-3">
-                        <div class="flex justify-between text-xs">
-                            <span class="text-slate-500">الإيداع اليومي:</span>
-                            <span class="text-white font-mono">{{ user.daily_deposit_limit|floatformat:2 }}</span>
-                        </div>
-                        <div class="flex justify-between text-xs">
-                            <span class="text-slate-500">المتبقي للإيداع:</span>
-                            <span class="text-emerald-400 font-bold font-mono">{{ user.remaining_deposit_limit|floatformat:2 }}</span>
-                        </div>
-                        <div class="h-px bg-white/5 my-1"></div>
-                        <div class="flex justify-between text-xs">
-                            <span class="text-slate-500">السحب اليومي:</span>
-                            <span class="text-white font-mono">{{ user.daily_withdrawal_limit|floatformat:2 }}</span>
-                        </div>
-                        <div class="flex justify-between text-xs">
-                            <span class="text-slate-500">المتبقي للسحب:</span>
-                            <span class="text-emerald-400 font-bold font-mono">{{ user.remaining_withdrawal_limit|floatformat:2 }}</span>
-                        </div>
-                    </div>
-                    <p class="text-[9px] text-slate-600 mt-3 leading-tight">
-                        * يتم حساب الحدود بناءً على القيمة المعادلة بالدولار (USD).
-                    </p>
-                </div>
-
-                <div class="flex items-center justify-between p-3 bg-slate-800/30 rounded-lg">
-                    <span class="text-sm text-muted">عضو منذ</span>
-                    <span class="text-sm font-bold">{{ user.date_joined|date:"M Y" }}</span>
-                </div>
+                <a href="{% url 'dashboard_order_detail' ord.id %}" class="rq-card-buy-btn" style="padding: 0.4rem 0.85rem; font-size: 0.75rem;">
+                  <span>عرض</span>
+                </a>
+              </div>
             </div>
+          </div>
+          {% empty %}
+          <div style="padding: 3rem 1.5rem; text-align: center; background: rgba(0, 0, 0, 0.2); border-radius: var(--rq-radius-lg); border: 1px dashed var(--rq-border);">
+            <i class="fas fa-box-open text-3xl text-slate-600 mb-2 block"></i>
+            <span style="font-size: 0.85rem; color: var(--rq-text-muted);">لا توجد طلبات سابقة حتى الآن.</span>
+            <div style="margin-top: 1rem;">
+              <a href="{% url 'catalog' %}" class="rq-btn-auth-register" style="padding: 0.55rem 1.25rem; font-size: 0.8rem;">
+                تصفح الكتالوج والطلب الآن
+              </a>
+            </div>
+          </div>
+          {% endfor %}
+        </div>
+      </div>
+
+      <!-- Financial Operations (Deposits & Withdrawals) -->
+      {% if not is_tenant %}
+      <div style="display: grid; grid-template-columns: 1fr; gap: 1.5rem;" class="md:grid-cols-2">
+        
+        <!-- Deposits Column -->
+        <div style="background: var(--rq-surface-card); border: 1px solid var(--rq-border); border-radius: var(--rq-radius-xl); padding: 1.5rem;">
+          <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 1rem;">
+            <h4 style="font-size: 0.95rem; font-weight: 800; color: #fff; margin: 0; display: flex; align-items: center; gap: 0.45rem;">
+              <i class="fas fa-arrow-down text-emerald-400 text-sm"></i>
+              <span>آخر عمليات الإيداع</span>
+            </h4>
+            <a href="{% url 'dashboard_deposits' %}" style="font-size: 0.72rem; color: var(--rq-primary-light);">سجل الإيداع</a>
+          </div>
+
+          <div style="display: flex; flex-direction: column; gap: 0.5rem;">
+            {% for dep in recent_deposits %}
+            <div style="display: flex; align-items: center; justify-content: space-between; padding: 0.65rem 0.85rem; background: rgba(0, 0, 0, 0.25); border-radius: var(--rq-radius-sm); border: 1px solid var(--rq-border); font-size: 0.78rem;">
+              <div>
+                <strong style="color: #fff; display: block;">{{ dep.payment_method.name|default:'إيداع' }}</strong>
+                <span style="font-size: 0.68rem; color: var(--rq-text-muted);">{{ dep.created_at|date:"Y-m-d" }}</span>
+              </div>
+              <div style="text-align: left;">
+                <span class="tabular-nums font-mono" style="font-weight: 800; color: #34d399;">+{% format_price dep.amount %}</span>
+                <div><span class="rq-status-pill rq-status-{{ dep.status }}" style="font-size: 0.65rem; padding: 0.15rem 0.45rem;">{{ dep.get_status_display }}</span></div>
+              </div>
+            </div>
+            {% empty %}
+            <span style="font-size: 0.75rem; color: var(--rq-text-dim); text-align: center; padding: 1rem 0; display: block;">لا توجد إيداعات سابقة.</span>
+            {% endfor %}
+          </div>
         </div>
 
-        <!-- Security Quick Settings -->
-        <div class="panel p-6 border-cyan/20">
-            <h2 class="text-lg mb-4 text-cyan"><i class="fas fa-shield-alt ml-2"></i> الأمن والحماية</h2>
-            <div class="stack gap-3">
-                <a href="{% url 'site_security_triggers' %}" class="flex items-center justify-between p-3 bg-slate-800/30 rounded-lg hover:bg-cyan/5 transition-colors">
-                    <div class="flex items-center gap-3">
-                        <i class="fas fa-toggle-on text-cyan"></i>
-                        <span class="text-sm">مشغلات الأمان</span>
-                    </div>
-                    <i class="fas fa-chevron-left text-[10px] text-slate-600"></i>
-                </a>
-                <a href="{% url 'site_2fa_setup' %}" class="flex items-center justify-between p-3 bg-slate-800/30 rounded-lg hover:bg-cyan/5 transition-colors">
-                    <div class="flex items-center gap-3">
-                        <i class="fas fa-key text-cyan"></i>
-                        <span class="text-sm">المصادقة الثنائية (2FA)</span>
-                    </div>
-                    {% if user.totp_enabled %}
-                    <span class="text-[8px] text-emerald-500 font-bold bg-emerald-500/10 px-2 py-1 rounded">مفعل</span>
-                    {% else %}
-                    <span class="text-[8px] text-slate-500 bg-slate-500/10 px-2 py-1 rounded">معطل</span>
-                    {% endif %}
-                </a>
-                <a href="{% url 'change_password' %}" class="flex items-center justify-between p-3 bg-slate-800/30 rounded-lg hover:bg-cyan/5 transition-colors">
-                   <div class="flex items-center gap-3">
-                       <i class="fas fa-lock text-cyan"></i>
-                       <span class="text-sm">{% if user.has_usable_password %}تغيير كلمة المرور{% else %}تعيين كلمة المرور{% endif %}</span>
-                   </div>
-                   <i class="fas fa-chevron-left text-[10px] text-slate-600"></i>
-                </a>
-                <a href="{% url 'change_email' %}" class="flex items-center justify-between p-3 bg-slate-800/30 rounded-lg hover:bg-cyan/5 transition-colors">
-                   <div class="flex items-center gap-3">
-                       <i class="fas fa-envelope text-cyan"></i>
-                       <span class="text-sm">تغيير البريد الإلكتروني</span>
-                   </div>
-                   <i class="fas fa-chevron-left text-[10px] text-slate-600"></i>
-                </a>
+        <!-- Withdrawals Column -->
+        <div style="background: var(--rq-surface-card); border: 1px solid var(--rq-border); border-radius: var(--rq-radius-xl); padding: 1.5rem;">
+          <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 1rem;">
+            <h4 style="font-size: 0.95rem; font-weight: 800; color: #fff; margin: 0; display: flex; align-items: center; gap: 0.45rem;">
+              <i class="fas fa-arrow-up text-amber-400 text-sm"></i>
+              <span>آخر طلبات السحب</span>
+            </h4>
+            <a href="{% url 'dashboard_withdrawals' %}" style="font-size: 0.72rem; color: var(--rq-primary-light);">سجل السحب</a>
+          </div>
 
+          <div style="display: flex; flex-direction: column; gap: 0.5rem;">
+            {% for wd in recent_withdrawals %}
+            <div style="display: flex; align-items: center; justify-content: space-between; padding: 0.65rem 0.85rem; background: rgba(0, 0, 0, 0.25); border-radius: var(--rq-radius-sm); border: 1px solid var(--rq-border); font-size: 0.78rem;">
+              <div>
+                <strong style="color: #fff; display: block;">{{ wd.payout_method.name|default:'سحب رصيد' }}</strong>
+                <span style="font-size: 0.68rem; color: var(--rq-text-muted);">{{ wd.created_at|date:"Y-m-d" }}</span>
+              </div>
+              <div style="text-align: left;">
+                <span class="tabular-nums font-mono" style="font-weight: 800; color: #f87171;">-{% format_price wd.amount %}</span>
+                <div><span class="rq-status-pill rq-status-{{ wd.status }}" style="font-size: 0.65rem; padding: 0.15rem 0.45rem;">{{ wd.get_status_display }}</span></div>
+              </div>
             </div>
+            {% empty %}
+            <span style="font-size: 0.75rem; color: var(--rq-text-dim); text-align: center; padding: 1rem 0; display: block;">لا توجد سحوبات سابقة.</span>
+            {% endfor %}
+          </div>
         </div>
 
-        <!-- Notifications Card -->
-        <div class="panel stack">
-            <div class="section-head p-6 pb-0">
-                <h2 class="text-lg">تنبيهات هامة</h2>
-                <i class="fas fa-bell text-slate-600"></i>
-            </div>
-            <div class="p-4 stack gap-2">
-                {% for n in notifications %}
-                <div class="p-3 border-b border-white/5 last:border-0 hover:bg-white/5 rounded transition-colors cursor-pointer">
-                    <h4 class="text-sm font-bold mb-1">{{ n.title }}</h4>
-                    <p class="text-xs text-muted line-clamp-2">{{ n.body }}</p>
-                    <span class="text-[10px] text-slate-500 mt-2 block">{{ n.created_at|timesince }}</span>
-                </div>
-                {% empty %}
-                <div class="p-6 text-center">
-                    <p class="text-xs text-muted italic">لا توجد تنبيهات جديدة</p>
-                </div>
-                {% endfor %}
-            </div>
-        </div>
+      </div>
+      {% endif %}
+
     </div>
+
+    <!-- Sidebar Column: Security, KYC & Account Info -->
+    <div style="display: flex; flex-direction: column; gap: 1.5rem;">
+
+      <!-- Account Security Box -->
+      <div style="background: var(--rq-surface-card); border: 1px solid var(--rq-border); border-radius: var(--rq-radius-xl); padding: 1.5rem;">
+        <h4 style="font-size: 0.92rem; font-weight: 800; color: #fff; margin: 0 0 1rem; display: flex; align-items: center; gap: 0.5rem;">
+          <i class="fas fa-shield-check text-blue-400"></i>
+          <span>أمان الحساب والتوثيق</span>
+        </h4>
+
+        <div style="display: flex; flex-direction: column; gap: 0.65rem;">
+          <a href="{% url 'change_password' %}" style="display: flex; align-items: center; justify-content: space-between; padding: 0.65rem 0.85rem; border-radius: var(--rq-radius-md); background: rgba(0, 0, 0, 0.25); border: 1px solid var(--rq-border); color: #cbd5e1; font-size: 0.8rem; text-decoration: none;">
+            <span style="display: flex; align-items: center; gap: 0.5rem;"><i class="fas fa-lock text-xs"></i> تغيير كلمة المرور</span>
+            <i class="fas fa-chevron-left text-[10px]"></i>
+          </a>
+
+          <a href="{% url 'site_2fa_setup' %}" style="display: flex; align-items: center; justify-content: space-between; padding: 0.65rem 0.85rem; border-radius: var(--rq-radius-md); background: rgba(0, 0, 0, 0.25); border: 1px solid var(--rq-border); color: #cbd5e1; font-size: 0.8rem; text-decoration: none;">
+            <span style="display: flex; align-items: center; gap: 0.5rem;"><i class="fas fa-mobile-alt text-xs"></i> التحقق بخطوتين (2FA)</span>
+            <i class="fas fa-chevron-left text-[10px]"></i>
+          </a>
+
+          {% if not is_tenant %}
+          <a href="{% url 'site_kyc_request' %}" style="display: flex; align-items: center; justify-content: space-between; padding: 0.65rem 0.85rem; border-radius: var(--rq-radius-md); background: rgba(0, 0, 0, 0.25); border: 1px solid var(--rq-border); color: #cbd5e1; font-size: 0.8rem; text-decoration: none;">
+            <span style="display: flex; align-items: center; gap: 0.5rem;"><i class="fas fa-id-card text-xs"></i> توثيق الهوية (KYC)</span>
+            {% if kyc_request and kyc_request.status == 'approved' %}
+            <span style="color: #34d399; font-size: 0.7rem; font-weight: 800;">موثق ✓</span>
+            {% else %}
+            <i class="fas fa-chevron-left text-[10px]"></i>
+            {% endif %}
+          </a>
+          {% endif %}
+        </div>
+      </div>
+
+      <!-- Quick Support Box -->
+      <div style="background: rgba(37, 99, 235, 0.08); border: 1px solid rgba(59, 130, 246, 0.25); border-radius: var(--rq-radius-xl); padding: 1.5rem; text-align: center;">
+        <i class="fas fa-headset text-blue-400 text-3xl mb-2 block"></i>
+        <h5 style="font-size: 0.95rem; font-weight: 800; color: #fff; margin: 0 0 0.35rem;">تحتاج إلى مساعدة؟</h5>
+        <p style="font-size: 0.78rem; color: var(--rq-text-muted); margin: 0 0 1rem; line-height: 1.5;">فريق دعم رقميات جاهز للرد على استفساراتك وتنفيذ طلباتك على مدار الساعة.</p>
+        <a href="{% url 'contact' %}" class="rq-btn-auth-register" style="width: 100%; justify-content: center; padding: 0.6rem; font-size: 0.8rem;">
+          تواصل مع الدعم الفني
+        </a>
+      </div>
+
+    </div>
+
+  </div>
+
 </div>
 
-{% block extra_js %}
 <script>
-function copyToClipboard(text, btn) {
-    navigator.clipboard.writeText(text).then(() => {
-        const icon = btn.querySelector('i');
-        const originalClass = icon.className;
-        icon.className = 'fas fa-check text-emerald-500';
-        setTimeout(() => {
-            icon.className = originalClass;
-        }, 2000);
-    });
-}
-
 function markRead(orderId, btn) {
-    btn.disabled = true;
-    fetch(`/api/orders/${orderId}/mark-read/`, {
-        method: 'POST',
-        headers: {
-            'X-CSRFToken': '{{ csrf_token }}',
-            'Content-Type': 'application/json'
-        }
-    }).then(res => {
-        if(res.ok) {
-            const card = btn.closest('.delivery-card');
-            if (card) {
-                card.style.transition = 'opacity 0.3s ease, transform 0.3s ease';
-                card.style.opacity = '0';
-                card.style.transform = 'scale(0.9)';
-                setTimeout(() => {
-                    card.remove();
-                    const section = document.getElementById('digital-deliveries-section');
-                    if (section && section.querySelectorAll('.delivery-card').length === 0) {
-                        section.remove();
-                    }
-                }, 300);
-            }
-        } else {
-            btn.disabled = false;
-        }
-    }).catch(() => {
-        btn.disabled = false;
-    });
+  btn.disabled = true;
+  btn.innerText = 'جارٍ الحفظ...';
+
+  fetch(`/api/orders/${orderId}/mark-read/`, {
+    method: 'POST',
+    headers: {
+      'X-CSRFToken': '{{ csrf_token }}',
+      'Content-Type': 'application/json'
+    }
+  })
+  .then(res => res.json())
+  .then(data => {
+    if (data.success) {
+      btn.innerText = 'تم الاستلام ✓';
+      btn.style.background = '#059669';
+      setTimeout(() => {
+        window.location.reload();
+      }, 800);
+    } else {
+      btn.innerText = 'تم الاستلام';
+      btn.disabled = false;
+    }
+  })
+  .catch(() => {
+    btn.innerText = 'تم الاستلام';
+    btn.disabled = false;
+  });
 }
 </script>
-{% endblock %}
 {% endblock %}

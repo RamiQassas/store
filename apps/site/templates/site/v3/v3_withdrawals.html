@@ -1,555 +1,263 @@
 {% extends "site/base.html" %}
 {% load static site_tags %}
 
-{% block title %}سحب رصيد | Raqamiyat{% endblock %}
-
-{% block extra_head %}
-<style>
-    .withdrawal-wrapper { max-width: 800px; margin: 0 auto; }
-    
-    /* Step Indicators */
-    .step-indicator { display: flex; justify-content: space-between; margin-bottom: 3rem; position: relative; }
-    .step-indicator::before { content: ""; position: absolute; top: 20px; left: 0; right: 0; height: 2px; background: rgba(255,255,255,0.05); z-index: 1; }
-    .step-dot { 
-        width: 42px; height: 42px; border-radius: 50%; background: var(--panel); border: 2px solid var(--panel-border);
-        display: flex; align-items: center; justify-content: center; font-weight: 900; font-size: 14px;
-        position: relative; z-index: 2; transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1); color: var(--muted);
-    }
-    .step-item { flex: 1; display: flex; flex-direction: column; align-items: center; position: relative; }
-    .step-item.active .step-dot { background: var(--cyan); border-color: var(--cyan); color: #000; box-shadow: 0 0 20px rgba(6, 182, 212, 0.4); }
-    .step-item.completed .step-dot { background: var(--success); border-color: var(--success); color: #fff; }
-    .step-label { font-size: 10px; font-weight: 800; text-transform: uppercase; margin-top: 10px; display: block; color: var(--muted); text-align: center; }
-    .step-item.active .step-label { color: var(--cyan); }
-
-    /* Method Cards */
-    .method-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 1.25rem; }
-    .method-card { 
-        padding: 1.5rem; cursor: pointer; border: 1px solid var(--panel-border); 
-        transition: all 0.3s; border-radius: 24px; text-align: center; background: var(--panel);
-        display: flex; flex-direction: column; align-items: center; gap: 1rem;
-    }
-    .method-card:hover { border-color: rgba(6, 182, 212, 0.3); transform: translateY(-5px); background: rgba(255,255,255,0.02); }
-    .method-card.selected { border-color: var(--cyan); background: rgba(6, 182, 212, 0.05); box-shadow: 0 15px 35px -5px rgba(6, 182, 212, 0.2); }
-    .method-logo { width: 48px; height: 48px; object-fit: contain; }
-
-    /* Step Animation */
-    .step-box { display: none; }
-    .step-box.active { display: block; animation: slideUp 0.4s ease-out; }
-    @keyframes slideUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
-
-    /* Info & Fields */
-    .info-panel { background: rgba(255,255,255,0.02); border-radius: 20px; border: 1px solid var(--panel-border); overflow: hidden; }
-    .info-row { display: flex; justify-content: space-between; align-items: center; padding: 1.25rem 1.5rem; border-bottom: 1px solid rgba(255,255,255,0.05); }
-    .info-row:last-child { border-bottom: none; }
-    .info-row span { color: var(--muted); font-size: 12px; font-weight: 600; }
-    .info-row strong { color: var(--text); font-size: 14px; font-family: monospace; }
-    
-    /* Validation Errors */
-    .error-hint { font-size: 11px; color: var(--danger); font-weight: 700; margin-top: 6px; display: none; }
-    .field-group.has-error .builder-input { border-color: var(--danger); box-shadow: 0 0 0 4px rgba(239, 68, 68, 0.1); }
-    .field-group.has-error .error-hint { display: block; }
-
-    /* Amount input styling fixes */
-    #amount-group .relative {
-        position: relative;
-        width: 100%;
-        margin-top: 8px;
-    }
-    #input-amount {
-        height: 70px !important;
-        padding-left: 75px !important;
-        padding-right: 20px !important;
-        font-size: 1.75rem !important;
-        font-weight: 900 !important;
-        background: var(--bg-soft) !important;
-        border: 1px solid var(--panel-border) !important;
-        border-radius: var(--radius) !important;
-        color: var(--text) !important;
-        width: 100% !important;
-        display: block !important;
-    }
-    #currency-code-display {
-        position: absolute !important;
-        left: 20px !important;
-        top: 50% !important;
-        transform: translateY(-50%) !important;
-        font-size: 1.25rem !important;
-        font-weight: 900 !important;
-        color: var(--muted) !important;
-        pointer-events: none !important;
-        z-index: 10 !important;
-    }
-</style>
-{% endblock %}
+{% block title %}طلب سحب رصيد | {% if is_tenant %}{{ STORE_NAME }}{% else %}رقميات RAQAMIYAT{% endif %}{% endblock %}
 
 {% block content %}
-<div class="page-head text-center">
-    <span class="eyebrow">Payout Services</span>
-    <h1>سحب رصيد من المحفظة</h1>
-    <p class="text-muted">قم بسحب رصيدك المتاح إلى حساباتك المعتمدة بسهولة وأمان.</p>
-</div>
+<div class="rq-dash-container" style="max-width: 960px;">
 
-<div class="withdrawal-wrapper py-10">
-    <!-- Daily Limits Banner -->
-    <div class="panel p-6 bg-slate-900/40 border-white/5 rounded-3xl mb-10 flex flex-wrap items-center justify-between gap-6 relative overflow-hidden">
-        <div class="absolute top-0 right-0 p-4 opacity-5 pointer-events-none"><i class="fas fa-chart-line text-6xl"></i></div>
-        <div class="flex items-center gap-4">
-            <div class="w-12 h-12 bg-rose-500/10 rounded-2xl flex items-center justify-center text-rose-500">
-                <i class="fas fa-history"></i>
+  <!-- ── 1. Breadcrumbs & Header ── -->
+  <div style="margin-bottom: 2rem; border-bottom: 1px solid var(--rq-border); padding-bottom: 1.5rem;">
+    <nav style="display: flex; align-items: center; gap: 0.5rem; font-size: 0.8rem; color: var(--rq-text-muted); margin-bottom: 0.85rem;">
+      <a href="{% url 'home' %}" style="display: flex; align-items: center; gap: 0.35rem; color: var(--rq-text-muted);">
+        <i class="fas fa-home text-xs"></i>
+        <span>الرئيسية</span>
+      </a>
+      <i class="fas fa-chevron-left text-[10px] text-slate-600"></i>
+      <a href="{% url 'dashboard' %}" style="color: var(--rq-text-muted);">لوحة التحكم</a>
+      <i class="fas fa-chevron-left text-[10px] text-slate-600"></i>
+      <a href="{% url 'dashboard_wallet' %}" style="color: var(--rq-text-muted);">المحفظة</a>
+      <i class="fas fa-chevron-left text-[10px] text-slate-600"></i>
+      <span style="color: #fff; font-weight: 800;">سحب رصيد</span>
+    </nav>
+
+    <div style="display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 1rem;">
+      <div>
+        <h1 style="font-size: clamp(1.4rem, 2.8vw, 2rem); font-weight: 900; color: #fff; margin: 0 0 0.35rem;">
+          طلب سحب وتحويل الأرباح
+        </h1>
+        <p style="font-size: 0.85rem; color: var(--rq-text-muted); margin: 0;">
+          تحويل رصيدك المتاح إلى حسابك البنكي، محفظة شام كاش، أو العملات الرقمية بكل أمان وسرعة.
+        </p>
+      </div>
+
+      <div style="display: flex; align-items: center; gap: 0.75rem;">
+        <div style="background: rgba(0, 0, 0, 0.35); border: 1px solid var(--rq-border); border-radius: var(--rq-radius-md); padding: 0.45rem 1rem;">
+          <span style="font-size: 0.7rem; color: var(--rq-text-muted); display: block;">الرصيد المتاح للسحب:</span>
+          <span class="tabular-nums font-mono" style="font-size: 1rem; font-weight: 900; color: #34d399;">
+            {% format_price user.wallet.available_balance %}
+          </span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── 2. Withdrawal Main Form ── -->
+  <div style="background: var(--rq-surface-card); border: 1px solid var(--rq-border); border-radius: var(--rq-radius-xl); padding: 2rem; box-shadow: var(--rq-shadow-lg); margin-bottom: 2.5rem;">
+    
+    <form method="post" id="withdrawal-form" action="{% url 'dashboard_withdrawals' %}">
+      {% csrf_token %}
+
+      <!-- Step 1: Select Method -->
+      <div style="margin-bottom: 2rem;">
+        <h3 style="font-size: 1rem; font-weight: 800; color: #fff; margin: 0 0 1rem; display: flex; align-items: center; gap: 0.5rem;">
+          <i class="fas fa-money-check text-amber-500"></i>
+          <span>1. اختر وسيلة استلام الحوالة:</span>
+        </h3>
+
+        <div class="rq-method-grid">
+          {% for m in payment_methods %}
+          <div class="rq-method-card {% if forloop.first %}selected{% endif %}"
+               data-method-id="{{ m.id }}"
+               data-method-name="{{ m.name|escape }}"
+               data-currency-id="{{ m.currency.id }}"
+               data-currency-code="{{ m.currency.code }}"
+               data-min="{{ m.min_withdrawal }}"
+               data-max="{{ m.max_withdrawal }}"
+               data-fee="{{ m.withdrawal_fee_percent }}"
+               onclick="selectWithdrawMethod(this)">
+            
+            {% if m.logo %}
+            <img src="{{ m.logo.url }}" alt="{{ m.name }}" class="rq-method-logo">
+            {% else %}
+            <div style="width: 48px; height: 48px; border-radius: 12px; background: rgba(245, 158, 11, 0.15); color: #fbbf24; display: flex; align-items: center; justify-content: center; font-size: 1.5rem;">
+              <i class="fas fa-hand-holding-usd"></i>
             </div>
+            {% endif %}
+
             <div>
-                <span class="text-[10px] text-slate-500 font-bold uppercase tracking-widest block">حد السحب اليومي المتبقي</span>
-                <strong class="text-xl font-black text-rose-500">{{ remaining_limit|convert_price:CURRENCY }} {{ CURRENCY.code }}</strong>
-                <span class="text-[9px] text-slate-600 block">من إجمالي: {{ daily_limit|convert_price:CURRENCY }} {{ CURRENCY.code }}</span>
+              <div style="font-size: 0.85rem; font-weight: 800; color: #fff;">{{ m.name }}</div>
+              <span style="font-size: 0.7rem; color: var(--rq-text-muted);">{{ m.currency.code }}</span>
             </div>
-        </div>
-        
-        {% if not user.is_kyc_verified %}
-        <div class="flex items-center gap-4 p-4 bg-amber-500/5 border border-amber-500/10 rounded-2xl max-w-sm">
-            <i class="fas fa-shield-alt text-amber-500"></i>
-            <p class="text-[10px] text-amber-200/70 leading-relaxed">
-                {% if kyc_request and kyc_request.status == 'pending' %}
-                <strong class="text-amber-400 block mb-0.5">طلب التوثيق قيد المراجعة</strong>
-                لقد استلمنا بياناتك وهي قيد التدقيق حالياً. سنقوم برفع حدودك فور الاعتماد.
-                {% else %}
-                <strong class="text-amber-400 block mb-0.5">هل تحتاج إلى حدود أعلى؟</strong>
-                التوثيق اختياري، ومطلوب فقط لزيادة حدود حسابك. <a href="{% url 'site_kyc_request' %}" class="text-amber-400 underline font-bold">وثق الآن</a>
-                {% endif %}
-            </p>
-        </div>
-        {% endif %}
-    </div>
-
-    <!-- Progress Indicator -->
-    <div class="step-indicator">
-        <div class="step-item active" id="dot-1">
-            <div class="step-dot">1</div>
-            <span class="step-label">الوسيلة</span>
-        </div>
-        <div class="step-item" id="dot-2">
-            <div class="step-dot">2</div>
-            <span class="step-label">البيانات</span>
-        </div>
-        <div class="step-item" id="dot-3">
-            <div class="step-dot">3</div>
-            <span class="step-label">تأكيد السحب</span>
-        </div>
-    </div>
-
-    <form method="post" enctype="multipart/form-data" id="main-withdrawal-form" class="stack gap-8" onsubmit="return validateFinal()">
-        {% csrf_token %}
-        
-        <!-- Step 1: Method & Currency -->
-        <div id="step-1" class="step-box active stack gap-8">
-            <div class="section-title">
-                <h3 class="text-xl font-black">اختر وسيلة الاستلام</h3>
-                <p class="text-xs text-muted">اختر الوسيلة التي ترغب باستلام أموالك من خلالها.</p>
-            </div>
-            
-            <div class="method-grid">
-                {% for m in payment_methods %}
-                <div class="method-card relative {% if m.requires_kyc and not user.is_kyc_verified %}opacity-60 kyc-restricted{% endif %}" 
-                     onclick="selectMethod('{{ m.id }}', this)" 
-                     id="card-{{ m.id }}"
-                     data-kyc="{{ m.requires_kyc|lower }}">
-
-                    {% if m.requires_kyc and not user.is_kyc_verified %}
-                    <div class="absolute top-3 right-3 w-6 h-6 bg-amber-500/20 text-amber-500 rounded-lg flex items-center justify-center text-[10px]" title="يتطلب توثيق الحساب">
-                        <i class="fas fa-lock"></i>
-                    </div>
-                    {% endif %}
-
-                    <div class="w-16 h-16 rounded-2xl bg-white/5 flex items-center justify-center mb-2">
-                        {% if m.logo %}<img src="{{ m.logo.url }}" class="method-logo">{% else %}<i class="fas fa-money-bill-transfer text-2xl opacity-20"></i>{% endif %}
-                    </div>
-                    <div class="font-bold text-sm">{{ m.name }}</div>
-                    <script type="application/json" id="data-{{ m.id }}">
-                        {% get_withdrawal_config m user %}
-                    </script>
-
-                </div>
-                {% endfor %}
-            </div>
-
-            <input type="hidden" name="payment_method" id="input-method-id">
-
-            <div class="field-group" id="currency-group">
-                <label>عملة الاستلام</label>
-                <select name="currency" id="input-currency" class="builder-input" onchange="updateLimits()">
-                    <option value="">اختر وسيلة السحب أولاً...</option>
-                </select>
-                <p class="error-hint">يرجى اختيار العملة.</p>
-            </div>
-
-            <button type="button" class="btn btn-primary w-full py-4 text-lg font-black" onclick="tryNext(2)" id="btn-to-2" disabled>المتابعة للخطوة التالية</button>
+          </div>
+          {% endfor %}
         </div>
 
-        <!-- Step 2: Withdrawal Details & Dynamic Fields -->
-        <div id="step-2" class="step-box stack gap-8">
-            <div class="section-title">
-                <h3 class="text-xl font-black">بيانات الاستلام</h3>
-                <p class="text-xs text-muted">يرجى تزويدنا بالبيانات الصحيحة لإرسال الأموال إليك.</p>
-            </div>
-            
-            <div id="static-info" class="info-panel stack"></div>
+        <input type="hidden" name="payment_method" id="selected-withdraw-method" value="{{ payment_methods.0.id }}">
+        <input type="hidden" name="currency" id="selected-withdraw-currency" value="{{ payment_methods.0.currency.id }}">
+      </div>
 
-            <div class="panel p-6 bg-cyan/5 border-cyan/10 rounded-3xl">
-                <div class="flex items-center gap-3 mb-3">
-                    <i class="fas fa-circle-info text-cyan"></i>
-                    <span class="text-xs font-black uppercase text-cyan">ملاحظات هامة</span>
-                </div>
-                <p class="text-sm text-slate-300 leading-relaxed" id="instr-text"></p>
-            </div>
+      <!-- Step 2: Amount -->
+      <div style="margin-bottom: 2rem;">
+        <h3 style="font-size: 1rem; font-weight: 800; color: #fff; margin: 0 0 1rem; display: flex; align-items: center; gap: 0.5rem;">
+          <i class="fas fa-calculator text-amber-500"></i>
+          <span>2. تحديد مبلغ السحب:</span>
+        </h3>
 
-            <div class="divider"></div>
-
-            <div id="dynamic-fields" class="stack gap-6"></div>
-
-            <div class="flex gap-4">
-                <button type="button" class="btn btn-outline flex-1 py-4" onclick="nextStep(1)">العودة</button>
-                <button type="button" class="btn btn-primary flex-1 py-4 font-black" onclick="tryNext(3)">المتابعة</button>
-            </div>
+        <div class="rq-form-group">
+          <label class="rq-label">
+            <span>المبلغ المراد سحبه:</span>
+            <span id="withdraw-limits-hint" style="font-size: 0.72rem; color: var(--rq-text-muted);"></span>
+          </label>
+          <div style="position: relative;">
+            <input type="number" step="any" name="amount" id="withdraw-amount-input" placeholder="0.00" class="rq-input" style="font-size: 1.25rem; font-weight: 900; font-family: monospace; padding-left: 4.5rem;" required oninput="calculateWithdrawFee()">
+            <span id="withdraw-currency-label" style="position: absolute; left: 1rem; top: 50%; transform: translateY(-50%); font-size: 0.85rem; font-weight: 800; color: #fbbf24; font-family: monospace;"></span>
+          </div>
         </div>
 
-        <!-- Step 3: Amount -->
-        <div id="step-3" class="step-box stack gap-8">
-            <div class="section-title">
-                <h3 class="text-xl font-black">المبلغ المطلوب</h3>
-                <p class="text-xs text-muted">حدد المبلغ الذي ترغب بسحبه من رصيدك المتاح.</p>
-            </div>
-            
-            <div class="field-group" id="amount-group">
-                <div class="flex justify-between items-center mb-2">
-                    <label>المبلغ المراد سحبه (بالعملة المختارة)</label>
-                    <button type="button" onclick="withdrawMax()" class="text-[10px] font-black text-cyan hover:text-white underline uppercase">سحب كامل الرصيد</button>
-                </div>
-                <div class="relative">
-                    <input type="number" name="amount" id="input-amount" step="0.01" class="builder-input text-2xl font-black h-20 px-8" placeholder="0.00" oninput="updateSummary()">
-                    <div class="absolute left-6 top-1/2 -translate-y-1/2 text-xl font-black text-slate-600" id="currency-code-display">---</div>
-                </div>
-                <div class="flex justify-between mt-3 px-2">
-                    <span class="text-[10px] text-muted font-bold" id="limits-hint">الحدود: ---</span>
-                    <span class="text-[10px] text-danger font-black uppercase hidden" id="limit-error">تجاوزت الحدود المسموحة!</span>
-                </div>
-                <p class="error-hint" id="amount-error-text">يرجى إدخال مبلغ صحيح ضمن الحدود.</p>
-            </div>
-
-            <div class="info-panel p-8 bg-slate-900/50 stack gap-4">
-                <h4 class="text-xs font-black text-muted uppercase tracking-widest border-b border-white/5 pb-4 mb-2">ملخص السحب</h4>
-                <div class="flex justify-between text-sm">
-                    <span class="text-slate-400">رسوم السحب (العمولة):</span>
-                    <strong id="sum-fee" class="text-danger">0.00</strong>
-                </div>
-                <div class="flex justify-between items-center pt-2">
-                    <span class="font-bold text-success text-lg">الصافي للاستلام:</span>
-                    <div class="text-right">
-                        <div id="sum-net" class="text-2xl font-black text-success">0.00</div>
-                        <div class="text-[10px] text-muted mt-1">سيتم خصم المبلغ الإجمالي من محفظتك فوراً</div>
-                    </div>
-                </div>
-            </div>
-
-            <div class="flex gap-4">
-                <button type="button" class="btn btn-outline flex-1 py-4" onclick="nextStep(2)">العودة</button>
-                <button type="submit" class="btn btn-primary flex-1 py-4 text-lg font-black shadow-cyan">تأكيد وطلب السحب</button>
-            </div>
+        <div style="background: rgba(0, 0, 0, 0.25); border-radius: var(--rq-radius-md); border: 1px solid var(--rq-border); padding: 1rem;">
+          <div style="display: flex; justify-content: space-between; font-size: 0.82rem; color: var(--rq-text-muted); margin-bottom: 0.35rem;">
+            <span>رسوم المعالجة والتحويل:</span>
+            <span id="withdraw-fee-text" class="tabular-nums font-mono" style="color: #fff;">0.00</span>
+          </div>
+          <div style="display: flex; justify-content: space-between; font-size: 0.95rem; font-weight: 900; color: #fff; padding-top: 0.5rem; border-top: 1px solid var(--rq-border);">
+            <span>المبلغ الصافي المتوقع استلامه:</span>
+            <span id="withdraw-net-text" class="tabular-nums font-mono" style="color: #fbbf24; font-size: 1.15rem;">0.00</span>
+          </div>
         </div>
+      </div>
+
+      <!-- Step 3: Destination Account Details -->
+      <div style="margin-bottom: 2rem;">
+        <h3 style="font-size: 1rem; font-weight: 800; color: #fff; margin: 0 0 1rem; display: flex; align-items: center; gap: 0.5rem;">
+          <i class="fas fa-user-tag text-amber-500"></i>
+          <span>3. بيانات الحساب أو المحفظة المستلمة:</span>
+        </h3>
+
+        <div class="rq-form-group">
+          <label class="rq-label">رقم الحساب / الآيبان / عنوان المحفظة / رقم الهاتف المستلم:</label>
+          <input type="text" name="custom_destination_account" class="rq-input" placeholder="أدخل رقم الحساب أو المحفظة بدقة تامة..." required>
+          <span class="rq-hint">تأكد من صحة البيانات لتفادي تأخر أو تعليق الحوالة.</span>
+        </div>
+
+        <div class="rq-form-group">
+          <label class="rq-label">الاسم الكامل لصاحب الحساب المستلم:</label>
+          <input type="text" name="custom_account_holder_name" class="rq-input" placeholder="الاسم المطابق لبيانات الحساب البنكي أو المحفظة..." required>
+        </div>
+      </div>
+
+      <!-- Submit Button -->
+      <div style="text-align: left;">
+        <button type="submit" class="rq-pdp-buy-now" style="width: auto; padding: 0.85rem 2.5rem; font-size: 0.95rem; background: linear-gradient(135deg, #d97706 0%, #b45309 100%); border-color: rgba(245, 158, 11, 0.4); box-shadow: 0 10px 25px rgba(217, 119, 6, 0.35);">
+          <i class="fas fa-paper-plane"></i>
+          <span>إرسال طلب السحب</span>
+        </button>
+      </div>
+
     </form>
+  </div>
 
-    <!-- Withdrawal History -->
-    <div class="mt-20">
-        <div class="section-head mb-6">
-            <h2 class="text-xl font-black text-white flex items-center gap-3">
-                <i class="fas fa-clock-rotate-left text-cyan"></i> سجل طلبات السحب
-            </h2>
-        </div>
-        
-        <div class="stack gap-4">
-            {% for r in requests %}
-            <div class="panel p-6 bg-slate-900/30 border-white/5 hover:border-white/10 transition-all">
-                <div class="flex flex-wrap justify-between items-start gap-4">
-                    <div class="flex gap-4">
-                        <div class="w-12 h-12 rounded-2xl bg-white/5 flex items-center justify-center text-slate-500 flex-shrink-0">
-                            <i class="fas fa-arrow-down-long"></i>
-                        </div>
-                        <div>
-                            <div class="flex items-center gap-3 mb-1">
-                                <strong class="text-lg font-black text-white">{{ r.amount|floatformat:2 }} {{ r.currency.code }}</strong>
-                                <span class="badge {% if r.status == 'completed' %}success{% elif r.status == 'rejected' or r.status == 'cancelled' %}danger{% else %}warning{% endif %} text-[10px]">
-                                    {{ r.get_status_display }}
-                                </span>
-                            </div>
-                            <div class="text-[10px] text-slate-500 font-bold uppercase tracking-widest mb-3">
-                                عبر {{ r.payment_method.name }} • {{ r.created_at|date:"d M Y, H:i" }} • مرجع: <span class="font-mono text-cyan">{{ r.transaction_id }}</span>
-                            </div>
+  <!-- ── 4. Previous Withdrawal Requests Table ── -->
+  <div style="background: var(--rq-surface-card); border: 1px solid var(--rq-border); border-radius: var(--rq-radius-xl); padding: 1.75rem;">
+    <h3 style="font-size: 1.05rem; font-weight: 900; color: #fff; margin: 0 0 1.25rem; display: flex; align-items: center; gap: 0.5rem;">
+      <i class="fas fa-history text-amber-400"></i>
+      <span>سجل طلبات السحب السابقة</span>
+    </h3>
 
-                            <!-- Dynamic Payout Details -->
-                            {% if r.formatted_payout_details %}
-                            <div class="flex flex-wrap gap-4 mt-4 p-4 bg-white/5 rounded-2xl border border-white/5">
-                                {% for item in r.formatted_payout_details %}
-                                <div class="stack gap-1">
-                                    <span class="text-[9px] text-slate-500 font-black uppercase tracking-tighter">{{ item.label }}</span>
-                                    {% if item.type == 'image' and item.value %}
-                                    <div class="w-16 h-16 rounded-lg overflow-hidden border border-white/10 cursor-zoom-in hover:scale-105 transition-transform" onclick="window.open('{{ item.value }}')">
-                                        <img src="{{ item.value }}" class="w-full h-full object-cover">
-                                    </div>
-                                    {% else %}
-                                    <span class="text-xs font-bold text-slate-300">{{ item.value }}</span>
-                                    {% endif %}
-                                </div>
-                                {% endfor %}
-                            </div>
-                            {% endif %}
-                        </div>
-                    </div>
-                    
-                    <div class="flex flex-wrap gap-2">
-                        {% if r.proof_image %}
-                        <button onclick="window.open('{{ r.proof_image.url }}')" class="btn btn-sm btn-outline py-2 px-4 rounded-xl text-[10px] font-bold">
-                            <i class="fas fa-image ml-2"></i> عرض الوصل
-                        </button>
-                        {% endif %}
-                        {% if r.proof_file %}
-                        <a href="{{ r.proof_file.url }}" target="_blank" class="btn btn-sm btn-outline py-2 px-4 rounded-xl text-[10px] font-bold border-rose-500/20 text-rose-400">
-                            <i class="fas fa-file-pdf ml-2"></i> تحميل الإثبات (PDF)
-                        </a>
-                        {% endif %}
-                    </div>
-                </div>
-
-                {% if r.admin_note %}
-                <div class="mt-4 p-4 bg-white/[0.02] rounded-xl border border-white/5">
-                    <span class="text-[9px] text-slate-600 font-black uppercase block mb-1">ملاحظة الإدارة:</span>
-                    <p class="text-xs text-slate-400">{{ r.admin_note }}</p>
-                </div>
-                {% endif %}
-            </div>
-            {% empty %}
-            <div class="p-20 text-center bg-slate-900/20 rounded-[2.5rem] border border-dashed border-white/5">
-                <div class="w-16 h-16 bg-slate-900 rounded-full flex items-center justify-center mx-auto mb-4 opacity-20">
-                    <i class="fas fa-history text-2xl"></i>
-                </div>
-                <p class="text-slate-500 font-bold italic">لا توجد طلبات سحب سابقة.</p>
-            </div>
-            {% endfor %}
-        </div>
+    <div style="overflow-x: auto;">
+      <table style="width: 100%; border-collapse: collapse; text-align: right; font-size: 0.85rem;">
+        <thead>
+          <tr style="border-bottom: 1.5px solid var(--rq-border); color: var(--rq-text-muted); font-size: 0.78rem;">
+            <th style="padding: 0.75rem 1rem;">التاريخ</th>
+            <th style="padding: 0.75rem 1rem;">الوسيلة</th>
+            <th style="padding: 0.75rem 1rem;">المبلغ المطلوب</th>
+            <th style="padding: 0.75rem 1rem;">المخصوم من المحفظة</th>
+            <th style="padding: 0.75rem 1rem;">الحالة</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for req in requests %}
+          <tr style="border-bottom: 1px solid rgba(255, 255, 255, 0.05);">
+            <td style="padding: 0.85rem 1rem; color: var(--rq-text-muted); font-size: 0.78rem; white-space: nowrap;">
+              {{ req.created_at|date:"Y-m-d H:i" }}
+            </td>
+            <td style="padding: 0.85rem 1rem; font-weight: 700; color: #fff;">
+              {{ req.payment_method.name }}
+            </td>
+            <td style="padding: 0.85rem 1rem; font-family: monospace; font-weight: 800; color: #cbd5e1;">
+              {{ req.amount }} {{ req.currency.code }}
+            </td>
+            <td style="padding: 0.85rem 1rem; font-family: monospace; font-weight: 900; color: #f87171;">
+              {% if req.wallet_amount %}-{% format_price req.wallet_amount %}{% else %}-{% endif %}
+            </td>
+            <td style="padding: 0.85rem 1rem;">
+              {% if req.status == 'completed' %}
+              <span class="rq-status-pill rq-status-completed">تم التحويل بنجاح ✓</span>
+              {% elif req.status == 'pending' %}
+              <span class="rq-status-pill rq-status-pending">قيد المعالجة</span>
+              {% elif req.status == 'rejected' %}
+              <span class="rq-status-pill rq-status-cancelled">مرفوض</span>
+              {% else %}
+              <span class="rq-status-pill rq-status-processing">{{ req.get_status_display }}</span>
+              {% endif %}
+            </td>
+          </tr>
+          {% empty %}
+          <tr>
+            <td colspan="5" style="text-align: center; padding: 2.5rem 1rem; color: var(--rq-text-muted);">
+              لا توجد طلبات سحب سابقة مسجلة.
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
     </div>
+  </div>
+
 </div>
 
+<!-- Withdrawal Client Script -->
 <script>
-let state = { method: null, currency: null };
+let activeWithdrawMethod = {};
 
-function selectMethod(id, el) {
-    const isRestricted = el.classList.contains('kyc-restricted');
-    if (isRestricted) {
-        alert("لاستخدام طريقة الدفع هذه، يجب توثيق حسابك أولاً. يرجى التوجه لصفحة التوثيق (KYC) لإرسال بياناتك.");
-        window.location.href = "{% url 'site_kyc_request' %}";
-        return;
-    }
+function selectWithdrawMethod(el) {
+  document.querySelectorAll('.rq-method-card').forEach(c => c.classList.remove('selected'));
+  el.classList.add('selected');
 
-    state.method = JSON.parse(document.getElementById('data-'+id).textContent);
-    document.querySelectorAll('.method-card').forEach(c => c.classList.remove('selected'));
-    el.classList.add('selected');
-    document.getElementById('input-method-id').value = id;
-    document.getElementById('btn-to-2').disabled = false;
-    document.getElementById('input-method-id').parentElement.classList.remove('has-error');
+  activeWithdrawMethod = {
+    id: el.getAttribute('data-method-id'),
+    name: el.getAttribute('data-method-name'),
+    currencyId: el.getAttribute('data-currency-id'),
+    currencyCode: el.getAttribute('data-currency-code'),
+    min: parseFloat(el.getAttribute('data-min')) || 0,
+    max: parseFloat(el.getAttribute('data-max')) || 0,
+    fee: parseFloat(el.getAttribute('data-fee')) || 0
+  };
 
-    const cSel = document.getElementById('input-currency');
-    cSel.innerHTML = '<option value="">اختر العملة...</option>';
-    state.method.currencies.forEach(c => {
-        cSel.innerHTML += `<option value="${c.id}" data-min="${c.min_amount}" data-max="${c.max_amount}">${c.code} (${c.symbol})</option>`;
-    });
-    
-    if(state.method.currencies.length === 1) {
-        cSel.selectedIndex = 1;
-        updateLimits();
-    }
+  document.getElementById('selected-withdraw-method').value = activeWithdrawMethod.id;
+  document.getElementById('selected-withdraw-currency').value = activeWithdrawMethod.currencyId;
+  
+  const limitsHint = document.getElementById('withdraw-limits-hint');
+  const currLabel = document.getElementById('withdraw-currency-label');
 
-    renderStep2();
+  if (limitsHint) {
+    let limitStr = `الحد الأدنى: ${activeWithdrawMethod.min} ${activeWithdrawMethod.currencyCode}`;
+    if (activeWithdrawMethod.max > 0) limitStr += ` • الحد الأقصى: ${activeWithdrawMethod.max} ${activeWithdrawMethod.currencyCode}`;
+    limitsHint.innerText = limitStr;
+  }
+  if (currLabel) {
+    currLabel.innerText = activeWithdrawMethod.currencyCode;
+  }
+  calculateWithdrawFee();
 }
 
-function updateLimits() {
-    const sel = document.getElementById('input-currency');
-    const opt = sel.selectedOptions[0];
-    const methodId = document.getElementById('input-method-id').value;
-    
-    if(opt && opt.value && methodId) {
-        state.currency = {
-            id: opt.value,
-            code: opt.text.split(' ')[0],
-            min: parseFloat(opt.dataset.min),
-            max: parseFloat(opt.dataset.max)
-        };
-        document.getElementById('limits-hint').innerText = `الحدود: ${state.currency.min.toLocaleString()} - ${state.currency.max.toLocaleString()} ${state.currency.code}`;
-        document.getElementById('currency-code-display').innerText = state.currency.code;
-        
-        // Fetch real-time max from API
-        fetch(`/api/withdrawals/max-amount/?currency_id=${opt.value}&method_id=${methodId}`)
-            .then(res => res.json())
-            .then(data => {
-                state.maxAvailable = data.max_amount;
-                document.getElementById('limits-hint').innerText += ` | متاح: ${data.max_amount} ${state.currency.code}`;
-            });
-    } else {
-        state.currency = null;
-        document.getElementById('limits-hint').innerText = 'الحدود: ---';
-        document.getElementById('currency-code-display').innerText = '---';
-    }
-    updateSummary();
+function calculateWithdrawFee() {
+  const amtInput = document.getElementById('withdraw-amount-input');
+  const amount = parseFloat(amtInput ? amtInput.value : 0) || 0;
+  const feePercent = activeWithdrawMethod.fee || 0;
+  const feeAmount = amount * (feePercent / 100);
+  const netAmount = Math.max(0, amount - feeAmount);
+
+  const feeEl = document.getElementById('withdraw-fee-text');
+  const netEl = document.getElementById('withdraw-net-text');
+
+  if (feeEl) feeEl.innerText = `${feeAmount.toFixed(2)} ${activeWithdrawMethod.currencyCode || ''} (${feePercent}%)`;
+  if (netEl) netEl.innerText = `${netAmount.toFixed(2)} ${activeWithdrawMethod.currencyCode || ''}`;
 }
 
-function withdrawMax() {
-    if(state.maxAvailable) {
-        document.getElementById('input-amount').value = state.maxAvailable;
-        updateSummary();
-    }
-}
-
-function renderStep2() {
-    const m = state.method;
-    document.getElementById('instr-text').innerText = m.instructions || 'يرجى تزويدنا ببيانات دقيقة لتجنب تأخير عملية السحب.';
-
-    const infoBox = document.getElementById('static-info');
-    infoBox.innerHTML = '';
-    if(m.static_info && m.static_info.rows) {
-        m.static_info.rows.forEach(r => {
-            infoBox.innerHTML += `
-                <div class="info-row">
-                    <span>${r.title}</span>
-                    <strong>${r.value}</strong>
-                </div>`;
-        });
-    }
-
-    const fieldBox = document.getElementById('dynamic-fields');
-    fieldBox.innerHTML = '';
-    if(m.form_schema && m.form_schema.fields) {
-        m.form_schema.fields.forEach(f => {
-            const nameAttr = `custom_${f.name||f.label}`;
-            const req = f.required ? 'required' : '';
-            let inputHtml = '';
-            
-            if (f.type === 'textarea') {
-                inputHtml = `<textarea name="${nameAttr}" class="builder-input" rows="3" placeholder="${f.placeholder||''}" ${req}></textarea>`;
-            } else if (f.type === 'image') {
-                inputHtml = `
-                    <div class="stack gap-3">
-                        <label for="file-${nameAttr}" class="btn btn-outline btn-sm w-full py-4 flex items-center justify-center gap-3 cursor-pointer border-dashed border-white/20 hover:border-cyan/50 transition-all">
-                            <i class="fas fa-camera text-cyan"></i>
-                            <span class="text-[10px] font-black uppercase tracking-widest">اضغط لالتقاط أو اختيار صورة</span>
-                            <input type="file" name="${nameAttr}" id="file-${nameAttr}" class="hidden" accept="image/*" ${req} onchange="previewDynamicImage(this, 'preview-${nameAttr}')">
-                        </label>
-                        <div id="container-preview-${nameAttr}" class="hidden">
-                            <div class="relative w-full max-w-[150px] aspect-square rounded-xl overflow-hidden border border-white/10">
-                                <img id="preview-${nameAttr}" class="w-full h-full object-cover">
-                            </div>
-                        </div>
-                    </div>`;
-            } else {
-                const inputType = (f.type === 'number') ? 'number' : (f.type === 'phone' ? 'tel' : 'text');
-                inputHtml = `<input type="${inputType}" name="${nameAttr}" class="builder-input" placeholder="${f.placeholder||''}" ${req}>`;
-            }
-            
-            fieldBox.innerHTML += `
-                <div class="field-group">
-                    <label>${f.label} ${f.required?'<span class="text-danger">*</span>':''}</label>
-                    ${inputHtml}
-                    <p class="error-hint">هذا الحقل مطلوب.</p>
-                </div>`;
-        });
-    }
-}
-
-function updateSummary() {
-    const amount = parseFloat(document.getElementById('input-amount').value) || 0;
-    const errEl = document.getElementById('limit-error');
-    
-    if(state.currency && (amount < state.currency.min || amount > state.currency.max) && amount > 0) {
-        errEl.classList.remove('hidden');
-    } else {
-        errEl.classList.add('hidden');
-    }
-
-    const f = state.method.fees;
-    let fee = parseFloat(f.fixed) + (amount * parseFloat(f.percent) / 100);
-    if(f.min && fee < f.min) fee = f.min;
-    if(f.max && fee > f.max) fee = f.max;
-    
-    const net = Math.max(0, amount - fee);
-    const sym = state.currency ? state.currency.code : '';
-    
-    document.getElementById('sum-fee').innerText = `${fee.toLocaleString(undefined, {minimumFractionDigits: 2})} ${sym}`;
-    document.getElementById('sum-net').innerText = `${net.toLocaleString(undefined, {minimumFractionDigits: 2})} ${sym}`;
-}
-
-function tryNext(n) {
-    let valid = true;
-    if(n === 2) {
-        if(!document.getElementById('input-method-id').value) valid = false;
-        if(!document.getElementById('input-currency').value) {
-            document.getElementById('currency-group').classList.add('has-error');
-            valid = false;
-        } else {
-            document.getElementById('currency-group').classList.remove('has-error');
-        }
-    } else if(n === 3) {
-        document.querySelectorAll('#step-2 [required]').forEach(el => {
-            if(!el.value) {
-                el.parentElement.classList.add('has-error');
-                valid = false;
-            } else {
-                el.parentElement.classList.remove('has-error');
-            }
-        });
-    }
-
-    if(valid) nextStep(n);
-}
-
-function nextStep(n) {
-    document.querySelectorAll('.step-box').forEach(b => b.classList.remove('active'));
-    document.querySelectorAll('.step-item').forEach((dot, idx) => {
-        dot.classList.remove('active', 'completed');
-        if(idx + 1 < n) dot.classList.add('completed');
-        if(idx + 1 === n) dot.classList.add('active');
-    });
-    document.getElementById('step-'+n).classList.add('active');
-    window.scrollTo({top:0, behavior:'smooth'});
-}
-
-function validateFinal() {
-    let valid = true;
-    const amt = parseFloat(document.getElementById('input-amount').value) || 0;
-    const errText = document.getElementById('amount-error-text');
-    
-    if(!amt) {
-        errText.innerText = 'يرجى إدخال المبلغ.';
-        document.getElementById('amount-group').classList.add('has-error');
-        valid = false;
-    } else if(state.currency && amt < state.currency.min) {
-        errText.innerText = `المبلغ أقل من الحد الأدنى (${state.currency.min.toLocaleString()} ${state.currency.code}).`;
-        document.getElementById('amount-group').classList.add('has-error');
-        valid = false;
-    } else if(state.currency && amt > state.currency.max) {
-        errText.innerText = `المبلغ يتجاوز الحد الأقصى (${state.currency.max.toLocaleString()} ${state.currency.code}).`;
-        document.getElementById('amount-group').classList.add('has-error');
-        valid = false;
-    } else {
-        document.getElementById('amount-group').classList.remove('has-error');
-    }
-    return valid;
-}
-
-function previewDynamicImage(input, previewId) {
-    if (input.files && input.files[0]) {
-        const reader = new FileReader();
-        reader.onload = e => { 
-            const img = document.getElementById(previewId);
-            img.src = e.target.result;
-            document.getElementById('container-' + previewId).classList.remove('hidden');
-        };
-        reader.readAsDataURL(input.files[0]);
-    }
-}
+document.addEventListener('DOMContentLoaded', () => {
+  const first = document.querySelector('.rq-method-card');
+  if (first) selectWithdrawMethod(first);
+});
 </script>
 {% endblock %}

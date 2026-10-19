@@ -1,10 +1,10 @@
 {% extends "site/base.html" %}
 {% load static site_tags l10n %}
 
-{% block title %}{{ product.name }} | Raqamiyat{% endblock %}
+{% block title %}{{ product.name }} | {% if is_tenant %}{{ STORE_NAME }}{% else %}رقميات RAQAMIYAT{% endif %}{% endblock %}
 
 {% block extra_head %}
-<!-- SEO & OpenGraph Meta Tags for Google & Social Media -->
+<!-- SEO & OpenGraph Meta Tags -->
 <link rel="canonical" href="{{ request.scheme }}://{{ request.get_host }}/catalog/{{ product.id }}/">
 <meta name="description" content="{{ product.description|default:product.name|striptags|truncatechars:160 }}">
 <meta property="og:title" content="{{ product.name }} | رقميات Raqamiyat">
@@ -19,2897 +19,490 @@
 <meta name="twitter:title" content="{{ product.name }} | رقميات Raqamiyat">
 <meta name="twitter:description" content="{{ product.description|default:product.name|striptags|truncatechars:200 }}">
 
-<!-- Schema.org JSON-LD Structured Data for Google Rich Snippets -->
+<!-- Schema.org JSON-LD Structured Data -->
 <script type="application/ld+json">
 {
   "@context": "https://schema.org/",
   "@type": "Product",
   "name": "{{ product.name|escapejs }}",
-  {% if product.image %}
-  "image": ["{{ request.scheme }}://{{ request.get_host }}{{ product.image.url }}"],
-  {% endif %}
+  {% if product.image %}"image": ["{{ request.scheme }}://{{ request.get_host }}{{ product.image.url }}"],{% endif %}
   "description": "{{ product.description|default:product.name|striptags|truncatechars:300|escapejs }}",
   "sku": "{{ product.id }}",
   "brand": {
     "@type": "Brand",
-    "name": "رقميات | Raqamiyat"
+    "name": "{% if is_tenant %}{{ STORE_NAME|escapejs }}{% else %}رقميات{% endif %}"
   },
   "offers": {
     "@type": "Offer",
     "url": "{{ request.scheme }}://{{ request.get_host }}/catalog/{{ product.id }}/",
     "priceCurrency": "USD",
     "price": "{% if variants.0 %}{{ variants.0.price|unlocalize }}{% else %}1.00{% endif %}",
-    "priceValidUntil": "2030-12-31",
-    "itemCondition": "https://schema.org/NewCondition",
-    "availability": "{% if product.is_out_of_stock or is_inactive_product %}https://schema.org/OutOfStock{% else %}https://schema.org/InStock{% endif %}",
-    "seller": {
-      "@type": "Organization",
-      "name": "رقميات"
-    }
+    "availability": "{% if product.is_out_of_stock or is_inactive_product %}https://schema.org/OutOfStock{% else %}https://schema.org/InStock{% endif %}"
   }
 }
 </script>
-
-<!-- BreadcrumbList Structured Data -->
-<script type="application/ld+json">
-{
-  "@context": "https://schema.org",
-  "@type": "BreadcrumbList",
-  "itemListElement": [
-    {
-      "@type": "ListItem",
-      "position": 1,
-      "name": "الرئيسية",
-      "item": "{{ request.scheme }}://{{ request.get_host }}/"
-    },
-    {
-      "@type": "ListItem",
-      "position": 2,
-      "name": "الكتالوج",
-      "item": "{{ request.scheme }}://{{ request.get_host }}/catalog/"
-    }{% if product.category %},
-    {
-      "@type": "ListItem",
-      "position": 3,
-      "name": "{{ product.category.name|escapejs }}",
-      "item": "{{ request.scheme }}://{{ request.get_host }}/catalog/?category={{ product.category.id }}"
-    }{% endif %},
-    {
-      "@type": "ListItem",
-      "position": {% if product.category %}4{% else %}3{% endif %},
-      "name": "{{ product.name|escapejs }}",
-      "item": "{{ request.scheme }}://{{ request.get_host }}/catalog/{{ product.id }}/"
-    }
-  ]
-}
-</script>
-
-<style>
-    /* ================================================================
-       RAQAMIYAT MODERN PRODUCT DETAIL - OBSIDIAN TECH DESIGN SYSTEM
-       ================================================================ */
-    #product-page-wrapper {
-        transition: opacity 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-        min-height: calc(100vh - 120px);
-        padding: 0.75rem 0.5rem 6.5rem;
-        font-family: var(--rq-font-body, 'IBM Plex Sans Arabic', sans-serif);
-    }
-
-    .alkasr-container {
-        width: 100%;
-        max-width: 480px;
-        margin: 0 auto;
-    }
-
-    @media (min-width: 1024px) {
-        .alkasr-container {
-            max-width: 1240px;
-            padding: 0 1rem;
-        }
-    }
-
-    /* Breadcrumbs */
-    .product-breadcrumbs {
-        display: flex;
-        align-items: center;
-        gap: 0.4rem;
-        font-size: 0.78rem;
-        color: #64748b;
-        margin-bottom: 0.85rem;
-        padding: 0 0.25rem;
-        flex-wrap: wrap;
-    }
-    .product-breadcrumbs a {
-        color: #94a3b8;
-        text-decoration: none;
-        transition: color 0.15s;
-    }
-    .product-breadcrumbs a:hover {
-        color: #38bdf8;
-    }
-    .product-breadcrumbs .sep {
-        font-size: 0.65rem;
-        color: #475569;
-    }
-    .product-breadcrumbs .current {
-        color: #cbd5e1;
-        font-weight: 600;
-        max-width: 240px;
-        white-space: nowrap;
-        overflow: hidden;
-        text-overflow: ellipsis;
-    }
-
-    /* Top Navigation Dock */
-    .alkasr-topbar {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        margin-bottom: 0.85rem;
-        padding: 0.25rem 0.25rem;
-    }
-    .alkasr-top-btn {
-        width: 38px;
-        height: 38px;
-        border-radius: 12px;
-        background: rgba(255, 255, 255, 0.05);
-        border: 1px solid rgba(255, 255, 255, 0.08);
-        color: #94a3b8;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        text-decoration: none;
-        transition: all 0.2s;
-        font-size: 0.85rem;
-    }
-    .alkasr-top-btn:hover {
-        background: rgba(6, 182, 212, 0.15);
-        border-color: rgba(6, 182, 212, 0.4);
-        color: #38bdf8;
-        transform: scale(1.05);
-    }
-    .alkasr-top-btn:active {
-        transform: scale(0.95);
-    }
-
-    .alkasr-wallet-pill {
-        display: flex;
-        align-items: center;
-        gap: 0.45rem;
-        padding: 0.4rem 0.85rem;
-        border-radius: 9999px;
-        background: rgba(245, 158, 11, 0.08);
-        border: 1px solid rgba(245, 158, 11, 0.25);
-        text-decoration: none;
-        transition: all 0.2s;
-    }
-    .alkasr-wallet-pill:hover {
-        background: rgba(245, 158, 11, 0.16);
-        border-color: rgba(245, 158, 11, 0.45);
-        transform: translateY(-1px);
-    }
-
-    .alkasr-nav-counter {
-        display: flex;
-        align-items: center;
-        gap: 0.25rem;
-        padding: 0.35rem 0.75rem;
-        border-radius: 12px;
-        background: rgba(15, 23, 42, 0.8);
-        border: 1px solid rgba(255, 255, 255, 0.08);
-        font-family: monospace;
-        font-size: 0.78rem;
-        font-weight: 700;
-        color: #94a3b8;
-    }
-    .alkasr-nav-current {
-        color: #38bdf8;
-        font-weight: 900;
-    }
-    .alkasr-nav-sep {
-        color: #475569;
-        font-size: 0.7rem;
-    }
-    .alkasr-nav-total {
-        color: #64748b;
-    }
-
-    /* Main Responsive Grid Layout */
-    .alkasr-main-grid {
-        display: flex;
-        flex-direction: column;
-        gap: 1.25rem;
-    }
-
-    @media (min-width: 1024px) {
-        .alkasr-main-grid {
-            display: grid;
-            grid-template-columns: 1.12fr 0.88fr;
-            gap: 2rem;
-            align-items: start;
-        }
-        .alkasr-showcase-column {
-            order: 1; /* Right side in RTL */
-        }
-        .alkasr-purchase-column {
-            order: 2; /* Left side in RTL */
-            position: sticky;
-            top: 92px;
-        }
-    }
-
-    @media (max-width: 1023px) {
-        .alkasr-purchase-column {
-            order: 1; /* Purchase card first on mobile for zero-friction */
-        }
-        .alkasr-showcase-column {
-            order: 2; /* Gallery & description below purchase card */
-        }
-    }
-
-    /* Central Purchase Card */
-    .alkasr-card {
-        background: rgba(14, 21, 38, 0.78);
-        border: 1px solid rgba(56, 189, 248, 0.15);
-        backdrop-filter: blur(20px);
-        -webkit-backdrop-filter: blur(20px);
-        border-radius: 26px;
-        padding: 1.15rem;
-        box-shadow: 0 20px 45px -10px rgba(0, 0, 0, 0.7), 0 0 25px rgba(6, 182, 212, 0.06);
-    }
-
-    /* Card Header */
-    .alkasr-card-header {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        gap: 0.75rem;
-        padding-bottom: 0.95rem;
-        border-bottom: 1px solid rgba(255, 255, 255, 0.07);
-        margin-bottom: 1rem;
-    }
-    .alkasr-title-wrap {
-        display: flex;
-        align-items: center;
-        gap: 0.75rem;
-        min-width: 0;
-    }
-    .alkasr-prod-avatar {
-        width: 48px;
-        height: 48px;
-        border-radius: 14px;
-        background: rgba(15, 23, 42, 0.9);
-        border: 1.5px solid rgba(56, 189, 248, 0.25);
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        overflow: hidden;
-        flex-shrink: 0;
-        cursor: pointer;
-        transition: all 0.2s;
-    }
-    .alkasr-prod-avatar:hover {
-        transform: scale(1.06);
-        border-color: #38bdf8;
-        box-shadow: 0 0 16px rgba(56, 189, 248, 0.35);
-    }
-    .alkasr-prod-avatar img {
-        width: 100%;
-        height: 100%;
-        object-fit: cover;
-    }
-    .alkasr-prod-title {
-        font-size: 1.05rem;
-        font-weight: 900;
-        color: #fff;
-        line-height: 1.3;
-        display: flex;
-        align-items: center;
-        gap: 0.5rem;
-    }
-    .alkasr-heart-btn {
-        background: none;
-        border: none;
-        color: #64748b;
-        font-size: 0.95rem;
-        cursor: pointer;
-        transition: all 0.2s;
-        padding: 0;
-    }
-    .alkasr-heart-btn.active, .alkasr-heart-btn:hover {
-        color: #ef4444;
-        transform: scale(1.15);
-    }
-    .alkasr-subtitle {
-        font-size: 0.72rem;
-        color: #38bdf8;
-        font-weight: 700;
-        margin-top: 0.15rem;
-    }
-
-    .alkasr-price-badge {
-        padding: 0.4rem 0.85rem;
-        border-radius: 12px;
-        background: rgba(245, 158, 11, 0.12);
-        border: 1px solid rgba(245, 158, 11, 0.35);
-        color: #fbbf24;
-        font-weight: 900;
-        font-size: 0.92rem;
-        white-space: nowrap;
-        font-family: monospace;
-        letter-spacing: -0.02em;
-        flex-shrink: 0;
-        box-shadow: 0 0 16px rgba(245, 158, 11, 0.15);
-    }
-
-    /* Variant Selector */
-    .alkasr-select-wrapper {
-        margin-bottom: 0.9rem;
-    }
-    .alkasr-select-label {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        font-size: 0.75rem;
-        font-weight: 800;
-        color: #cbd5e1;
-        margin-bottom: 0.4rem;
-    }
-    .alkasr-select-box {
-        width: 100%;
-        background: rgba(10, 15, 30, 0.85);
-        border: 1.5px solid rgba(56, 189, 248, 0.25);
-        color: #fff;
-        font-size: 0.85rem;
-        font-weight: 800;
-        border-radius: 14px;
-        padding: 0.7rem 2.2rem 0.7rem 0.85rem;
-        outline: none;
-        appearance: none;
-        -webkit-appearance: none;
-        cursor: pointer;
-        transition: all 0.2s;
-    }
-    .alkasr-select-box:focus {
-        border-color: #38bdf8;
-        box-shadow: 0 0 16px rgba(56, 189, 248, 0.25);
-    }
-    .alkasr-select-arrow {
-        position: absolute;
-        top: 50%;
-        right: 0.85rem;
-        transform: translateY(-50%);
-        pointer-events: none;
-        color: #38bdf8;
-        font-size: 0.75rem;
-    }
-    .alkasr-select-box option {
-        background: #0c1222;
-        color: #fff;
-        padding: 0.5rem;
-    }
-    .alkasr-select-box option:disabled {
-        color: #64748b;
-        background: #060913;
-    }
-
-    /* Metrics: Count & Total */
-    .alkasr-metrics-row {
-        display: grid;
-        grid-template-columns: 1fr 1fr;
-        gap: 0.65rem;
-        margin-bottom: 0.85rem;
-    }
-    .alkasr-metric-col {
-        background: rgba(10, 15, 30, 0.7);
-        border: 1px solid rgba(255, 255, 255, 0.07);
-        border-radius: 14px;
-        padding: 0.6rem 0.85rem;
-        display: flex;
-        flex-direction: column;
-        justify-content: center;
-    }
-    .alkasr-metric-label {
-        font-size: 0.68rem;
-        font-weight: 700;
-        color: #94a3b8;
-        margin-bottom: 0.15rem;
-    }
-    .alkasr-metric-value {
-        font-size: 0.95rem;
-        font-weight: 900;
-        color: #fff;
-        white-space: nowrap;
-        overflow: hidden;
-        text-overflow: ellipsis;
-    }
-
-    /* Dynamic inputs & Stepper */
-    .alkasr-input-wrap {
-        margin-bottom: 0.85rem;
-    }
-    .alkasr-input-box {
-        width: 100%;
-        background: rgba(10, 15, 30, 0.85);
-        border: 1.5px solid rgba(255, 255, 255, 0.12);
-        color: #fff;
-        font-size: 0.85rem;
-        font-weight: 700;
-        border-radius: 14px;
-        padding: 0.65rem 0.85rem;
-        outline: none;
-        transition: all 0.2s;
-    }
-    .alkasr-input-box:focus {
-        border-color: #38bdf8;
-        box-shadow: 0 0 14px rgba(56, 189, 248, 0.25);
-    }
-    .alkasr-input-box::placeholder {
-        color: #64748b;
-        font-weight: 500;
-    }
-    .alkasr-paste-btn {
-        position: absolute;
-        left: 0.5rem;
-        top: 50%;
-        transform: translateY(-50%);
-        padding: 0.35rem 0.75rem;
-        border-radius: 10px;
-        background: rgba(6, 182, 212, 0.15);
-        border: 1px solid rgba(6, 182, 212, 0.35);
-        color: #38bdf8;
-        font-size: 0.72rem;
-        font-weight: 800;
-        cursor: pointer;
-        transition: all 0.2s;
-        display: flex;
-        align-items: center;
-        gap: 0.35rem;
-    }
-    .alkasr-paste-btn:hover {
-        background: rgba(6, 182, 212, 0.25);
-        border-color: #38bdf8;
-        color: #fff;
-        transform: translateY(-50%) scale(1.04);
-    }
-    .alkasr-instant-note {
-        display: flex;
-        align-items: center;
-        gap: 0.45rem;
-        padding: 0.55rem 0.85rem;
-        border-radius: 12px;
-        background: rgba(16, 185, 129, 0.08);
-        border: 1px solid rgba(16, 185, 129, 0.25);
-        color: #34d399;
-        font-size: 0.74rem;
-        font-weight: 700;
-    }
-
-    /* Actions Row */
-    .alkasr-actions-row {
-        display: grid;
-        grid-template-columns: 1fr 1fr;
-        gap: 0.65rem;
-        margin-bottom: 0.85rem;
-    }
-    .alkasr-btn-buy {
-        background: linear-gradient(135deg, #06b6d4 0%, #0284c7 100%);
-        color: #04101e;
-        font-size: 0.95rem;
-        font-weight: 900;
-        border: none;
-        border-radius: 14px;
-        padding: 0.75rem;
-        cursor: pointer;
-        transition: all 0.2s;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        box-shadow: 0 4px 18px rgba(6, 182, 212, 0.35);
-    }
-    .alkasr-btn-buy:hover:not(:disabled) {
-        filter: brightness(1.15);
-        transform: translateY(-1px);
-        box-shadow: 0 6px 24px rgba(6, 182, 212, 0.5);
-    }
-    .alkasr-btn-buy:active:not(:disabled) {
-        transform: scale(0.97);
-    }
-    .alkasr-btn-cancel {
-        background: rgba(255, 255, 255, 0.06);
-        border: 1px solid rgba(255, 255, 255, 0.1);
-        color: #cbd5e1;
-        font-size: 0.85rem;
-        font-weight: 800;
-        border-radius: 14px;
-        padding: 0.75rem;
-        text-align: center;
-        text-decoration: none;
-        transition: all 0.2s;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-    }
-    .alkasr-btn-cancel:hover {
-        background: rgba(255, 255, 255, 0.12);
-        color: #fff;
-    }
-
-    /* Notice callout */
-    .alkasr-notice-box {
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        text-align: center;
-        padding: 0.5rem 0.75rem;
-        border-radius: 12px;
-        background: rgba(6, 182, 212, 0.06);
-        border-right: 3px solid #06b6d4;
-        margin-bottom: 0.85rem;
-    }
-    .alkasr-notice-text {
-        font-size: 0.72rem;
-        color: #94a3b8;
-        font-weight: 600;
-    }
-
-    /* Payment Tabs */
-    .alkasr-pm-grid {
-        display: grid;
-        grid-template-columns: 1fr 1fr;
-        gap: 0.45rem;
-    }
-    .alkasr-pm-tab {
-        background: rgba(10, 15, 30, 0.6);
-        border: 1.5px solid rgba(255, 255, 255, 0.08);
-        border-radius: 12px;
-        padding: 0.5rem 0.65rem;
-        display: flex;
-        align-items: center;
-        gap: 0.5rem;
-        cursor: pointer;
-        transition: all 0.2s;
-        color: #cbd5e1;
-        text-align: right;
-    }
-    .alkasr-pm-tab:hover {
-        background: rgba(255, 255, 255, 0.05);
-        border-color: rgba(56, 189, 248, 0.3);
-    }
-    .alkasr-pm-tab.is-active {
-        background: rgba(6, 182, 212, 0.12);
-        border-color: #06b6d4;
-        color: #fff;
-        box-shadow: 0 0 14px rgba(6, 182, 212, 0.2);
-    }
-
-    /* Coupon Drawer */
-    .alkasr-coupon-box {
-        background: rgba(10, 15, 30, 0.7);
-        border: 1px solid rgba(245, 158, 11, 0.2);
-        border-radius: 14px;
-        padding: 0.6rem 0.85rem;
-        margin-top: 0.75rem;
-    }
-    .alkasr-coupon-header {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        cursor: pointer;
-        user-select: none;
-    }
-    .alkasr-coupon-toggle-btn {
-        background: rgba(245, 158, 11, 0.12);
-        border: 1px solid rgba(245, 158, 11, 0.3);
-        color: #fbbf24;
-        border-radius: 10px;
-        padding: 0.3rem 0.65rem;
-        font-size: 0.72rem;
-        font-weight: 800;
-        display: flex;
-        align-items: center;
-        gap: 0.35rem;
-        cursor: pointer;
-        transition: all 0.2s;
-    }
-    .alkasr-coupon-input-group {
-        display: flex;
-        align-items: center;
-        gap: 0.45rem;
-    }
-    .alkasr-coupon-input {
-        flex-grow: 1;
-        background: rgba(0, 0, 0, 0.65);
-        border: 1.5px solid rgba(255, 255, 255, 0.12);
-        border-radius: 12px;
-        padding: 0.55rem 0.85rem;
-        font-size: 0.8rem;
-        color: #fff;
-        outline: none;
-        font-weight: 700;
-        transition: all 0.2s;
-        text-align: right;
-    }
-    .alkasr-coupon-input:focus {
-        border-color: #f59e0b;
-        box-shadow: 0 0 14px rgba(245, 158, 11, 0.25);
-    }
-    .alkasr-coupon-apply-btn {
-        background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
-        color: #000;
-        font-weight: 900;
-        font-size: 0.8rem;
-        padding: 0.55rem 1rem;
-        border-radius: 12px;
-        border: none;
-        cursor: pointer;
-        display: flex;
-        align-items: center;
-        gap: 0.35rem;
-        box-shadow: 0 4px 14px rgba(245, 158, 11, 0.35);
-        transition: all 0.2s;
-        white-space: nowrap;
-    }
-
-    /* Price Breakdown */
-    .alkasr-breakdown-card {
-        background: rgba(10, 15, 30, 0.85);
-        border: 1px solid rgba(16, 185, 129, 0.25);
-        border-radius: 14px;
-        padding: 0.75rem 0.95rem;
-        margin-top: 0.75rem;
-    }
-    .alkasr-breakdown-row {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        font-size: 0.78rem;
-        padding: 0.35rem 0;
-    }
-
-    /* ================================================================
-       SHOWCASE COLUMN STYLING (MEDIA, GALLERY, SPECS, TRUST)
-       ================================================================ */
-    .alkasr-media-card {
-        background: rgba(14, 21, 38, 0.78);
-        border: 1px solid rgba(255, 255, 255, 0.08);
-        backdrop-filter: blur(20px);
-        -webkit-backdrop-filter: blur(20px);
-        border-radius: 26px;
-        padding: 1.25rem;
-        position: relative;
-        overflow: hidden;
-        margin-bottom: 1.25rem;
-        box-shadow: 0 20px 45px -10px rgba(0, 0, 0, 0.7);
-    }
-    .alkasr-media-viewer {
-        width: 100%;
-        height: 340px;
-        border-radius: 18px;
-        background: radial-gradient(circle at center, rgba(30, 41, 59, 0.6) 0%, rgba(10, 15, 30, 0.95) 100%);
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        position: relative;
-        overflow: hidden;
-        cursor: pointer;
-        border: 1px solid rgba(255, 255, 255, 0.05);
-    }
-    @media (min-width: 1024px) {
-        .alkasr-media-viewer {
-            height: 420px;
-        }
-    }
-    .alkasr-media-viewer img {
-        max-width: 90%;
-        max-height: 90%;
-        object-fit: contain;
-        transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-    }
-    .alkasr-media-viewer:hover img {
-        transform: scale(1.04);
-    }
-    .alkasr-media-viewer video {
-        width: 100%;
-        height: 100%;
-        object-fit: cover;
-    }
-    .alkasr-floating-badges {
-        position: absolute;
-        top: 1rem;
-        right: 1rem;
-        display: flex;
-        flex-direction: column;
-        gap: 0.4rem;
-        z-index: 10;
-    }
-    .alkasr-badge-tag {
-        font-size: 0.72rem;
-        font-weight: 800;
-        padding: 0.35rem 0.75rem;
-        border-radius: 9999px;
-        backdrop-filter: blur(8px);
-        display: flex;
-        align-items: center;
-        gap: 0.35rem;
-    }
-    .badge-digital {
-        background: rgba(6, 182, 212, 0.2);
-        border: 1px solid rgba(6, 182, 212, 0.4);
-        color: #38bdf8;
-    }
-    .badge-physical {
-        background: rgba(245, 158, 11, 0.2);
-        border: 1px solid rgba(245, 158, 11, 0.4);
-        color: #fbbf24;
-    }
-    .badge-instock {
-        background: rgba(16, 185, 129, 0.2);
-        border: 1px solid rgba(16, 185, 129, 0.4);
-        color: #34d399;
-    }
-    .badge-outstock {
-        background: rgba(239, 68, 68, 0.2);
-        border: 1px solid rgba(239, 68, 68, 0.4);
-        color: #f87171;
-    }
-    .alkasr-zoom-trigger {
-        position: absolute;
-        bottom: 1rem;
-        left: 1rem;
-        padding: 0.4rem 0.85rem;
-        border-radius: 9999px;
-        background: rgba(15, 23, 42, 0.75);
-        border: 1px solid rgba(255, 255, 255, 0.15);
-        color: #cbd5e1;
-        font-size: 0.74rem;
-        font-weight: 700;
-        display: flex;
-        align-items: center;
-        gap: 0.4rem;
-        backdrop-filter: blur(8px);
-        transition: all 0.2s;
-        z-index: 10;
-        cursor: pointer;
-    }
-    .alkasr-zoom-trigger:hover {
-        background: rgba(6, 182, 212, 0.25);
-        border-color: #06b6d4;
-        color: #fff;
-    }
-
-    /* Gallery Thumbnails */
-    .alkasr-thumbs-grid {
-        display: flex;
-        align-items: center;
-        gap: 0.65rem;
-        margin-top: 0.85rem;
-        overflow-x: auto;
-        padding-bottom: 0.35rem;
-    }
-    .thumb-item {
-        width: 60px;
-        height: 60px;
-        border-radius: 12px;
-        background: rgba(10, 15, 30, 0.9);
-        border: 1.5px solid rgba(255, 255, 255, 0.1);
-        overflow: hidden;
-        cursor: pointer;
-        flex-shrink: 0;
-        transition: all 0.2s;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-    }
-    .thumb-item:hover {
-        border-color: #38bdf8;
-        transform: translateY(-2px);
-    }
-    .thumb-item.active {
-        border-color: #06b6d4;
-        box-shadow: 0 0 12px rgba(6, 182, 212, 0.4);
-    }
-    .thumb-item img {
-        width: 100%;
-        height: 100%;
-        object-fit: cover;
-    }
-
-    /* Product Specs & Description Card */
-    .alkasr-info-card {
-        background: rgba(14, 21, 38, 0.78);
-        border: 1px solid rgba(255, 255, 255, 0.08);
-        backdrop-filter: blur(20px);
-        -webkit-backdrop-filter: blur(20px);
-        border-radius: 26px;
-        padding: 1.35rem;
-        margin-bottom: 1.25rem;
-        box-shadow: 0 20px 45px -10px rgba(0, 0, 0, 0.7);
-    }
-    .alkasr-info-header {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        padding-bottom: 0.85rem;
-        border-bottom: 1px solid rgba(255, 255, 255, 0.07);
-        margin-bottom: 1rem;
-    }
-    .alkasr-desc-content {
-        color: #cbd5e1;
-        font-size: 0.88rem;
-        line-height: 1.75;
-    }
-    .alkasr-desc-content p {
-        margin-bottom: 0.85rem;
-    }
-
-    /* Trust Pillars Grid */
-    .alkasr-trust-grid {
-        display: grid;
-        grid-template-columns: 1fr;
-        gap: 0.75rem;
-        margin-top: 1.25rem;
-        padding-top: 1.15rem;
-        border-top: 1px solid rgba(255, 255, 255, 0.07);
-    }
-    @media (min-width: 640px) {
-        .alkasr-trust-grid {
-            grid-template-columns: repeat(3, 1fr);
-        }
-    }
-    .alkasr-trust-item {
-        background: rgba(10, 15, 30, 0.65);
-        border: 1px solid rgba(255, 255, 255, 0.06);
-        border-radius: 14px;
-        padding: 0.85rem;
-        display: flex;
-        flex-direction: column;
-        gap: 0.35rem;
-    }
-    .alkasr-trust-item i {
-        font-size: 1.1rem;
-        margin-bottom: 0.25rem;
-    }
-
-    /* Related Products Bento */
-    .alkasr-related-card {
-        background: rgba(14, 21, 38, 0.78);
-        border: 1px solid rgba(255, 255, 255, 0.08);
-        backdrop-filter: blur(20px);
-        -webkit-backdrop-filter: blur(20px);
-        border-radius: 26px;
-        padding: 1.25rem;
-        box-shadow: 0 20px 45px -10px rgba(0, 0, 0, 0.7);
-    }
-    .alkasr-related-grid {
-        display: grid;
-        grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
-        gap: 0.85rem;
-        margin-top: 0.85rem;
-    }
-    .alkasr-rel-item {
-        background: rgba(10, 15, 30, 0.7);
-        border: 1px solid rgba(255, 255, 255, 0.06);
-        border-radius: 14px;
-        padding: 0.75rem;
-        text-decoration: none;
-        display: flex;
-        flex-direction: column;
-        gap: 0.5rem;
-        transition: all 0.2s;
-    }
-    .alkasr-rel-item:hover {
-        border-color: rgba(56, 189, 248, 0.4);
-        transform: translateY(-2px);
-    }
-</style>
 {% endblock %}
 
 {% block content %}
-{% if next_product %}<link rel="prefetch" href="{% url 'product_detail' next_product.id %}">{% endif %}
-<div id="product-page-wrapper" class="transition-opacity duration-200"
-     data-category-name="{{ product.category.name|default:''|escapejs }}"
-     data-product-name="{{ product.name|default:''|escapejs }}"
-     data-is-physical="{% if product.product_type == 'physical' %}true{% else %}false{% endif %}">
+<div class="rq-pdp-container">
 
-<div class="alkasr-container">
-    <!-- Breadcrumbs Trail -->
-    <div class="product-breadcrumbs">
-        <a href="{% url 'home' %}"><i class="fas fa-home text-xs ml-1"></i> الرئيسية</a>
-        <span class="sep"><i class="fas fa-chevron-left"></i></span>
-        <a href="{% url 'catalog' %}">كتالوج المنتجات</a>
-        {% if product.category %}
-        <span class="sep"><i class="fas fa-chevron-left"></i></span>
-        <a href="{% url 'catalog' %}?category={{ product.category.id }}">{{ product.category.name }}</a>
-        {% endif %}
-        <span class="sep"><i class="fas fa-chevron-left"></i></span>
-        <span class="current">{{ product.name }}</span>
+  <!-- ── 1. Breadcrumbs Trail ── -->
+  <nav style="display: flex; align-items: center; gap: 0.5rem; font-size: 0.8rem; color: var(--rq-text-muted); margin-bottom: 1.5rem; flex-wrap: wrap;" aria-label="مسار التنقل">
+    <a href="{% url 'home' %}" style="display: flex; align-items: center; gap: 0.35rem; color: var(--rq-text-muted);">
+      <i class="fas fa-home text-xs"></i>
+      <span>الرئيسية</span>
+    </a>
+    <i class="fas fa-chevron-left text-[10px] text-slate-600"></i>
+    <a href="{% url 'catalog' %}" style="color: var(--rq-text-muted);">
+      الكتالوج
+    </a>
+    {% if product.category %}
+    <i class="fas fa-chevron-left text-[10px] text-slate-600"></i>
+    <a href="{% url 'catalog' %}?category={{ product.category.id }}" style="color: var(--rq-primary-light); font-weight: 700;">
+      {{ product.category.name }}
+    </a>
+    {% endif %}
+    <i class="fas fa-chevron-left text-[10px] text-slate-600"></i>
+    <span style="color: #fff; font-weight: 800; max-width: 280px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+      {{ product.name }}
+    </span>
+  </nav>
+
+  <!-- ── 2. Insufficient Balance Session Alert ── -->
+  {% if missing_amount %}
+  <div style="background: rgba(239, 68, 68, 0.1); border: 1.5px solid rgba(239, 68, 68, 0.3); border-radius: var(--rq-radius-lg); padding: 1.25rem 1.5rem; margin-bottom: 2rem; display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 1rem;">
+    <div style="display: flex; align-items: center; gap: 0.85rem;">
+      <div style="width: 44px; height: 44px; border-radius: 12px; background: rgba(239, 68, 68, 0.2); color: #f87171; display: flex; align-items: center; justify-content: center; font-size: 1.25rem;">
+        <i class="fas fa-wallet"></i>
+      </div>
+      <div>
+        <h4 style="font-size: 0.95rem; font-weight: 900; color: #fff; margin: 0 0 0.25rem;">رصيد المحفظة غير كافٍ لإتمام العملية</h4>
+        <p style="font-size: 0.8rem; color: #fca5a5; margin: 0;">
+          تحتاج إلى شحن مبلغ إضافي قدره <strong style="color: #fff; font-family: monospace;">{{ missing_amount }} {{ missing_currency }}</strong>
+        </p>
+      </div>
     </div>
-
-    <!-- Top Navigation Dock: Back to catalog, Previous, Next, Product Counter, and Wallet balance -->
-    <div class="alkasr-topbar">
-        <div class="flex items-center gap-1.5">
-            <a href="{% url 'catalog' %}" class="alkasr-top-btn" title="كتالوج المنتجات">
-                <i class="fas fa-arrow-right"></i>
-            </a>
-            {% if prev_product %}
-            <a href="{% url 'product_detail' prev_product.id %}" data-dir="prev" class="nav-prod-btn alkasr-top-btn" title="المنتج السابق: {{ prev_product.name }}">
-                <i class="fas fa-chevron-right text-xs"></i>
-            </a>
-            {% endif %}
-
-            <!-- Product Navigation Counter (e.g. 5 / 40) -->
-            <div class="alkasr-nav-counter" id="alkasr-nav-counter" title="ترتيب المنتج ضمن التصنيف">
-                <span class="alkasr-nav-current">{{ product_index|default:1 }}</span>
-                <span class="alkasr-nav-sep">/</span>
-                <span class="alkasr-nav-total">{{ total_category_products|default:1 }}</span>
-            </div>
-
-            {% if next_product %}
-            <a href="{% url 'product_detail' next_product.id %}" data-dir="next" class="nav-prod-btn alkasr-top-btn" title="المنتج التالي: {{ next_product.name }}">
-                <i class="fas fa-chevron-left text-xs"></i>
-            </a>
-            {% endif %}
-        </div>
-
-        <div class="flex items-center gap-2">
-            <a href="{% url 'dashboard_deposits' %}" class="alkasr-wallet-pill" title="رصيد المحفظة - شحن سريع">
-                <i class="fas fa-wallet text-[11px] text-amber-400"></i>
-                <span class="text-xs font-black text-amber-300">{% currency_format request.user.wallet.available_balance|default:0 %}</span>
-                <i class="fas fa-plus text-[9px] text-amber-400/80 mr-0.5"></i>
-            </a>
-        </div>
+    <div style="display: flex; align-items: center; gap: 0.5rem;">
+      <a href="{% url 'dashboard_recharge_wallet' %}" class="rq-btn-auth-register" style="padding: 0.6rem 1.25rem; font-size: 0.8rem;">
+        <i class="fas fa-credit-card"></i>
+        <span>شحن بكود بطاقة</span>
+      </a>
+      <a href="{% url 'dashboard_deposits' %}" class="rq-btn-auth-login" style="padding: 0.6rem 1.25rem; font-size: 0.8rem;">
+        <i class="fas fa-plus"></i>
+        <span>إيداع رصيد</span>
+      </a>
     </div>
+  </div>
+  {% endif %}
 
-    <!-- Responsive Layout: Showcase Column + Purchase Column -->
-    <div class="alkasr-main-grid">
+  <!-- ── 3. Main Product Grid Layout ── -->
+  <div class="rq-pdp-layout">
 
-        <!-- Column 1: Showcase (Media, Gallery, Details & Specs) -->
-        <div class="alkasr-showcase-column">
-            {% product_display_image product as p_img %}
-            
-            <!-- Main Media Card -->
-            <div class="alkasr-media-card">
-                <!-- Floating status tags -->
-                <div class="alkasr-floating-badges">
-                    {% if product.product_type == 'physical' %}
-                    <span class="alkasr-badge-tag badge-physical">
-                        <i class="fas fa-truck-fast"></i> منتج عيني (شحن وتوصيل)
-                    </span>
-                    {% else %}
-                    <span class="alkasr-badge-tag badge-digital">
-                        <i class="fas fa-bolt"></i> منتج رقمي (تسليم فوري)
-                    </span>
-                    {% endif %}
+    <!-- ── Left Column: Media Showcase, Description, Specs & Trust ── -->
+    <div class="rq-pdp-showcase">
 
-                    {% if product.is_out_of_stock or is_inactive_product %}
-                    <span class="alkasr-badge-tag badge-outstock">
-                        <i class="fas fa-circle-xmark"></i> غير متوفر حالياً
-                    </span>
-                    {% else %}
-                    <span class="alkasr-badge-tag badge-instock">
-                        <i class="fas fa-circle-check"></i> متوفر في المخزون
-                    </span>
-                    {% endif %}
-                </div>
+      <!-- Media Viewer Card -->
+      <div class="rq-pdp-viewer-card">
+        <div class="rq-pdp-badge-stack">
+          {% if is_instant_product or product.product_type != 'physical' %}
+          <span style="background: rgba(16, 185, 129, 0.15); border: 1px solid rgba(16, 185, 129, 0.35); color: #34d399; font-size: 0.72rem; font-weight: 800; padding: 0.35rem 0.75rem; border-radius: var(--rq-radius-full); display: inline-flex; align-items: center; gap: 0.35rem;">
+            <i class="fas fa-bolt text-xs"></i>
+            <span>تسليم آلي فوري ⚡</span>
+          </span>
+          {% else %}
+          <span style="background: rgba(245, 158, 11, 0.15); border: 1px solid rgba(245, 158, 11, 0.35); color: #fbbf24; font-size: 0.72rem; font-weight: 800; padding: 0.35rem 0.75rem; border-radius: var(--rq-radius-full); display: inline-flex; align-items: center; gap: 0.35rem;">
+            <i class="fas fa-truck text-xs"></i>
+            <span>شحن وتوصيل مادي</span>
+          </span>
+          {% endif %}
 
-                <!-- Main Media Viewer -->
-                <div class="alkasr-media-viewer" onclick="{% if p_img %}openImageLightbox('{{ p_img }}'){% endif %}">
-                    {% if p_img %}
-                    <img id="main-product-img" src="{{ p_img }}" alt="{{ product.name }}" onerror="this.onerror=null; this.src='{% static 'site/img/brands/generic_digital.svg' %}';">
-                    {% else %}
-                    <div class="text-center p-6 text-slate-500">
-                        <i class="fas fa-microchip text-5xl mb-3 text-cyan/40"></i>
-                        <p class="text-xs font-bold text-slate-400">{{ product.name }}</p>
-                    </div>
-                    {% endif %}
-                    <video id="main-product-video" class="hidden" controls playsinline></video>
-
-                    {% if p_img %}
-                    <button type="button" class="alkasr-zoom-trigger" onclick="event.stopPropagation(); openImageLightbox(document.getElementById('main-product-img').src);" title="تكبير الصورة">
-                        <i class="fas fa-expand text-cyan"></i>
-                        <span>تكبير الصورة</span>
-                    </button>
-                    {% endif %}
-                </div>
-
-                <!-- Gallery Thumbnails -->
-                {% if product.gallery.all or product.cover_image %}
-                <div class="alkasr-thumbs-grid">
-                    {% if p_img %}
-                    <div class="thumb-item active" onclick="changeMedia('{{ p_img }}', false, this)">
-                        <img src="{{ p_img }}" alt="{{ product.name }}">
-                    </div>
-                    {% endif %}
-                    {% for g in product.gallery.all %}
-                    <div class="thumb-item" onclick="changeMedia('{{ g.image.url }}', {% if g.video %}true{% else %}false{% endif %}, this)">
-                        <img src="{{ g.image.url }}" alt="{{ g.alt_text|default:product.name }}">
-                    </div>
-                    {% endfor %}
-                </div>
-                {% endif %}
-            </div>
-
-            <!-- Product Description & Specifications Card -->
-            <div class="alkasr-info-card">
-                <div class="alkasr-info-header">
-                    <h2 class="text-sm font-black text-white flex items-center gap-2">
-                        <i class="fas fa-circle-info text-cyan"></i>
-                        <span>مواصفات وتفاصيل المنتج</span>
-                    </h2>
-                    <span class="text-[11px] text-slate-400 font-mono">ID: #{{ product.id }}</span>
-                </div>
-
-                <div class="alkasr-desc-content">
-                    {% if product.description %}
-                        {{ product.description|linebreaks }}
-                    {% else %}
-                        <p class="text-slate-400 text-xs leading-relaxed">
-                            منتج تكنولوجي أصلي معتمد من متجر رقميات. يخضع لكافة معايير الجودة والضمان وتوثيق الأوامر عبر النظام الرقمي الفوري.
-                        </p>
-                    {% endif %}
-
-                    {% if product.instructions %}
-                    <div class="mt-4 p-3.5 rounded-xl bg-cyan-950/20 border border-cyan-500/20 text-xs">
-                        <span class="font-bold text-cyan block mb-1 flex items-center gap-1.5">
-                            <i class="fas fa-book-open"></i> تعليمات الاستخدام والتفعيل:
-                        </span>
-                        <div class="text-slate-300 leading-relaxed">{{ product.instructions|linebreaks }}</div>
-                    </div>
-                    {% endif %}
-                </div>
-
-                <!-- Trust Pillars Bento -->
-                <div class="alkasr-trust-grid">
-                    <div class="alkasr-trust-item">
-                        <i class="fas fa-shield-halved text-cyan"></i>
-                        <span class="font-black text-xs text-white">ضمان وأصالة 100%</span>
-                        <span class="text-[11px] text-slate-400 leading-tight">منتجات وعتاد أصلي معتمد مع تفعيل رسمي.</span>
-                    </div>
-                    <div class="alkasr-trust-item">
-                        <i class="fas fa-bolt text-amber-400"></i>
-                        <span class="font-black text-xs text-white">معالجة فورية</span>
-                        <span class="text-[11px] text-slate-400 leading-tight">تنفيذ رقمي سريع وتوثيق لحظي لحالة الطلب.</span>
-                    </div>
-                    <div class="alkasr-trust-item">
-                        <i class="fas fa-headset text-emerald-400"></i>
-                        <span class="font-black text-xs text-white">دعم فني متواصل</span>
-                        <span class="text-[11px] text-slate-400 leading-tight">فريق دعم متواجد للإجابة عن استفساراتك.</span>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Related Products Bento (if available) -->
-            {% if related_products %}
-            <div class="alkasr-related-card">
-                <h3 class="text-xs font-black text-white flex items-center gap-1.5">
-                    <i class="fas fa-layer-group text-amber-400"></i>
-                    <span>منتجات ذات صلة من نفس القسم</span>
-                </h3>
-                <div class="alkasr-related-grid">
-                    {% for rp in related_products %}
-                    {% product_display_image rp as rp_img %}
-                    <a href="{% url 'product_detail' rp.id %}" class="alkasr-rel-item">
-                        <div class="w-full h-24 rounded-lg bg-slate-900/80 flex items-center justify-center overflow-hidden">
-                            {% if rp_img %}
-                            <img src="{{ rp_img }}" alt="{{ rp.name }}" class="h-full w-full object-cover">
-                            {% else %}
-                            <i class="fas fa-box text-slate-600 text-xl"></i>
-                            {% endif %}
-                        </div>
-                        <span class="text-xs font-bold text-white line-clamp-1">{{ rp.name }}</span>
-                        <span class="text-[11px] font-black text-amber-400 font-mono">{% product_starting_price rp %}</span>
-                    </a>
-                    {% endfor %}
-                </div>
-            </div>
-            {% endif %}
+          {% if product.is_out_of_stock or is_inactive_product %}
+          <span style="background: rgba(239, 68, 68, 0.15); border: 1px solid rgba(239, 68, 68, 0.35); color: #f87171; font-size: 0.72rem; font-weight: 800; padding: 0.35rem 0.75rem; border-radius: var(--rq-radius-full);">
+            غير متوفر حالياً
+          </span>
+          {% else %}
+          <span style="background: rgba(37, 99, 235, 0.15); border: 1px solid rgba(37, 99, 235, 0.35); color: #60a5fa; font-size: 0.72rem; font-weight: 800; padding: 0.35rem 0.75rem; border-radius: var(--rq-radius-full);">
+            متوفر في المخزون
+          </span>
+          {% endif %}
         </div>
 
-        <!-- Column 2: Sticky Purchase Dock -->
-        <div class="alkasr-purchase-column">
-            <div class="alkasr-card">
-                <!-- Card Header: Title & Heart on right, Price Pill on left -->
-                <div class="alkasr-card-header">
-                    <div class="alkasr-title-wrap">
-                        <div class="alkasr-prod-avatar" {% if p_img %}onclick="openImageLightbox('{{ p_img }}')"{% endif %} title="عرض صورة المنتج">
-                            {% if p_img %}
-                            <img src="{{ p_img }}" alt="{{ product.name }}" onerror="this.onerror=null; this.src='{% static 'site/img/brands/generic_digital.svg' %}';">
-                            {% else %}
-                            <i class="fas fa-bolt text-amber-400 text-sm"></i>
-                            {% endif %}
-                        </div>
-                        <div>
-                            <h1 class="alkasr-prod-title">
-                                <span>{{ product.name }}</span>
-                                <button type="button" class="alkasr-heart-btn" onclick="this.classList.toggle('active'); this.querySelector('i').classList.toggle('fas'); this.querySelector('i').classList.toggle('far');" title="إضافة للمفضلة">
-                                    <i class="far fa-heart"></i>
-                                </button>
-                            </h1>
-                            {% if product.category %}
-                            <div class="alkasr-subtitle">{{ product.category.name }}</div>
-                            {% endif %}
-                        </div>
-                    </div>
-
-                    <!-- Price Badge Pill -->
-                    <div class="alkasr-price-badge" id="alkasr-top-price">
-                        {% product_starting_price product %}
-                    </div>
-                </div>
-
-                {% if is_inactive_product or product.is_out_of_stock or not product.is_active %}
-                <div class="mx-1 my-2.5 p-3 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-300 text-xs flex items-center gap-2.5">
-                    <i class="fas fa-circle-exclamation text-amber-400 text-base shrink-0"></i>
-                    <div>
-                        <span class="font-bold block">هذا المنتج غير متوفر حالياً</span>
-                        <span class="text-slate-300 text-[11px]">نعتذر، نفدت الكمية المتاحة أو أن المزود قيد التحديث. سيتاح فور توفره مجدداً.</span>
-                    </div>
-                </div>
-                {% endif %}
-
-                <!-- Form Begin -->
-                <form method="post" action="{% url 'product_detail' product.id %}" id="purchase-form">
-                    {% csrf_token %}
-                    <input type="hidden" name="product" value="{{ product.id }}">
-                    <input type="hidden" name="variant_id" id="selected-variant-id" value="{% if active_variant and not active_variant.is_temporarily_disabled and not product.is_out_of_stock %}{{ active_variant.id }}{% endif %}">
-                    <input type="hidden" name="payment_method" id="selected-payment-method" value="wallet">
-
-                    <!-- Variants Selection: Clean Luxury Dropdown Menu -->
-                    {% if variants %}
-                    <div class="alkasr-select-wrapper">
-                        <label for="alkasr-variant-select" class="alkasr-select-label">
-                            <span class="flex items-center gap-1.5">
-                                <i class="fas fa-layer-group text-amber-400 text-xs"></i>
-                                <span>اختر الباقة أو الفئة:</span>
-                            </span>
-                            <span class="text-[11px] text-amber-400 font-mono font-bold bg-amber-500/10 border border-amber-500/20 px-2 py-0.5 rounded-full">({{ variants|length }} خيارات)</span>
-                        </label>
-                        <div class="relative">
-                            <select id="alkasr-variant-select" class="alkasr-select-box" onchange="onVariantDropdownChange(this.value)">
-                                {% for v in variants %}
-                                {% variant_price v as v_price %}
-                                {% variant_card_price v as v_card_price %}
-                                <option value="{{ v.id }}"
-                                        data-price="{{ v_price|unlocalize }}"
-                                        data-qty-type="{{ v.metadata.qty_type|default:'none' }}"
-                                        data-qty-min="{{ v.metadata.qty_min|default:1 }}"
-                                        data-qty-max="{{ v.metadata.qty_max|default:999999 }}"
-                                        data-qty-list='{% if v.metadata.qty_list %}{{ v.metadata.qty_list|jsonify }}{% else %}[]{% endif %}'
-                                        data-is-per-mille="{% if v.metadata.is_per_mille %}true{% else %}false{% endif %}"
-                                        data-delivery-type="{{ v.delivery_type|default:'manual' }}"
-                                        data-is-recharge="{% if v.is_recharge_card %}true{% else %}false{% endif %}"
-                                        data-params='{% if v.metadata.params %}{{ v.metadata.params|jsonify }}{% else %}[]{% endif %}'
-                                        data-variant-name="{{ v.name }}"
-                                        {% if active_variant and v.id == active_variant.id and not product.is_out_of_stock %}selected{% elif forloop.first and not active_variant %}selected{% endif %}
-                                        {% if v.is_temporarily_disabled or not v.is_active or product.is_out_of_stock %}disabled{% endif %}>
-                                    {{ v.name }} — {{ v_card_price|striptags }}{% if v.is_temporarily_disabled or not v.is_active %} (غير متوفر){% endif %}
-                                </option>
-                                {% endfor %}
-                            </select>
-                            <div class="alkasr-select-arrow">
-                                <i class="fas fa-chevron-down"></i>
-                            </div>
-                        </div>
-                    </div>
-                    {% else %}
-                    <!-- Single product dummy variant option for script selection -->
-                    <div id="single-product-dummy-variant" class="hidden"
-                         data-price="{{ product.price|default:'0.00'|unlocalize }}"
-                         data-qty-type="fixed"
-                         data-qty-min="1"
-                         data-qty-max="1"
-                         data-qty-list="[]"
-                         data-is-per-mille="false"
-                         data-params="[]"
-                         data-variant-name="{{ product.name }}">
-                    </div>
-                    {% endif %}
-
-                    <!-- Two Metrics: العدد (Count) and الإجمالي (Total) -->
-                    <div class="alkasr-metrics-row">
-                        <div class="alkasr-metric-col text-right">
-                            <span class="alkasr-metric-label">الكمية / الباقة</span>
-                            <span class="alkasr-metric-value" id="metric-count">
-                                {% if variants.0 %}{{ variants.0.name }}{% else %}1{% endif %}
-                            </span>
-                        </div>
-                        <div class="alkasr-metric-col text-left">
-                            <span class="alkasr-metric-label">السعر الإجمالي</span>
-                            <span class="alkasr-metric-value text-amber-400" id="metric-total">
-                                {% product_starting_price product %}
-                            </span>
-                        </div>
-                    </div>
-
-                    <!-- Subscription Duration Indicator (if applicable) -->
-                    <div id="duration-indicator-box" class="hidden mb-3 p-2.5 rounded-xl bg-amber-500/10 border border-amber-500/25 flex items-center justify-between text-xs">
-                        <span class="text-slate-300 font-bold flex items-center gap-1.5">
-                            <i class="fas fa-hourglass-half text-amber-400 text-xs"></i>
-                            <span>مدة التفعيل / الاشتراك:</span>
-                        </span>
-                        <span id="duration-indicator-text" class="text-amber-400 font-bold font-mono bg-amber-500/20 px-2.5 py-1 rounded-lg border border-amber-500/30"></span>
-                    </div>
-
-                    <!-- Dynamic Quantity Stepper if range, list, or fixed -->
-                    <div id="quantity-container" class="mb-3">
-                        <div id="quantity-input-wrapper"></div>
-                    </div>
-
-                    <!-- Input / Dynamic Fields Area (e.g. معرف الحساب) -->
-                    <div id="dynamic-fields-container" class="alkasr-input-wrap">
-                        <div id="dynamic-fields-wrapper">
-                            {% if is_instant_product or not product.form_schema.fields and not product.is_api_product and product.product_type != 'physical' %}
-                            <div class="alkasr-instant-note">
-                                <i class="fas fa-bolt text-emerald-400"></i>
-                                <span>طلب رقمي فوري، يتم تسليم البيانات آلياً بعد إتمام الطلب مباشرة.</span>
-                            </div>
-                            {% elif product.form_schema.fields %}
-                                {% for f in product.form_schema.fields %}
-                                <div class="mb-2.5">
-                                    <label class="text-[11px] font-bold text-slate-300 block mb-1">
-                                        {{ f.label }} {% if f.required %}<span class="text-rose-400">*</span>{% endif %}
-                                    </label>
-                                    {% if f.type == 'textarea' %}
-                                    <textarea name="custom_{{ f.name|default:f.label }}" placeholder="{{ f.placeholder|default:'اكتب هنا...' }}" class="alkasr-input-box" rows="2" {% if f.required %}required{% endif %}></textarea>
-                                    {% elif f.options %}
-                                    <select name="custom_{{ f.name|default:f.label }}" class="alkasr-input-box" {% if f.required %}required{% endif %}>
-                                        <option value="">-- اختر من القائمة --</option>
-                                        {% for opt in f.options %}
-                                        <option value="{{ opt|trim }}">{{ opt|trim }}</option>
-                                        {% endfor %}
-                                    </select>
-                                    {% else %}
-                                    <div class="relative flex items-center">
-                                        <input type="text" name="custom_{{ f.name|default:f.label }}" id="custom_{{ f.name|default:f.label }}" placeholder="{{ f.placeholder|default:'أدخل البيانات' }}" class="alkasr-input-box text-center" {% if f.required %}required{% endif %}>
-                                        <button type="button" onclick="pasteToInput('custom_{{ f.name|default:f.label }}')" class="alkasr-paste-btn">
-                                            <i class="fas fa-paste text-[10px]"></i>
-                                            <span>لصق</span>
-                                        </button>
-                                    </div>
-                                    {% endif %}
-                                </div>
-                                {% endfor %}
-                            {% else %}
-                            <!-- Default Player ID / Account input -->
-                            <div class="relative flex items-center">
-                                <input type="text" name="custom_player_id" id="custom_player_id" placeholder="معرف الحساب أو اللاعب" class="alkasr-input-box text-center" required>
-                                <button type="button" onclick="pasteToInput('custom_player_id')" class="alkasr-paste-btn">
-                                    <i class="fas fa-paste text-[10px]"></i>
-                                    <span>لصق</span>
-                                </button>
-                            </div>
-                            {% endif %}
-                        </div>
-                    </div>
-
-                    <!-- Physical Product Shipping Fields (if physical) -->
-                    {% if product.product_type == "physical" and not product.form_schema.fields %}
-                    <div class="p-3.5 rounded-2xl bg-black/40 border border-white/10 mb-3 text-right">
-                        <span class="text-xs font-bold text-amber-400 block mb-2">بيانات الشحن والتوصيل:</span>
-                        <input type="text" name="shipping_name" placeholder="اسم المستلم الكامل" class="alkasr-input-box mb-2 text-right text-xs" required>
-                        <input type="text" name="shipping_phone" placeholder="رقم هاتف المستلم للتواصل" class="alkasr-input-box mb-2 text-right text-xs" required>
-                        <textarea name="shipping_address" rows="2" placeholder="العنوان التفصيلي للشحن" class="alkasr-input-box text-right text-xs" required></textarea>
-                    </div>
-                    {% endif %}
-
-                    <!-- Actions Row: شراء & إلغاء -->
-                    <div class="alkasr-actions-row">
-                        {% if is_inactive_product or product.is_out_of_stock or not product.is_active %}
-                        <button type="button" class="alkasr-btn-buy opacity-60 cursor-not-allowed !bg-slate-700 !text-slate-400 !shadow-none" disabled>
-                            غير متوفر حالياً
-                        </button>
-                        {% else %}
-                        <button type="submit" class="alkasr-btn-buy" id="submit-btn">
-                            <i class="fas fa-bolt ml-1.5"></i> إتمام الشراء الآن
-                        </button>
-                        {% endif %}
-                        <a href="{% url 'catalog' %}" class="alkasr-btn-cancel">
-                            الرجوع للكتالوج
-                        </a>
-                    </div>
-
-                    <!-- Assurance Callout Note -->
-                    <div class="alkasr-notice-box">
-                        <span class="alkasr-notice-text">
-                            <i class="fas fa-headset text-cyan ml-1"></i> ضمان استرجاع ودعم مباشر على مدار 24 ساعة لجميع الطلبات
-                        </span>
-                    </div>
-
-                    <!-- Payment Selector & Coupon Drawer -->
-                    <div class="alkasr-extra-tools">
-                        <!-- Payment methods switch with official logos -->
-                        <div class="mb-3">
-                            <span class="text-xs font-bold text-slate-300 block mb-1.5 flex items-center gap-1.5">
-                                <i class="fas fa-credit-card text-amber-400 text-xs"></i>
-                                <span>طريقة الدفع:</span>
-                            </span>
-                            <div class="alkasr-pm-grid">
-                                <button type="button" class="alkasr-pm-tab is-active" id="pm-tab-wallet" onclick="selectAlkasrPayment('wallet', this)">
-                                    <div class="w-6 h-6 rounded-full bg-amber-500/20 text-amber-400 flex items-center justify-center text-xs shrink-0 border border-amber-500/30">
-                                        <i class="fas fa-wallet"></i>
-                                    </div>
-                                    <div class="text-right">
-                                        <span class="font-bold block leading-tight text-xs">رصيد المحفظة</span>
-                                        <span class="text-[10px] text-amber-400/90 font-mono">{% currency_format request.user.wallet.available_balance|default:0 %}</span>
-                                    </div>
-                                </button>
-                                {% for gw in gateway_methods %}
-                                <button type="button" class="alkasr-pm-tab" id="pm-tab-{{ gw.id }}" onclick="selectAlkasrPayment('{{ gw.id }}', this)">
-                                    {% if gw.logo %}
-                                    <img src="{{ gw.logo }}" class="h-5 w-auto object-contain rounded shrink-0" alt="{{ gw.name }}" onerror="this.style.display='none'; this.nextElementSibling.classList.remove('hidden');">
-                                    <i class="fas fa-shield-alt text-sky-400 text-sm hidden shrink-0"></i>
-                                    {% else %}
-                                    <i class="fas fa-shield-alt text-sky-400 text-sm shrink-0"></i>
-                                    {% endif %}
-                                    <div class="text-right">
-                                        <span class="font-bold block leading-tight text-xs">{{ gw.name }}</span>
-                                        <span class="text-[10px] text-slate-400">دفع إلكتروني</span>
-                                    </div>
-                                </button>
-                                {% endfor %}
-                            </div>
-                        </div>
-
-                        <!-- Coupon Drawer with Luxury Amber Styling -->
-                        <div class="alkasr-coupon-box">
-                            <div class="alkasr-coupon-header" onclick="toggleCouponDrawer()">
-                                <div class="flex items-center gap-2">
-                                    <div class="w-6 h-6 rounded-lg bg-amber-500/15 border border-amber-500/30 text-amber-400 flex items-center justify-center text-xs">
-                                        <i class="fas fa-tag"></i>
-                                    </div>
-                                    <span class="text-xs font-bold text-slate-300">هل لديك كوبون خصم؟</span>
-                                </div>
-                                <button type="button" class="alkasr-coupon-toggle-btn">
-                                    <span>تطبيق كود</span>
-                                    <i class="fas fa-chevron-down text-[10px]" id="coupon-chevron"></i>
-                                </button>
-                            </div>
-                            <div id="alkasr-coupon-drawer" class="hidden mt-2.5">
-                                <div class="alkasr-coupon-input-group">
-                                    <input type="text" name="coupon_code" id="coupon-code-input" placeholder="أدخل رمز الكوبون..." class="alkasr-coupon-input" autocomplete="off">
-                                    <button type="button" onclick="applyCoupon(event)" class="alkasr-coupon-apply-btn">
-                                        <i class="fas fa-check text-xs"></i>
-                                        <span>تفعيل</span>
-                                    </button>
-                                </div>
-                                <div id="coupon-feedback" class="mt-2 text-xs text-center hidden"></div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Price Breakdown Card with clear Arabic labels (Visible ONLY when coupon discount > 0) -->
-                    <div id="price-breakdown" class="alkasr-breakdown-card hidden">
-                        <div class="alkasr-breakdown-row border-b border-white/5 text-slate-400">
-                            <span>السعر قبل الخصم:</span>
-                            <span id="subtotal-display" class="font-bold text-slate-200"></span>
-                        </div>
-                        <div class="alkasr-breakdown-row border-b border-white/5 text-emerald-400">
-                            <span>قيمة الخصم بالكوبون:</span>
-                            <span id="discount-display" class="font-bold">0.00</span>
-                        </div>
-                        <div class="alkasr-breakdown-row pt-1.5 text-sm font-black text-amber-400">
-                            <span>الإجمالي النهائي للدفع:</span>
-                            <span id="total-display"></span>
-                        </div>
-                    </div>
-                </form>
-            </div>
+        <div class="rq-pdp-viewer-box">
+          {% product_display_image product as prod_img %}
+          <img src="{{ prod_img }}" alt="{{ product.name }}" id="pdp-main-image" class="rq-pdp-viewer-img" onerror="this.onerror=null; this.src='{% static 'site/img/raqamiyat_logo_square.jpg' %}';">
         </div>
+      </div>
 
-    </div><!-- /.alkasr-main-grid -->
-</div><!-- /.alkasr-container -->
-
-<!-- Insufficient Balance Modal -->
-<div id="balance-modal" class="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm hidden">
-    <div class="bg-slate-900 border border-white/10 rounded-[2.5rem] w-full max-w-md overflow-hidden shadow-2xl reveal visible">
-        <div class="p-8 text-center stack gap-6">
-            <div class="w-20 h-20 bg-amber-500/10 rounded-full flex items-center justify-center text-amber-500 mx-auto">
-                <i class="fas fa-wallet text-3xl"></i>
-            </div>
-            <div>
-                <h3 class="text-2xl font-black text-white mb-2">الرصيد غير كافٍ</h3>
-                <p class="text-slate-400 text-sm">أنت بحاجة إلى <span id="modal-missing-amount" class="text-white font-bold"></span> إضافية لتأكيد هذا الطلب.</p>
-            </div>
-            <div class="stack gap-3 mt-2">
-                <a href="{% url 'dashboard_deposits' %}" class="btn btn-primary w-full py-4 font-black rounded-2xl">
-                    <i class="fas fa-plus-circle ml-2"></i> شحن المحفظة الآن
-                </a>
-                <button onclick="closeBalanceModal()" class="text-slate-500 text-xs font-bold hover:text-white transition">إلغاء</button>
-            </div>
-        </div>
-        <div class="bg-white/5 p-4 text-center">
-            <p class="text-[10px] text-slate-500 uppercase tracking-widest font-black">Raqamiyat Secure Financial System</p>
-        </div>
-    </div>
-</div>
-
-<!-- Premium Interactive Lightbox Modal -->
-<div id="image-lightbox" class="fixed inset-0 z-[200] bg-black/95 backdrop-blur-md hidden flex flex-col items-center justify-center p-4">
-    <button onclick="closeImageLightbox()" class="absolute top-6 right-6 text-white/70 hover:text-white text-3xl focus:outline-none transition-colors duration-200 z-[210] w-12 h-12 flex items-center justify-center rounded-full bg-white/5 hover:bg-white/10">
-        <i class="fas fa-times"></i>
-    </button>
-    <div class="relative w-full h-[80vh] flex items-center justify-center overflow-hidden cursor-grab active:cursor-grabbing" id="lightbox-container">
-        <img id="lightbox-img" src="" class="max-w-full max-h-full object-contain transition-transform duration-200 select-none pointer-events-none" style="transform: scale(1) rotate(0deg); transform-origin: center;">
-    </div>
-</div>
-</div><!-- /#product-page-wrapper -->
-
-<script>
-// Instant Next / Previous Product SPA Navigation
-function navigateProduct(url, pushState = true) {
-    if (!url || url === '#' || url === window.location.href) return;
-    const wrapper = document.getElementById('product-page-wrapper');
-    if (!wrapper) {
-        window.location.href = url;
-        return;
-    }
-
-    wrapper.style.opacity = '0.35';
-    wrapper.style.pointerEvents = 'none';
-
-    fetch(url, { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
-        .then(response => {
-            if (!response.ok) throw new Error("HTTP error " + response.status);
-            return response.text();
-        })
-        .then(html => {
-            const parser = new DOMParser();
-            const doc = parser.parseFromString(html, 'text/html');
-            const newWrapper = doc.getElementById('product-page-wrapper');
-            if (newWrapper) {
-                // Copy dataset attributes
-                for (let attr of newWrapper.attributes) {
-                    wrapper.setAttribute(attr.name, attr.value);
-                }
-                wrapper.innerHTML = newWrapper.innerHTML;
-                document.title = doc.title;
-                if (pushState) {
-                    history.pushState(null, doc.title, url);
-                }
-                window.scrollTo({ top: 0, behavior: 'smooth' });
-
-                // Select first active variant
-                const sel = wrapper.querySelector('#alkasr-variant-select');
-                if (sel && sel.value) {
-                    selectVariant(sel.value);
-                } else {
-                    const dummy = wrapper.querySelector('#single-product-dummy-variant');
-                    if (dummy) {
-                        selectVariant('default', dummy);
-                    } else {
-                        updateQuantityPrice();
-                    }
-                }
-            } else {
-                window.location.href = url;
-            }
-        })
-        .catch(err => {
-            console.warn("Instant nav fallback:", err);
-            window.location.href = url;
-        })
-        .finally(() => {
-            wrapper.style.opacity = '1';
-            wrapper.style.pointerEvents = 'auto';
-        });
-}
-
-// Delegated click on Next/Prev links
-document.addEventListener('click', function(e) {
-    const navBtn = e.target.closest('.nav-prod-btn');
-    if (!navBtn) return;
-    const url = navBtn.getAttribute('href');
-    if (!url || url === '#' || navBtn.target === '_blank') return;
-    e.preventDefault();
-    navigateProduct(url);
-});
-
-// Browser back / forward smooth navigation
-window.addEventListener('popstate', function() {
-    navigateProduct(window.location.href, false);
-});
-
-// Keyboard Left/Right Arrow Navigation
-document.addEventListener('keydown', function(e) {
-    if (['INPUT', 'TEXTAREA', 'SELECT'].includes(document.activeElement?.tagName)) return;
-    if (e.key === 'ArrowLeft') {
-        const nextLink = document.querySelector('a.nav-prod-btn[data-dir="next"]');
-        if (nextLink) {
-            e.preventDefault();
-            navigateProduct(nextLink.href);
-        }
-    } else if (e.key === 'ArrowRight') {
-        const prevLink = document.querySelector('a.nav-prod-btn[data-dir="prev"]');
-        if (prevLink) {
-            e.preventDefault();
-            navigateProduct(prevLink.href);
-        }
-    }
-});
-
-// Mobile Touch Swipe Left/Right Gesture
-let touchStartX = 0;
-let touchStartY = 0;
-document.addEventListener('touchstart', function(e) {
-    if (e.touches && e.touches.length === 1) {
-        touchStartX = e.touches[0].screenX;
-        touchStartY = e.touches[0].screenY;
-    }
-}, { passive: true });
-
-document.addEventListener('touchend', function(e) {
-    if (!e.changedTouches || e.changedTouches.length !== 1) return;
-    const touchEndX = e.changedTouches[0].screenX;
-    const touchEndY = e.changedTouches[0].screenY;
-    const diffX = touchEndX - touchStartX;
-    const diffY = touchEndY - touchStartY;
-    
-    // Check horizontal swipe threshold (at least 70px horizontal and not mainly vertical)
-    if (Math.abs(diffX) > 70 && Math.abs(diffX) > Math.abs(diffY) * 1.5) {
-        if (diffX < 0) {
-            // Swiped Left -> Next product (in RTL)
-            const nextLink = document.querySelector('a.nav-prod-btn[data-dir="next"]');
-            if (nextLink) navigateProduct(nextLink.href);
-        } else {
-            // Swiped Right -> Prev product (in RTL)
-            const prevLink = document.querySelector('a.nav-prod-btn[data-dir="prev"]');
-            if (prevLink) navigateProduct(prevLink.href);
-        }
-    }
-}, { passive: true });
-
-function changeMedia(url, isVideo, el) {
-    const mainImg = document.getElementById('main-product-img');
-    const mainVideo = document.getElementById('main-product-video');
-    
-    if (isVideo) {
-        if (mainImg) mainImg.classList.add('hidden');
-        if (mainVideo) {
-            mainVideo.src = url;
-            mainVideo.classList.remove('hidden');
-            mainVideo.play().catch(() => {});
-        }
-    } else {
-        if (mainVideo) {
-            mainVideo.pause();
-            mainVideo.classList.add('hidden');
-        }
-        if (mainImg) {
-            mainImg.src = url;
-            mainImg.classList.remove('hidden');
-        }
-    }
-    document.querySelectorAll('.thumb-item').forEach(t => t.classList.remove('active'));
-    el.classList.add('active');
-}
-
-function pasteToInput(id) {
-    if (navigator.clipboard && navigator.clipboard.readText) {
-        navigator.clipboard.readText().then(text => {
-            const el = document.getElementById(id);
-            if (el) {
-                el.value = text.trim();
-                el.dispatchEvent(new Event('input'));
-                el.focus();
-            }
-        }).catch(err => {
-            console.warn("Clipboard access denied:", err);
-            const el = document.getElementById(id);
-            if (el) el.focus();
-        });
-    } else {
-        const el = document.getElementById(id);
-        if (el) el.focus();
-    }
-}
-
-const PRODUCT_CATEGORY_NAME = "{{ product.category.name|default:''|escapejs }}".toLowerCase();
-const PRODUCT_NAME = "{{ product.name|default:''|escapejs }}".toLowerCase();
-const PRODUCT_FORM_FIELDS = {% if product.form_schema.fields %}{{ product.form_schema.fields|jsonify }}{% else %}[]{% endif %};
-const IS_PHYSICAL = {% if product.product_type == 'physical' %}true{% else %}false{% endif %};
-
-function isInstantDigitalProduct(el) {
-    if (IS_PHYSICAL) return false;
-    const deliveryType = el ? el.getAttribute('data-delivery-type') : '';
-    const isRecharge = el ? el.getAttribute('data-is-recharge') === 'true' : false;
-    if (deliveryType === 'keys' || isRecharge) return true;
-    
-    // Only static ready-to-deliver codes or accounts without any user input
-    const keywords = ['واتساب', 'whatsapp', 'مفتاح تفعيل', 'سيريال تفعيل', 'رقم جاهز', 'ready account'];
-    return keywords.some(k => PRODUCT_NAME.includes(k));
-}
-
-function renderDynamicFields(paramsJson, el) {
-    const container = document.getElementById('dynamic-fields-container');
-    const wrapper = document.getElementById('dynamic-fields-wrapper');
-    const headerTitle = document.getElementById('fields-header-title');
-    const helpText = document.getElementById('fields-help-text');
-    const instantPill = document.getElementById('instant-delivery-pill');
-    if (!container || !wrapper) return;
-
-    if (IS_PHYSICAL) {
-        container.classList.add('hidden');
-        wrapper.innerHTML = '';
-        return;
-    }
-
-    let params = [];
-    if (paramsJson) {
-        try {
-            params = typeof paramsJson === 'string' ? JSON.parse(paramsJson) : paramsJson;
-        } catch(e) {
-            console.error("Error parsing params", e);
-        }
-    }
-
-    // Preserve previously entered input values
-    const existingValues = {};
-    wrapper.querySelectorAll('input, select, textarea').forEach(inp => {
-        if (inp.name && inp.name.startsWith('custom_')) {
-            const key = inp.name.replace('custom_', '');
-            if (inp.value) {
-                existingValues[key] = inp.value;
-                if (key.toLowerCase().includes('id') || key.includes('ايدي') || key.includes('آيدي')) {
-                    existingValues['playerId'] = inp.value;
-                }
-            }
-        }
-    });
-
-    container.classList.remove('hidden');
-
-    // Case 1: Variant has specific parameters defined (e.g. playerId, serverId) -> ALWAYS prioritize!
-    if (Array.isArray(params) && params.length > 0) {
-        if (headerTitle) headerTitle.innerText = 'بيانات تنفيذ وشحن الطلب';
-        if (helpText) helpText.innerText = 'يرجى كتابة البيانات المطلوبة بعناية لضمان سرعة التنفيذ المباشر للطلب.';
-        if (instantPill) instantPill.classList.remove('hidden');
-
-        let html = '';
-        params.forEach((param, idx) => {
-            const pName = typeof param === 'string' ? param : (param.name || param.label || `param_${idx}`);
-            const pLabel = typeof param === 'string' ? param : (param.label || param.name || `حقل ${idx+1}`);
-            const pType = typeof param === 'string' ? 'text' : (param.type || 'text');
-            const isRequired = typeof param === 'string' ? true : (param.required !== false);
-            const prevVal = existingValues[pName] || existingValues['playerId'] || '';
-
-            let placeholder = `أدخل ${pLabel}...`;
-            const labelLower = pLabel.toLowerCase();
-            if (labelLower.includes('player') || labelLower.includes('ايدي') || labelLower.includes('آيدي') || labelLower.includes('معرف')) {
-                placeholder = 'ايدي المستخدم / Player ID';
-            } else if (labelLower.includes('server') || labelLower.includes('zone') || labelLower.includes('سيرفر')) {
-                placeholder = 'السيرفر / Server ID';
-            } else if (labelLower.includes('phone') || labelLower.includes('هاتف') || labelLower.includes('جوال') || labelLower.includes('رقم')) {
-                placeholder = 'رقم الهاتف / Phone Number';
-            }
-
-            html += `
-                <div class="mb-2.5">
-                    <label class="text-[11px] font-bold text-slate-300 block mb-1">
-                        ${pLabel} ${isRequired ? '<span class="text-rose-400">*</span>' : ''}
-                    </label>
-                    <div class="relative flex items-center">
-                        <input type="${pType === 'number' ? 'number' : 'text'}" 
-                               name="custom_${pName}" 
-                               id="custom_${pName}" 
-                               value="${prevVal}" 
-                               placeholder="${placeholder}" 
-                               class="alkasr-input-box text-center" 
-                               ${isRequired ? 'required' : ''}>
-                        <button type="button" onclick="pasteToInput('custom_${pName}')" class="absolute left-2.5 top-1/2 -translate-y-1/2 px-2.5 py-1 rounded-lg bg-white/10 hover:bg-white/20 text-[10px] text-slate-300 font-bold">
-                            لصق
-                        </button>
-                    </div>
-                </div>
-            `;
-        });
-        wrapper.innerHTML = html;
-        return;
-    }
-
-    // Case 3: Product has form_schema fields
-    if (Array.isArray(PRODUCT_FORM_FIELDS) && PRODUCT_FORM_FIELDS.length > 0) {
-        if (headerTitle) headerTitle.innerText = 'بيانات تنفيذ وشحن الطلب';
-        if (helpText) helpText.innerText = 'يرجى كتابة البيانات المطلوبة بعناية لضمان سرعة التنفيذ المباشر للطلب.';
-        if (instantPill) instantPill.classList.remove('hidden');
-
-        let html = '';
-        PRODUCT_FORM_FIELDS.forEach((f, idx) => {
-            const fName = f.name || f.label || `field_${idx}`;
-            const fLabel = f.label || f.name || `حقل ${idx+1}`;
-            const isReq = f.required !== false;
-            const prevVal = existingValues[fName] || '';
-
-            html += `
-                <div class="mb-2.5">
-                    <label class="text-[11px] font-bold text-slate-300 block mb-1">
-                        ${fLabel} ${isReq ? '<span class="text-rose-400">*</span>' : ''}
-                    </label>
-                    <div class="relative flex items-center">
-                        <input type="text" 
-                               name="custom_${fName}" 
-                               id="custom_${fName}" 
-                               value="${prevVal}" 
-                               placeholder="${f.placeholder || 'أدخل ' + fLabel + '...'}" 
-                               class="alkasr-input-box text-center" 
-                               ${isReq ? 'required' : ''}>
-                        <button type="button" onclick="pasteToInput('custom_${fName}')" class="alkasr-paste-btn">
-                            <i class="fas fa-paste text-[10px]"></i>
-                            <span>لصق</span>
-                        </button>
-                    </div>
-                </div>
-            `;
-        });
-        wrapper.innerHTML = html;
-        return;
-    }
-
-    // Case 3.5: Pure Instant Digital Code / Pre-generated Voucher (Keys only)
-    if (isInstantDigitalProduct(el)) {
-        if (headerTitle) headerTitle.innerText = 'معلومات الاستلام والتسليم التلقائي';
-        if (helpText) helpText.innerText = 'التسليم فوري وتلقائي — كود التفعيل سيصلك مباشرة في تفاصيل الطلب فور إتمام الدفع.';
-        if (instantPill) {
-            instantPill.classList.remove('hidden');
-            instantPill.innerHTML = '<span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span> تسليم فوري وتلقائي';
-        }
-
-        wrapper.innerHTML = `
-            <div class="alkasr-instant-note">
-                <i class="fas fa-bolt text-amber-400"></i>
-                <span>لا يتطلب هذا المنتج أي إدخال مسبق، التسليم فوري وتلقائي للكود فور الشراء.</span>
-            </div>
-        `;
-        return;
-    }
-
-    // Case 4: General Digital / Game Recharge Product requiring Account/Player ID
-    if (headerTitle) headerTitle.innerText = 'بيانات الحساب للشحن المباشر';
-    if (helpText) helpText.innerText = 'يرجى إدخال معرف الحساب أو الآيدي بدقة لضمان سرعة إرسال الرصيد لحسابك فوراً.';
-    if (instantPill) instantPill.classList.remove('hidden');
-
-    const prevId = existingValues['player_id'] || existingValues['playerId'] || existingValues['custom_player_id'] || '';
-    wrapper.innerHTML = `
-        <div class="relative flex items-center">
-            <input type="text" 
-                   name="custom_player_id" 
-                   id="custom_player_id" 
-                   value="${prevId}" 
-                   placeholder="ايدي المستخدم" 
-                   class="alkasr-input-box text-center" 
-                   required>
-            <button type="button" onclick="pasteToInput('custom_player_id')" class="alkasr-paste-btn">
-                <i class="fas fa-paste text-[10px]"></i>
-                <span>لصق</span>
-            </button>
-        </div>
-    `;
-}
-
-function getSelectedVariantOption() {
-    const sel = document.getElementById('alkasr-variant-select');
-    if (sel && sel.selectedIndex >= 0 && sel.options[sel.selectedIndex]) {
-        return sel.options[sel.selectedIndex];
-    }
-    return document.getElementById('single-product-dummy-variant');
-}
-
-function onVariantDropdownChange(variantId) {
-    selectVariant(variantId);
-}
-
-function selectVariant(id, el) {
-    const selectEl = document.getElementById('alkasr-variant-select');
-    if (selectEl && id && selectEl.value !== id) {
-        selectEl.value = id;
-    }
-
-    const option = el || (selectEl ? (selectEl.querySelector(`option[value="${id}"]`) || (selectEl.selectedIndex >= 0 ? selectEl.options[selectEl.selectedIndex] : null)) : null) || document.getElementById('single-product-dummy-variant');
-    if (!option) return;
-
-    const actualId = option.value || id || '';
-    const vInput = document.getElementById('selected-variant-id');
-    if (vInput) vInput.value = actualId;
-
-    // Update Number / Count metric display
-    const countEl = document.getElementById('metric-count');
-    if (countEl) {
-        const vName = option.getAttribute('data-variant-name') || option.innerText || '';
-        const matchNum = vName.match(/\b\d+[\d,.]*\b/);
-        countEl.innerText = matchNum ? matchNum[0] : (vName.split('—')[0].trim() || '1');
-    }
-
-    const submitBtn = document.getElementById('submit-btn');
-    if (submitBtn) {
-        if (option.disabled || option.hasAttribute('disabled')) {
-            submitBtn.disabled = true;
-            submitBtn.innerText = 'غير متوفر حالياً';
-            submitBtn.classList.add('opacity-60', 'cursor-not-allowed', '!bg-slate-700', '!text-slate-400');
-        } else {
-            submitBtn.disabled = false;
-            submitBtn.innerText = 'شراء';
-            submitBtn.classList.remove('opacity-60', 'cursor-not-allowed', '!bg-slate-700', '!text-slate-400');
-        }
-    }
-    
-    // Update subscription duration indicator if applicable
-    const vNameStr = option.getAttribute('data-variant-name') || option.innerText || '';
-    updateDurationIndicator(vNameStr);
-
-    // Parse parameters and render dynamic fields for this variant
-    const paramsData = option.getAttribute('data-params');
-    renderDynamicFields(paramsData, option);
-
-    // Parse quantity specifications
-    const qtyType = option.getAttribute('data-qty-type') || 'none';
-    const qtyMin = parseInt(option.getAttribute('data-qty-min') || 1);
-    const qtyMax = parseInt(option.getAttribute('data-qty-max') || 1);
-    const qtyListStr = option.getAttribute('data-qty-list') || '[]';
-    
-    renderQuantitySelector(qtyType, qtyMin, qtyMax, qtyListStr);
-    
-    // Reset coupon when variant is changed
-    const breakdown = document.getElementById('price-breakdown');
-    if (breakdown) breakdown.classList.add('hidden');
-    const couponInput = document.getElementById('coupon-code-input');
-    if (couponInput) couponInput.value = '';
-    const feedback = document.getElementById('coupon-feedback');
-    if (feedback) { feedback.classList.add('hidden'); feedback.innerText = ''; }
-
-    // Immediately calculate starting subtotal and submit button text
-    updateQuantityPrice();
-}
-
-function updateDurationIndicator(variantName) {
-    const box = document.getElementById('duration-indicator-box');
-    const textEl = document.getElementById('duration-indicator-text');
-    if (!box || !textEl) return;
-    
-    if (!variantName) {
-        box.classList.add('hidden');
-        return;
-    }
-    
-    const nameLower = variantName.toLowerCase();
-    let duration = null;
-    if (nameLower.includes('سنة') || nameLower.includes('سنوات') || nameLower.includes('12 شهر') || nameLower.includes('1 year') || nameLower.includes('yearly') || nameLower.includes('سنوي')) {
-        duration = 'سنة كاملة (12 شهراً)';
-    } else if (nameLower.includes('6 أشهر') || nameLower.includes('6 شهور') || nameLower.includes('6 months')) {
-        duration = '6 أشهر (نصف سنوي)';
-    } else if (nameLower.includes('3 أشهر') || nameLower.includes('3 شهور') || nameLower.includes('3 months')) {
-        duration = '3 أشهر (ربع سنوي)';
-    } else if (nameLower.includes('شهر') || nameLower.includes('1 month') || nameLower.includes('monthly') || nameLower.includes('شهري')) {
-        duration = 'شهر واحد (30 يوماً)';
-    } else if (nameLower.includes('يوم') || nameLower.includes('أيام') || nameLower.includes('day') || nameLower.includes('days')) {
-        const dayMatch = variantName.match(/(\d+)\s*(يوم|أيام|day|days)/i);
-        if (dayMatch) duration = `${dayMatch[1]} يوماً`;
-    }
-    
-    if (duration) {
-        textEl.innerText = duration;
-        box.classList.remove('hidden');
-    } else {
-        box.classList.add('hidden');
-    }
-}
-
-function renderQuantitySelector(qtyType, qtyMin, qtyMax, qtyListStr) {
-    const container = document.getElementById('quantity-container');
-    const wrapper = document.getElementById('quantity-input-wrapper');
-    if (!container || !wrapper) return;
-    
-    let inputHtml = '';
-    
-    if (qtyType === 'range') {
-        container.classList.remove('hidden');
-        inputHtml = `
-            <div class="alkasr-qty-box">
-                <div class="flex items-center justify-between mb-2 text-xs">
-                    <span class="text-slate-300 font-bold flex items-center gap-1.5">
-                        <i class="fas fa-cubes text-amber-400 text-xs"></i>
-                        <span>الكمية المطلوبة:</span>
-                    </span>
-                    <span class="text-[11px] text-amber-400 font-mono font-bold bg-amber-500/10 border border-amber-500/20 px-2 py-0.5 rounded-full">(${qtyMin.toLocaleString()} - ${qtyMax.toLocaleString()})</span>
-                </div>
-                <div class="flex items-center gap-2.5">
-                    <button type="button" onclick="adjustQty(-1)" class="alkasr-stepper-btn" title="إنقاص الكمية">
-                        <i class="fas fa-minus text-xs"></i>
-                    </button>
-                    <input type="number" name="quantity" id="quantity-input" 
-                           min="${qtyMin}" max="${qtyMax}" value="${qtyMin}" 
-                           oninput="updateQuantityPrice()" onkeyup="updateQuantityPrice()" onchange="updateQuantityPrice()"
-                           class="flex-grow text-center alkasr-input-box font-mono font-black text-amber-400 text-lg">
-                    <button type="button" onclick="adjustQty(1)" class="alkasr-stepper-btn" title="زيادة الكمية">
-                        <i class="fas fa-plus text-xs"></i>
-                    </button>
-                </div>
-            </div>
-        `;
-    } else if (qtyType === 'list') {
-        container.classList.remove('hidden');
-        let listOptions = [];
-        try {
-            listOptions = JSON.parse(qtyListStr);
-        } catch(e) {
-            try {
-                listOptions = JSON.parse(qtyListStr.replace(/'/g, '"'));
-            } catch(e2) {
-                console.error("Error parsing qty list", e2);
-            }
-        }
-        if (typeof listOptions === 'string') {
-            try { listOptions = JSON.parse(listOptions); } catch(e) {}
-        }
+      <!-- Description & Information Panel -->
+      <div style="background: var(--rq-surface-card); border: 1px solid var(--rq-border); border-radius: var(--rq-radius-xl); padding: 1.75rem;">
+        <h3 style="font-size: 1.05rem; font-weight: 900; color: #fff; margin: 0 0 1rem; display: flex; align-items: center; gap: 0.5rem;">
+          <i class="fas fa-info-circle text-blue-500"></i>
+          <span>تفاصيل ومعلومات الخدمة</span>
+        </h3>
         
-        const card = getSelectedVariantOption();
-        let basePrice = 0;
-        if (card) {
-            let rawPriceStr = (card.getAttribute('data-price') || '0').trim();
-            if (rawPriceStr.includes(',') && !rawPriceStr.includes('.')) {
-                rawPriceStr = rawPriceStr.replace(',', '.');
-            } else if (rawPriceStr.includes(',') && rawPriceStr.includes('.')) {
-                rawPriceStr = rawPriceStr.replace(/,/g, '');
-            }
-            basePrice = parseFloat(rawPriceStr) || 0;
-        }
+        <div style="font-size: 0.9rem; line-height: 1.8; color: var(--rq-text-secondary); white-space: pre-line;">
+          {{ product.description|default:"خدمة رقمية معتمدة ومضمونة من متجر رقميات. تضمن لك المنصة استلام الطلب بصورة فورية ومباشرة في حسابك أو عبر الأكواد الرقمية المرخصة." }}
+        </div>
+      </div>
 
-        const validOptions = (Array.isArray(listOptions) ? listOptions : [])
-            .map(v => String(v).trim())
-            .filter(v => v !== 'None' && v !== 'null' && v !== '' && !isNaN(parseFloat(v)) && parseFloat(v) > 0);
+      <!-- Specifications & Guarantees Grid -->
+      <div class="rq-pdp-specs-grid">
+        <div class="rq-pdp-spec-box">
+          <div style="width: 40px; height: 40px; border-radius: 10px; background: rgba(37, 99, 235, 0.15); color: #3b82f6; display: flex; align-items: center; justify-content: center; font-size: 1.1rem; flex-shrink: 0;">
+            <i class="fas fa-shield-alt"></i>
+          </div>
+          <div>
+            <div style="font-size: 0.82rem; font-weight: 800; color: #fff;">ضمان معتمد 100%</div>
+            <div style="font-size: 0.72rem; color: var(--rq-text-muted);">أكواد أصلية مرخصة مباشرة من الموزعين.</div>
+          </div>
+        </div>
 
-        let selectHtml = `
-            <div class="alkasr-qty-box">
-                <label for="quantity-select" class="text-xs font-bold text-slate-300 block mb-1.5 flex items-center justify-between">
-                    <span class="flex items-center gap-1.5">
-                        <i class="fas fa-layer-group text-amber-400 text-xs"></i>
-                        <span>اختر فئة أو كمية الرصيد:</span>
-                    </span>
-                    <span class="text-[11px] text-amber-400 font-mono font-bold bg-amber-500/10 border border-amber-500/20 px-2 py-0.5 rounded-full">(${validOptions.length} خيارات)</span>
-                </label>
-                <div class="relative">
-                    <select id="quantity-select" onchange="setListQty(this.value)" 
-                            class="alkasr-select-box text-center cursor-pointer text-amber-400 font-black">
-        `;
-        if (validOptions.length > 0) {
-            validOptions.forEach((val, idx) => {
-                const numericVal = parseFloat(val);
-                const pkgPrice = basePrice * numericVal;
-                const formattedPrice = formatCurrencyAmount(pkgPrice);
-                selectHtml += `
-                    <option value="${val}" ${idx === 0 ? 'selected' : ''}>
-                        ${numericVal.toLocaleString()} رصيد — ${formattedPrice}
-                    </option>
-                `;
-            });
-        }
-        selectHtml += `
-                    </select>
-                </div>
-                <input type="hidden" name="quantity" id="quantity-input" value="${(validOptions && validOptions[0]) ? validOptions[0] : 1}">
+        <div class="rq-pdp-spec-box">
+          <div style="width: 40px; height: 40px; border-radius: 10px; background: rgba(16, 185, 129, 0.15); color: #10b981; display: flex; align-items: center; justify-content: center; font-size: 1.1rem; flex-shrink: 0;">
+            <i class="fas fa-bolt"></i>
+          </div>
+          <div>
+            <div style="font-size: 0.82rem; font-weight: 800; color: #fff;">تفعيل فوري</div>
+            <div style="font-size: 0.72rem; color: var(--rq-text-muted);">معالجة آلية للطلب فور تأكيد الدفع.</div>
+          </div>
+        </div>
+
+        <div class="rq-pdp-spec-box">
+          <div style="width: 40px; height: 40px; border-radius: 10px; background: rgba(245, 158, 11, 0.15); color: #fbbf24; display: flex; align-items: center; justify-content: center; font-size: 1.1rem; flex-shrink: 0;">
+            <i class="fas fa-lock"></i>
+          </div>
+          <div>
+            <div style="font-size: 0.82rem; font-weight: 800; color: #fff;">دفع آمن ومحمي</div>
+            <div style="font-size: 0.72rem; color: var(--rq-text-muted);">بوابات دفع مشفرة ومتوافقة مع المعايير.</div>
+          </div>
+        </div>
+
+        <div class="rq-pdp-spec-box">
+          <div style="width: 40px; height: 40px; border-radius: 10px; background: rgba(139, 92, 246, 0.15); color: #a78bfa; display: flex; align-items: center; justify-content: center; font-size: 1.1rem; flex-shrink: 0;">
+            <i class="fas fa-headset"></i>
+          </div>
+          <div>
+            <div style="font-size: 0.82rem; font-weight: 800; color: #fff;">دعم فني متواصل</div>
+            <div style="font-size: 0.72rem; color: var(--rq-text-muted);">فريق دعم هندسي جاهز لمساعدتك دائماً.</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Related Products Section -->
+      {% if related_products %}
+      <div style="margin-top: 1rem;">
+        <h3 style="font-size: 1.05rem; font-weight: 900; color: #fff; margin: 0 0 1rem; display: flex; align-items: center; gap: 0.5rem;">
+          <i class="fas fa-layer-group text-blue-500"></i>
+          <span>منتجات وخدمات مشابهة</span>
+        </h3>
+
+        <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 1rem;">
+          {% for rp in related_products|slice:":4" %}
+          {% product_display_image rp as rp_img %}
+          <div class="rq-card" style="margin-bottom: 0;">
+            <a href="{% url 'product_detail' rp.id %}" class="rq-card-media" style="height: 140px;">
+              <img src="{{ rp_img }}" alt="{{ rp.name }}" loading="lazy" onerror="this.onerror=null; this.src='{% static 'site/img/raqamiyat_logo_square.jpg' %}';">
+            </a>
+            <div class="rq-card-body" style="padding: 0.85rem;">
+              <a href="{% url 'product_detail' rp.id %}">
+                <h5 class="rq-card-title" style="font-size: 0.82rem;">{{ rp.name }}</h5>
+              </a>
+              <div class="rq-card-footer" style="padding-top: 0.5rem;">
+                <span class="tabular-nums" style="font-size: 0.88rem; font-weight: 900; color: #fbbf24;">{% product_starting_price rp %}</span>
+                <a href="{% url 'product_detail' rp.id %}" class="rq-card-buy-btn" style="padding: 0.35rem 0.65rem; font-size: 0.72rem;">
+                  <span>عرض</span>
+                </a>
+              </div>
             </div>
-        `;
-        inputHtml = selectHtml;
-    } else {
-        container.classList.remove('hidden');
-        const maxLimit = (qtyMax && qtyMax > 1) ? qtyMax : 999999;
-        inputHtml = `
-            <div class="alkasr-qty-box">
-                <div class="flex items-center justify-between mb-2 text-xs">
-                    <span class="text-slate-300 font-bold flex items-center gap-1.5">
-                        <i class="fas fa-cubes text-amber-400 text-xs"></i>
-                        <span>الكمية المطلوبة:</span>
-                    </span>
-                    <span class="text-[11px] text-slate-400 font-mono">حدد الكمية التي تريد شراءها</span>
-                </div>
-                <div class="flex items-center gap-2.5">
-                    <button type="button" onclick="adjustQty(-1)" class="alkasr-stepper-btn" title="إنقاص الكمية">
-                        <i class="fas fa-minus text-xs"></i>
-                    </button>
-                    <input type="number" name="quantity" id="quantity-input" 
-                           min="1" max="${maxLimit}" value="1" 
-                           oninput="updateQuantityPrice()" onkeyup="updateQuantityPrice()" onchange="updateQuantityPrice()"
-                           class="flex-grow text-center alkasr-input-box font-mono font-black text-amber-400 text-lg">
-                    <button type="button" onclick="adjustQty(1)" class="alkasr-stepper-btn" title="زيادة الكمية">
-                        <i class="fas fa-plus text-xs"></i>
-                    </button>
-                </div>
-            </div>
-        `;
-    }
-    
-    wrapper.innerHTML = inputHtml;
-    updateQuantityPrice();
-}
+          </div>
+          {% endfor %}
+        </div>
+      </div>
+      {% endif %}
 
-function setListQty(val) {
-    const input = document.getElementById('quantity-input');
-    if (input) input.value = val;
-    updateQuantityPrice();
+    </div>
+
+    <!-- ── Right Column: Interactive Purchase Station ── -->
+    <div>
+      <div class="rq-pdp-purchase-card">
+
+        <!-- Title & Category Header -->
+        <div>
+          {% if product.category %}
+          <a href="{% url 'catalog' %}?category={{ product.category.id }}" class="rq-pdp-category-tag">
+            <i class="fas fa-tag text-xs"></i>
+            <span>{{ product.category.name }}</span>
+          </a>
+          {% endif %}
+          <h1 class="rq-pdp-title" style="margin-top: 0.35rem;">{{ product.name }}</h1>
+        </div>
+
+        <!-- Order Form (Zero-Feature-Loss) -->
+        <form method="post" id="pdp-purchase-form" action="{% url 'product_detail' product.id %}">
+          {% csrf_token %}
+
+          <!-- Hidden Variant Input -->
+          <input type="hidden" name="variant_id" id="selected-variant-id" value="{% if active_variant %}{{ active_variant.id }}{% elif variants.0 %}{{ variants.0.id }}{% endif %}">
+
+          <!-- 1. Variants Selection -->
+          {% if variants %}
+          <div style="margin-bottom: 1.25rem;">
+            <div class="rq-pdp-variant-selector-title">
+              <span>اختر الباقة / الفئة:</span>
+              <span style="font-size: 0.72rem; color: var(--rq-text-muted);">{{ variants|length }} خيارات متاحة</span>
+            </div>
+
+            <div class="rq-pdp-variants-list">
+              {% for v in variants %}
+              <div class="rq-pdp-variant-item {% if active_variant and active_variant.id == v.id %}active{% elif not active_variant and forloop.first %}active{% endif %}"
+                   data-variant-id="{{ v.id }}"
+                   data-variant-name="{{ v.name|escape }}"
+                   data-variant-price="{{ v.price|unlocalize }}"
+                   onclick="selectVariant(this)">
+                <div>
+                  <div class="rq-pdp-variant-name">{{ v.name }}</div>
+                  {% if not v.is_active or v.is_temporarily_disabled %}
+                  <span style="font-size: 0.68rem; color: #f87171;">غير متاح حالياً</span>
+                  {% else %}
+                  <span style="font-size: 0.68rem; color: #34d399;">متوفر فوري ⚡</span>
+                  {% endif %}
+                </div>
+                <div class="rq-pdp-variant-price">
+                  {% format_price v.price %}
+                </div>
+              </div>
+              {% endfor %}
+            </div>
+          </div>
+          {% endif %}
+
+          <!-- 2. Dynamic Custom Fields (from product.form_schema) -->
+          {% if product.form_schema and product.form_schema.fields %}
+          <div style="background: rgba(0, 0, 0, 0.25); border: 1px solid var(--rq-border); border-radius: var(--rq-radius-md); padding: 1.25rem; margin-bottom: 1.25rem;">
+            <div style="font-size: 0.82rem; font-weight: 800; color: #38bdf8; margin-bottom: 0.85rem; display: flex; align-items: center; gap: 0.4rem;">
+              <i class="fas fa-edit"></i>
+              <span>بيانات تنفيذ الطلب المطلوبة:</span>
+            </div>
+
+            {% for field in product.form_schema.fields %}
+            <div class="rq-form-group" style="margin-bottom: 0.85rem;">
+              <label class="rq-label">
+                <span>{{ field.label|default:field.name }}</span>
+                {% if field.required %}<span style="color: #f87171; font-size: 0.7rem;">* مطلوب</span>{% endif %}
+              </label>
+
+              {% if field.type == 'textarea' %}
+              <textarea name="custom_{{ field.name|default:field.label }}" rows="2" class="rq-textarea" placeholder="{{ field.placeholder|default:'' }}" {% if field.required %}required{% endif %}></textarea>
+              {% elif field.options %}
+              <select name="custom_{{ field.name|default:field.label }}" class="rq-select" {% if field.required %}required{% endif %}>
+                <option value="">-- اختر من القائمة --</option>
+                {% for opt in field.options %}
+                <option value="{{ opt }}">{{ opt }}</option>
+                {% endfor %}
+              </select>
+              {% else %}
+              <input type="{{ field.type|default:'text' }}" name="custom_{{ field.name|default:field.label }}" class="rq-input" placeholder="{{ field.placeholder|default:'' }}" {% if field.required %}required{% endif %}>
+              {% endif %}
+            </div>
+            {% endfor %}
+          </div>
+          {% endif %}
+
+          <!-- 3. Physical Product Shipping Fields -->
+          {% if product.product_type == 'physical' and not product.form_schema.fields %}
+          <div style="background: rgba(0, 0, 0, 0.25); border: 1px solid var(--rq-border); border-radius: var(--rq-radius-md); padding: 1.25rem; margin-bottom: 1.25rem;">
+            <div style="font-size: 0.82rem; font-weight: 800; color: #fbbf24; margin-bottom: 0.85rem; display: flex; align-items: center; gap: 0.4rem;">
+              <i class="fas fa-map-marker-alt"></i>
+              <span>عنوان وبيانات الشحن والتوصيل:</span>
+            </div>
+
+            <div class="rq-form-group" style="margin-bottom: 0.75rem;">
+              <input type="text" name="shipping_name" class="rq-input" placeholder="اسم المستلم الثلاثي" required>
+            </div>
+            <div class="rq-form-group" style="margin-bottom: 0.75rem;">
+              <input type="tel" name="shipping_phone" class="rq-input" placeholder="رقم الهاتف للتواصل والتسليم" required>
+            </div>
+            <div class="rq-form-group" style="margin-bottom: 0;">
+              <textarea name="shipping_address" rows="2" class="rq-textarea" placeholder="المدينة، الحي، تفاصيل العنوان" required></textarea>
+            </div>
+          </div>
+          {% endif %}
+
+          <!-- 4. Quantity Stepper -->
+          <div class="rq-pdp-qty-row" style="margin-bottom: 1.25rem;">
+            <div>
+              <span style="font-size: 0.82rem; font-weight: 800; color: #fff; display: block;">الكمية المطلوبة</span>
+              <span style="font-size: 0.7rem; color: var(--rq-text-muted);">عدد القطع أو مرات التفعيل</span>
+            </div>
+            <div class="rq-qty-stepper">
+              <button type="button" class="rq-qty-btn" onclick="adjustQty(-1)">-</button>
+              <input type="number" name="quantity" id="pdp-quantity-input" value="1" min="1" max="99" class="rq-qty-num" style="background: transparent; border: none; outline: none;" onchange="recalculatePrice()">
+              <button type="button" class="rq-qty-btn" onclick="adjustQty(1)">+</button>
+            </div>
+          </div>
+
+          <!-- 5. Coupon Code Input -->
+          <div style="margin-bottom: 1.25rem;">
+            <div style="display: flex; gap: 0.5rem;">
+              <input type="text" name="coupon_code" id="coupon-input" placeholder="هل لديك كوبون خصم؟" class="rq-input" style="text-transform: uppercase;">
+              <button type="button" onclick="applyCoupon()" class="rq-btn-auth-login" style="padding: 0 1.25rem; font-size: 0.8rem; flex-shrink: 0;">
+                تطبيق
+              </button>
+            </div>
+            <div id="coupon-feedback" style="font-size: 0.72rem; margin-top: 0.35rem; display: none;"></div>
+          </div>
+
+          <!-- 6. Payment Method Selector -->
+          <div style="margin-bottom: 1.5rem;">
+            <div style="font-size: 0.82rem; font-weight: 800; color: #e2e8f0; margin-bottom: 0.65rem;">طريقة الدفع:</div>
+            
+            <div style="display: flex; flex-direction: column; gap: 0.5rem;">
+              <!-- Wallet Option -->
+              <label style="display: flex; align-items: center; justify-content: space-between; padding: 0.75rem 1rem; border-radius: var(--rq-radius-md); background: rgba(0, 0, 0, 0.3); border: 1px solid var(--rq-border); cursor: pointer;">
+                <div style="display: flex; align-items: center; gap: 0.65rem;">
+                  <input type="radio" name="payment_method" value="wallet" checked style="accent-color: var(--rq-primary);">
+                  <span style="font-size: 0.85rem; font-weight: 800; color: #fff;">رصيد المحفظة</span>
+                </div>
+                {% if user.is_authenticated and user.wallet %}
+                <span class="tabular-nums" style="font-size: 0.78rem; font-weight: 800; color: #34d399;">
+                  المتاح: {% format_price user.wallet.available_balance %}
+                </span>
+                {% else %}
+                <span style="font-size: 0.72rem; color: var(--rq-text-muted);">تسجيل الدخول مطلوب</span>
+                {% endif %}
+              </label>
+
+              <!-- Direct Gateways (Paymera etc.) -->
+              {% for gw in gateway_methods %}
+              <label style="display: flex; align-items: center; justify-content: space-between; padding: 0.75rem 1rem; border-radius: var(--rq-radius-md); background: rgba(0, 0, 0, 0.3); border: 1px solid var(--rq-border); cursor: pointer;">
+                <div style="display: flex; align-items: center; gap: 0.65rem;">
+                  <input type="radio" name="payment_method" value="{{ gw.id }}" style="accent-color: var(--rq-primary);">
+                  <span style="font-size: 0.85rem; font-weight: 800; color: #fff;">{{ gw.name }}</span>
+                </div>
+                {% if gw.logo %}
+                <img src="{{ gw.logo }}" alt="{{ gw.name }}" style="height: 20px; object-fit: contain;">
+                {% endif %}
+              </label>
+              {% endfor %}
+            </div>
+          </div>
+
+          <!-- 7. Price Calculation Breakdown -->
+          <div style="background: rgba(0, 0, 0, 0.35); border-radius: var(--rq-radius-md); border: 1px solid var(--rq-border); padding: 1rem; margin-bottom: 1.5rem;">
+            <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.35rem; font-size: 0.82rem; color: var(--rq-text-muted);">
+              <span>سعر الوحدة:</span>
+              <span id="pdp-unit-price" class="tabular-nums font-mono" style="color: #fff;">-</span>
+            </div>
+            <div id="pdp-discount-row" style="display: none; align-items: center; justify-content: space-between; margin-bottom: 0.35rem; font-size: 0.82rem; color: #34d399;">
+              <span>الخصم المطبق:</span>
+              <span id="pdp-discount-amount" class="tabular-nums font-mono">-</span>
+            </div>
+            <div style="display: flex; align-items: center; justify-content: space-between; padding-top: 0.5rem; border-top: 1px solid var(--rq-border); font-size: 1rem; font-weight: 900; color: #fff;">
+              <span>الإجمالي المستحق:</span>
+              <span id="pdp-total-price" class="tabular-nums font-mono" style="color: #fbbf24; font-size: 1.25rem;">
+                {% if active_variant %}{% format_price active_variant.price %}{% elif variants.0 %}{% format_price variants.0.price %}{% else %}-{% endif %}
+              </span>
+            </div>
+          </div>
+
+          <!-- 8. Submit Action Button -->
+          {% if is_inactive_product or product.is_out_of_stock or not product.is_active %}
+          <button type="button" class="rq-pdp-buy-now" disabled style="opacity: 0.5; background: #334155; border-color: #475569; cursor: not-allowed; box-shadow: none;">
+            <i class="fas fa-ban"></i>
+            <span>المنتج غير متوفر حالياً</span>
+          </button>
+          {% else %}
+          <button type="submit" id="pdp-submit-btn" class="rq-pdp-buy-now">
+            <i class="fas fa-bolt"></i>
+            <span>تأكيد وشراء الطلب الآن</span>
+          </button>
+          {% endif %}
+
+        </form>
+
+      </div>
+    </div>
+
+  </div>
+
+</div>
+
+<!-- Interactive Client-side Script -->
+<script>
+let currentPrice = {% if active_variant %}{{ active_variant.price|unlocalize }}{% elif variants.0 %}{{ variants.0.price|unlocalize }}{% else %}0{% endif %};
+let discountPercentage = 0;
+
+function selectVariant(element) {
+  document.querySelectorAll('.rq-pdp-variant-item').forEach(item => item.classList.remove('active'));
+  element.classList.add('active');
+
+  const varId = element.getAttribute('data-variant-id');
+  const price = parseFloat(element.getAttribute('data-variant-price')) || 0;
+
+  document.getElementById('selected-variant-id').value = varId;
+  currentPrice = price;
+  recalculatePrice();
 }
 
 function adjustQty(delta) {
-    const input = document.getElementById('quantity-input');
-    if (!input) return;
-    let val = parseFloat(input.value) || 1;
-    const min = parseFloat(input.getAttribute('min')) || 1;
-    const maxStr = input.getAttribute('max');
-    const max = maxStr ? (parseFloat(maxStr) || 999999) : 999999;
-
-    let step = 1;
-    if (min >= 1000) step = 1000;
-    else if (min >= 100) step = 100;
-    else if (min >= 10) step = 10;
-
-    val += (delta * step);
-    if (val < min) val = min;
-    if (val > max) val = max;
-    input.value = val;
-    updateQuantityPrice();
+  const input = document.getElementById('pdp-quantity-input');
+  let val = parseInt(input.value) || 1;
+  val = Math.max(1, Math.min(99, val + delta));
+  input.value = val;
+  recalculatePrice();
 }
 
-document.addEventListener('DOMContentLoaded', function() {
-    const couponInp = document.getElementById('coupon-code-input');
-    if (couponInp) {
-        couponInp.addEventListener('keydown', function(e) {
-            if (e.key === 'Enter') {
-                e.preventDefault();
-                e.stopPropagation();
-                applyCoupon(e);
-            }
-        });
-    }
+function recalculatePrice() {
+  const qtyInput = document.getElementById('pdp-quantity-input');
+  const qty = parseInt(qtyInput ? qtyInput.value : 1) || 1;
+  const subtotal = currentPrice * qty;
+  const discount = subtotal * (discountPercentage / 100);
+  const total = Math.max(0, subtotal - discount);
 
-    const sel = document.getElementById('alkasr-variant-select');
-    if (sel && sel.value) {
-        selectVariant(sel.value);
-    } else {
-        const dummy = document.getElementById('single-product-dummy-variant');
-        if (dummy) {
-            selectVariant('default', dummy);
-        } else {
-            const submitBtn = document.getElementById('submit-btn');
-            if (submitBtn) submitBtn.disabled = false;
-        }
-    }
-});
+  const unitEl = document.getElementById('pdp-unit-price');
+  const totalEl = document.getElementById('pdp-total-price');
 
-function formatCurrencyAmount(baseAmount) {
-    const currencySymbol = "{{ CURRENCY.symbol|default:'USD' }}";
-    const currencyRate = parseFloat("{{ CURRENCY.buy_rate|default:1|unlocalize }}".replace(',', '.')) || 1.0;
-    const currencyMethod = "{{ CURRENCY.conversion_method|default:'multiply' }}";
-    let currencyDecimals = parseInt("{{ CURRENCY.decimal_places|default:2 }}") || 2;
-
-    let converted = baseAmount;
-    if (currencyMethod === 'divide') {
-        converted = baseAmount / currencyRate;
-    } else {
-        converted = baseAmount * currencyRate;
-    }
-
-    if (converted > 0 && converted < 0.01) {
-        currencyDecimals = 4;
-    }
-    if (converted > 0 && converted < 0.0001) {
-        currencyDecimals = 6;
-    }
-
-    return converted.toLocaleString('en-US', {minimumFractionDigits: currencyDecimals, maximumFractionDigits: currencyDecimals}) + ' ' + currencySymbol;
+  if (unitEl) unitEl.innerText = '$' + currentPrice.toFixed(2);
+  if (totalEl) totalEl.innerText = '$' + total.toFixed(2);
 }
 
-function updateQuantityPrice(isFromCoupon = false) {
-    const variantId = document.getElementById('selected-variant-id').value;
-    if (!variantId) return;
-    
-    const card = getSelectedVariantOption();
-    if (!card) return;
-    
-    let rawPriceStr = (card.getAttribute('data-price') || '0').trim();
-    if (rawPriceStr.includes(',') && !rawPriceStr.includes('.')) {
-        rawPriceStr = rawPriceStr.replace(',', '.');
-    } else if (rawPriceStr.includes(',') && rawPriceStr.includes('.')) {
-        rawPriceStr = rawPriceStr.replace(/,/g, '');
-    }
-    const basePrice = parseFloat(rawPriceStr) || 0;
-    const qtyInput = document.getElementById('quantity-input');
-    
-    let qty = 1;
-    if (qtyInput) {
-        const val = parseFloat(qtyInput.value);
-        qty = (isNaN(val) || val <= 0) ? 1 : val;
-    }
-    
-    const qtyType = card.getAttribute('data-qty-type') || 'fixed';
-    let subtotal = basePrice * qty;
-    
-    const breakdown = document.getElementById('price-breakdown');
-    let discount = 0;
-    
-    if (!isFromCoupon) {
-        document.getElementById('discount-display').innerText = formatCurrencyAmount(0);
-        if (breakdown) breakdown.classList.add('hidden');
-    } else {
-        const discountText = document.getElementById('discount-display').innerText;
-        discount = parseFloat(discountText.replace(/[^\d.-]/g, '') || 0);
-        if (discount > 0) discount = Math.abs(discount);
-        if (discount > 0 && breakdown) breakdown.classList.remove('hidden');
-    }
-    
-    const total = Math.max(0, subtotal - discount);
-    
-    document.getElementById('subtotal-display').innerText = formatCurrencyAmount(subtotal);
-    document.getElementById('total-display').innerText = formatCurrencyAmount(total);
+function applyCoupon() {
+  const code = (document.getElementById('coupon-input').value || '').trim();
+  const feedback = document.getElementById('coupon-feedback');
+  const varId = document.getElementById('selected-variant-id').value;
+  const qty = document.getElementById('pdp-quantity-input').value;
 
-    const metricTotal = document.getElementById('metric-total');
-    if (metricTotal) {
-        metricTotal.innerText = formatCurrencyAmount(total);
-    }
+  if (!code) {
+    feedback.style.display = 'block';
+    feedback.style.color = '#f87171';
+    feedback.innerText = 'يرجى إدخال كود الكوبون أولاً.';
+    return;
+  }
 
-    const topPriceBadge = document.getElementById('alkasr-top-price');
-    if (topPriceBadge) {
-        topPriceBadge.innerText = formatCurrencyAmount(total);
-    }
-
-    const countEl = document.getElementById('metric-count');
-    if (countEl && qtyInput) {
-        if (qtyType === 'range' || qtyType === 'list') {
-            countEl.innerText = Number(qtyInput.value).toLocaleString();
-        } else {
-            const vName = card.getAttribute('data-variant-name') || card.innerText || '';
-            const valNum = Number(qtyInput.value) || 1;
-            if (valNum > 1) {
-                countEl.innerText = `${valNum.toLocaleString()} × ${vName.split('—')[0].trim()}`;
-            } else {
-                countEl.innerText = vName.split('—')[0].trim() || '1';
-            }
-        }
-    }
-
-    const submitBtn = document.getElementById('submit-btn');
-    if (submitBtn && !submitBtn.disabled) {
-        submitBtn.innerHTML = `شراء`;
-    }
+  fetch(`{% url 'ajax_validate_coupon' %}?code=${encodeURIComponent(code)}&variant_id=${varId}&quantity=${qty}`)
+    .then(res => res.json())
+    .then(data => {
+      feedback.style.display = 'block';
+      if (data.valid) {
+        feedback.style.color = '#34d399';
+        feedback.innerText = `✓ تم تطبيق الكوبون بنجاح: خصم ${data.discount_percent || 0}%`;
+        discountPercentage = parseFloat(data.discount_percent) || 0;
+        recalculatePrice();
+      } else {
+        feedback.style.color = '#f87171';
+        feedback.innerText = data.error || 'الكوبون غير صالح أو منتهي الصلاحية.';
+      }
+    })
+    .catch(() => {
+      feedback.style.display = 'block';
+      feedback.style.color = '#f87171';
+      feedback.innerText = 'تعذر التحقق من الكوبون حالياً.';
+    });
 }
 
-function toggleCouponDrawer() {
-    const drawer = document.getElementById('alkasr-coupon-drawer');
-    const chevron = document.getElementById('coupon-chevron');
-    if (!drawer) return;
-    const isHidden = drawer.classList.contains('hidden');
-    if (isHidden) {
-        drawer.classList.remove('hidden');
-        if (chevron) chevron.className = 'fas fa-chevron-up text-[10px]';
-        const inp = document.getElementById('coupon-code-input');
-        if (inp) setTimeout(() => inp.focus(), 50);
-    } else {
-        drawer.classList.add('hidden');
-        if (chevron) chevron.className = 'fas fa-chevron-down text-[10px]';
-    }
-}
-
-function selectAlkasrPayment(pmId, btnEl) {
-    const pmInput = document.getElementById('selected-payment-method');
-    if (pmInput) pmInput.value = pmId;
-
-    document.querySelectorAll('.alkasr-pm-tab').forEach(b => b.classList.remove('is-active'));
-    if (btnEl) btnEl.classList.add('is-active');
-}
-
-function applyCoupon(e) {
-    if (e && e.preventDefault) e.preventDefault();
-    const codeInput = document.getElementById('coupon-code-input');
-    const code = codeInput ? codeInput.value.trim() : '';
-    const variantId = document.getElementById('selected-variant-id').value;
-    const feedback = document.getElementById('coupon-feedback');
-    const breakdown = document.getElementById('price-breakdown');
-    const qtyInput = document.getElementById('quantity-input');
-    const qty = qtyInput ? parseInt(qtyInput.value || 1) : 1;
-    
-    if (!code) {
-        if (feedback) {
-            feedback.innerText = "يرجى إدخال كود الخصم أولاً.";
-            feedback.className = "mt-2 text-xs text-rose-400 block font-bold";
-        }
-        return;
-    }
-    
-    if (!variantId) {
-        if (feedback) {
-            feedback.innerText = "يرجى اختيار الباقة أولاً.";
-            feedback.className = "mt-2 text-xs text-rose-400 block font-bold";
-        }
-        return;
-    }
-
-    if (feedback) {
-        feedback.innerText = "جاري التحقق من كود الخصم...";
-        feedback.className = "mt-2 text-xs text-amber-400 block font-bold";
-    }
-
-    fetch(`/ajax/validate-coupon/?code=${encodeURIComponent(code)}&variant_id=${encodeURIComponent(variantId)}&quantity=${qty}`)
-        .then(response => response.json())
-        .then(data => {
-            if (!feedback) return;
-            feedback.classList.remove('hidden');
-            if (data.valid) {
-                feedback.innerText = `✓ ${data.message || 'تم تطبيق الخصم بنجاح!'}`;
-                feedback.className = "mt-2 text-xs text-emerald-400 block font-bold";
-                
-                const disc = parseFloat(data.discount_amount) || 0;
-                const newTot = parseFloat(data.new_total) || 0;
-                const origSub = newTot + disc;
-
-                if (breakdown) {
-                    breakdown.classList.remove('hidden');
-                    document.getElementById('subtotal-display').innerText = formatCurrencyAmount(origSub);
-                    document.getElementById('discount-display').innerText = "- " + formatCurrencyAmount(disc);
-                    document.getElementById('total-display').innerText = formatCurrencyAmount(newTot);
-                }
-
-                const metricTotal = document.getElementById('metric-total');
-                if (metricTotal) metricTotal.innerText = formatCurrencyAmount(newTot);
-                const topPriceBadge = document.getElementById('alkasr-top-price');
-                if (topPriceBadge) topPriceBadge.innerText = formatCurrencyAmount(newTot);
-            } else {
-                feedback.innerText = `✕ ${data.error || 'كود الخصم غير صالح أو منتهي الصلاحية.'}`;
-                feedback.className = "mt-2 text-xs text-rose-400 block font-bold";
-                if (breakdown) breakdown.classList.add('hidden');
-                updateQuantityPrice(false);
-            }
-        })
-        .catch(err => {
-            console.error('Coupon validation error:', err);
-            if (feedback) {
-                feedback.innerText = "تعذر الاتصال بالسيرفر للتحقق من الكوبون.";
-                feedback.className = "mt-2 text-xs text-rose-400 block font-bold";
-            }
-        });
-}
-
-function detectGPSLocation(inputId, btn) {
-    if (!navigator.geolocation) {
-        alert("متصفحك لا يدعم تحديد الموقع الجغرافي.");
-        return;
-    }
-    const originalText = btn.innerHTML;
-    btn.disabled = true;
-    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> جاري التحديد...';
-    
-    navigator.geolocation.getCurrentPosition(
-        function(position) {
-            const lat = position.coords.latitude;
-            const lng = position.coords.longitude;
-            const mapsUrl = `https://www.google.com/maps?q=${lat},${lng}`;
-            document.getElementById(inputId).value = mapsUrl;
-            btn.disabled = false;
-            btn.innerHTML = '<i class="fas fa-check-circle text-emerald-500"></i> تم التحديد';
-            setTimeout(() => {
-                btn.innerHTML = originalText;
-            }, 3000);
-        },
-        function(error) {
-            btn.disabled = false;
-            btn.innerHTML = originalText;
-            let errorMsg = "فشل تحديد الموقع. يرجى إعطاء الصلاحية للمتصفح.";
-            if (error.code === error.PERMISSION_DENIED) {
-                errorMsg = "تم رفض إذن الوصول للموقع. يرجى السماح بالوصول للموقع في إعدادات المتصفح.";
-            } else if (error.code === error.POSITION_UNAVAILABLE) {
-                errorMsg = "معلومات الموقع غير متوفرة.";
-            } else if (error.code === error.TIMEOUT) {
-                errorMsg = "انتهت مهلة طلب تحديد الموقع.";
-            }
-            alert(errorMsg);
-        },
-        { enableHighAccuracy: true, timeout: 10000 }
-    );
-}
-
-// Image Lightbox Interactive Controls & Drag-to-Pan
-let currentScale = 1;
-let currentRotation = 0;
-let isDragging = false;
-let startX, startY;
-let translateX = 0, translateY = 0;
-
-function openImageLightbox(src) {
-    const lightbox = document.getElementById('image-lightbox');
-    const img = document.getElementById('lightbox-img');
-    img.src = src;
-    lightbox.classList.remove('hidden');
-    resetLightbox();
-}
-
-function closeImageLightbox() {
-    const lightbox = document.getElementById('image-lightbox');
-    lightbox.classList.add('hidden');
-}
-
-function updateLightboxTransform() {
-    const img = document.getElementById('lightbox-img');
-    img.style.transform = `translate(${translateX}px, ${translateY}px) scale(${currentScale}) rotate(${currentRotation}deg)`;
-}
-
-function zoomLightbox(amount) {
-    currentScale = Math.max(0.5, Math.min(4, currentScale + amount));
-    updateLightboxTransform();
-}
-
-function rotateLightbox(deg) {
-    currentRotation = (currentRotation + deg) % 360;
-    updateLightboxTransform();
-}
-
-function resetLightbox() {
-    currentScale = 1;
-    currentRotation = 0;
-    translateX = 0;
-    translateY = 0;
-    updateLightboxTransform();
-}
-
+// Initial price run
 document.addEventListener('DOMContentLoaded', () => {
-    const container = document.getElementById('lightbox-container');
-    if (!container) return;
-    
-    // Mouse dragging
-    container.addEventListener('mousedown', (e) => {
-        isDragging = true;
-        startX = e.clientX - translateX;
-        startY = e.clientY - translateY;
-        container.style.cursor = 'grabbing';
-    });
-
-    window.addEventListener('mousemove', (e) => {
-        if (!isDragging) return;
-        translateX = e.clientX - startX;
-        translateY = e.clientY - startY;
-        updateLightboxTransform();
-    });
-
-    window.addEventListener('mouseup', () => {
-        isDragging = false;
-        container.style.cursor = 'grab';
-    });
-
-    // Touch support for mobile devices
-    container.addEventListener('touchstart', (e) => {
-        if (e.touches.length === 1) {
-            isDragging = true;
-            startX = e.touches[0].clientX - translateX;
-            startY = e.touches[0].clientY - translateY;
-        }
-    });
-
-    container.addEventListener('touchmove', (e) => {
-        if (!isDragging || e.touches.length !== 1) return;
-        translateX = e.touches[0].clientX - startX;
-        translateY = e.touches[0].clientY - startY;
-        updateLightboxTransform();
-    });
-
-    container.addEventListener('touchend', () => {
-        isDragging = false;
-    });
+  recalculatePrice();
 });
-</script>
-
-<!-- Modal Popup for Instant In-Page Order Results & Server Responses -->
-<div id="purchase-result-modal" style="position: fixed; top: 0; left: 0; right: 0; bottom: 0; width: 100vw; height: 100vh; z-index: 9999999; display: none; align-items: center; justify-content: center; padding: 1.25rem; background-color: rgba(2, 6, 23, 0.88); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px);">
-    <div id="purchase-modal-container" style="max-width: 440px; width: 100%; margin: auto; background: linear-gradient(165deg, #12121a 0%, #0a0a0f 100%); border: 1px solid rgba(212, 168, 83, 0.4); box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.8), 0 0 35px rgba(212, 168, 83, 0.15); border-radius: 28px;" class="p-6 sm:p-7 relative transform transition-all duration-300">
-        <!-- Close Button Top -->
-        <button type="button" onclick="closePurchaseModal()" class="absolute top-4 left-4 w-9 h-9 rounded-full bg-slate-800/80 text-slate-400 hover:text-white hover:bg-rose-500/20 hover:text-rose-400 flex items-center justify-center transition border border-white/10 cursor-pointer" title="إغلاق">
-            <i class="fas fa-times text-sm"></i>
-        </button>
-
-        <!-- Header -->
-        <div class="flex items-center gap-3.5 mb-5 pr-1">
-            <div id="modal-status-icon" class="w-11 h-11 rounded-2xl flex items-center justify-center text-lg shrink-0 bg-cyan/10 text-cyan border border-cyan/30">
-                <i class="fas fa-circle-notch fa-spin text-cyan"></i>
-            </div>
-            <div class="flex-grow">
-                <h3 class="text-base sm:text-lg font-black text-white" id="modal-title">تم تأكيد طلبك بنجاح</h3>
-                <div class="flex items-center gap-2 mt-0.5">
-                    <span class="text-[11px] text-slate-400 font-mono" id="modal-order-number">الطلب #...</span>
-                    <button type="button" onclick="copyModalField('modal-order-number', this)" class="text-[10px] text-slate-500 hover:text-cyan transition" title="نسخ رقم الطلب">
-                        <i class="far fa-copy"></i>
-                    </button>
-                </div>
-            </div>
-        </div>
-
-        <!-- Details Card -->
-        <div class="mb-5 p-4 rounded-2xl bg-slate-950/70 border border-white/5 stack gap-3">
-            <div class="flex justify-between items-center text-xs pb-2.5 border-b border-white/5">
-                <span class="text-slate-400 font-bold">حالة الطلب:</span>
-                <span id="modal-status-badge" class="font-black font-mono px-3 py-0.5 rounded-lg bg-amber-500/20 text-amber-400 border border-amber-500/30 text-xs">
-                    قيد المعالجة
-                </span>
-            </div>
-            
-            <div id="modal-ref-row" class="flex justify-between items-center text-xs pb-2.5 border-b border-white/5 hidden">
-                <span class="text-slate-400 font-bold">رقم المرجع:</span>
-                <div class="flex items-center gap-2">
-                    <span id="modal-ref-text" class="font-mono text-white font-bold text-xs"></span>
-                    <button type="button" id="modal-ref-btn" onclick="copyModalField('modal-ref-text', this)" class="text-[10px] px-2 py-0.5 bg-cyan/10 text-cyan rounded-md hover:bg-cyan hover:text-slate-950 font-bold transition cursor-pointer">نسخ</button>
-                </div>
-            </div>
-
-            <!-- Dynamic Fulfillment Data (Delivery Codes, Phone numbers, Keys, Multiple Responses) -->
-            <div id="modal-fulfillment-box" class="stack gap-2">
-                <!-- Dynamically populated -->
-            </div>
-            
-            <div id="modal-waiting-msg" class="text-center py-3">
-                <div class="w-7 h-7 mx-auto mb-2 text-cyan"><i class="fas fa-circle-notch fa-spin text-xl"></i></div>
-                <p class="text-xs text-slate-300 font-bold">جاري استلام الرد من السيرفر، يتم التحديث آلياً لحظياً...</p>
-            </div>
-        </div>
-
-        <!-- Actions -->
-        <div class="flex flex-col gap-2.5">
-            <a id="modal-order-link" href="#" class="btn btn-primary w-full py-3 rounded-xl font-bold text-xs text-center cursor-pointer shadow-lg shadow-cyan/20 flex items-center justify-center gap-2">
-                <i class="fas fa-receipt"></i> عرض الفاتورة وتفاصيل الطلب
-            </a>
-            <button type="button" onclick="closePurchaseModal()" class="btn btn-outline w-full py-2.5 rounded-xl font-bold text-xs text-slate-400 hover:text-white border-white/10 hover:border-cyan cursor-pointer">
-                متابعة التسوق
-            </button>
-        </div>
-    </div>
-</div>
-
-<script>
-let currentActiveOrderId = null;
-let currentPollTimer = null;
-
-function openPurchaseModal(data) {
-    const modal = document.getElementById('purchase-result-modal');
-    if (!modal) return;
-    modal.style.display = 'flex';
-    document.body.style.overflow = 'hidden';
-    updateModalContent(data);
-}
-
-function closePurchaseModal() {
-    const modal = document.getElementById('purchase-result-modal');
-    if (modal) modal.style.display = 'none';
-    document.body.style.overflow = '';
-    if (currentPollTimer) {
-        clearInterval(currentPollTimer);
-        currentPollTimer = null;
-    }
-}
-
-function updateModalContent(data) {
-    if (!data) return;
-    
-    document.getElementById('modal-order-number').innerText = 'الطلب #' + (data.order_number || data.number || '...');
-    const badge = document.getElementById('modal-status-badge');
-    const icon = document.getElementById('modal-status-icon');
-    const title = document.getElementById('modal-title');
-    const waitingMsg = document.getElementById('modal-waiting-msg');
-    const refRow = document.getElementById('modal-ref-row');
-    const refText = document.getElementById('modal-ref-text');
-    const link = document.getElementById('modal-order-link');
-    
-    if (data.order_url) {
-        link.href = data.order_url;
-    }
-    
-    const status = data.order_status || data.status;
-    const statusDisplay = data.status_display || status;
-    badge.innerText = statusDisplay;
-    
-    if (status === 'completed') {
-        title.innerText = 'تم اكتمال وتسليم طلبك بنجاح';
-        badge.className = 'font-black font-mono px-3 py-0.5 rounded-lg bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 text-xs';
-        icon.className = 'w-11 h-11 rounded-2xl flex items-center justify-center text-lg shrink-0 bg-emerald-500/10 text-emerald-400 border border-emerald-500/20';
-        icon.innerHTML = '<i class="fas fa-check-circle"></i>';
-        if (waitingMsg) waitingMsg.style.display = 'none';
-    } else if (status === 'cancelled' || status === 'refunded') {
-        title.innerText = 'تم إلغاء الطلب واستعادة الرصيد';
-        badge.className = 'font-black font-mono px-3 py-0.5 rounded-lg bg-rose-500/20 text-rose-400 border border-rose-500/30 text-xs';
-        icon.className = 'w-11 h-11 rounded-2xl flex items-center justify-center text-lg shrink-0 bg-rose-500/10 text-rose-400 border border-rose-500/20';
-        icon.innerHTML = '<i class="fas fa-times-circle"></i>';
-        if (waitingMsg) waitingMsg.style.display = 'none';
-    } else {
-        title.innerText = 'تم تأكيد طلبك بنجاح';
-        badge.className = 'font-black font-mono px-3 py-0.5 rounded-lg bg-amber-500/20 text-amber-400 border border-amber-500/30 text-xs';
-        icon.className = 'w-11 h-11 rounded-2xl flex items-center justify-center text-lg shrink-0 bg-cyan/10 text-cyan border border-cyan/30';
-        icon.innerHTML = '<i class="fas fa-circle-notch fa-spin text-cyan"></i>';
-    }
-    
-    if (data.api_order_id) {
-        refRow.classList.remove('hidden');
-        refText.innerText = data.api_order_id;
-    }
-    
-    // Populate fulfillment box (Supports single response or multiple keys/codes)
-    const fBox = document.getElementById('modal-fulfillment-box');
-    fBox.innerHTML = '';
-    const fulfillment = data.fulfillment || {};
-    let hasKeys = false;
-
-    // 1. Render Dedicated Server Response(s) from Provider
-    const serverResponses = data.server_responses || [];
-    if (serverResponses && serverResponses.length > 0) {
-        hasKeys = true;
-        const resBox = document.createElement('div');
-        const isComp = (status === 'completed');
-        const isCanc = (status === 'cancelled' || status === 'refunded');
-        resBox.className = `p-4 rounded-2xl ${isComp ? 'bg-emerald-500/[0.08] border border-emerald-500/30' : isCanc ? 'bg-rose-500/[0.08] border border-rose-500/30' : 'bg-cyan-500/[0.08] border border-cyan-500/30'} stack gap-3 shadow-lg`;
-        
-        let headerTitle = 'رد السيرفر من المزود';
-        if (serverResponses.length > 1) {
-            headerTitle += ` (${serverResponses.length} ردود)`;
-        }
-        
-        let responsesHtml = `
-            <div class="flex items-center justify-between border-b border-white/5 pb-2">
-                <span class="text-xs font-black ${isComp ? 'text-emerald-400' : isCanc ? 'text-rose-400' : 'text-cyan-400'} flex items-center gap-2">
-                    <i class="fas ${isComp ? 'fa-check-circle' : isCanc ? 'fa-times-circle' : 'fa-satellite-dish'}"></i> ${headerTitle}:
-                </span>
-                <span class="text-[9px] font-mono text-slate-400 font-bold">مباشر</span>
-            </div>
-            <div class="stack gap-2.5">
-        `;
-
-        serverResponses.forEach((res) => {
-            const avatarHtml = res.avatar ? `
-                <div class="w-12 h-12 rounded-xl bg-slate-900 border border-white/10 overflow-hidden shrink-0 shadow-md">
-                    <img src="${res.avatar}" alt="Avatar" class="w-full h-full object-cover">
-                </div>
-            ` : '';
-
-            let metaBadges = '';
-            if (res.status_msg || res.account_name || res.package_info) {
-                metaBadges += '<div class="flex flex-wrap items-center gap-2 text-xs font-black text-white mb-1">';
-                if (res.status_msg) {
-                    metaBadges += `<span class="px-2 py-0.5 rounded text-[10px] ${isComp ? 'bg-emerald-500/20 text-emerald-300' : isCanc ? 'bg-rose-500/20 text-rose-300' : 'bg-cyan-500/20 text-cyan-300'} font-bold">${res.status_msg}</span>`;
-                }
-                if (res.account_name) {
-                    metaBadges += `<span class="text-cyan-300 font-mono">${res.account_name}</span>`;
-                }
-                if (res.package_info) {
-                    metaBadges += `<span class="text-slate-400 text-[11px] font-normal">(${res.package_info})</span>`;
-                }
-                metaBadges += '</div>';
-            }
-
-            const cleanText = (res.text || '').replace(/'/g, "\\'");
-
-            responsesHtml += `
-                <div class="p-3 rounded-xl bg-slate-950/80 border border-white/5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
-                    <div class="flex items-center gap-3">
-                        ${avatarHtml}
-                        <div>
-                            ${metaBadges}
-                            <div class="text-xs text-slate-200 font-mono leading-relaxed whitespace-pre-line select-all">
-                                ${res.text || ''}
-                            </div>
-                        </div>
-                    </div>
-                    <button type="button" onclick="copyDirect('${cleanText}', this)" class="shrink-0 text-[10px] px-2.5 py-1.5 bg-white/5 hover:bg-cyan hover:text-slate-950 text-slate-300 rounded-lg font-bold transition flex items-center gap-1 cursor-pointer self-end sm:self-center">
-                        <i class="far fa-copy"></i> نسخ
-                    </button>
-                </div>
-            `;
-        });
-
-        responsesHtml += '</div>';
-        resBox.innerHTML = responsesHtml;
-        fBox.appendChild(resBox);
-    }
-    
-    // 2. Render Delivery Codes and Other Fulfillment Keys
-    for (const [k, v] of Object.entries(fulfillment)) {
-        if (!v) continue;
-        if (k.startsWith('رد السيرفر') || k === 'all_server_responses' || k === 'server_responses' || k === 'ردود السيرفر') {
-            if (serverResponses.length > 0) continue; // Already rendered in dedicated section
-        }
-        hasKeys = true;
-        
-        let itemsList = [];
-        if (Array.isArray(v)) {
-            itemsList = v;
-        } else if (typeof v === 'string' && (v.includes('\n') || (k === 'keys' && v.includes(',')))) {
-            itemsList = v.includes('\n') ? v.split('\n') : v.split(',');
-        }
-        
-        if (itemsList.length > 1) {
-            // Render multi-response container
-            const allJoined = itemsList.map(x => String(x).trim()).filter(Boolean).join('\n');
-            const multiContainer = document.createElement('div');
-            multiContainer.className = 'p-3.5 rounded-2xl bg-slate-900/90 border border-cyan/40 stack gap-2 shadow-lg shadow-cyan/10';
-            
-            let codesHtml = '';
-            itemsList.forEach((code) => {
-                const cleanCode = String(code).trim();
-                if (!cleanCode) return;
-                codesHtml += `
-                    <div class="flex items-center justify-between p-2 rounded-xl bg-slate-950/80 border border-white/5 gap-2">
-                        <span class="text-[11px] font-mono text-cyan-200 font-bold break-all">${cleanCode}</span>
-                        <button type="button" onclick="copyDirect('${cleanCode.replace(/'/g, "\\'")}', this)" class="shrink-0 text-[10px] px-2 py-1 bg-cyan/10 text-cyan hover:bg-cyan hover:text-slate-950 rounded-lg font-bold transition cursor-pointer">
-                            نسخ
-                        </button>
-                    </div>
-                `;
-            });
-            
-            multiContainer.innerHTML = `
-                <div class="flex items-center justify-between border-b border-white/5 pb-1.5">
-                    <span class="text-[11px] text-cyan font-black uppercase tracking-wider">${k} (${itemsList.length})</span>
-                    <button type="button" onclick="copyDirect('${allJoined.replace(/'/g, "\\'")}', this)" class="text-[10px] px-2 py-0.5 bg-cyan text-slate-950 rounded-md font-bold hover:bg-cyan/80 transition cursor-pointer">
-                        <i class="far fa-copy"></i> نسخ الكل
-                    </button>
-                </div>
-                <div class="stack gap-1.5 max-h-40 overflow-y-auto pr-1">
-                    ${codesHtml}
-                </div>
-            `;
-            fBox.appendChild(multiContainer);
-        } else {
-            // Render single key item
-            const valStr = Array.isArray(v) ? v.join(', ') : String(v);
-            const isAvatar = (k === 'صورة الحساب / الأفاتار' || (typeof valStr === 'string' && valStr.startsWith('http') && (valStr.includes('/Avatar/') || valStr.match(/\.(png|jpg|jpeg|gif|webp)/i))));
-            
-            const itemEl = document.createElement('div');
-            itemEl.className = 'p-3 rounded-2xl bg-slate-900/90 border border-cyan/40 stack gap-1 shadow-lg shadow-cyan/10';
-            
-            if (isAvatar) {
-                itemEl.innerHTML = `
-                    <span class="text-[10px] text-slate-400 block mb-0.5">${k}</span>
-                    <div class="flex items-center gap-3">
-                        <div class="w-14 h-14 rounded-xl bg-slate-950 border border-white/10 overflow-hidden shrink-0 shadow-md">
-                            <img src="${valStr}" alt="Avatar" class="w-full h-full object-cover">
-                        </div>
-                        <span class="text-xs font-bold text-cyan-200">صورة الحساب المستلم</span>
-                    </div>
-                `;
-            } else {
-                itemEl.innerHTML = `
-                    <span class="text-[10px] text-cyan font-black uppercase tracking-wider block">${k}</span>
-                    <div class="flex items-center justify-between gap-2">
-                        <span class="font-mono text-cyan-200 font-bold text-sm break-all whitespace-pre-line">${valStr}</span>
-                        <button type="button" onclick="copyDirect('${valStr.replace(/'/g, "\\'")}', this)" class="shrink-0 text-[10px] px-2.5 py-1 bg-cyan text-slate-950 rounded-lg hover:bg-cyan/80 font-black transition cursor-pointer flex items-center gap-1">
-                            <i class="far fa-copy"></i> نسخ
-                        </button>
-                    </div>
-                `;
-            }
-            fBox.appendChild(itemEl);
-        }
-    }
-    
-    if ((hasKeys || status === 'completed' || status === 'cancelled' || status === 'refunded') && waitingMsg) {
-        waitingMsg.style.display = 'none';
-    }
-}
-
-function copyModalField(elId, btn) {
-    const el = document.getElementById(elId);
-    if (!el) return;
-    let txt = el.innerText;
-    if (txt.startsWith('الطلب #')) txt = txt.replace('الطلب #', '').trim();
-    copyDirect(txt, btn);
-}
-
-function copyDirect(text, btn) {
-    navigator.clipboard.writeText(text).then(() => {
-        const originalText = btn.innerHTML;
-        btn.innerHTML = '<i class="fas fa-check"></i> تم!';
-        btn.style.background = '#10b981';
-        btn.style.color = '#fff';
-        setTimeout(() => {
-            btn.innerHTML = originalText;
-            btn.style.background = '';
-            btn.style.color = '';
-        }, 2000);
-    });
-}
-
-function selectPaymentMethod(methodVal, cardEl, type = 'wallet') {
-    const input = document.getElementById('selected-payment-method');
-    if (input) input.value = methodVal;
-    
-    // Reset all payment cards
-    document.querySelectorAll('.payment-method-card').forEach(c => {
-        c.classList.remove(
-            'is-active-wallet', 'border-cyan', 'border-2', 'bg-cyan/10', 'shadow-[0_0_25px_rgba(6,182,212,0.25)]', 'scale-[1.01]',
-            'is-active-gateway', 'border-emerald-500', 'bg-emerald-950/40', 'shadow-[0_0_25px_rgba(16,185,129,0.25)]'
-        );
-        c.classList.add('border-white/10', 'bg-slate-900/60');
-        const radio = c.querySelector('.radio-circle-pm');
-        if (radio) {
-            radio.classList.remove('border-cyan', 'bg-cyan', 'border-emerald-500', 'bg-emerald-500');
-            radio.classList.add('border-white/20');
-            const inner = radio.querySelector('i, div');
-            if (inner) inner.classList.add('hidden');
-        }
-    });
-    
-    const badge = document.getElementById('pm-active-badge');
-    const submitBtn = document.getElementById('submit-btn');
-
-    if (cardEl) {
-        cardEl.classList.remove('border-white/10', 'bg-slate-900/60');
-        const radio = cardEl.querySelector('.radio-circle-pm');
-        const inner = radio ? radio.querySelector('i, div') : null;
-        if (inner) inner.classList.remove('hidden');
-
-        if (type === 'wallet' || methodVal === 'wallet') {
-            cardEl.classList.add('is-active-wallet', 'border-2', 'border-cyan', 'bg-cyan/10', 'shadow-[0_0_25px_rgba(6,182,212,0.25)]', 'scale-[1.01]');
-            if (radio) {
-                radio.classList.remove('border-white/20', 'border-emerald-500', 'bg-emerald-500');
-                radio.classList.add('border-cyan', 'bg-cyan');
-            }
-            if (badge) {
-                badge.className = 'text-[11px] font-black px-3.5 py-1 rounded-full bg-cyan/10 text-cyan border border-cyan/30 flex items-center gap-2 transition-all shadow-sm shadow-cyan/20';
-                badge.innerHTML = '<span class="w-2 h-2 rounded-full bg-cyan animate-pulse"></span> محفظة {% if is_tenant %}{{ STORE_NAME }}{% else %}رقميات{% endif %}';
-            }
-            if (submitBtn) {
-                submitBtn.style.background = '';
-                submitBtn.style.boxShadow = '';
-            }
-        } else {
-            // Direct Gateway (Paymera / Card)
-            cardEl.classList.add('is-active-gateway', 'border-2', 'border-emerald-500', 'bg-emerald-950/40', 'shadow-[0_0_25px_rgba(16,185,129,0.25)]', 'scale-[1.01]');
-            if (radio) {
-                radio.classList.remove('border-white/20', 'border-cyan', 'bg-cyan');
-                radio.classList.add('border-emerald-500', 'bg-emerald-500');
-            }
-            const gwName = cardEl.getAttribute('data-gateway-name') || 'بيميرا';
-            if (badge) {
-                badge.className = 'text-[11px] font-black px-3.5 py-1 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 flex items-center gap-2 transition-all shadow-sm shadow-emerald-500/20';
-                badge.innerHTML = `<span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span> ${gwName} (دفع إلكتروني مباشر)`;
-            }
-            if (submitBtn) {
-                submitBtn.style.background = 'linear-gradient(135deg, #059669 0%, #10b981 100%)';
-                submitBtn.style.boxShadow = '0 10px 25px rgba(16, 185, 129, 0.35)';
-            }
-        }
-    }
-
-    // Refresh submit button price and text
-    updateQuantityPrice();
-}
-
-// Intercept form submit and use AJAX (delegated for SPA compatibility)
-document.addEventListener('submit', function(e) {
-    const pForm = e.target.closest('#purchase-form');
-    if (!pForm) return;
-
-    e.preventDefault();
-    
-    // Auto-select first variant if not yet selected
-    const vInput = document.getElementById('selected-variant-id');
-    if (!vInput || !vInput.value) {
-        const sel = document.getElementById('alkasr-variant-select');
-        if (sel && sel.value) {
-            selectVariant(sel.value);
-        } else {
-            const dummy = document.getElementById('single-product-dummy-variant');
-            if (dummy) selectVariant('default', dummy);
-        }
-    }
-
-    // Check if selected variant is disabled
-    const selDropdown = document.getElementById('alkasr-variant-select');
-    if (selDropdown && selDropdown.selectedIndex >= 0) {
-        const selectedOpt = selDropdown.options[selDropdown.selectedIndex];
-        if (selectedOpt && (selectedOpt.disabled || selectedOpt.hasAttribute('disabled'))) {
-            alert('⚠️ هذه الفئة أو الباقة غير متوفرة حالياً لدى المزود.');
-            return;
-        }
-    }
-    
-    const submitBtn = pForm.querySelector('button[type="submit"]');
-    const originalBtnHtml = submitBtn ? submitBtn.innerHTML : '';
-    if (submitBtn) {
-        submitBtn.disabled = true;
-        submitBtn.innerHTML = '<i class="fas fa-circle-notch fa-spin ml-2 text-cyan"></i> جاري تأكيد الطلب...';
-    }
-    
-    const formData = new FormData(pForm);
-    formData.append('ajax', '1');
-    
-    {% if META_PIXEL_ID and META_PIXEL_CONFIG.track_initiate_checkout %}
-    if (typeof fbq === 'function') {
-        fbq('track', 'InitiateCheckout', {
-            content_name: '{{ product.name|escapejs }}',
-            content_ids: ['{{ product.id }}'],
-            content_type: 'product',
-            value: Number('{{ active_variant.price|default:product.base_price|default:0 }}') || 0,
-            currency: '{{ CURRENCY.code|default:"USD" }}'
-        });
-    }
-    {% endif %}
-
-    fetch(pForm.action, {
-        method: 'POST',
-        body: formData,
-        headers: {
-            'X-Requested-With': 'XMLHttpRequest'
-        }
-    })
-    .then(async (res) => {
-        if (submitBtn) {
-            submitBtn.disabled = false;
-            submitBtn.innerHTML = originalBtnHtml;
-        }
-        if (!res.ok) {
-            const errData = await res.json().catch(() => ({}));
-            const errMsg = errData.error || 'حدث خطأ أثناء إتمام الطلب، يرجى التحقق من الرصيد والبيانات.';
-            alert(errMsg);
-            return;
-        }
-        const data = await res.json();
-        if (data.redirect_url) {
-            window.location.href = data.redirect_url;
-            return;
-        }
-        if (data.success) {
-            {% if META_PIXEL_ID and META_PIXEL_CONFIG.track_purchases %}
-            if (typeof fbq === 'function') {
-                fbq('track', 'Purchase', {
-                    content_name: '{{ product.name|escapejs }}',
-                    content_ids: ['{{ product.id }}'],
-                    content_type: 'product',
-                    value: Number(data.amount || '{{ active_variant.price|default:product.base_price|default:0 }}') || 0,
-                    currency: '{{ CURRENCY.code|default:"USD" }}'
-                });
-            }
-            {% endif %}
-
-            currentActiveOrderId = data.order_id;
-            openPurchaseModal(data);
-            
-            // Start live polling if processing
-            if (data.order_status === 'processing' && data.order_url) {
-                if (currentPollTimer) clearInterval(currentPollTimer);
-                let pollCount = 0;
-                currentPollTimer = setInterval(() => {
-                    pollCount++;
-                    if (pollCount > 60) {
-                        clearInterval(currentPollTimer);
-                        return;
-                    }
-                    fetch(data.order_url, { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
-                        .then(r => r.json())
-                        .then(pollData => {
-                            updateModalContent(pollData);
-                            if (pollData.status === 'completed' || pollData.status === 'cancelled' || pollData.status === 'refunded') {
-                                clearInterval(currentPollTimer);
-                            }
-                        })
-                        .catch(() => {});
-                }, 3500);
-            }
-        }
-    })
-    .catch((err) => {
-        if (submitBtn) {
-            submitBtn.disabled = false;
-            submitBtn.innerHTML = originalBtnHtml;
-        }
-        console.error("Purchase error:", err);
-        // Fallback: normal submit if fetch fails
-        pForm.submit();
-    });
-});
-
-// Meta Pixel ViewContent event
-{% if META_PIXEL_ID and META_PIXEL_CONFIG.track_view_content %}
-document.addEventListener('DOMContentLoaded', function() {
-    if (typeof fbq === 'function') {
-        fbq('track', 'ViewContent', {
-            content_name: '{{ product.name|escapejs }}',
-            content_category: '{{ product.category.name|default:""|escapejs }}',
-            content_ids: ['{{ product.id }}'],
-            content_type: 'product',
-            value: Number('{{ active_variant.price|default:product.base_price|default:0 }}') || 0,
-            currency: '{{ CURRENCY.code|default:"USD" }}'
-        });
-    }
-});
-{% endif %}
 </script>
 {% endblock %}

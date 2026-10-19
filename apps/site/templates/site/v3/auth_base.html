@@ -6,154 +6,207 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% filter tenant_title %}{% block title %}{% if is_tenant %}{{ STORE_NAME }}{% else %}المصادقة | رقميات{% endif %}{% endblock %}{% endfilter %}</title>
     
-    <!-- Fonts: Tajawal & Cairo -->
+    <!-- Unified Arabic Fonts: Readex Pro & IBM Plex Sans Arabic -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;800;900&family=Cairo:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@400;500;600;700&family=Readex+Pro:wght@500;600;700;800;900&display=swap" rel="stylesheet">
     
-    <!-- Font Awesome -->
+    <!-- Font Awesome Icons -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     
-    <!-- Tailwind CSS -->
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script>
-        tailwind.config = {
-            darkMode: 'class',
-            theme: {
-                extend: {
-                    colors: {
-                        'dark-bg': '#0a0a0f',
-                        'panel-bg': 'rgba(18, 18, 26, 0.7)',
-                        'gold': '#d4a853',
-                        'gold-light': '#f0c674',
-                        'cyan': '#d4a853',
-                        'indigo': '#7c5cbf',
-                        'purple': '#9b6dd7',
-                        'rose': '#e85d75',
-                    },
-                    fontFamily: {
-                        'cairo': ['Tajawal', 'Cairo', 'sans-serif'],
-                        'tech': ['Tajawal', 'sans-serif'],
-                    },
-                    animation: {
-                        'glow': 'glow 3s infinite alternate',
-                        'float': 'float 6s ease-in-out infinite',
-                    },
-                    keyframes: {
-                        glow: {
-                            '0%': { boxShadow: '0 0 5px rgba(212, 168, 83, 0.2)' },
-                            '100%': { boxShadow: '0 0 20px rgba(212, 168, 83, 0.5)' },
-                        },
-                        float: {
-                            '0%, 100%': { transform: 'translateY(0)' },
-                            '50%': { transform: 'translateY(-20px)' },
-                        }
-                    }
-                }
-            }
-        }
-    </script>
+    <!-- Central App CSS -->
+    <link rel="stylesheet" href="{% static 'site/css/app.css' %}">
 
-    <style type="text/tailwindcss">
-        @layer base {
-            body {
-                @apply bg-dark-bg text-slate-200 font-cairo overflow-x-hidden;
-            }
-        }
-        @layer components {
-            .glass-panel {
-                @apply bg-slate-900/60 backdrop-blur-xl border border-white/10 rounded-[2rem] shadow-2xl;
-            }
-            .auth-input {
-                @apply w-full bg-slate-800/50 border border-slate-700/50 rounded-2xl px-5 py-4 text-white placeholder-slate-500 transition-all focus:outline-none focus:border-gold/50 focus:ring-4 focus:ring-gold/10;
-            }
-            .btn-premium {
-                @apply relative overflow-hidden bg-gradient-to-r from-gold to-indigo text-white font-bold py-4 rounded-2xl transition-all hover:scale-[1.02] active:scale-[0.98] shadow-lg shadow-gold/20 flex items-center justify-center gap-2;
-            }
-            .btn-secondary {
-                @apply bg-slate-800 hover:bg-slate-700 border border-slate-700 text-white font-bold py-4 rounded-2xl transition-all flex items-center justify-center gap-2;
-            }
-            .glow-effect {
-                @apply absolute -z-10 rounded-full blur-[120px] opacity-20;
-            }
-        }
-        
-        /* RTL Fixes for form elements */
-        input[type="email"], input[type="password"], input[type="text"], input[type="tel"] {
-            direction: ltr;
-            text-align: right;
-        }
-        
-        .otp-input {
-            @apply w-12 h-14 bg-slate-800 border border-slate-700 rounded-xl text-center text-2xl font-bold text-gold focus:border-gold focus:ring-4 focus:ring-gold/20 outline-none transition-all;
+    <style>
+        body {
+            background-color: var(--rq-bg);
+            color: var(--rq-text-primary);
+            font-family: var(--rq-font-body);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 2rem 1rem;
+            position: relative;
+            overflow-x: hidden;
         }
 
-        /* Custom Scrollbar */
-        ::-webkit-scrollbar { width: 6px; }
-        ::-webkit-scrollbar-track { background: #0a0a0f; }
-        ::-webkit-scrollbar-thumb { background: #1a1a28; border-radius: 10px; }
-        ::-webkit-scrollbar-thumb:hover { background: #2a2a40; }
+        .auth-card-wrapper {
+            width: 100%;
+            max-width: 480px;
+            position: relative;
+            z-index: 10;
+        }
 
-        /* Syrian Revolution Flag Override for intl-tel-input */
-        .iti__flag.iti__sy {
-            background-image: url("data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA2MDAgNDAwIj48cmVjdCB3aWR0aD0iNjAwIiBoZWlnaHQ9IjEzMy4zIiBmaWxsPSIjMDA3YTNkIi8+PHJlY3QgeT0iMTMzLjMiIHdpZHRoPSI2MDAiIGhlaWdodD0iMTMzLjMiIGZpbGw9IiNmZmYiLz48cmVjdCB5PSIyNjYuNiIgd2lkdGg9IjYwMCIgaGVpZ2h0PSIxMzMuMyIgZmlsbD0iIzAwMCIvPjxnIGZpbGw9IiNjZTExMjYiPjxwYXRoIGQ9Ik0xNTAgMTYwbDYuMiAxOWgyMGwtMTYuMiAxMS43IDYuMiAxOS0xNi4yLTExLjgtMTYuMiAxMS44IDYuMi0xOS0xNi4yLTExLjdoMjB6Ii8+PHBhdGggZD0iTTMwMCAxNjBsNi4yIDE5aDIwbC0xNi4yIDExLjcgNi4yIDE5LTE2LjItMTEuOC0xNi4yIDExLjggNi4yLTE5LTE2LjItMTEuN2gyMHoiLz48cGF0aCBkPSJNNDUwIDE2MGw2LjIgMTloMjBsLTE2LjIgMTEuNyA2LjIgMTktMTYuMi0xMS44LTE2LjIgMTEuOCA2LjItMTktMTYuMi0xMS43aDIweiIvPjwvZz48L3N2Zz4=") !important;
-            background-size: contain !important;
-            background-position: center !important;
-            background-repeat: no-repeat !important;
+        .auth-brand-logo {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            text-decoration: none;
+            margin-bottom: 2rem;
+            text-align: center;
+        }
+
+        .auth-panel {
+            background: var(--rq-surface-card);
+            border: 1px solid var(--rq-border);
+            border-radius: var(--rq-radius-xl);
+            padding: 2.25rem 2rem;
+            box-shadow: var(--rq-shadow-lg);
+        }
+
+        .auth-input-group {
+            display: flex;
+            flex-direction: column;
+            gap: 0.45rem;
+            margin-bottom: 1.25rem;
+        }
+
+        .auth-label {
+            font-size: 0.8rem;
+            font-weight: 700;
+            color: #cbd5e1;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .auth-input-wrapper {
+            position: relative;
+            display: flex;
+            align-items: center;
+        }
+
+        .auth-input-wrapper i.field-icon {
+            position: absolute;
+            right: 1.15rem;
+            color: var(--rq-text-dim);
+            font-size: 0.9rem;
+            pointer-events: none;
+        }
+
+        .auth-input-wrapper input {
+            width: 100%;
+            padding: 0.85rem 2.85rem 0.85rem 1rem;
+            border-radius: var(--rq-radius-md);
+            background: rgba(0, 0, 0, 0.4);
+            border: 1px solid var(--rq-border);
+            color: #fff;
+            font-family: inherit;
+            font-size: 0.9rem;
+            outline: none;
+            transition: all 0.2s;
+        }
+
+        .auth-input-wrapper input:focus {
+            border-color: var(--rq-primary-light);
+            box-shadow: 0 0 0 3px var(--rq-primary-glow);
+            background: rgba(0, 0, 0, 0.6);
+        }
+
+        .auth-toggle-pwd {
+            position: absolute;
+            left: 1rem;
+            background: none;
+            border: none;
+            color: var(--rq-text-muted);
+            cursor: pointer;
+            font-size: 0.9rem;
+            padding: 0.25rem;
+        }
+
+        .auth-toggle-pwd:hover {
+            color: #fff;
+        }
+
+        .auth-btn-primary {
+            width: 100%;
+            padding: 0.9rem 1.5rem;
+            border-radius: var(--rq-radius-md);
+            background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
+            border: 1px solid rgba(59, 130, 246, 0.5);
+            color: #fff;
+            font-size: 0.95rem;
+            font-weight: 900;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.65rem;
+            box-shadow: 0 10px 25px rgba(37, 99, 235, 0.35);
+            transition: all 0.2s;
+            margin-top: 0.5rem;
+        }
+
+        .auth-btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 14px 30px rgba(37, 99, 235, 0.5);
+        }
+
+        .auth-footer-links {
+            margin-top: 1.75rem;
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 1.25rem;
+            font-size: 0.78rem;
+            color: var(--rq-text-dim);
+        }
+
+        .auth-footer-links a {
+            color: var(--rq-text-muted);
+            text-decoration: none;
+            transition: color 0.2s;
+        }
+
+        .auth-footer-links a:hover {
+            color: var(--rq-primary-light);
         }
     </style>
-    {% block extra_head %}{% endblock %}
-    <link rel="stylesheet" href="{% static 'site/css/aurora.css' %}?v=20260914_aurora">
 </head>
-<body class="is-customer auth-surface min-h-screen flex items-center justify-center p-4 relative">
-    <!-- Animated Background Decor -->
-    <div class="glow-effect w-[400px] h-[400px] bg-gold top-[-100px] right-[-100px] animate-float"></div>
-    <div class="glow-effect w-[300px] h-[300px] bg-purple bottom-[-50px] left-[-50px] animate-float" style="animation-delay: -2s;"></div>
-    
-    <div class="w-full max-w-md relative z-10">
-        <!-- Logo Header -->
-        <div class="text-center mb-8">
-            <a href="/" class="inline-block group">
-                <div class="relative">
-                    <div class="absolute inset-0 bg-gold blur-2xl opacity-20 group-hover:opacity-40 transition-opacity"></div>
-                    {% if is_tenant and STORE_LOGO %}
-                        <div class="flex flex-col items-center gap-3">
-                            <img src="{{ STORE_LOGO.url }}" alt="{{ STORE_NAME }}" style="max-height: 80px; width: auto; border-radius: 8px; object-fit: contain;">
-                            <h1 class="text-2xl font-black tracking-tighter text-white">{{ STORE_NAME }}</h1>
-                        </div>
-                    {% else %}
-                        <h1 class="text-4xl font-black tracking-tighter text-white relative flex items-center gap-2">
-                            <span class="bg-gradient-to-l from-gold to-indigo bg-clip-text text-transparent">{% if is_tenant %}{{ STORE_NAME }}{% else %}رقميات{% endif %}</span>
-                            <i class="fas fa-bolt text-gold text-2xl"></i>
-                        </h1>
-                    {% endif %}
-                </div>
-                <p class="text-[10px] font-tech tracking-[0.2em] uppercase text-slate-500 mt-2">{% if is_tenant %}{{ STORE_DESCRIPTION }}{% else %}Premium Digital Services{% endif %}</p>
-            </a>
-        </div>
+<body>
 
+    <div class="auth-card-wrapper">
+
+        <!-- Brand Header -->
+        <a href="{% url 'home' %}" class="auth-brand-logo">
+            <div style="display: flex; align-items: center; gap: 0.65rem;">
+                <img src="{% static 'site/img/raqamiyat_logo_square.jpg' %}" alt="رقميات" style="width: 44px; height: 44px; border-radius: 12px; object-fit: cover; border: 1px solid var(--rq-border);">
+                <div style="text-align: right;">
+                    <div style="font-family: var(--rq-font-heading); font-size: 1.4rem; font-weight: 900; color: #fff; line-height: 1;">
+                        {% if is_tenant %}{{ STORE_NAME }}{% else %}رقميات{% endif %}
+                    </div>
+                    <span style="font-size: 0.7rem; color: #94a3b8; font-weight: 700; letter-spacing: 0.5px;">RAQAMIYAT STORE</span>
+                </div>
+            </div>
+        </a>
+
+        <!-- Alert Messages -->
         {% if messages %}
-        <div class="mb-6 space-y-2">
+        <div style="margin-bottom: 1.25rem; display: flex; flex-direction: column; gap: 0.5rem;">
             {% for message in messages %}
-            <div class="p-4 rounded-2xl flex items-center gap-3 animate-bounce {% if message.tags == 'success' %}bg-emerald-500/10 border border-emerald-500/20 text-emerald-400{% else %}bg-rose-500/10 border border-rose-500/20 text-rose-400{% endif %} text-sm font-medium">
+            <div style="padding: 0.85rem 1.15rem; border-radius: var(--rq-radius-md); font-size: 0.82rem; font-weight: 700; display: flex; align-items: center; gap: 0.5rem; {% if message.tags == 'success' %}background: rgba(16, 185, 129, 0.15); border: 1px solid rgba(16, 185, 129, 0.35); color: #34d399;{% else %}background: rgba(239, 68, 68, 0.15); border: 1px solid rgba(239, 68, 68, 0.35); color: #f87171;{% endif %}">
                 <i class="fas {% if message.tags == 'success' %}fa-check-circle{% else %}fa-exclamation-triangle{% endif %}"></i>
-                {{ message }}
+                <span>{{ message }}</span>
             </div>
             {% endfor %}
         </div>
         {% endif %}
 
-        {% block auth_content %}{% endblock %}
+        <!-- Content Block -->
+        <div class="auth-panel">
+            {% block auth_content %}{% endblock %}
+        </div>
         
         <!-- Footer Links -->
-        <div class="mt-8 flex flex-wrap justify-center gap-x-6 gap-y-2 text-[11px] text-slate-500 font-medium">
-            <a href="{% url 'privacy_policy' %}" class="hover:text-gold transition-colors">سياسة الخصوصية</a>
-            <a href="{% url 'terms_of_service' %}" class="hover:text-gold transition-colors">شروط الخدمة</a>
-            <a href="{% url 'contact' %}" class="hover:text-gold transition-colors">الدعم الفني</a>
+        <div class="auth-footer-links">
+            <a href="{% url 'privacy_policy' %}">سياسة الخصوصية</a>
+            <a href="{% url 'terms_of_service' %}">شروط الخدمة</a>
+            <a href="{% url 'contact' %}">الدعم الفني</a>
         </div>
     </div>
 
-    <!-- Global CSRF Token Auto-Sync (Prevents 403 on stale tab, back button, or rotated token) -->
+    <!-- Global CSRF Token Auto-Sync -->
     <script>
     (function() {
         function getCookie(name) {

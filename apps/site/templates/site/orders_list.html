@@ -1,481 +1,197 @@
 {% extends "site/base.html" %}
 {% load static site_tags %}
 
-{% block title %}سجل طلباتي | Raqamiyat{% endblock %}
-
-{% block extra_head %}
-<style>
-    .order-card-v4 {
-        background: linear-gradient(165deg, rgba(15, 23, 42, 0.85) 0%, rgba(6, 11, 24, 0.95) 100%);
-        border: 1px solid rgba(255, 255, 255, 0.07);
-        border-radius: 26px;
-        padding: 1.5rem;
-        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-        position: relative;
-        overflow: hidden;
-    }
-    
-    .order-card-v4:hover {
-        transform: translateY(-2px);
-        border-color: rgba(6, 182, 212, 0.4);
-        box-shadow: 0 15px 35px -10px rgba(0, 0, 0, 0.6), 0 0 25px rgba(6, 182, 212, 0.1);
-    }
-
-    .order-card-v4::before {
-        content: '';
-        position: absolute;
-        top: 0;
-        right: 0;
-        width: 100px;
-        height: 100px;
-        background: radial-gradient(circle, rgba(6, 182, 212, 0.08) 0%, transparent 70%);
-        pointer-events: none;
-    }
-
-    .order-img-v4 {
-        width: 72px;
-        height: 72px;
-        border-radius: 18px;
-        background: #020617;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        overflow: hidden;
-        border: 1px solid rgba(255, 255, 255, 0.08);
-        flex-shrink: 0;
-    }
-    .order-img-v4 img { width: 100%; height: 100%; object-fit: cover; }
-
-    .status-badge-v4 {
-        padding: 5px 12px;
-        border-radius: 10px;
-        font-size: 11px;
-        font-weight: 800;
-        letter-spacing: 0.3px;
-        display: inline-flex;
-        align-items: center;
-        gap: 6px;
-    }
-    
-    .status-badge-v4.status-pending, 
-    .status-badge-v4.status-processing {
-        background: rgba(245, 158, 11, 0.12);
-        color: #fbbf24;
-        border: 1px solid rgba(245, 158, 11, 0.25);
-    }
-
-    .status-badge-v4.status-completed {
-        background: rgba(16, 185, 129, 0.12);
-        color: #34d399;
-        border: 1px solid rgba(16, 185, 129, 0.25);
-    }
-
-    .status-badge-v4.status-cancelled, 
-    .status-badge-v4.status-rejected, 
-    .status-badge-v4.status-refunded {
-        background: rgba(244, 63, 94, 0.12);
-        color: #fb7185;
-        border: 1px solid rgba(244, 63, 94, 0.25);
-    }
-
-    .code-chip {
-        background: rgba(2, 6, 23, 0.95);
-        border: 1px solid rgba(6, 182, 212, 0.25);
-        border-radius: 12px;
-        padding: 0.5rem 0.85rem;
-        font-family: 'JetBrains Mono', monospace;
-    }
-
-    .tab-btn {
-        transition: all 0.2s ease;
-    }
-    .tab-btn.active {
-        background: linear-gradient(135deg, #06b6d4 0%, #0891b2 100%);
-        color: #020617;
-        font-weight: 800;
-        box-shadow: 0 4px 15px rgba(6, 182, 212, 0.3);
-    }
-</style>
-{% endblock %}
+{% block title %}سجل طلباتي ومشترياتي | {% if is_tenant %}{{ STORE_NAME }}{% else %}رقميات RAQAMIYAT{% endif %}{% endblock %}
 
 {% block content %}
-<div class="space-y-8 max-w-6xl mx-auto pb-12">
+<div class="rq-dash-container">
 
-    <!-- Header Section -->
-    <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-slate-900/40 p-6 sm:p-8 rounded-3xl border border-white/5 backdrop-blur-md">
-        <div>
-            <div class="flex items-center gap-2 mb-2">
-                <span class="w-2.5 h-2.5 rounded-full bg-cyan animate-pulse"></span>
-                <span class="text-xs font-mono font-bold uppercase tracking-wider text-cyan">لوحة المستخدم / سجل المشتريات</span>
-            </div>
-            <h1 class="text-2xl sm:text-3xl font-black text-white">سجل طلباتي والخدمات الرقمية</h1>
-            <p class="text-sm text-slate-400 mt-1">تتبع كافة طلباتك، استعرض الأكواد المشحونة، وقم بطباعة الفواتير بضغطة واحدة.</p>
-        </div>
+  <!-- ── 1. Breadcrumbs & Header ── -->
+  <div style="margin-bottom: 2rem; border-bottom: 1px solid var(--rq-border); padding-bottom: 1.5rem;">
+    <nav style="display: flex; align-items: center; gap: 0.5rem; font-size: 0.8rem; color: var(--rq-text-muted); margin-bottom: 0.85rem;">
+      <a href="{% url 'home' %}" style="display: flex; align-items: center; gap: 0.35rem; color: var(--rq-text-muted);">
+        <i class="fas fa-home text-xs"></i>
+        <span>الرئيسية</span>
+      </a>
+      <i class="fas fa-chevron-left text-[10px] text-slate-600"></i>
+      <a href="{% url 'dashboard' %}" style="color: var(--rq-text-muted);">لوحة التحكم</a>
+      <i class="fas fa-chevron-left text-[10px] text-slate-600"></i>
+      <span style="color: #fff; font-weight: 800;">سجل الطلبات</span>
+    </nav>
 
-        <a href="{% url 'catalog' %}" class="px-5 py-3 rounded-2xl bg-gradient-to-r from-cyan-500 to-cyan-400 text-slate-950 hover:brightness-110 font-black text-xs transition flex items-center gap-2 shadow-lg shadow-cyan-500/20 shrink-0 cursor-pointer">
-            <i class="fas fa-shopping-bag"></i> تصفح الخدمات والكتالوج
+    <div style="display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 1rem;">
+      <div>
+        <h1 style="font-size: clamp(1.4rem, 2.8vw, 2rem); font-weight: 900; color: #fff; margin: 0 0 0.35rem;">
+          سجل الطلبات والمشتريات
+        </h1>
+        <p style="font-size: 0.85rem; color: var(--rq-text-muted); margin: 0;">
+          تتبع حالة طلباتك، استلام المفاتيح والرموز الرقمية، وطباعة فواتير المشتريات.
+        </p>
+      </div>
+
+      <div style="display: flex; align-items: center; gap: 0.65rem;">
+        <a href="{% url 'catalog' %}" class="rq-btn-auth-register" style="padding: 0.65rem 1.35rem; font-size: 0.82rem;">
+          <i class="fas fa-shopping-bag"></i>
+          <span>طلب منتج جديد</span>
         </a>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── 2. Filters & Search Toolbar ── -->
+  <div style="background: var(--rq-surface-card); border: 1px solid var(--rq-border); border-radius: var(--rq-radius-lg); padding: 0.85rem 1.25rem; margin-bottom: 1.5rem; display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 1rem;">
+    
+    <!-- Status Filter Pills -->
+    <div style="display: flex; align-items: center; gap: 0.35rem; overflow-x: auto; padding-bottom: 0.25rem;">
+      <button type="button" onclick="filterOrders('all', this)" class="rq-order-filter-pill active" style="padding: 0.4rem 0.95rem; border-radius: var(--rq-radius-full); font-size: 0.78rem; font-weight: 800; cursor: pointer; border: 1px solid var(--rq-primary-light); background: rgba(37, 99, 235, 0.15); color: #fff;">
+        كافة الطلبات ({{ orders|length }})
+      </button>
+      <button type="button" onclick="filterOrders('completed', this)" class="rq-order-filter-pill" style="padding: 0.4rem 0.95rem; border-radius: var(--rq-radius-full); font-size: 0.78rem; font-weight: 800; cursor: pointer; border: 1px solid var(--rq-border); background: rgba(0, 0, 0, 0.3); color: var(--rq-text-muted);">
+        المكتملة
+      </button>
+      <button type="button" onclick="filterOrders('processing', this)" class="rq-order-filter-pill" style="padding: 0.4rem 0.95rem; border-radius: var(--rq-radius-full); font-size: 0.78rem; font-weight: 800; cursor: pointer; border: 1px solid var(--rq-border); background: rgba(0, 0, 0, 0.3); color: var(--rq-text-muted);">
+        قيد التنفيذ
+      </button>
+      <button type="button" onclick="filterOrders('pending', this)" class="rq-order-filter-pill" style="padding: 0.4rem 0.95rem; border-radius: var(--rq-radius-full); font-size: 0.78rem; font-weight: 800; cursor: pointer; border: 1px solid var(--rq-border); background: rgba(0, 0, 0, 0.3); color: var(--rq-text-muted);">
+        المعلقة
+      </button>
     </div>
 
-    <!-- Search & Filter Controls -->
-    <div class="flex flex-col md:flex-row items-center justify-between gap-4">
-        <!-- Filter Tabs -->
-        <div class="flex items-center gap-2 overflow-x-auto w-full md:w-auto pb-2 md:pb-0 scrollbar-none" id="order-tabs">
-            <button onclick="filterOrders('all', this)" class="tab-btn active px-4 py-2.5 rounded-xl bg-slate-900/80 text-slate-300 hover:text-white border border-white/10 text-xs font-bold whitespace-nowrap cursor-pointer">
-                الكل ({{ orders|length }})
-            </button>
-            <button onclick="filterOrders('processing', this)" class="tab-btn px-4 py-2.5 rounded-xl bg-slate-900/80 text-slate-300 hover:text-white border border-white/10 text-xs font-bold whitespace-nowrap cursor-pointer">
-                <i class="fas fa-sync-alt text-amber-400 text-[10px] ml-1"></i> قيد التنفيذ
-            </button>
-            <button onclick="filterOrders('completed', this)" class="tab-btn px-4 py-2.5 rounded-xl bg-slate-900/80 text-slate-300 hover:text-white border border-white/10 text-xs font-bold whitespace-nowrap cursor-pointer">
-                <i class="fas fa-check-circle text-emerald-400 text-[10px] ml-1"></i> المكتملة
-            </button>
-            <button onclick="filterOrders('cancelled', this)" class="tab-btn px-4 py-2.5 rounded-xl bg-slate-900/80 text-slate-300 hover:text-white border border-white/10 text-xs font-bold whitespace-nowrap cursor-pointer">
-                <i class="fas fa-times-circle text-rose-400 text-[10px] ml-1"></i> الملغاة
-            </button>
-        </div>
-
-        <!-- Realtime Search Box -->
-        <div class="relative w-full md:w-80">
-            <i class="fas fa-search absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 text-xs"></i>
-            <input type="text" id="order-search" oninput="searchOrders()" placeholder="بحث برقم الطلب، الخدمة، أو الهاتف..." class="w-full pr-10 pl-4 py-2.5 bg-slate-900/90 border border-white/10 focus:border-cyan rounded-xl text-xs text-white placeholder-slate-500 focus:outline-none transition">
-        </div>
+    <!-- Quick Search Field -->
+    <div style="width: 100%; max-width: 280px;">
+      <div style="position: relative;">
+        <i class="fas fa-search" style="position: absolute; right: 0.85rem; top: 50%; transform: translateY(-50%); font-size: 0.75rem; color: var(--rq-text-muted);"></i>
+        <input type="text" id="order-search-input" placeholder="ابحث برقم الطلب أو الخدمة..." onkeyup="searchOrders()" class="rq-input" style="padding: 0.45rem 2.25rem 0.45rem 0.85rem; font-size: 0.78rem;">
+      </div>
     </div>
+  </div>
 
-    <!-- Orders Cards List -->
-    <div class="space-y-4" id="orders-container">
-        {% for order in orders %}
-        <div class="order-card-v4 order-item-wrapper" data-status="{{ order.status }}" data-search="{{ order.number }} {% for item in order.items.all %}{{ item.variant.product.name }} {{ item.variant.name }}{% endfor %} {% for k, v in order.metadata.items %}{{ v }} {% endfor %} {{ order.api_order_id }}">
-            
-            <!-- Top Meta Line -->
-            <div class="flex flex-wrap items-center justify-between gap-3 pb-3 border-b border-white/5">
-                <div class="flex items-center gap-3">
-                    <span class="font-mono text-xs font-black text-cyan flex items-center gap-1.5">
-                        <i class="fas fa-receipt text-slate-400"></i> #{{ order.number }}
-                    </span>
-                    <button type="button" onclick="copyText('{{ order.number }}', this)" title="نسخ رقم الطلب" class="text-[10px] px-2 py-0.5 rounded bg-white/5 hover:bg-cyan/20 text-slate-400 hover:text-cyan transition cursor-pointer">
-                        <i class="far fa-copy"></i>
-                    </button>
-                    <span class="text-[11px] text-slate-400 font-mono">
-                        {{ order.created_at|date:"d M Y, H:i" }}
-                    </span>
-                </div>
-
-                <div class="flex items-center gap-2 sm:gap-3 flex-wrap">
-                    <!-- Payment Method Badge -->
-                    <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[10px] font-bold border {% if order.payment_gateway_charge_info %}bg-emerald-500/10 text-emerald-400 border-emerald-500/25{% else %}bg-cyan-500/10 text-cyan-400 border-cyan-500/25{% endif %}">
-                        <i class="fas {% if order.payment_gateway_charge_info %}fa-credit-card{% else %}fa-wallet{% endif %} text-[9px]"></i>
-                        <span>{{ order.payment_method_display }}</span>
-                    </span>
-
-                    {% if order.api_order_id %}
-                    <span class="text-[11px] text-slate-400 font-mono hidden sm:inline-block">
-                        رقم معرف الطلب: <strong class="text-white">{{ order.api_order_id }}</strong>
-                    </span>
-                    {% endif %}
-                    
-                    <span class="status-badge-v4 status-{{ order.status }}">
-                        {% if order.status == 'completed' %}
-                            <i class="fas fa-check-circle"></i>
-                        {% elif order.status == 'cancelled' or order.status == 'refunded' %}
-                            <i class="fas fa-times-circle"></i>
-                        {% else %}
-                            <i class="fas fa-circle-notch fa-spin text-cyan"></i>
-                        {% endif %}
-                        {{ order.get_status_display }}
-                    </span>
-                </div>
-            </div>
-
-            <!-- Prominent Server Response(s) at the Top of the Order Card -->
-            {% with responses=order.get_server_responses %}
-            {% if responses %}
-            <div class="my-3 p-4 rounded-2xl {% if order.status == 'completed' %}bg-emerald-500/[0.08] border border-emerald-500/30{% elif order.status == 'cancelled' or order.status == 'refunded' %}bg-rose-500/[0.08] border border-rose-500/30{% else %}bg-cyan-500/[0.08] border border-cyan-500/30{% endif %} space-y-3">
-                <div class="flex items-center justify-between border-b border-white/5 pb-2">
-                    <span class="text-xs font-black {% if order.status == 'completed' %}text-emerald-400{% elif order.status == 'cancelled' or order.status == 'refunded' %}text-rose-400{% else %}text-cyan-400{% endif %} flex items-center gap-2">
-                        <i class="fas {% if order.status == 'completed' %}fa-check-circle{% elif order.status == 'cancelled' or order.status == 'refunded' %}fa-times-circle{% else %}fa-satellite-dish{% endif %}"></i>
-                        رد السيرفر من المزود {% if responses|length > 1 %}<span class="px-2 py-0.5 rounded-md bg-white/10 text-[10px] text-white">({{ responses|length }} ردود)</span>{% endif %}
-                    </span>
-                    <span class="text-[10px] font-mono text-slate-400 font-bold">مباشر</span>
-                </div>
-
-                <div class="space-y-2.5">
-                    {% for res in responses %}
-                    <div class="p-3.5 rounded-xl bg-slate-950/80 border border-white/5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
-                        <div class="flex items-start sm:items-center gap-3">
-                            {% if res.avatar %}
-                            <div class="w-12 h-12 rounded-xl bg-slate-900 border border-white/10 overflow-hidden shrink-0 shadow-md">
-                                <img src="{{ res.avatar }}" alt="Avatar" class="w-full h-full object-cover">
-                            </div>
-                            {% endif %}
-                            <div>
-                                {% if res.account_name or res.package_info or res.status_msg %}
-                                <div class="flex flex-wrap items-center gap-2 text-xs font-black text-white mb-1">
-                                    {% if res.status_msg %}
-                                    <span class="px-2 py-0.5 rounded text-[10px] {% if order.status == 'completed' %}bg-emerald-500/20 text-emerald-300{% elif order.status == 'cancelled' or order.status == 'refunded' %}bg-rose-500/20 text-rose-300{% else %}bg-cyan-500/20 text-cyan-300{% endif %} font-bold">
-                                        {{ res.status_msg }}
-                                    </span>
-                                    {% endif %}
-                                    {% if res.account_name %}
-                                    <span class="text-cyan-300 font-mono">{{ res.account_name }}</span>
-                                    {% endif %}
-                                    {% if res.package_info %}
-                                    <span class="text-slate-400 text-[11px] font-normal">({{ res.package_info }})</span>
-                                    {% endif %}
-                                </div>
-                                {% endif %}
-
-                                <div class="text-xs text-slate-200 font-mono leading-relaxed whitespace-pre-line select-all">
-                                    {{ res.text }}
-                                </div>
-                            </div>
-                        </div>
-
-                        <button type="button" onclick="copyText('{{ res.text|escapejs }}', this)" class="shrink-0 text-[11px] px-3 py-1.5 bg-white/5 hover:bg-cyan hover:text-slate-950 text-slate-300 rounded-xl font-bold transition flex items-center gap-1.5 cursor-pointer self-end sm:self-center">
-                            <i class="far fa-copy"></i> نسخ
-                        </button>
-                    </div>
-                    {% endfor %}
-                </div>
-            </div>
+  <!-- ── 3. Orders List ── -->
+  <div style="display: flex; flex-direction: column; gap: 1rem;" id="orders-container">
+    {% for ord in orders %}
+    {% with ord.items.first as item %}
+    {% product_display_image item.variant.product as ord_img %}
+    <div class="rq-order-card order-item-row" data-status="{{ ord.status }}" data-number="{{ ord.number }}" data-name="{{ item.variant.product.name|default:'' }}">
+      <div style="display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 1.25rem;">
+        
+        <!-- Order Identity & Product -->
+        <div style="display: flex; align-items: center; gap: 1rem;">
+          <div style="width: 56px; height: 56px; border-radius: 14px; background: #080c16; border: 1px solid var(--rq-border); display: flex; align-items: center; justify-content: center; overflow: hidden; flex-shrink: 0; padding: 0.35rem;">
+            {% if ord_img %}
+            <img src="{{ ord_img }}" alt="{{ item.variant.product.name }}" style="max-height: 100%; max-width: 100%; object-fit: contain;">
+            {% else %}
+            <i class="fas fa-cube text-slate-500 text-xl"></i>
             {% endif %}
-            {% endwith %}
+          </div>
 
-            <!-- Product & Price Details -->
-            <div class="py-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                <div class="flex items-center gap-4">
-                    <div class="order-img-v4">
-                        {% with order.items.first as item %}
-                            {% if item.variant.product.thumbnail %}
-                            <img src="{{ item.variant.product.thumbnail.url }}" alt="{{ item.variant.product.name }}">
-                            {% else %}
-                            <i class="fas fa-cube text-2xl text-slate-600"></i>
-                            {% endif %}
-                        {% endwith %}
-                    </div>
-
-                    <div>
-                        <h3 class="text-base font-bold text-white mb-0.5">
-                            {% with order.items.first as item %}
-                                {{ item.variant.product.name }}
-                                <span class="text-xs font-mono font-medium text-cyan-400 mr-2">({{ item.variant.name }})</span>
-                            {% endwith %}
-                            {% if order.items.count > 1 %}
-                            <span class="text-xs text-slate-400 font-normal mr-1">+{{ order.items.count|add:"-1" }} أخرى</span>
-                            {% endif %}
-                        </h3>
-
-                        <!-- Custom Input Fields Summary (Phone / Player ID) -->
-                        <div class="flex flex-wrap items-center gap-2 mt-1.5">
-                            {% if order.formatted_metadata %}
-                                {% for meta in order.formatted_metadata %}
-                                    <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-slate-950 border border-white/5 text-[11px] text-slate-300">
-                                        <span class="text-slate-400">{{ meta.label }}:</span>
-                                        <strong class="font-mono text-cyan-200">{{ meta.value }}</strong>
-                                        <button type="button" onclick="copyText('{{ meta.value|escapejs }}', this)" title="نسخ" class="text-slate-400 hover:text-cyan text-[10px] ml-1 cursor-pointer">
-                                            <i class="far fa-copy"></i>
-                                        </button>
-                                    </span>
-                                {% endfor %}
-                            {% elif order.shipping_phone %}
-                                <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-slate-950 border border-white/5 text-[11px] text-slate-300">
-                                    <span class="text-slate-400">الهاتف:</span>
-                                    <strong class="font-mono text-cyan-200">{{ order.shipping_phone }}</strong>
-                                    <button type="button" onclick="copyText('{{ order.shipping_phone|escapejs }}', this)" class="text-slate-400 hover:text-cyan text-[10px] ml-1 cursor-pointer">
-                                        <i class="far fa-copy"></i>
-                                    </button>
-                                </span>
-                            {% endif %}
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Price & Quantity -->
-                <div class="sm:text-left text-right flex sm:flex-col justify-between items-center sm:items-end pt-2 sm:pt-0 border-t sm:border-t-0 border-white/5">
-                    <div class="text-xs text-slate-400 mb-0.5">
-                        {% with order.items.first as item %}
-                        الكمية: <span class="font-mono font-bold text-white">{{ item.quantity }}</span>
-                        {% endwith %}
-                    </div>
-                    <div class="text-xl font-black font-mono text-white tracking-tight">
-                        {% currency_format order.total_amount %}
-                    </div>
-                    {% if order.payment_gateway_charge_info %}
-                    <div class="text-[11px] font-mono font-bold text-emerald-400 mt-0.5">
-                        {{ order.payment_gateway_charge_info.amount }} {{ order.payment_gateway_charge_info.currency }}
-                    </div>
-                    {% endif %}
-                </div>
+          <div>
+            <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.2rem;">
+              <h4 style="font-size: 0.95rem; font-weight: 800; color: #fff; margin: 0;">
+                {{ item.variant.product.name|default:'خدمة متجر' }}
+              </h4>
+              {% if item.quantity and item.quantity > 1 %}
+              <span style="font-size: 0.72rem; font-weight: 800; padding: 0.15rem 0.45rem; border-radius: 6px; background: rgba(37, 99, 235, 0.15); color: #60a5fa;">
+                × {{ item.quantity }}
+              </span>
+              {% endif %}
             </div>
 
-            <!-- Fulfillment Codes / Delivery Section (Highlight on Card) -->
-            {% if order.fulfillment_data %}
-            <div class="my-2 p-3.5 rounded-2xl bg-slate-950/80 border border-cyan/30 space-y-2">
-                <div class="flex items-center justify-between">
-                    <span class="text-xs font-black text-cyan flex items-center gap-1.5">
-                        <i class="fas fa-key"></i> بيانات التسليم والأكواد:
-                    </span>
-                </div>
-
-                <div class="space-y-2">
-                    {% for key, val in order.fulfillment_data|clean_fulfillment_items %}
-                        {% with val_list=val|as_list %}
-                            {% if val_list|length > 1 %}
-                            <div class="flex items-center justify-between pb-1 border-b border-white/5">
-                                <span class="text-[11px] text-slate-400 font-bold">{{ key }} ({{ val_list|length }})</span>
-                                <button type="button" onclick="copyText('{{ val_list|join:"\n"|escapejs }}', this)" class="text-[10px] px-2.5 py-1 bg-cyan text-slate-950 rounded-lg font-black hover:bg-cyan/80 transition cursor-pointer">
-                                    <i class="far fa-copy"></i> نسخ كافة الأكواد
-                                </button>
-                            </div>
-                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                                {% for code in val_list %}
-                                <div class="code-chip flex items-center justify-between gap-2">
-                                    <span class="text-xs text-cyan-200 font-bold break-all select-all">{{ code }}</span>
-                                    <button type="button" onclick="copyText('{{ code|escapejs }}', this)" class="text-[10px] px-2 py-0.5 bg-cyan/10 text-cyan hover:bg-cyan hover:text-slate-950 rounded font-bold transition cursor-pointer">
-                                        نسخ
-                                    </button>
-                                </div>
-                                {% endfor %}
-                            </div>
-                            {% elif key == "صورة الحساب / الأفاتار" or val|is_image_url %}
-                            <div class="code-chip flex items-center justify-between gap-3">
-                                <div class="flex items-center gap-3">
-                                    <div class="w-14 h-14 rounded-xl bg-slate-900 border border-white/10 overflow-hidden shrink-0 shadow-md">
-                                        <img src="{{ val }}" alt="Avatar" class="w-full h-full object-cover">
-                                    </div>
-                                    <div>
-                                        <span class="text-[10px] text-slate-400 block mb-0.5">{{ key }}</span>
-                                        <span class="text-xs font-bold text-cyan-200">صورة الحساب المستلم</span>
-                                    </div>
-                                </div>
-                            </div>
-                            {% else %}
-                            <div class="code-chip flex items-center justify-between gap-3">
-                                <div>
-                                    <span class="text-[10px] text-slate-400 block mb-0.5">{{ key }}</span>
-                                    <span class="text-sm font-bold text-cyan-200 break-all select-all whitespace-pre-line">
-                                        {% if key == "keys" %}
-                                            {{ val|join:", " }}
-                                        {% else %}
-                                            {{ val }}
-                                        {% endif %}
-                                    </span>
-                                </div>
-                                <button type="button" onclick="copyText('{% if key == "keys" %}{{ val|join:", "|escapejs }}{% else %}{{ val|escapejs }}{% endif %}', this)" class="text-xs px-3 py-1.5 bg-cyan text-slate-950 rounded-xl hover:bg-cyan/80 font-black transition cursor-pointer shrink-0">
-                                    <i class="far fa-copy"></i> نسخ
-                                </button>
-                            </div>
-                            {% endif %}
-                        {% endwith %}
-                    {% endfor %}
-                </div>
+            <div style="display: flex; align-items: center; gap: 0.75rem; font-size: 0.75rem; color: var(--rq-text-muted); flex-wrap: wrap;">
+              <span style="font-family: monospace; color: var(--rq-primary-light); font-weight: 700;">#{{ ord.number }}</span>
+              <span>•</span>
+              <span>{{ ord.created_at|date:"Y-m-d H:i" }}</span>
+              {% if item.variant.name and item.variant.name != item.variant.product.name %}
+              <span>•</span>
+              <span style="color: #cbd5e1;">الباقة: {{ item.variant.name }}</span>
+              {% endif %}
             </div>
-            {% elif order.status == 'cancelled' or order.status == 'refunded' %}
-            <div class="my-2 p-3.5 rounded-2xl bg-rose-500/[0.05] border border-rose-500/20 text-xs">
-                <div class="flex items-center gap-2 text-rose-400 font-bold mb-1">
-                    <i class="fas fa-times-circle"></i> تم إلغاء الطلب واسترداد الرصيد إلى المحفظة تلقائياً
-                </div>
-                {% for key, val in order.fulfillment_data|clean_fulfillment_items %}
-                <div class="text-[11px] text-rose-300 font-bold mt-1.5 p-2 rounded-xl bg-rose-500/10 border border-rose-500/20 flex items-start gap-2">
-                    <span class="text-rose-400 shrink-0 font-black">{{ key }}:</span>
-                    <span class="text-white">{{ val }}</span>
-                </div>
-                {% endfor %}
-            </div>
-            {% elif order.status == 'processing' or order.status == 'pending' %}
-            <div class="my-2 p-3 rounded-2xl bg-amber-500/[0.04] border border-amber-500/20 flex items-center justify-between text-xs text-amber-300/90">
-                <span class="flex items-center gap-2">
-                    <i class="fas fa-circle-notch fa-spin text-cyan"></i>
-                    يجري شحن وتنفيذ طلبك عبر المزود لحظياً...
-                </span>
-                <span class="font-mono text-[10px] text-slate-400">مزامنة حية</span>
-            </div>
-            {% endif %}
-
-            <!-- Card Actions Bottom Bar -->
-            <div class="pt-3 border-t border-white/5 flex flex-wrap items-center justify-between gap-3">
-                <div class="text-[11px] text-slate-400">
-                    {% if order.api_order_id %}
-                    <span class="inline-flex items-center gap-1.5">
-                        <i class="fas fa-hashtag text-cyan"></i>
-                        رقم معرف الطلب: <strong class="text-white font-mono">{{ order.api_order_id }}</strong>
-                    </span>
-                    {% endif %}
-                </div>
-
-                <div class="flex items-center gap-2">
-                    <a href="{% url 'dashboard_order_invoice' order.id %}" target="_blank" class="px-3.5 py-2 rounded-xl bg-slate-900 text-slate-300 hover:text-white hover:border-cyan border border-white/10 text-xs font-bold transition flex items-center gap-1.5 cursor-pointer">
-                        <i class="fas fa-print text-cyan"></i> طباعة الفاتورة
-                    </a>
-                    <a href="{% url 'dashboard_order_detail' order.id %}" class="px-4 py-2 rounded-xl bg-gradient-to-r from-cyan-500 to-cyan-400 text-slate-950 hover:brightness-110 font-black text-xs transition flex items-center gap-1.5 shadow-md shadow-cyan-500/10 cursor-pointer">
-                        <span>عرض التفاصيل</span> <i class="fas fa-arrow-left text-[10px]"></i>
-                    </a>
-                </div>
-            </div>
-
+          </div>
         </div>
-        {% empty %}
-        <div class="p-16 rounded-3xl bg-slate-900/30 border-2 border-dashed border-white/10 text-center">
-            <div class="w-16 h-16 rounded-2xl bg-cyan-500/10 border border-cyan-500/20 flex items-center justify-center text-cyan-400 text-2xl mx-auto mb-4">
-                <i class="fas fa-shopping-cart"></i>
+
+        <!-- Status & Actions -->
+        <div style="display: flex; flex-wrap: wrap; align-items: center; gap: 1rem;">
+          <div style="text-align: left;">
+            <span class="tabular-nums font-mono" style="font-size: 1.15rem; font-weight: 900; color: #fbbf24; display: block;">
+              {% format_price ord.total_price %}
+            </span>
+            <div style="margin-top: 0.15rem;">
+              {% if ord.status == 'completed' %}
+              <span class="rq-status-pill rq-status-completed">مكتمل ومستلم ✓</span>
+              {% elif ord.status == 'processing' %}
+              <span class="rq-status-pill rq-status-processing">قيد التنفيذ الفوري</span>
+              {% elif ord.status == 'pending' %}
+              <span class="rq-status-pill rq-status-pending">معلق في الانتظار</span>
+              {% elif ord.status == 'cancelled' or ord.status == 'refunded' %}
+              <span class="rq-status-pill rq-status-cancelled">{{ ord.get_status_display }}</span>
+              {% else %}
+              <span class="rq-status-pill rq-status-processing">{{ ord.get_status_display }}</span>
+              {% endif %}
             </div>
-            <h3 class="text-lg font-bold text-white mb-1">لا توجد طلبات بعد</h3>
-            <p class="text-xs text-slate-400 max-w-sm mx-auto mb-6">لم تقم بإجراء أي طلبات حتى الآن. يمكنك استعراض الكتالوج واختيار الخدمات والشحن الفوري.</p>
-            <a href="{% url 'catalog' %}" class="px-6 py-3 rounded-2xl bg-gradient-to-r from-cyan-500 to-cyan-400 text-slate-950 font-black text-xs transition inline-flex items-center gap-2 shadow-lg shadow-cyan-500/20">
-                <i class="fas fa-bolt"></i> تصفح الخدمات الآن
+          </div>
+
+          <div style="display: flex; align-items: center; gap: 0.45rem;">
+            <a href="{% url 'dashboard_order_detail' ord.id %}" class="rq-btn-auth-register" style="padding: 0.5rem 1rem; font-size: 0.78rem;">
+              <i class="fas fa-eye text-xs"></i>
+              <span>التفاصيل والأكواد</span>
             </a>
+            <a href="{% url 'dashboard_order_invoice' ord.id %}" target="_blank" class="rq-btn-auth-login" style="padding: 0.5rem 0.85rem; font-size: 0.78rem;" title="طباعة الفاتورة">
+              <i class="fas fa-print text-xs"></i>
+            </a>
+          </div>
+
         </div>
-        {% endfor %}
+
+      </div>
     </div>
+    {% endwith %}
+    {% empty %}
+    <div style="background: var(--rq-surface-card); border: 1px dashed var(--rq-border); border-radius: var(--rq-radius-xl); padding: 4rem 1.5rem; text-align: center;">
+      <i class="fas fa-shopping-cart text-4xl text-slate-600 mb-3 block"></i>
+      <h3 style="font-size: 1.1rem; font-weight: 800; color: #fff; margin: 0 0 0.5rem;">لا توجد لديك أي طلبات سابقة</h3>
+      <p style="font-size: 0.85rem; color: var(--rq-text-muted); margin: 0 0 1.5rem;">ابدأ باستكشاف خدمات وبطاقات رقميات واستمتع بالتسليم الفوري.</p>
+      <a href="{% url 'catalog' %}" class="rq-btn-auth-register" style="padding: 0.65rem 1.5rem; font-size: 0.85rem;">
+        تصفح كتالوج الخدمات
+      </a>
+    </div>
+    {% endfor %}
+  </div>
 
 </div>
 
+<!-- Filter Scripts -->
 <script>
-function copyText(text, btn) {
-    if (!text) return;
-    navigator.clipboard.writeText(text).then(() => {
-        const origHTML = btn.innerHTML;
-        btn.innerHTML = '<i class="fas fa-check text-emerald-400"></i> تم النسخ';
-        btn.classList.add('text-emerald-400');
-        setTimeout(() => {
-            btn.innerHTML = origHTML;
-            btn.classList.remove('text-emerald-400');
-        }, 1800);
-    });
-}
-
 function filterOrders(status, btn) {
-    document.querySelectorAll('#order-tabs button').forEach(b => b.classList.remove('active'));
-    btn.classList.add('active');
+  document.querySelectorAll('.rq-order-filter-pill').forEach(b => {
+    b.style.borderColor = 'var(--rq-border)';
+    b.style.background = 'rgba(0, 0, 0, 0.3)';
+    b.style.color = 'var(--rq-text-muted)';
+  });
+  btn.style.borderColor = 'var(--rq-primary-light)';
+  btn.style.background = 'rgba(37, 99, 235, 0.15)';
+  btn.style.color = '#fff';
 
-    const cards = document.querySelectorAll('.order-item-wrapper');
-    cards.forEach(card => {
-        const cardStatus = card.getAttribute('data-status');
-        if (status === 'all') {
-            card.style.display = 'block';
-        } else if (status === 'processing' && (cardStatus === 'pending' || cardStatus === 'processing')) {
-            card.style.display = 'block';
-        } else if (status === 'completed' && cardStatus === 'completed') {
-            card.style.display = 'block';
-        } else if (status === 'cancelled' && (cardStatus === 'cancelled' || cardStatus === 'rejected' || cardStatus === 'refunded')) {
-            card.style.display = 'block';
-        } else {
-            card.style.display = 'none';
-        }
-    });
+  const rows = document.querySelectorAll('.order-item-row');
+  rows.forEach(row => {
+    if (status === 'all' || row.getAttribute('data-status') === status) {
+      row.style.display = 'block';
+    } else {
+      row.style.display = 'none';
+    }
+  });
 }
 
 function searchOrders() {
-    const q = document.getElementById('order-search').value.toLowerCase().trim();
-    const cards = document.querySelectorAll('.order-item-wrapper');
-    cards.forEach(card => {
-        const data = (card.getAttribute('data-search') || '').toLowerCase();
-        if (!q || data.includes(q)) {
-            card.style.display = 'block';
-        } else {
-            card.style.display = 'none';
-        }
-    });
+  const query = (document.getElementById('order-search-input').value || '').toLowerCase().trim();
+  const rows = document.querySelectorAll('.order-item-row');
+  rows.forEach(row => {
+    const num = (row.getAttribute('data-number') || '').toLowerCase();
+    const name = (row.getAttribute('data-name') || '').toLowerCase();
+    if (!query || num.includes(query) || name.includes(query)) {
+      row.style.display = 'block';
+    } else {
+      row.style.display = 'none';
+    }
+  });
 }
 </script>
 {% endblock %}
