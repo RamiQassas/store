@@ -4,8 +4,8 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-  <meta name="theme-color" content="#060814">
-  <title>{% filter tenant_title %}{% block title %}{% if is_tenant %}{{ STORE_NAME }}{% else %}رقميات | RAQAMIYAT — وجهتك الأولى للبطاقات والخدمات الرقمية والعتاد التقني{% endif %}{% endblock %}{% endfilter %}</title>
+  <meta name="theme-color" content="#090d16">
+  <title>{% filter tenant_title %}{% block title %}{% if is_tenant %}{{ STORE_NAME }}{% else %}رقميات | RAQAMIYAT — وجهتك الأولى للبطاقات والخدمات الرقمية{% endif %}{% endblock %}{% endfilter %}</title>
   
   <meta name="description" content="متجر رقميات (Raqamiyat) - المنصة المتكاملة لبيع بطاقات الألعاب، الاشتراكات الرقمية، شحن الأرصدة، تراخيص البرامج، وأجهزة العتاد التقني والإكسسوارات الأصلية.">
   <meta name="keywords" content="رقميات, بطاقات رقمية, شحن ببجي, شحن فري فاير, نتفلكس, شاهد VIP, إم تي إن, سيريتل, كروت شاشة, راوترات, Raqamiyat">
@@ -21,7 +21,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
-  <link rel="stylesheet" href="{% static 'site/css/app.css' %}?v=20261020_flagship_v8">
+  <link rel="stylesheet" href="{% static 'site/css/app.css' %}?v=20261021_v9">
 
   {% if META_PIXEL_ID and not '/control/' in request.path and not '/admin/' in request.path %}
   <script>
@@ -47,23 +47,23 @@
 </head>
 <body>
 
-  <!-- 1. Small Top Cyber Ticker Bar -->
+  <!-- 1. Top Trust Ticker Bar -->
   <div class="rq-top-ticker">
     <div class="rq-container">
       <div class="rq-ticker-items">
         <div class="rq-ticker-item">
-          <i class="fas fa-bolt" style="color: #00ffa3;"></i>
+          <i class="fas fa-bolt"></i>
           <span>تسليم فوري ومؤتمت للبطاقات والأكواد الرقمية 24/7</span>
         </div>
         <div class="rq-ticker-item hide-mobile">
-          <i class="fas fa-headset" style="color: #00f2fe;"></i>
+          <i class="fas fa-headset"></i>
           <a href="{% url 'contact' %}" style="color: inherit; text-decoration: none;">مركز المساعدة والدعم الفني المباشر</a>
         </div>
       </div>
     </div>
   </div>
 
-  <!-- 2. Cyber Glass Navigation Header -->
+  <!-- 2. Main Navigation Header -->
   <header class="rq-header">
     <div class="rq-container">
       <div class="rq-navbar-inner">
@@ -77,31 +77,31 @@
           {% endif %}
           <div>
             <div class="rq-brand-title">{% if is_tenant %}{{ STORE_NAME }}{% else %}رقميات{% endif %}</div>
-            <div class="rq-brand-subtitle">RAQAMIYAT STORE</div>
+            <div class="rq-brand-subtitle">RAQAMIYAT</div>
           </div>
         </a>
 
-        <!-- Global Search Bar (Unified Desktop Search) -->
+        <!-- Global Search Bar (Desktop only) -->
         <div class="rq-search-bar" id="globalSearchBar">
           <form method="get" action="{% url 'catalog' %}">
             <i class="fas fa-search rq-search-icon"></i>
-            <input type="text" name="q" placeholder="ابحث باسم البطاقة، اللعبة، الراوتر، الكابل..." class="rq-search-input" value="{{ request.GET.q|default:'' }}" autocomplete="off" id="globalSearchInput">
+            <input type="text" name="q" placeholder="ابحث باسم البطاقة، اللعبة، الاشتراك..." class="rq-search-input" value="{{ request.GET.q|default:'' }}" autocomplete="off" id="globalSearchInput">
           </form>
         </div>
 
-        <!-- Navigation Menu (Desktop) -->
+        <!-- Desktop Navigation Links -->
         <nav class="rq-nav-menu">
           <a href="{% url 'home' %}" class="rq-nav-link {% if request.path == '/' %}active{% endif %}">
-            <i class="fas fa-home text-xs"></i>
+            <i class="fas fa-home"></i>
             <span>الرئيسية</span>
           </a>
           <a href="{% url 'catalog' %}" class="rq-nav-link {% if '/catalog/' in request.path %}active{% endif %}">
-            <i class="fas fa-grid-2 text-xs"></i>
+            <i class="fas fa-th-large"></i>
             <span>الكتالوج</span>
           </a>
           {% if not is_tenant %}
           <a href="{% url 'stores_directory' %}" class="rq-nav-link {% if '/stores/' in request.path %}active{% endif %}">
-            <i class="fas fa-store text-xs"></i>
+            <i class="fas fa-store"></i>
             <span>المتاجر</span>
           </a>
           {% endif %}
@@ -113,35 +113,43 @@
           <!-- Currency Switcher -->
           <select class="rq-currency-select" onchange="location.href='{% url 'set_currency' %}?currency=' + this.value" title="اختر العملة">
             {% for curr in available_currencies %}
-            <option value="{{ curr.id }}" {% if current_currency.id == curr.id %}selected{% endif %}>{{ curr.code }}</option>
+            <option value="{{ curr.id }}" {% if current_currency.id == curr.id %}selected{% endif %}>{{ curr.symbol }} {{ curr.code }}</option>
             {% endfor %}
           </select>
 
-          <!-- Slide-over Cart Trigger (3D Tactile) -->
+          <!-- Cart Button -->
           <button type="button" onclick="toggleCartDrawer()" class="rq-cart-btn" title="سلة المشتريات">
             <i class="fas fa-bag-shopping"></i>
             <span class="rq-cart-badge" id="nav-cart-badge">{{ cart_items_count|default:0 }}</span>
           </button>
 
+          <!-- Staff / Admin Panel Link (Desktop) -->
+          {% if request.user.is_staff %}
+          <a href="{% url 'control_dashboard' %}" class="rq-admin-pill hide-mobile" title="لوحة الإدارة">
+            <i class="fas fa-sliders"></i>
+            <span>الإدارة</span>
+          </a>
+          {% endif %}
+
           <!-- User Hub (Desktop) -->
           {% if request.user.is_authenticated %}
           <a href="{% url 'dashboard' %}" class="rq-user-pill hide-mobile" title="لوحة التحكم">
             <div class="rq-user-avatar">
-              <i class="fas fa-user text-xs"></i>
+              <i class="fas fa-user"></i>
             </div>
-            <div class="text-right">
-              <span style="display: block; font-size: 11px; font-weight: 800; color: #cbd5e1; line-height: 1.2;">{{ request.user.get_short_name|default:request.user.email|truncatechars:12 }}</span>
+            <div class="rq-user-info">
+              <span class="rq-user-name">{{ request.user.get_short_name|default:request.user.email|truncatechars:12 }}</span>
               <span class="rq-wallet-badge">{% currency_format request.user.wallet.available_balance|default:0 %}</span>
             </div>
           </a>
           {% else %}
-          <div class="hide-mobile" style="display: flex; align-items: center; gap: 0.65rem;">
-            <a href="{% url 'site_login' %}?next={{ request.path }}" class="rq-btn-3d-secondary" style="padding: 0.5rem 1.15rem; font-size: 0.82rem;">
-              <i class="fas fa-arrow-right-to-bracket text-xs"></i>
+          <div class="hide-mobile rq-auth-btns">
+            <a href="{% url 'site_login' %}?next={{ request.path }}" class="rq-btn-3d-secondary rq-btn-sm">
+              <i class="fas fa-arrow-right-to-bracket"></i>
               <span>دخول</span>
             </a>
-            <a href="{% url 'site_register' %}" class="rq-btn-3d-primary" style="padding: 0.5rem 1.15rem; font-size: 0.82rem;">
-              <i class="fas fa-user-plus text-xs"></i>
+            <a href="{% url 'site_register' %}" class="rq-btn-3d-primary rq-btn-sm">
+              <i class="fas fa-user-plus"></i>
               <span>حساب جديد</span>
             </a>
           </div>
@@ -151,7 +159,7 @@
 
       </div>
 
-      <!-- Integrated Mobile Search Sub-row (Only on small screens) -->
+      <!-- Mobile Search Row (phones only) -->
       <div class="rq-mobile-search-row">
         <form method="get" action="{% url 'catalog' %}">
           <div class="rq-mobile-search-inner">
@@ -167,7 +175,7 @@
     </div>
   </header>
 
-  <!-- Main Viewport Content Block -->
+  <!-- Main Content -->
   <main id="main-content" style="flex: 1; width: 100%; max-width: 100vw; overflow-x: hidden;">
     {% block content %}{% endblock %}
   </main>
@@ -177,10 +185,10 @@
     <div class="rq-cart-drawer">
       <div class="rq-drawer-head">
         <div style="display: flex; align-items: center; gap: 0.5rem;">
-          <i class="fas fa-bag-shopping" style="color: #00f2fe;"></i>
+          <i class="fas fa-bag-shopping" style="color: var(--rq-primary-light);"></i>
           <h3 style="font-size: 1.05rem; font-weight: 900; color: #fff; margin: 0;">سلة المشتريات</h3>
         </div>
-        <button type="button" onclick="toggleCartDrawer()" style="background: none; border: none; color: #94a3b8; font-size: 1.2rem; cursor: pointer;">
+        <button type="button" onclick="toggleCartDrawer()" style="background: none; border: none; color: #94a3b8; font-size: 1.2rem; cursor: pointer; padding: 0.25rem;">
           <i class="fas fa-times"></i>
         </button>
       </div>
@@ -189,23 +197,23 @@
         {% if cart_items %}
         <div style="display: flex; flex-direction: column; gap: 0.85rem;">
           {% for item in cart_items %}
-          <div style="display: flex; align-items: center; justify-content: space-between; gap: 0.75rem; padding: 0.85rem; border-radius: 14px; background: rgba(18, 25, 48, 0.75); border: 1px solid rgba(139, 92, 246, 0.25);">
+          <div style="display: flex; align-items: center; justify-content: space-between; gap: 0.75rem; padding: 0.85rem; border-radius: 14px; background: rgba(18, 25, 48, 0.75); border: 1px solid var(--rq-border-light);">
             <div style="display: flex; align-items: center; gap: 0.75rem;">
-              <img src="{{ item.product.image.url }}" alt="{{ item.product.name }}" style="width: 46px; height: 46px; border-radius: 10px; object-fit: contain; background: #060914; padding: 4px; border: 1px solid rgba(139, 92, 246, 0.2);" onerror="this.onerror=null; this.src='{% static 'site/img/raqamiyat_logo_square.jpg' %}';">
+              <img src="{{ item.product.image.url }}" alt="{{ item.product.name }}" style="width: 46px; height: 46px; border-radius: 10px; object-fit: contain; background: #060914; padding: 4px; border: 1px solid var(--rq-border);" onerror="this.onerror=null; this.src='{% static 'site/img/raqamiyat_logo_square.jpg' %}';">
               <div>
                 <h4 style="font-size: 0.85rem; font-weight: 800; color: #fff; margin: 0;">{{ item.product.name }}</h4>
                 <span style="font-size: 0.72rem; color: #94a3b8;">الكمية: {{ item.quantity }}</span>
               </div>
             </div>
             <div style="text-align: left;">
-              <span class="tabular-nums" style="font-size: 0.95rem; font-weight: 900; color: #ffb800;">{% currency_format item.total_price %}</span>
+              <span class="tabular-nums" style="font-size: 0.95rem; font-weight: 900; color: var(--rq-accent-light);">{% currency_format item.total_price %}</span>
             </div>
           </div>
           {% endfor %}
         </div>
         {% else %}
         <div style="text-align: center; padding: 4rem 1rem; color: var(--rq-text-muted);">
-          <i class="fas fa-cart-arrow-down text-4xl mb-3 block opacity-30"></i>
+          <i class="fas fa-cart-arrow-down" style="font-size: 2.5rem; display: block; margin-bottom: 1rem; opacity: 0.3;"></i>
           <p style="font-size: 0.95rem; font-weight: 800; color: #fff; margin-bottom: 0.35rem;">سلة المشتريات فارغة</p>
           <p style="font-size: 0.8rem; color: #94a3b8;">تصفح الكتالوج وأضف المنتجات والبطاقات لسلتك بسهولة.</p>
         </div>
@@ -213,29 +221,29 @@
       </div>
 
       <div class="rq-drawer-footer">
-        <a href="{% url 'catalog' %}" class="rq-btn-3d-primary" style="display: flex; width: 100%; box-sizing: border-box;">
+        <a href="{% url 'catalog' %}" class="rq-btn-3d-primary" style="display: flex; width: 100%; box-sizing: border-box; justify-content: center; gap: 0.5rem;">
           <span>استعراض وإتمام الشراء</span>
-          <i class="fas fa-arrow-left text-xs"></i>
+          <i class="fas fa-arrow-left"></i>
         </a>
       </div>
     </div>
   </div>
 
-  <!-- Mobile Floating Bottom Dock (Cyber Haptic) -->
-  <div class="rq-bottom-dock">
+  <!-- Mobile Floating Bottom Dock -->
+  <nav class="rq-bottom-dock" aria-label="التنقل السريع">
     <a href="{% url 'home' %}" class="rq-dock-btn {% if request.path == '/' %}active{% endif %}">
       <i class="fas fa-home"></i>
       <span class="rq-dock-text">الرئيسية</span>
     </a>
-    <a href="{% url 'catalog' %}" class="rq-dock-btn {% if '/catalog/' in request.path and not request.GET.focus_search %}active{% endif %}">
-      <i class="fas fa-grid-2"></i>
+    <a href="{% url 'catalog' %}" class="rq-dock-btn {% if '/catalog/' in request.path %}active{% endif %}">
+      <i class="fas fa-th-large"></i>
       <span class="rq-dock-text">الكتالوج</span>
     </a>
     <button type="button" onclick="focusHeaderSearch()" class="rq-dock-btn">
       <i class="fas fa-search"></i>
       <span class="rq-dock-text">البحث</span>
     </button>
-    <button type="button" onclick="toggleCartDrawer()" class="rq-dock-btn">
+    <button type="button" onclick="toggleCartDrawer()" class="rq-dock-btn" style="position: relative;">
       <i class="fas fa-bag-shopping"></i>
       <span class="rq-dock-text">السلة</span>
       {% if cart_items_count %}
@@ -246,17 +254,23 @@
       <i class="fas fa-user"></i>
       <span class="rq-dock-text">{% if request.user.is_authenticated %}حسابي{% else %}دخول{% endif %}</span>
     </a>
-  </div>
+    {% if request.user.is_staff %}
+    <a href="{% url 'control_dashboard' %}" class="rq-dock-btn {% if '/control/' in request.path %}active{% endif %}" style="color: #fbbf24;">
+      <i class="fas fa-sliders"></i>
+      <span class="rq-dock-text">الإدارة</span>
+    </a>
+    {% endif %}
+  </nav>
 
-  <!-- Integrated Comprehensive Footer -->
+  <!-- Footer -->
   <footer class="rq-footer">
     <div class="rq-container">
       <div class="rq-footer-grid">
         
         <div class="rq-footer-col">
           <div style="display: flex; align-items: center; gap: 0.65rem; margin-bottom: 1rem;">
-            <img src="{% static 'site/img/raqamiyat_logo_square.jpg' %}" alt="رقميات" style="width: 38px; height: 38px; border-radius: 12px; border: 1px solid rgba(0, 242, 254, 0.4);">
-            <span style="font-size: 1.15rem; font-weight: 900; color: #fff;">رقميات RAQAMIYAT</span>
+            <img src="{% static 'site/img/raqamiyat_logo_square.jpg' %}" alt="رقميات" style="width: 38px; height: 38px; border-radius: 12px; border: 1px solid var(--rq-border-light);">
+            <span style="font-size: 1.1rem; font-weight: 900; color: #fff;">رقميات RAQAMIYAT</span>
           </div>
           <p style="font-size: 0.825rem; color: #94a3b8; line-height: 1.7; margin-bottom: 1.25rem;">
             المنصة الإلكترونية المعتمدة لبيع وشحن البطاقات الرقمية، الألعاب، الاشتراكات السحابية، وتجهيزات العتاد التقني والإلكترونيات بأسعار موثوقة وتسليم فوري.
@@ -304,7 +318,7 @@
       </div>
 
       <div class="rq-footer-bottom">
-        <div>جميع الحقوق محفوظة © {% now "Y" %} متجر رقميات (Raqamiyat Platform).</div>
+        <div>جميع الحقوق محفوظة &copy; {% now "Y" %} متجر رقميات (Raqamiyat Platform).</div>
         <div style="display: flex; gap: 1rem; align-items: center; flex-wrap: wrap;">
           <span>⚡ تسليم فوري للأكواد</span>
           <span>•</span>
@@ -324,13 +338,14 @@
     var drawer = document.getElementById('cart-drawer-backdrop');
     if (drawer) {
       drawer.classList.toggle('active');
+      document.body.style.overflow = drawer.classList.contains('active') ? 'hidden' : '';
     }
   }
 
   function focusHeaderSearch() {
     var mobInp = document.getElementById('mobileSearchInput');
     var deskInp = document.getElementById('globalSearchInput');
-    if (mobInp && window.innerWidth <= 768) {
+    if (window.innerWidth <= 767 && mobInp) {
       mobInp.focus();
       window.scrollTo({ top: 0, behavior: 'smooth' });
     } else if (deskInp) {
@@ -341,7 +356,7 @@
     }
   }
 
-  // Command / Ctrl + K Instant Search Focus
+  // Ctrl/Cmd + K: focus search
   document.addEventListener('keydown', function(e) {
     if ((e.ctrlKey || e.metaKey) && (e.key === 'k' || e.key === 'K')) {
       e.preventDefault();
@@ -351,9 +366,12 @@
       var drawer = document.getElementById('cart-drawer-backdrop');
       if (drawer && drawer.classList.contains('active')) {
         drawer.classList.remove('active');
+        document.body.style.overflow = '';
       }
     }
   });
   </script>
+
+  {% block extra_scripts %}{% endblock %}
 </body>
 </html>
