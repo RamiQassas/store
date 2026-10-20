@@ -1747,25 +1747,33 @@ def home(request):
     from django.core.cache import cache
 
     store = getattr(request, 'store', None)
-    cache_key = f"home_page_ctx_v2_{getattr(store, 'id', 'global')}"
+    cache_key = f"home_page_ctx_v4_{getattr(store, 'id', 'global')}"
     ctx = cache.get(cache_key)
 
     if ctx is None:
-        # Categories with total product count (including subcategories) — 2 SQL queries total!
         all_cats = list(Category.objects.filter(is_active=True, is_publicly_visible=True).order_by("sort_order", "name"))
         annotate_category_counts(all_cats)
 
-        active_categories = [cat for cat in all_cats if cat.product_count > 0 or cat.parent_id is None]
+        # STRICT: Filter out empty categories with zero products
+        active_categories = [cat for cat in all_cats if cat.product_count > 0]
 
+        # STRICT: Filter out zero-price and inactive products from featured
         featured_qs = list(Product.objects.filter(
-            is_active=True, is_publicly_visible=True, is_featured=True
-        ).select_related("category").prefetch_related("variants")[:12])
+            is_active=True,
+            is_publicly_visible=True,
+            is_featured=True,
+            variants__is_active=True,
+            variants__price__gt=0,
+        ).select_related("category").prefetch_related("variants").distinct()[:12])
 
         if len(featured_qs) < 8:
             existing_ids = [p.id for p in featured_qs]
             extra_products = list(Product.objects.filter(
-                is_active=True, is_publicly_visible=True
-            ).exclude(id__in=existing_ids).select_related("category").prefetch_related("variants")[:12 - len(featured_qs)])
+                is_active=True,
+                is_publicly_visible=True,
+                variants__is_active=True,
+                variants__price__gt=0,
+            ).exclude(id__in=existing_ids).select_related("category").prefetch_related("variants").distinct()[:12 - len(featured_qs)])
             featured_products = featured_qs + extra_products
         else:
             featured_products = featured_qs
@@ -1920,12 +1928,8 @@ def catalog(request):
     cols = request.GET.get("cols", "2")
 
     # Default to categories view if user opened /catalog/ directly without query or specific category
-    if "view" in request.GET:
-        view_type = request.GET.get("view", "categories")
-    elif cat_id or q:
-        view_type = "products"
-    else:
-        view_type = "categories"
+    # Default to products view so user immediately sees the products catalog
+    view_type = request.GET.get("view", "products")
 
     if store:
         all_cats = list(Category.objects.filter(store=store, is_active=True, is_publicly_visible=True).order_by("sort_order", "name"))

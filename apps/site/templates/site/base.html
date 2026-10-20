@@ -4,7 +4,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-  <meta name="theme-color" content="#070a13">
+  <meta name="theme-color" content="#080c16">
   <title>{% filter tenant_title %}{% block title %}{% if is_tenant %}{{ STORE_NAME }}{% else %}رقميات | RAQAMIYAT — وجهتك الأولى للبطاقات والخدمات الرقمية والعتاد التقني{% endif %}{% endblock %}{% endfilter %}</title>
   
   <meta name="description" content="متجر رقميات (Raqamiyat) - المنصة المتكاملة لبيع بطاقات الألعاب، الاشتراكات الرقمية، شحن الأرصدة، تراخيص البرامج، وأجهزة العتاد التقني والإكسسوارات الأصلية.">
@@ -21,7 +21,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
-  <link rel="stylesheet" href="{% static 'site/css/app.css' %}?v=20261020_flagship_v5">
+  <link rel="stylesheet" href="{% static 'site/css/app.css' %}?v=20261020_flagship_v6">
 
   {% if META_PIXEL_ID and not '/control/' in request.path and not '/admin/' in request.path %}
   <script>
@@ -47,27 +47,23 @@
 </head>
 <body>
 
-  <!-- Top Trust Ticker Bar -->
+  <!-- 1. Small Top Bar with Useful Info Only -->
   <div class="rq-top-ticker">
     <div class="rq-container">
       <div class="rq-ticker-items">
         <div class="rq-ticker-item">
           <i class="fas fa-bolt text-amber-400"></i>
-          <span>تسليم فوري مؤتمت 24/7 دون انتظار</span>
-        </div>
-        <div class="rq-ticker-item hide-mobile">
-          <i class="fas fa-shield-halved text-emerald-400"></i>
-          <span>ضمان أصالة معتمد 100%</span>
+          <span>تسليم فوري ومؤتمت للبطاقات والأكواد الرقمية</span>
         </div>
         <div class="rq-ticker-item hide-mobile">
           <i class="fas fa-headset text-blue-400"></i>
-          <span>دعم فني مباشر على مدار الساعة</span>
+          <a href="{% url 'contact' %}" style="color: inherit; text-decoration: none;">مركز المساعدة والدعم الفني</a>
         </div>
       </div>
     </div>
   </div>
 
-  <!-- Flagship Header -->
+  <!-- 2. Unified Main Header -->
   <header class="rq-header">
     <div class="rq-container">
       <div class="rq-navbar-inner">
@@ -89,7 +85,7 @@
         <div class="rq-search-bar">
           <form method="get" action="{% url 'catalog' %}">
             <i class="fas fa-search rq-search-icon"></i>
-            <input type="text" name="q" placeholder="ابحث عن بطاقات، ألعاب، اشتراكات، راوترات، عتاد..." class="rq-search-input" value="{{ request.GET.q|default:'' }}" autocomplete="off">
+            <input type="text" name="q" placeholder="ابحث باسم البطاقة، اللعبة، الراوتر، أو الخدمة..." class="rq-search-input" value="{{ request.GET.q|default:'' }}" autocomplete="off">
           </form>
         </div>
 
@@ -101,16 +97,14 @@
           </a>
           <a href="{% url 'catalog' %}" class="rq-nav-link {% if '/catalog/' in request.path %}active{% endif %}">
             <i class="fas fa-grid-2 text-xs"></i>
-            <span>الكتالوج الشامل</span>
+            <span>كافة المنتجات</span>
           </a>
+          {% if not is_tenant %}
           <a href="{% url 'stores_directory' %}" class="rq-nav-link {% if '/stores/' in request.path %}active{% endif %}">
             <i class="fas fa-store text-xs"></i>
             <span>المتاجر الشريكة</span>
           </a>
-          <a href="{% url 'download_app' %}" class="rq-nav-link" style="color: #34d399;">
-            <i class="fab fa-android text-xs"></i>
-            <span>التطبيق</span>
-          </a>
+          {% endif %}
         </nav>
 
         <!-- User Actions (Currency, Cart, Account) -->
@@ -143,10 +137,8 @@
           {% else %}
           <div class="hide-mobile" style="display: flex; align-items: center; gap: 0.5rem;">
             <a href="{% url 'site_login' %}?next={{ request.path }}" class="rq-btn-auth-login">
-              <span>دخول</span>
-            </a>
-            <a href="{% url 'site_register' %}" class="rq-btn-auth-register">
-              <span>إنشاء حساب</span>
+              <i class="fas fa-arrow-right-to-bracket text-xs"></i>
+              <span>تسجيل الدخول</span>
             </a>
           </div>
           {% endif %}
@@ -233,7 +225,7 @@
     </a>
     <a href="{% url 'catalog' %}" class="rq-dock-btn {% if '/catalog/' in request.path and not request.GET.focus_search %}active{% endif %}">
       <i class="fas fa-grid-2"></i>
-      <span class="rq-dock-text">الكتالوج</span>
+      <span class="rq-dock-text">المنتجات</span>
     </a>
     <button type="button" onclick="focusMobileSearch()" class="rq-dock-btn">
       <i class="fas fa-search"></i>
@@ -252,7 +244,7 @@
     </a>
   </div>
 
-  <!-- Flagship Modern Footer -->
+  <!-- 10. Integrated Comprehensive Footer -->
   <footer class="rq-footer">
     <div class="rq-container">
       <div class="rq-footer-grid">
@@ -263,7 +255,7 @@
             <span style="font-size: 1.15rem; font-weight: 900; color: #fff;">رقميات RAQAMIYAT</span>
           </div>
           <p style="font-size: 0.825rem; color: var(--rq-text-muted); line-height: 1.6; margin-bottom: 1.25rem;">
-            المنصة المعتمدة الرائدة للتجارة الرقمية، شحن الألعاب الفوري، بطاقات الهدايا والتطبيقات، وتجهيزات الشبكات والأجهزة التقنية بأعلى معايير الأمان والسرعة.
+            المنصة الإلكترونية المعتمدة لبيع وشحن البطاقات الرقمية، الألعاب، الاشتراكات السحابية، وتجهيزات العتاد التقني والإلكترونيات بأسعار موثوقة وتسليم فوري.
           </p>
           <div class="rq-pm-badges-row">
             <span class="rq-pm-badge">شام كاش ShamCash</span>
@@ -274,29 +266,29 @@
         </div>
 
         <div class="rq-footer-col">
-          <h4>الأقسام السريعة</h4>
+          <h4>المنتجات والأقسام</h4>
           <ul class="rq-footer-links">
-            <li><a href="{% url 'catalog' %}">كافة الأجهزة والمنتجات</a></li>
-            <li><a href="{% url 'catalog' %}?q=ألعاب">شحن الألعاب والشدات</a></li>
-            <li><a href="{% url 'catalog' %}?q=بطاقات">البطاقات الرقمية وقسائم الهدايا</a></li>
-            <li><a href="{% url 'catalog' %}?q=اشتراك">اشتراكات الترفيه والبث السحابي</a></li>
-            <li><a href="{% url 'catalog' %}?q=شبكات">تجهيزات الراوترات والشبكات</a></li>
+            <li><a href="{% url 'catalog' %}">كافة المنتجات والخدمات</a></li>
+            <li><a href="{% url 'catalog' %}?q=ألعاب">بطاقات الألعاب وشحن الشدات</a></li>
+            <li><a href="{% url 'catalog' %}?q=اشتراك">اشتراكات الترفيه والبث</a></li>
+            <li><a href="{% url 'catalog' %}?q=عتاد">أجهزة العتاد والملحقات التقنية</a></li>
           </ul>
         </div>
 
         <div class="rq-footer-col">
-          <h4>روابط هامة</h4>
+          <h4>السياسات والشروط</h4>
           <ul class="rq-footer-links">
-            <li><a href="{% url 'stores_directory' %}">دليل المتاجر الشريكة</a></li>
-            <li><a href="{% url 'download_app' %}">تحميل تطبيق الأندرويد</a></li>
             <li><a href="{% url 'terms_of_service' %}">الشروط والأحكام</a></li>
             <li><a href="{% url 'privacy_policy' %}">سياسة الخصوصية</a></li>
             <li><a href="{% url 'refund_policy' %}">سياسة الاسترجاع والضمان</a></li>
+            {% if not is_tenant %}
+            <li><a href="{% url 'stores_directory' %}">دليل المتاجر الشريكة</a></li>
+            {% endif %}
           </ul>
         </div>
 
         <div class="rq-footer-col">
-          <h4>الدعم والمساعدة</h4>
+          <h4>المساعدة والدعم</h4>
           <ul class="rq-footer-links">
             <li><a href="{% url 'contact' %}">مركز الاتصال والدعم الفني</a></li>
             <li><a href="{% url 'dashboard' %}">لوحة التحكم والمحفظة</a></li>
@@ -310,11 +302,11 @@
       <div class="rq-footer-bottom">
         <div>جميع الحقوق محفوظة © {% now "Y" %} متجر رقميات (Raqamiyat Platform).</div>
         <div style="display: flex; gap: 1rem; align-items: center; flex-wrap: wrap;">
-          <span>⚡ تفعيل فوري</span>
+          <span>⚡ تسليم فوري للأكواد</span>
           <span>•</span>
-          <span>🛡️ ضمان 100%</span>
+          <span>🛡️ ضمان رسمي معتمد</span>
           <span>•</span>
-          <span>🔒 دفع إلكتروني آمن</span>
+          <span>🔒 دفع إلكتروني مشفر</span>
         </div>
       </div>
     </div>
