@@ -201,28 +201,28 @@
           {% if total_products_count > 0 %}
           <div style="display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 1rem; background: var(--rq-surface-card); border: 1px solid var(--rq-border); border-radius: var(--rq-radius-lg); padding: 0.85rem 1.25rem;">
             {% if page_obj.has_previous %}
-            <a href="?start={{ prev_start }}{% if query %}&q={{ query }}{% endif %}{% if active_category %}&category={{ active_category }}{% endif %}{% if sort %}&sort={{ sort }}{% endif %}&view=products" class="rq-section-link">
+            <a href="?start={{ prev_start }}{% if query %}&q={{ query }}{% endif %}{% if active_category %}&category={{ active_category }}{% endif %}{% if sort %}&sort={{ sort }}{% endif %}&view=products" class="rq-btn-3d-secondary" style="padding: 0.45rem 1.15rem; font-size: 0.8rem;">
               <i class="fas fa-chevron-right text-xs"></i>
               <span>السابق</span>
             </a>
             {% else %}
-            <span style="opacity: 0.4; cursor: not-allowed;" class="rq-section-link">
+            <span style="opacity: 0.35; cursor: not-allowed;" class="rq-btn-3d-secondary" style="padding: 0.45rem 1.15rem; font-size: 0.8rem;">
               <i class="fas fa-chevron-right text-xs"></i>
               <span>السابق</span>
             </span>
             {% endif %}
 
-            <div style="font-size: 0.8rem; font-weight: 800; color: var(--rq-text-muted);">
+            <div style="font-size: 0.82rem; font-weight: 800; color: var(--rq-text-muted);">
               عرض <span class="tabular-nums" style="color: #fbbf24;">{{ start_num }} - {{ end_num }}</span> من أصل <span class="tabular-nums" style="color: #fff;">{{ total_products_count }}</span> عنصر
             </div>
 
             {% if page_obj.has_next %}
-            <a href="?start={{ next_start }}{% if query %}&q={{ query }}{% endif %}{% if active_category %}&category={{ active_category }}{% endif %}{% if sort %}&sort={{ sort }}{% endif %}&view=products" class="rq-section-link">
+            <a href="?start={{ next_start }}{% if query %}&q={{ query }}{% endif %}{% if active_category %}&category={{ active_category }}{% endif %}{% if sort %}&sort={{ sort }}{% endif %}&view=products" class="rq-btn-3d-secondary" style="padding: 0.45rem 1.15rem; font-size: 0.8rem;">
               <span>التالي</span>
               <i class="fas fa-chevron-left text-xs"></i>
             </a>
             {% else %}
-            <span style="opacity: 0.4; cursor: not-allowed;" class="rq-section-link">
+            <span style="opacity: 0.35; cursor: not-allowed;" class="rq-btn-3d-secondary" style="padding: 0.45rem 1.15rem; font-size: 0.8rem;">
               <span>التالي</span>
               <i class="fas fa-chevron-left text-xs"></i>
             </span>

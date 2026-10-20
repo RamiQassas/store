@@ -4,7 +4,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-  <meta name="theme-color" content="#080c16">
+  <meta name="theme-color" content="#060814">
   <title>{% filter tenant_title %}{% block title %}{% if is_tenant %}{{ STORE_NAME }}{% else %}رقميات | RAQAMIYAT — وجهتك الأولى للبطاقات والخدمات الرقمية والعتاد التقني{% endif %}{% endblock %}{% endfilter %}</title>
   
   <meta name="description" content="متجر رقميات (Raqamiyat) - المنصة المتكاملة لبيع بطاقات الألعاب، الاشتراكات الرقمية، شحن الأرصدة، تراخيص البرامج، وأجهزة العتاد التقني والإكسسوارات الأصلية.">
@@ -21,7 +21,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
-  <link rel="stylesheet" href="{% static 'site/css/app.css' %}?v=20261020_flagship_v7">
+  <link rel="stylesheet" href="{% static 'site/css/app.css' %}?v=20261020_flagship_v8">
 
   {% if META_PIXEL_ID and not '/control/' in request.path and not '/admin/' in request.path %}
   <script>
@@ -47,23 +47,23 @@
 </head>
 <body>
 
-  <!-- 1. Small Top Bar with Useful Info Only -->
+  <!-- 1. Small Top Cyber Ticker Bar -->
   <div class="rq-top-ticker">
     <div class="rq-container">
       <div class="rq-ticker-items">
         <div class="rq-ticker-item">
-          <i class="fas fa-bolt text-amber-400"></i>
-          <span>تسليم فوري ومؤتمت للبطاقات والأكواد الرقمية</span>
+          <i class="fas fa-bolt" style="color: #00ffa3;"></i>
+          <span>تسليم فوري ومؤتمت للبطاقات والأكواد الرقمية 24/7</span>
         </div>
         <div class="rq-ticker-item hide-mobile">
-          <i class="fas fa-headset text-blue-400"></i>
-          <a href="{% url 'contact' %}" style="color: inherit; text-decoration: none;">مركز المساعدة والدعم الفني</a>
+          <i class="fas fa-headset" style="color: #00f2fe;"></i>
+          <a href="{% url 'contact' %}" style="color: inherit; text-decoration: none;">مركز المساعدة والدعم الفني المباشر</a>
         </div>
       </div>
     </div>
   </div>
 
-  <!-- 2. Unified Single Main Header -->
+  <!-- 2. Cyber Glass Navigation Header -->
   <header class="rq-header">
     <div class="rq-container">
       <div class="rq-navbar-inner">
@@ -117,7 +117,7 @@
             {% endfor %}
           </select>
 
-          <!-- Slide-over Cart Trigger -->
+          <!-- Slide-over Cart Trigger (3D Tactile) -->
           <button type="button" onclick="toggleCartDrawer()" class="rq-cart-btn" title="سلة المشتريات">
             <i class="fas fa-bag-shopping"></i>
             <span class="rq-cart-badge" id="nav-cart-badge">{{ cart_items_count|default:0 }}</span>
@@ -135,10 +135,14 @@
             </div>
           </a>
           {% else %}
-          <div class="hide-mobile" style="display: flex; align-items: center; gap: 0.5rem;">
-            <a href="{% url 'site_login' %}?next={{ request.path }}" class="rq-btn-auth-login">
+          <div class="hide-mobile" style="display: flex; align-items: center; gap: 0.65rem;">
+            <a href="{% url 'site_login' %}?next={{ request.path }}" class="rq-btn-3d-secondary" style="padding: 0.5rem 1.15rem; font-size: 0.82rem;">
               <i class="fas fa-arrow-right-to-bracket text-xs"></i>
               <span>دخول</span>
+            </a>
+            <a href="{% url 'site_register' %}" class="rq-btn-3d-primary" style="padding: 0.5rem 1.15rem; font-size: 0.82rem;">
+              <i class="fas fa-user-plus text-xs"></i>
+              <span>حساب جديد</span>
             </a>
           </div>
           {% endif %}
@@ -173,7 +177,7 @@
     <div class="rq-cart-drawer">
       <div class="rq-drawer-head">
         <div style="display: flex; align-items: center; gap: 0.5rem;">
-          <i class="fas fa-bag-shopping text-blue-500"></i>
+          <i class="fas fa-bag-shopping" style="color: #00f2fe;"></i>
           <h3 style="font-size: 1.05rem; font-weight: 900; color: #fff; margin: 0;">سلة المشتريات</h3>
         </div>
         <button type="button" onclick="toggleCartDrawer()" style="background: none; border: none; color: #94a3b8; font-size: 1.2rem; cursor: pointer;">
@@ -185,16 +189,16 @@
         {% if cart_items %}
         <div style="display: flex; flex-direction: column; gap: 0.85rem;">
           {% for item in cart_items %}
-          <div style="display: flex; align-items: center; justify-content: space-between; gap: 0.75rem; padding: 0.85rem; border-radius: 12px; background: rgba(255,255,255,0.03); border: 1px solid var(--rq-border);">
+          <div style="display: flex; align-items: center; justify-content: space-between; gap: 0.75rem; padding: 0.85rem; border-radius: 14px; background: rgba(18, 25, 48, 0.75); border: 1px solid rgba(139, 92, 246, 0.25);">
             <div style="display: flex; align-items: center; gap: 0.75rem;">
-              <img src="{{ item.product.image.url }}" alt="{{ item.product.name }}" style="width: 44px; height: 44px; border-radius: 10px; object-fit: contain; background: #080c16; padding: 4px;" onerror="this.onerror=null; this.src='{% static 'site/img/raqamiyat_logo_square.jpg' %}';">
+              <img src="{{ item.product.image.url }}" alt="{{ item.product.name }}" style="width: 46px; height: 46px; border-radius: 10px; object-fit: contain; background: #060914; padding: 4px; border: 1px solid rgba(139, 92, 246, 0.2);" onerror="this.onerror=null; this.src='{% static 'site/img/raqamiyat_logo_square.jpg' %}';">
               <div>
-                <h4 style="font-size: 0.825rem; font-weight: 800; color: #fff; margin: 0;">{{ item.product.name }}</h4>
-                <span style="font-size: 0.72rem; color: var(--rq-text-muted);">الكمية: {{ item.quantity }}</span>
+                <h4 style="font-size: 0.85rem; font-weight: 800; color: #fff; margin: 0;">{{ item.product.name }}</h4>
+                <span style="font-size: 0.72rem; color: #94a3b8;">الكمية: {{ item.quantity }}</span>
               </div>
             </div>
             <div style="text-align: left;">
-              <span class="tabular-nums" style="font-size: 0.9rem; font-weight: 900; color: #fbbf24;">{% currency_format item.total_price %}</span>
+              <span class="tabular-nums" style="font-size: 0.95rem; font-weight: 900; color: #ffb800;">{% currency_format item.total_price %}</span>
             </div>
           </div>
           {% endfor %}
@@ -202,21 +206,22 @@
         {% else %}
         <div style="text-align: center; padding: 4rem 1rem; color: var(--rq-text-muted);">
           <i class="fas fa-cart-arrow-down text-4xl mb-3 block opacity-30"></i>
-          <p style="font-size: 0.9rem; font-weight: 700; color: #fff; margin-bottom: 0.35rem;">سلة المشتريات فارغة</p>
-          <p style="font-size: 0.78rem;">تصفح الكتالوج وأضف المنتجات والبطاقات لسلتك بسهولة.</p>
+          <p style="font-size: 0.95rem; font-weight: 800; color: #fff; margin-bottom: 0.35rem;">سلة المشتريات فارغة</p>
+          <p style="font-size: 0.8rem; color: #94a3b8;">تصفح الكتالوج وأضف المنتجات والبطاقات لسلتك بسهولة.</p>
         </div>
         {% endif %}
       </div>
 
       <div class="rq-drawer-footer">
-        <a href="{% url 'catalog' %}" style="display: block; width: 100%; padding: 0.85rem; border-radius: 12px; background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%); color: #fff; text-align: center; font-weight: 900; font-size: 0.88rem; box-shadow: 0 4px 14px rgba(37, 99, 235, 0.4);">
-          استعراض وشراء المنتجات
+        <a href="{% url 'catalog' %}" class="rq-btn-3d-primary" style="display: flex; width: 100%; box-sizing: border-box;">
+          <span>استعراض وإتمام الشراء</span>
+          <i class="fas fa-arrow-left text-xs"></i>
         </a>
       </div>
     </div>
   </div>
 
-  <!-- Mobile Floating Bottom Dock (Native App Ergonomics) -->
+  <!-- Mobile Floating Bottom Dock (Cyber Haptic) -->
   <div class="rq-bottom-dock">
     <a href="{% url 'home' %}" class="rq-dock-btn {% if request.path == '/' %}active{% endif %}">
       <i class="fas fa-home"></i>
@@ -250,10 +255,10 @@
         
         <div class="rq-footer-col">
           <div style="display: flex; align-items: center; gap: 0.65rem; margin-bottom: 1rem;">
-            <img src="{% static 'site/img/raqamiyat_logo_square.jpg' %}" alt="رقميات" style="width: 36px; height: 36px; border-radius: 10px;">
+            <img src="{% static 'site/img/raqamiyat_logo_square.jpg' %}" alt="رقميات" style="width: 38px; height: 38px; border-radius: 12px; border: 1px solid rgba(0, 242, 254, 0.4);">
             <span style="font-size: 1.15rem; font-weight: 900; color: #fff;">رقميات RAQAMIYAT</span>
           </div>
-          <p style="font-size: 0.825rem; color: var(--rq-text-muted); line-height: 1.6; margin-bottom: 1.25rem;">
+          <p style="font-size: 0.825rem; color: #94a3b8; line-height: 1.7; margin-bottom: 1.25rem;">
             المنصة الإلكترونية المعتمدة لبيع وشحن البطاقات الرقمية، الألعاب، الاشتراكات السحابية، وتجهيزات العتاد التقني والإلكترونيات بأسعار موثوقة وتسليم فوري.
           </p>
           <div class="rq-pm-badges-row">
@@ -335,6 +340,20 @@
       window.location.href = "{% url 'catalog' %}?focus_search=1";
     }
   }
+
+  // Command / Ctrl + K Instant Search Focus
+  document.addEventListener('keydown', function(e) {
+    if ((e.ctrlKey || e.metaKey) && (e.key === 'k' || e.key === 'K')) {
+      e.preventDefault();
+      focusHeaderSearch();
+    }
+    if (e.key === 'Escape') {
+      var drawer = document.getElementById('cart-drawer-backdrop');
+      if (drawer && drawer.classList.contains('active')) {
+        drawer.classList.remove('active');
+      }
+    }
+  });
   </script>
 </body>
 </html>
