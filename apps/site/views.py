@@ -5042,23 +5042,45 @@ def control_products_list(request):
             return redirect("control_products_list")
 
         elif action == "set_unified_products_image":
+            import os
+            import uuid
+            import shutil
+            from django.conf import settings
             from django.core.files.storage import default_storage
+            from django.core.cache import cache
 
-            apply_to = request.POST.get("apply_to", "all")  # "all", "missing_only", or "selected"
+            apply_to = request.POST.get("apply_to", "all")  # "all", "category", "missing_only", or "selected"
+            category_id = request.POST.get("category_id")
             product_ids = request.POST.getlist("selected_products")
             uploaded_image = request.FILES.get("unified_image")
             use_official_emblem = request.POST.get("use_official_emblem") == "1"
 
             qs = Product.all_objects.filter(store=store)
-            if apply_to == "selected" and product_ids:
+            if apply_to == "category" and category_id:
+                qs = qs.filter(category_id=category_id)
+            elif apply_to == "selected" and product_ids:
                 qs = qs.filter(id__in=product_ids)
             elif apply_to == "missing_only":
                 from django.db.models import Q
                 qs = qs.filter(Q(image__isnull=True) | Q(image=""))
 
+            # Ensure default media file physically exists on disk
+            target_dir = os.path.join(settings.MEDIA_ROOT, "products", "main")
+            target_file = os.path.join(target_dir, "raqamiyat_official_brand_product.jpg")
+            try:
+                os.makedirs(target_dir, exist_ok=True)
+                if not os.path.exists(target_file):
+                    src_file = os.path.join(settings.BASE_DIR, "apps", "site", "static", "site", "img", "raqamiyat_logo_square.jpg")
+                    if os.path.exists(src_file):
+                        shutil.copyfile(src_file, target_file)
+            except Exception as e:
+                logger.debug(f"Media file creation error: {e}")
+
             count = 0
             if uploaded_image:
-                file_path = default_storage.save(f"products/main/{uploaded_image.name}", uploaded_image)
+                ext = os.path.splitext(uploaded_image.name)[1].lower() or ".jpg"
+                clean_name = f"unified_{uuid.uuid4().hex[:8]}{ext}"
+                file_path = default_storage.save(f"products/main/{clean_name}", uploaded_image)
                 for prod in qs:
                     prod.image = file_path
                     prod.save(update_fields=["image", "updated_at"])
@@ -5073,6 +5095,9 @@ def control_products_list(request):
                 messages.success(request, f"✅ تم بنجاح تطبيق صورة وهوية رقميات الرسمية الموحدة على {count} منتج.")
             else:
                 messages.error(request, "يرجى رفع صورة أو اختيار تطبيق هوية رقميات الموحدة.")
+
+            # Invalidate cached homepage & catalog
+            cache.delete(f"home_page_ctx_v2_{getattr(store, 'id', 'global')}")
             return redirect("control_products_list")
 
         elif action == "sync_alkasr_catalog":

@@ -293,6 +293,14 @@ def get_product_image_url(product, depth=0, allow_db=True):
             val = getattr(product, attr, None)
             u = _extract_url_from_field(val)
             if u:
+                # If this is the generic placeholder, prioritize the real category artwork if available
+                if 'raqamiyat_official_brand_product.jpg' in u:
+                    cat = getattr(product, 'category', None)
+                    if cat:
+                        cat_u = _extract_url_from_field(getattr(cat, 'image', None))
+                        if cat_u:
+                            return cat_u
+                    return static('site/img/raqamiyat_logo_square.jpg')
                 return u
     except Exception:
         pass

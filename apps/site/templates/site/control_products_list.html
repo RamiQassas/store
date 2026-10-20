@@ -63,6 +63,24 @@
         <h1>{% if active_category %}{{ active_category.name }}{% else %}الكتالوج الذكي وإدارة المنتجات{% endif %}</h1>
         <p class="text-muted">إدارة مخزون الخدمات الرقمية، تحديث الأسعار، تغيير الصور والأسماء سريعاً، والتحكم في ظهور المنتجات.</p>
     </div>
+
+    <!-- Prominent Quick Action Banner for Unified Product Images -->
+    <div class="w-full my-4 p-4 rounded-2xl bg-gradient-to-r from-emerald-950/60 via-slate-900 to-slate-900 border border-emerald-500/30 flex flex-col sm:flex-row items-center justify-between gap-4 shadow-lg shadow-emerald-950/20">
+        <div class="flex items-center gap-3">
+            <div class="w-11 h-11 rounded-xl bg-emerald-500/15 border border-emerald-500/30 text-emerald-400 flex items-center justify-center text-lg flex-shrink-0">
+                <i class="fas fa-images"></i>
+            </div>
+            <div>
+                <h3 class="text-white font-black text-sm">توحيد صور المنتجات (Unified Brand Images)</h3>
+                <p class="text-slate-400 text-xs">تعيين وتوحيد صورة المنتجات لكافة المتجر أو لقسم محدد بنقرة واحدة لضمان ظهور صور حقيقية غير مكررة.</p>
+            </div>
+        </div>
+        <button type="button" onclick="openUnifiedImageModal()" class="px-5 py-2.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black text-xs transition-all shadow-md flex items-center gap-2 whitespace-nowrap flex-shrink-0">
+            <i class="fas fa-wand-magic-sparkles"></i>
+            <span>تعيين صورة موحدة للمنتجات</span>
+        </button>
+    </div>
+
     <div class="flex flex-wrap gap-3 items-center">
         <button type="button" onclick="startBulkAiBranding('all', 'both')" class="btn btn-outline btn-sm border-cyan/40 text-cyan hover:bg-cyan hover:text-slate-950 font-bold transition flex items-center gap-1.5 shadow-sm" title="البحث في الإنترنت وتوليد وضبط صور أيقونات احترافية لجميع الأقسام والمنتجات">
             <i class="fas fa-wand-magic-sparkles text-cyan"></i>
@@ -263,10 +281,19 @@ window.closeProductImportModal = function() {
             <!-- Target Scope -->
             <div style="margin-bottom:1.25rem;">
                 <label style="font-size:.75rem;font-weight:700;color:#cbd5e1;display:block;margin-bottom:.4rem;">تطبيق الصورة على:</label>
-                <select name="apply_to" class="w-full bg-slate-900 border border-white/10 rounded-xl p-2.5 text-xs text-white">
+                <select name="apply_to" id="unified_apply_to" onchange="toggleCategorySelect(this.value)" class="w-full bg-slate-900 border border-white/10 rounded-xl p-2.5 text-xs text-white">
                     <option value="all">كافة منتجات المتجر (تحديث شامل)</option>
+                    <option value="category">منتجات قسم محدد فقط</option>
                     <option value="missing_only">المنتجات التي ليس لها صورة فقط</option>
                 </select>
+                <div id="unified_category_box" style="display:none;margin-top:.65rem;">
+                    <label style="font-size:.72rem;color:#94a3b8;display:block;margin-bottom:.25rem;">اختر القسم المطلوب توحيد صوره:</label>
+                    <select name="category_id" class="w-full bg-slate-900 border border-white/10 rounded-xl p-2 text-xs text-white">
+                        {% for cat in categories %}
+                        <option value="{{ cat.id }}">{{ cat.name }} ({{ cat.product_count|default:0 }} منتج)</option>
+                        {% endfor %}
+                    </select>
+                </div>
             </div>
 
             <!-- Submit buttons -->
@@ -295,6 +322,10 @@ window.toggleImageUpload = function(isCustom) {
     var emblemInput = document.getElementById('use_official_emblem_input');
     if (box) box.style.display = isCustom ? 'block' : 'none';
     if (emblemInput) emblemInput.value = isCustom ? '0' : '1';
+};
+window.toggleCategorySelect = function(val) {
+    var catBox = document.getElementById('unified_category_box');
+    if (catBox) catBox.style.display = (val === 'category') ? 'block' : 'none';
 };
 </script>
 
