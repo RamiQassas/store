@@ -4,7 +4,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-  <meta name="theme-color" content="#090d16">
+  <meta name="theme-color" content="#070a13">
   <title>{% filter tenant_title %}{% block title %}{% if is_tenant %}{{ STORE_NAME }}{% else %}رقميات | RAQAMIYAT — وجهتك الأولى للبطاقات والخدمات الرقمية والعتاد التقني{% endif %}{% endblock %}{% endfilter %}</title>
   
   <meta name="description" content="متجر رقميات (Raqamiyat) - المنصة المتكاملة لبيع بطاقات الألعاب، الاشتراكات الرقمية، شحن الأرصدة، تراخيص البرامج، وأجهزة العتاد التقني والإكسسوارات الأصلية.">
@@ -21,7 +21,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
-  <link rel="stylesheet" href="{% static 'site/css/app.css' %}?v=20261020_flagship_v4">
+  <link rel="stylesheet" href="{% static 'site/css/app.css' %}?v=20261020_flagship_v5">
 
   {% if META_PIXEL_ID and not '/control/' in request.path and not '/admin/' in request.path %}
   <script>
@@ -49,18 +49,20 @@
 
   <!-- Top Trust Ticker Bar -->
   <div class="rq-top-ticker">
-    <div class="rq-ticker-items">
-      <div class="rq-ticker-item">
-        <i class="fas fa-bolt"></i>
-        <span>تسليم فوري وآلي على مدار 24 ساعة لجميع الطلبات الرقمية</span>
-      </div>
-      <div class="rq-ticker-item hide-mobile">
-        <i class="fas fa-shield-halved"></i>
-        <span>ضمان أصالة 100% وتشفير مالي معتمد</span>
-      </div>
-      <div class="rq-ticker-item hide-mobile">
-        <i class="fas fa-headset"></i>
-        <span>دعم فني مباشر متواجد لخدمتك دائماً</span>
+    <div class="rq-container">
+      <div class="rq-ticker-items">
+        <div class="rq-ticker-item">
+          <i class="fas fa-bolt text-amber-400"></i>
+          <span>تسليم فوري مؤتمت 24/7 دون انتظار</span>
+        </div>
+        <div class="rq-ticker-item hide-mobile">
+          <i class="fas fa-shield-halved text-emerald-400"></i>
+          <span>ضمان أصالة معتمد 100%</span>
+        </div>
+        <div class="rq-ticker-item hide-mobile">
+          <i class="fas fa-headset text-blue-400"></i>
+          <span>دعم فني مباشر على مدار الساعة</span>
+        </div>
       </div>
     </div>
   </div>
@@ -87,11 +89,11 @@
         <div class="rq-search-bar">
           <form method="get" action="{% url 'catalog' %}">
             <i class="fas fa-search rq-search-icon"></i>
-            <input type="text" name="q" placeholder="ابحث عن بطاقات، ألعاب، اشتراكات، راوترات، برامج..." class="rq-search-input" value="{{ request.GET.q|default:'' }}" autocomplete="off">
+            <input type="text" name="q" placeholder="ابحث عن بطاقات، ألعاب، اشتراكات، راوترات، عتاد..." class="rq-search-input" value="{{ request.GET.q|default:'' }}" autocomplete="off">
           </form>
         </div>
 
-        <!-- Navigation Menu -->
+        <!-- Navigation Menu (Desktop) -->
         <nav class="rq-nav-menu">
           <a href="{% url 'home' %}" class="rq-nav-link {% if request.path == '/' %}active{% endif %}">
             <i class="fas fa-home text-xs"></i>
@@ -127,19 +129,19 @@
             <span class="rq-cart-badge" id="nav-cart-badge">{{ cart_items_count|default:0 }}</span>
           </button>
 
-          <!-- User Hub -->
+          <!-- User Hub (Desktop) -->
           {% if request.user.is_authenticated %}
-          <a href="{% url 'dashboard' %}" class="rq-user-pill" title="لوحة التحكم">
+          <a href="{% url 'dashboard' %}" class="rq-user-pill hide-mobile" title="لوحة التحكم">
             <div class="rq-user-avatar">
               <i class="fas fa-user text-xs"></i>
             </div>
-            <div class="hidden sm:block text-right">
-              <span class="block text-[11px] font-bold text-slate-300 leading-tight">{{ request.user.get_short_name|default:request.user.email|truncatechars:12 }}</span>
+            <div class="text-right">
+              <span style="display: block; font-size: 11px; font-weight: 800; color: #cbd5e1; line-height: 1.2;">{{ request.user.get_short_name|default:request.user.email|truncatechars:12 }}</span>
               <span class="rq-wallet-badge">{% currency_format request.user.wallet.available_balance|default:0 %}</span>
             </div>
           </a>
           {% else %}
-          <div style="display: flex; align-items: center; gap: 0.5rem;">
+          <div class="hide-mobile" style="display: flex; align-items: center; gap: 0.5rem;">
             <a href="{% url 'site_login' %}?next={{ request.path }}" class="rq-btn-auth-login">
               <span>دخول</span>
             </a>
@@ -153,10 +155,25 @@
 
       </div>
     </div>
+
+    <!-- Dedicated Fluid Search Bar on Mobile -->
+    <div class="rq-mobile-search-bar">
+      <div class="rq-container">
+        <form method="get" action="{% url 'catalog' %}">
+          <div class="rq-mobile-search-inner">
+            <i class="fas fa-search rq-search-icon"></i>
+            <input type="text" name="q" placeholder="ابحث عن بطاقات، ألعاب، راوترات، عتاد..." value="{{ request.GET.q|default:'' }}" autocomplete="off" id="mobileSearchInput">
+            <button type="submit" class="rq-search-submit" title="بحث">
+              <i class="fas fa-arrow-left"></i>
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
   </header>
 
   <!-- Main Viewport Content Block -->
-  <main id="main-content" style="flex: 1;">
+  <main id="main-content" style="flex: 1; width: 100%; max-width: 100vw; overflow-x: hidden;">
     {% block content %}{% endblock %}
   </main>
 
@@ -179,7 +196,7 @@
           {% for item in cart_items %}
           <div style="display: flex; align-items: center; justify-content: space-between; gap: 0.75rem; padding: 0.85rem; border-radius: 12px; background: rgba(255,255,255,0.03); border: 1px solid var(--rq-border);">
             <div style="display: flex; align-items: center; gap: 0.75rem;">
-              <img src="{{ item.product.image.url }}" alt="{{ item.product.name }}" style="width: 44px; height: 44px; border-radius: 10px; object-fit: contain; background: #080c16; padding: 4px;">
+              <img src="{{ item.product.image.url }}" alt="{{ item.product.name }}" style="width: 44px; height: 44px; border-radius: 10px; object-fit: contain; background: #080c16; padding: 4px;" onerror="this.onerror=null; this.src='{% static 'site/img/raqamiyat_logo_square.jpg' %}';">
               <div>
                 <h4 style="font-size: 0.825rem; font-weight: 800; color: #fff; margin: 0;">{{ item.product.name }}</h4>
                 <span style="font-size: 0.72rem; color: var(--rq-text-muted);">الكمية: {{ item.quantity }}</span>
@@ -214,24 +231,24 @@
       <i class="fas fa-home"></i>
       <span class="rq-dock-text">الرئيسية</span>
     </a>
-    <a href="{% url 'catalog' %}" class="rq-dock-btn {% if '/catalog/' in request.path %}active{% endif %}">
+    <a href="{% url 'catalog' %}" class="rq-dock-btn {% if '/catalog/' in request.path and not request.GET.focus_search %}active{% endif %}">
       <i class="fas fa-grid-2"></i>
       <span class="rq-dock-text">الكتالوج</span>
     </a>
-    <a href="{% url 'catalog' %}?focus_search=1" class="rq-dock-btn">
+    <button type="button" onclick="focusMobileSearch()" class="rq-dock-btn">
       <i class="fas fa-search"></i>
       <span class="rq-dock-text">البحث</span>
-    </a>
-    <a href="javascript:void(0)" onclick="toggleCartDrawer()" class="rq-dock-btn">
+    </button>
+    <button type="button" onclick="toggleCartDrawer()" class="rq-dock-btn">
       <i class="fas fa-bag-shopping"></i>
       <span class="rq-dock-text">السلة</span>
       {% if cart_items_count %}
       <span class="rq-dock-pill-badge">{{ cart_items_count }}</span>
       {% endif %}
-    </a>
-    <a href="{% if request.user.is_authenticated %}{% url 'dashboard' %}{% else %}{% url 'site_login' %}{% endif %}" class="rq-dock-btn {% if '/dashboard/' in request.path %}active{% endif %}">
+    </button>
+    <a href="{% if request.user.is_authenticated %}{% url 'dashboard' %}{% else %}{% url 'site_login' %}{% endif %}" class="rq-dock-btn {% if '/dashboard/' in request.path or '/auth/' in request.path %}active{% endif %}">
       <i class="fas fa-user"></i>
-      <span class="rq-dock-text">حسابي</span>
+      <span class="rq-dock-text">{% if request.user.is_authenticated %}حسابي{% else %}دخول{% endif %}</span>
     </a>
   </div>
 
@@ -292,7 +309,7 @@
 
       <div class="rq-footer-bottom">
         <div>جميع الحقوق محفوظة © {% now "Y" %} متجر رقميات (Raqamiyat Platform).</div>
-        <div style="display: flex; gap: 1rem; align-items: center;">
+        <div style="display: flex; gap: 1rem; align-items: center; flex-wrap: wrap;">
           <span>⚡ تفعيل فوري</span>
           <span>•</span>
           <span>🛡️ ضمان 100%</span>
@@ -311,6 +328,16 @@
     var drawer = document.getElementById('cart-drawer-backdrop');
     if (drawer) {
       drawer.classList.toggle('active');
+    }
+  }
+
+  function focusMobileSearch() {
+    var inp = document.getElementById('mobileSearchInput');
+    if (inp) {
+      inp.focus();
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    } else {
+      window.location.href = "{% url 'catalog' %}?focus_search=1";
     }
   }
   </script>
