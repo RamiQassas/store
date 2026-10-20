@@ -21,7 +21,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
-  <link rel="stylesheet" href="{% static 'site/css/app.css' %}?v=20261020_flagship_v6">
+  <link rel="stylesheet" href="{% static 'site/css/app.css' %}?v=20261020_flagship_v7">
 
   {% if META_PIXEL_ID and not '/control/' in request.path and not '/admin/' in request.path %}
   <script>
@@ -63,7 +63,7 @@
     </div>
   </div>
 
-  <!-- 2. Unified Main Header -->
+  <!-- 2. Unified Single Main Header -->
   <header class="rq-header">
     <div class="rq-container">
       <div class="rq-navbar-inner">
@@ -81,11 +81,11 @@
           </div>
         </a>
 
-        <!-- Global Search Bar (Desktop) -->
-        <div class="rq-search-bar">
+        <!-- Global Search Bar (Unified Desktop Search) -->
+        <div class="rq-search-bar" id="globalSearchBar">
           <form method="get" action="{% url 'catalog' %}">
             <i class="fas fa-search rq-search-icon"></i>
-            <input type="text" name="q" placeholder="ابحث باسم البطاقة، اللعبة، الراوتر، أو الخدمة..." class="rq-search-input" value="{{ request.GET.q|default:'' }}" autocomplete="off">
+            <input type="text" name="q" placeholder="ابحث باسم البطاقة، اللعبة، الراوتر، الكابل..." class="rq-search-input" value="{{ request.GET.q|default:'' }}" autocomplete="off" id="globalSearchInput">
           </form>
         </div>
 
@@ -97,12 +97,12 @@
           </a>
           <a href="{% url 'catalog' %}" class="rq-nav-link {% if '/catalog/' in request.path %}active{% endif %}">
             <i class="fas fa-grid-2 text-xs"></i>
-            <span>كافة المنتجات</span>
+            <span>الكتالوج</span>
           </a>
           {% if not is_tenant %}
           <a href="{% url 'stores_directory' %}" class="rq-nav-link {% if '/stores/' in request.path %}active{% endif %}">
             <i class="fas fa-store text-xs"></i>
-            <span>المتاجر الشريكة</span>
+            <span>المتاجر</span>
           </a>
           {% endif %}
         </nav>
@@ -138,7 +138,7 @@
           <div class="hide-mobile" style="display: flex; align-items: center; gap: 0.5rem;">
             <a href="{% url 'site_login' %}?next={{ request.path }}" class="rq-btn-auth-login">
               <i class="fas fa-arrow-right-to-bracket text-xs"></i>
-              <span>تسجيل الدخول</span>
+              <span>دخول</span>
             </a>
           </div>
           {% endif %}
@@ -146,21 +146,20 @@
         </div>
 
       </div>
-    </div>
 
-    <!-- Dedicated Fluid Search Bar on Mobile -->
-    <div class="rq-mobile-search-bar">
-      <div class="rq-container">
+      <!-- Integrated Mobile Search Sub-row (Only on small screens) -->
+      <div class="rq-mobile-search-row">
         <form method="get" action="{% url 'catalog' %}">
           <div class="rq-mobile-search-inner">
             <i class="fas fa-search rq-search-icon"></i>
-            <input type="text" name="q" placeholder="ابحث عن بطاقات، ألعاب، راوترات، عتاد..." value="{{ request.GET.q|default:'' }}" autocomplete="off" id="mobileSearchInput">
+            <input type="text" name="q" placeholder="ابحث في المتجر..." value="{{ request.GET.q|default:'' }}" autocomplete="off" id="mobileSearchInput">
             <button type="submit" class="rq-search-submit" title="بحث">
               <i class="fas fa-arrow-left"></i>
             </button>
           </div>
         </form>
       </div>
+
     </div>
   </header>
 
@@ -225,9 +224,9 @@
     </a>
     <a href="{% url 'catalog' %}" class="rq-dock-btn {% if '/catalog/' in request.path and not request.GET.focus_search %}active{% endif %}">
       <i class="fas fa-grid-2"></i>
-      <span class="rq-dock-text">المنتجات</span>
+      <span class="rq-dock-text">الكتالوج</span>
     </a>
-    <button type="button" onclick="focusMobileSearch()" class="rq-dock-btn">
+    <button type="button" onclick="focusHeaderSearch()" class="rq-dock-btn">
       <i class="fas fa-search"></i>
       <span class="rq-dock-text">البحث</span>
     </button>
@@ -244,7 +243,7 @@
     </a>
   </div>
 
-  <!-- 10. Integrated Comprehensive Footer -->
+  <!-- Integrated Comprehensive Footer -->
   <footer class="rq-footer">
     <div class="rq-container">
       <div class="rq-footer-grid">
@@ -323,10 +322,14 @@
     }
   }
 
-  function focusMobileSearch() {
-    var inp = document.getElementById('mobileSearchInput');
-    if (inp) {
-      inp.focus();
+  function focusHeaderSearch() {
+    var mobInp = document.getElementById('mobileSearchInput');
+    var deskInp = document.getElementById('globalSearchInput');
+    if (mobInp && window.innerWidth <= 768) {
+      mobInp.focus();
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    } else if (deskInp) {
+      deskInp.focus();
       window.scrollTo({ top: 0, behavior: 'smooth' });
     } else {
       window.location.href = "{% url 'catalog' %}?focus_search=1";

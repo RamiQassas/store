@@ -1747,7 +1747,7 @@ def home(request):
     from django.core.cache import cache
 
     store = getattr(request, 'store', None)
-    cache_key = f"home_page_ctx_v4_{getattr(store, 'id', 'global')}"
+    cache_key = f"home_page_ctx_v5_{getattr(store, 'id', 'global')}"
     ctx = cache.get(cache_key)
 
     if ctx is None:
@@ -1793,10 +1793,35 @@ def home(request):
         else:
             sale_products = sale_qs
 
+        # Separate physical hardware products from digital services
+        physical_products = list(Product.objects.filter(
+            is_active=True,
+            is_publicly_visible=True,
+            product_type="physical",
+            variants__is_active=True,
+            variants__price__gt=0,
+        ).select_related("category").prefetch_related("variants").distinct()[:8])
+
+        digital_products = list(Product.objects.filter(
+            is_active=True,
+            is_publicly_visible=True,
+            product_type="digital",
+            variants__is_active=True,
+            variants__price__gt=0,
+        ).select_related("category").prefetch_related("variants").distinct()[:8])
+
+        # Top 8 most populated categories for clean, uncluttered homepage
+        top_categories = sorted(active_categories, key=lambda c: getattr(c, 'product_count', 0), reverse=True)[:8]
+
         ctx = {
             "featured_products": featured_products,
             "sale_products": sale_products,
+            "physical_products": physical_products,
+            "digital_products": digital_products,
             "categories": active_categories,
+            "top_categories": top_categories,
+            "total_categories_count": len(active_categories),
+            "spotlight_product": featured_products[0] if featured_products else None,
         }
 
         if not store:

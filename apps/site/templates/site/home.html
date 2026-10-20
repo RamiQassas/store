@@ -7,7 +7,7 @@
 <div style="padding-bottom: 4rem; width: 100%; max-width: 100%; overflow-x: hidden;">
 
   <!-- ══════════════════════════════════════════════════════════════════════
-       3. OPENING HERO SECTION: Value Proposition & Single Clear Action
+       1. HERO SECTION: Direct Value Proposition, Single Action & Spotlight
        ══════════════════════════════════════════════════════════════════════ -->
   <section class="rq-hero-stage">
     <div class="rq-container">
@@ -29,28 +29,47 @@
           </p>
 
           <!-- Single Prominent Primary Action Button -->
-          <div>
+          <div style="display: flex; flex-wrap: wrap; gap: 0.75rem; align-items: center; margin-bottom: 1.5rem;">
             <a href="{% url 'catalog' %}" class="rq-btn-hero-primary">
               <i class="fas fa-grid-2"></i>
-              <span>تصفح كافة المنتجات</span>
+              <span>تصفح الكتالوج الشامل</span>
               <i class="fas fa-arrow-left text-xs"></i>
             </a>
           </div>
+
+          <!-- Mini Trust Indicators (Verifiable Facts) -->
+          <div style="display: flex; flex-wrap: wrap; gap: 1.25rem; align-items: center; font-size: 0.78rem; color: var(--rq-text-muted);">
+            <span style="display: inline-flex; align-items: center; gap: 0.4rem;">
+              <i class="fas fa-bolt text-amber-400"></i> تسليم آلي فوري للخزنة
+            </span>
+            <span style="display: inline-flex; align-items: center; gap: 0.4rem;">
+              <i class="fas fa-shield-check text-emerald-400"></i> منتجات وضمان أصلي
+            </span>
+            <span style="display: inline-flex; align-items: center; gap: 0.4rem;">
+              <i class="fas fa-credit-card text-sky-400"></i> دفع محلي وعالمي آمن
+            </span>
+          </div>
         </div>
 
-        <!-- Hero Spotlight Card (Top Verified Product) -->
+        <!-- Hero Spotlight Card (Spotlight Verified Product) -->
         <div>
-          {% with featured_products|first as spot %}
+          {% with spotlight_product|default:featured_products.0 as spot %}
           {% if spot %}
           {% product_display_image spot as spot_img %}
-          <div class="rq-bento-spotlight" style="padding: 1.5rem; background: var(--rq-surface-card); border: 1.5px solid rgba(59, 130, 246, 0.35); border-radius: var(--rq-radius-xl);">
+          <div class="rq-bento-spotlight" style="padding: 1.5rem; background: var(--rq-surface-card); border: 1.5px solid rgba(59, 130, 246, 0.35); border-radius: var(--rq-radius-xl); box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);">
             <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 1rem;">
               <span style="font-size: 0.75rem; font-weight: 800; color: #38bdf8; display: inline-flex; align-items: center; gap: 0.35rem;">
                 <i class="fas fa-star text-amber-400"></i> منتج مختار
               </span>
+              {% if spot.product_type == 'physical' %}
+              <span style="font-size: 0.7rem; font-weight: 800; padding: 0.2rem 0.6rem; border-radius: var(--rq-radius-full); background: rgba(56, 189, 248, 0.15); color: #38bdf8; border: 1px solid rgba(56, 189, 248, 0.3);">
+                📦 شحن وتوصيل
+              </span>
+              {% else %}
               <span style="font-size: 0.7rem; font-weight: 800; padding: 0.2rem 0.6rem; border-radius: var(--rq-radius-full); background: rgba(16, 185, 129, 0.15); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.3);">
                 ⚡ تسليم فوري
               </span>
+              {% endif %}
             </div>
 
             <a href="{% url 'product_detail' spot.id %}" style="display: block; text-decoration: none;">
@@ -81,52 +100,23 @@
   </section>
 
   <!-- ══════════════════════════════════════════════════════════════════════
-       4. PROMINENT & EFFECTIVE SEARCH BAR
-       ══════════════════════════════════════════════════════════════════════ -->
-  <section class="rq-container rq-search-hub">
-    <div class="rq-search-hub-box">
-      <form method="get" action="{% url 'catalog' %}">
-        <div class="rq-search-hub-input-wrap">
-          <i class="fas fa-search rq-search-hub-icon"></i>
-          <input type="text" name="q" placeholder="ابحث باسم البطاقة، اللعبة، الراوتر، الكابل، أو الخدمة..." class="rq-search-hub-input" value="{{ request.GET.q|default:'' }}" autocomplete="off">
-          <button type="submit" class="rq-search-hub-btn">
-            بحث
-          </button>
-        </div>
-      </form>
-
-      <!-- Quick Filter Chips -->
-      <div style="display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem; margin-top: 1rem;">
-        <span style="font-size: 0.75rem; color: var(--rq-text-muted); font-weight: 700;">الأكثر بحثاً:</span>
-        <a href="{% url 'catalog' %}?q=ببجي" class="rq-quick-tag"><i class="fas fa-fire text-amber-400"></i> شدات ببجي</a>
-        <a href="{% url 'catalog' %}?q=بلايستيشن" class="rq-quick-tag"><i class="fab fa-playstation text-blue-400"></i> بلايستيشن</a>
-        <a href="{% url 'catalog' %}?q=سيريتل" class="rq-quick-tag"><i class="fas fa-bolt text-emerald-400"></i> سيريتل كاش</a>
-        <a href="{% url 'catalog' %}?q=نتفلكس" class="rq-quick-tag"><i class="fas fa-tv text-red-400"></i> نتفلكس & شاهد</a>
-        <a href="{% url 'catalog' %}?q=راوتر" class="rq-quick-tag"><i class="fas fa-wifi text-purple-400"></i> راوترات وشبكات</a>
-        <a href="{% url 'catalog' %}?q=كابل" class="rq-quick-tag"><i class="fas fa-plug text-cyan"></i> كابلات وشواحن</a>
-      </div>
-    </div>
-  </section>
-
-  <!-- ══════════════════════════════════════════════════════════════════════
-       5. VISUALLY ORGANIZED MAIN CATEGORIES (Zero Empty Categories)
+       2. CURATED TOP CATEGORIES (Top 8 Only - Zero Clutter)
        ══════════════════════════════════════════════════════════════════════ -->
   <section class="rq-container" style="margin-bottom: 3.5rem;">
-    <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.5rem;">
+    <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.25rem;">
       <div>
-        <h2 style="font-size: 1.35rem; font-weight: 900; color: #fff; margin: 0 0 0.25rem;">أقسام المتجر الرئيسية</h2>
-        <p style="font-size: 0.825rem; color: var(--rq-text-muted); margin: 0;">اختر القسم المناسب لاستعراض المنتجات والخدمات المتوفرة</p>
+        <h2 style="font-size: 1.35rem; font-weight: 900; color: #fff; margin: 0 0 0.25rem;">أبرز الأقسام والتصنيفات</h2>
+        <p style="font-size: 0.825rem; color: var(--rq-text-muted); margin: 0;">تصفح المنتجات عبر التصنيفات الأكثر نشاطاً في المتجر</p>
       </div>
       <a href="{% url 'catalog' %}" style="font-size: 0.825rem; font-weight: 800; color: var(--rq-primary-light); display: inline-flex; align-items: center; gap: 0.35rem;">
-        <span>عرض كافة الأقسام ({{ categories|length }})</span>
+        <span>كافة الأقسام</span>
         <i class="fas fa-arrow-left text-xs"></i>
       </a>
     </div>
 
-    <!-- Clean Hierarchical Category Grid -->
+    <!-- Clean Hierarchical Category Grid: Max 8 Items -->
     <div class="rq-cat-clean-grid">
-      {% for cat in categories %}
-      {% if cat.product_count > 0 %}
+      {% for cat in top_categories|default:categories|slice:":8" %}
       <a href="{% url 'catalog' %}?category={{ cat.id }}" class="rq-cat-clean-card">
         <div class="rq-cat-clean-icon">
           {% if cat.image %}
@@ -136,15 +126,23 @@
           {% endif %}
         </div>
         <h3 class="rq-cat-clean-title">{{ cat.name }}</h3>
-        <span class="rq-cat-clean-count">{{ cat.product_count }} منتج</span>
+        <span class="rq-cat-clean-count">{{ cat.product_count|default:'متوفر' }} منتج</span>
       </a>
-      {% endif %}
       {% endfor %}
+    </div>
+
+    <!-- Prominent Catalog Action Button for Remaining Categories -->
+    <div style="text-align: center; margin-top: 1rem;">
+      <a href="{% url 'catalog' %}" class="rq-catalog-all-btn">
+        <i class="fas fa-layer-group"></i>
+        <span>استعراض كافة الأقسام والتصنيفات ({{ total_categories_count|default:categories|length }}) في الكتالوج</span>
+        <i class="fas fa-arrow-left text-xs"></i>
+      </a>
     </div>
   </section>
 
   <!-- ══════════════════════════════════════════════════════════════════════
-       6. FEATURED / MOST REQUESTED PRODUCTS (Real Data & Non-Zero Prices)
+       3. FEATURED & TRENDING PRODUCTS (Strictly Non-Zero Prices)
        ══════════════════════════════════════════════════════════════════════ -->
   <section class="rq-container" style="margin-bottom: 4rem;">
     <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.5rem;">
@@ -212,16 +210,17 @@
   </section>
 
   <!-- ══════════════════════════════════════════════════════════════════════
-       7. CAREFULLY SELECTED ADDITIONAL SHELF: Hardware & Accessories
+       4. HARDWARE & ACCESSORIES SHELF (Physical Products Only)
        ══════════════════════════════════════════════════════════════════════ -->
+  {% if physical_products %}
   <section class="rq-container" style="margin-bottom: 4rem;">
     <div style="display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 1rem; margin-bottom: 1.5rem;">
       <div>
         <span style="font-size: 0.72rem; font-weight: 800; color: #38bdf8; text-transform: uppercase;">
-          <i class="fas fa-microchip"></i> الأجهزة والملحقات
+          <i class="fas fa-microchip"></i> الأجهزة والملحقات الأصلية
         </span>
         <h2 style="font-size: 1.35rem; font-weight: 900; color: #fff; margin: 0.25rem 0 0.25rem;">
-          تجهيزات العتاد والملحقات الأصلية
+          تجهيزات العتاد والملحقات التقنية
         </h2>
         <p style="font-size: 0.825rem; color: var(--rq-text-muted); margin: 0;">
           كابلات، شواحن، بنوك طاقة، كاميرات مراقبة، وملحقات حواسيب معتمدة
@@ -234,9 +233,9 @@
       </a>
     </div>
 
-    <!-- Hardware Product Shelf -->
+    <!-- Hardware Product Shelf (Zero Repetition) -->
     <div class="rq-product-grid">
-      {% for product in featured_products|slice:"4:8" %}
+      {% for product in physical_products|slice:":8" %}
       {% product_display_image product as h_img %}
       <div class="rq-card">
         
@@ -273,9 +272,75 @@
       {% endfor %}
     </div>
   </section>
+  {% endif %}
 
   <!-- ══════════════════════════════════════════════════════════════════════
-       8. REAL VERIFIABLE TRUST & STORE POLICIES (No Marketing Hyperbole)
+       5. DIGITAL CARDS & GAMING SHELF (Digital Products Only)
+       ══════════════════════════════════════════════════════════════════════ -->
+  {% if digital_products %}
+  <section class="rq-container" style="margin-bottom: 4rem;">
+    <div style="display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 1rem; margin-bottom: 1.5rem;">
+      <div>
+        <span style="font-size: 0.72rem; font-weight: 800; color: #34d399; text-transform: uppercase;">
+          <i class="fas fa-bolt"></i> تسليم فوري آلي
+        </span>
+        <h2 style="font-size: 1.35rem; font-weight: 900; color: #fff; margin: 0.25rem 0 0.25rem;">
+          البطاقات الرقمية وشحن الألعاب
+        </h2>
+        <p style="font-size: 0.825rem; color: var(--rq-text-muted); margin: 0;">
+          أكواد رقمية واشتراكات مع تسليم آلي فوري للخزنة فور تأكيد الدفع
+        </p>
+      </div>
+
+      <a href="{% url 'catalog' %}?q=بطاقات" style="font-size: 0.825rem; font-weight: 800; color: var(--rq-primary-light); display: inline-flex; align-items: center; gap: 0.35rem;">
+        <span>استعراض كافة البطاقات</span>
+        <i class="fas fa-arrow-left text-xs"></i>
+      </a>
+    </div>
+
+    <!-- Digital Product Shelf (Zero Repetition) -->
+    <div class="rq-product-grid">
+      {% for product in digital_products|slice:":8" %}
+      {% product_display_image product as d_img %}
+      <div class="rq-card">
+        
+        <div>
+          <a href="{% url 'product_detail' product.id %}" class="rq-card-media">
+            <img src="{{ d_img }}" alt="{{ product.name }}" loading="lazy" onerror="this.onerror=null; this.src='{% static 'site/img/raqamiyat_logo_square.jpg' %}';">
+            <span class="rq-badge-delivery-instant">
+              <i class="fas fa-bolt text-[9px]"></i> تسليم آلي فوري
+            </span>
+          </a>
+
+          <span class="rq-card-category">{{ product.category.name|default:'خدمة رقمية' }}</span>
+
+          <h3 class="rq-card-title">
+            <a href="{% url 'product_detail' product.id %}" style="color: inherit; text-decoration: none;">
+              {{ product.name }}
+            </a>
+          </h3>
+        </div>
+
+        <div class="rq-card-footer">
+          <div>
+            <span class="rq-card-price-label">السعر</span>
+            <span class="tabular-nums rq-price-val">{% product_starting_price product %}</span>
+          </div>
+
+          <a href="{% url 'product_detail' product.id %}" class="rq-card-buy-btn">
+            <span>تفاصيل وشراء</span>
+            <i class="fas fa-arrow-left text-[9px]"></i>
+          </a>
+        </div>
+
+      </div>
+      {% endfor %}
+    </div>
+  </section>
+  {% endif %}
+
+  <!-- ══════════════════════════════════════════════════════════════════════
+       6. REAL VERIFIABLE TRUST & STORE POLICIES (No Marketing Fluff)
        ══════════════════════════════════════════════════════════════════════ -->
   <section class="rq-container" style="margin-bottom: 4rem;">
     <div style="margin-bottom: 1.5rem;">
@@ -283,7 +348,7 @@
         معايير الخدمة وضمانات المتجر
       </h2>
       <p style="font-size: 0.825rem; color: var(--rq-text-muted); margin: 0;">
-        سياسات حقيقية وواضحة تضمن حقوقك وتوفر لك تجربة شراء آمنة
+        سياسات حقيقية وواضحة تضمن حقوقك وتوفر لك تجربة شراء آمنة وموثوقة
       </p>
     </div>
 
@@ -337,7 +402,7 @@
   </section>
 
   <!-- ══════════════════════════════════════════════════════════════════════
-       9. PARTNER / INDEPENDENT STORES (If Feature Exists)
+       7. PARTNER / INDEPENDENT STORES (If Feature Exists)
        ══════════════════════════════════════════════════════════════════════ -->
   {% if platform_stores %}
   <section class="rq-container" style="margin-bottom: 3.5rem;">
