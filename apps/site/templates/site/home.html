@@ -87,7 +87,7 @@
 
             <a href="{% url 'product_detail' spot.id %}" style="display: block; text-decoration: none;">
               <div style="width: 100%; height: 210px; border-radius: 16px; background: #060913; display: flex; align-items: center; justify-content: center; margin-bottom: 1.25rem; overflow: hidden; border: 1px solid var(--rq-border); padding: 1rem; position: relative;">
-                <img src="{{ spot_img }}" alt="{{ spot.name }}" style="max-height: 100%; max-width: 100%; object-fit: contain; transition: transform 0.3s;" onmouseover="this.style.transform='scale(1.05)'" onmouseout="this.style.transform='scale(1)'">
+                <img src="{{ spot_img }}" alt="{{ spot.name }}" style="max-height: 100%; max-width: 100%; object-fit: contain; transition: transform 0.3s;" onmouseover="this.style.transform='scale(1.05)'" onmouseout="this.style.transform='scale(1)'" onerror="this.onerror=null; this.src='{% static 'site/img/raqamiyat_logo_square.jpg' %}';">
               </div>
               <h3 style="font-size: 1.15rem; font-weight: 900; color: #fff; margin-bottom: 0.4rem; line-height: 1.35;">{{ spot.name }}</h3>
               <p style="font-size: 0.8rem; color: var(--rq-text-muted); margin-bottom: 1.25rem;">{{ spot.category.name|default:'خدمة رقمية معتمدة' }}</p>
@@ -185,7 +185,7 @@
         <div class="rq-bento-lead-card">
           <!-- Image Box -->
           <div style="height: 240px; background: #060913; border-radius: var(--rq-radius-lg); border: 1px solid var(--rq-border); display: flex; align-items: center; justify-content: center; padding: 1.5rem; overflow: hidden;">
-            <img src="{{ lead_img }}" alt="{{ lead_prod.name }}" style="max-height: 100%; max-width: 100%; object-fit: contain;">
+            <img src="{{ lead_img }}" alt="{{ lead_prod.name }}" style="max-height: 100%; max-width: 100%; object-fit: contain;" onerror="this.onerror=null; this.src='{% static 'site/img/raqamiyat_logo_square.jpg' %}';">
           </div>
           <!-- Content Box -->
           <div>
@@ -396,7 +396,7 @@
           {% else %}
           <span class="rq-badge-delivery-instant"><i class="fas fa-bolt text-[9px]"></i> تسليم فوري</span>
           {% endif %}
-          <img src="{{ p_img }}" alt="{{ p.name }}" loading="lazy" onerror="this.onerror=null; this.src='{% static 'site/img/raqamiyat_official_brand_product.jpg' %}';">
+          <img src="{{ p_img }}" alt="{{ p.name }}" loading="lazy" onerror="this.onerror=null; this.src='{% static 'site/img/raqamiyat_logo_square.jpg' %}';">
         </a>
         <div class="rq-card-body">
           <div>
