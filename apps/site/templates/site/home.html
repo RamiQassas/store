@@ -50,7 +50,7 @@
           <!-- 3D Tactile CTA Action Buttons -->
           <div style="display: flex; flex-wrap: wrap; gap: 1rem; align-items: center; margin-bottom: 2rem;">
             <a href="{% url 'catalog' %}" class="rq-btn-3d-primary">
-              <i class="fas fa-th-large"></i>
+              <i class="fas fa-layer-group"></i>
               <span>طھطµظپط­ ط§ظ„ظƒطھط§ظ„ظˆط¬ ط§ظ„ط´ط§ظ…ظ„</span>
               <i class="fas fa-arrow-left text-xs"></i>
             </a>
@@ -96,14 +96,14 @@
             </div>
 
             <a href="{% url 'product_detail' spot.id %}" style="display: block; text-decoration: none;">
-              <div style="width: 100%; height: 190px; border-radius: 14px; background: radial-gradient(circle at center, #11182c 0%, #060914 100%); display: flex; align-items: center; justify-content: center; margin-bottom: 1.1rem; overflow: hidden; border: 1.5px solid rgba(99, 102, 241, 0.25); padding: 0.75rem;">
+              <div style="width: 100%; height: 190px; border-radius: 14px; background: #08090d; display: flex; align-items: center; justify-content: center; margin-bottom: 1.1rem; overflow: hidden; border: 1px solid var(--rq-border); padding: 0.75rem;">
                 <img src="{{ spot_img }}" alt="{{ spot.name }}" style="max-height: 90%; max-width: 90%; object-fit: contain; transition: transform 0.3s;" onmouseover="this.style.transform='scale(1.08)'" onmouseout="this.style.transform='scale(1)'" onerror="this.onerror=null; this.src='{% static 'site/img/raqamiyat_logo_square.jpg' %}';">
               </div>
               <h3 style="font-size: 1.1rem; font-weight: 800; color: #fff; margin-bottom: 0.35rem; line-height: 1.35;">{{ spot.name }}</h3>
               <p style="font-size: 0.8rem; color: #94a3b8; margin-bottom: 1rem;">{{ spot.category.name|default:'ط®ط¯ظ…ط© ط±ظ‚ظ…ظٹط© ظ…ط¹طھظ…ط¯ط©' }}</p>
             </a>
 
-            <div style="display: flex; align-items: center; justify-content: space-between; padding-top: 1rem; border-top: 1px solid rgba(99, 102, 241, 0.25);">
+            <div style="display: flex; align-items: center; justify-content: space-between; padding-top: 1rem; border-top: 1px solid var(--rq-border);">
               <div>
                 <span style="display: block; font-size: 0.68rem; color: #94a3b8; font-weight: 700;">ط§ظ„ط³ط¹ط±</span>
                 <span class="tabular-nums rq-price-val">{% product_starting_price spot %}</span>
