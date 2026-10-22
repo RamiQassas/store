@@ -359,11 +359,11 @@
                 <span>عملة السداد في شام كاش:</span>
               </div>
               <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem;">
-                <label id="shamcash-curr-usd-label" style="display: flex; align-items: center; gap: 0.4rem; padding: 0.5rem 0.65rem; border-radius: 8px; background: rgba(0, 201, 167, 0.18); border: 1.5px solid #00C9A7; cursor: pointer;">
+                <label id="shamcash-curr-usd-label" onclick="selectShamCashCurrency('USD')" style="display: flex; align-items: center; gap: 0.4rem; padding: 0.5rem 0.65rem; border-radius: 8px; background: rgba(0, 201, 167, 0.18); border: 1.5px solid #00C9A7; cursor: pointer;">
                   <input type="radio" name="gateway_currency" value="USD" checked onchange="updateShamCashDisplay()" style="accent-color: #00C9A7;">
                   <span style="font-size: 0.78rem; font-weight: 800; color: #fff;">بالدولار (USD $)</span>
                 </label>
-                <label id="shamcash-curr-syp-label" style="display: flex; align-items: center; gap: 0.4rem; padding: 0.5rem 0.65rem; border-radius: 8px; background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.1); cursor: pointer;">
+                <label id="shamcash-curr-syp-label" onclick="selectShamCashCurrency('SYP')" style="display: flex; align-items: center; gap: 0.4rem; padding: 0.5rem 0.65rem; border-radius: 8px; background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.1); cursor: pointer;">
                   <input type="radio" name="gateway_currency" value="SYP" onchange="updateShamCashDisplay()" style="accent-color: #00C9A7;">
                   <span style="font-size: 0.78rem; font-weight: 800; color: #fff;">بالليرة السورية (SYP)</span>
                 </label>
@@ -588,6 +588,14 @@ function handlePaymentMethodChange(radio) {
   updateShamCashDisplay();
 }
 
+function selectShamCashCurrency(curr) {
+  const r = document.querySelector(`input[name="gateway_currency"][value="${curr}"]`);
+  if (r) {
+    r.checked = true;
+    updateShamCashDisplay();
+  }
+}
+
 function updateShamCashDisplay() {
   const shamBox = document.getElementById('shamcash-currency-box');
   if (!shamBox || shamBox.style.display === 'none') return;
@@ -596,21 +604,53 @@ function updateShamCashDisplay() {
   const isSYP = selectedCurr && selectedCurr.value === 'SYP';
   const hint = document.getElementById('shamcash-conversion-hint');
   const preview = document.getElementById('shamcash-syp-preview');
+  const usdLabel = document.getElementById('shamcash-curr-usd-label');
+  const sypLabel = document.getElementById('shamcash-curr-syp-label');
+
+  if (usdLabel && sypLabel) {
+    if (isSYP) {
+      sypLabel.style.background = 'rgba(0, 201, 167, 0.22)';
+      sypLabel.style.borderColor = '#00C9A7';
+      usdLabel.style.background = 'rgba(0, 0, 0, 0.3)';
+      usdLabel.style.borderColor = 'rgba(255, 255, 255, 0.1)';
+    } else {
+      usdLabel.style.background = 'rgba(0, 201, 167, 0.22)';
+      usdLabel.style.borderColor = '#00C9A7';
+      sypLabel.style.background = 'rgba(0, 0, 0, 0.3)';
+      sypLabel.style.borderColor = 'rgba(255, 255, 255, 0.1)';
+    }
+  }
+
+  const qtyInput = document.getElementById('pdp-quantity-input');
+  const qty = parseInt(qtyInput ? qtyInput.value : 1) || 1;
+  const subtotal = currentPrice * qty;
+  const discount = subtotal * (discountPercentage / 100);
+  const total = Math.max(0, subtotal - discount);
 
   if (hint && preview) {
     if (isSYP) {
       hint.style.display = 'block';
       const sypRate = {{ syp_rate|default:15000 }};
-      const qtyInput = document.getElementById('pdp-quantity-input');
-      const qty = parseInt(qtyInput ? qtyInput.value : 1) || 1;
-      const subtotal = currentPrice * qty;
-      const discount = subtotal * (discountPercentage / 100);
-      const totalUSD = Math.max(0, subtotal - discount);
-      const totalSYP = Math.round(totalUSD * sypRate);
+      const totalSYP = Math.round(total * sypRate);
       preview.innerText = totalSYP.toLocaleString();
     } else {
       hint.style.display = 'none';
     }
+  }
+
+  const submitBtn = document.getElementById('pdp-submit-btn');
+  const selectedMethodInput = document.getElementById('selected-payment-method');
+  const isSham = selectedMethodInput && (selectedMethodInput.value.includes('sham') || (document.getElementById('pm-btn-sham_cash') && document.getElementById('pm-btn-sham_cash').classList.contains('active')));
+  if (submitBtn && isSham) {
+    if (isSYP) {
+      const sypRate = {{ syp_rate|default:15000 }};
+      const totalSYP = Math.round(total * sypRate);
+      submitBtn.innerHTML = `<i class="fas fa-bolt"></i> <span>تأكيد الشراء عبر شام كاش (${totalSYP.toLocaleString()} ل.س) ⚡</span>`;
+    } else {
+      submitBtn.innerHTML = `<i class="fas fa-bolt"></i> <span>تأكيد الشراء عبر شام كاش ($${total.toFixed(2)}) ⚡</span>`;
+    }
+    submitBtn.style.background = 'linear-gradient(135deg, #00C9A7 0%, #008080 100%)';
+    submitBtn.style.boxShadow = '0 4px 20px rgba(0, 201, 167, 0.4)';
   }
 }
 

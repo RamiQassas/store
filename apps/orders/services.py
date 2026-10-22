@@ -1045,8 +1045,14 @@ def create_pending_gateway_order(
         if key_count < quantity:
             raise ValueError("المخزون الرقمي غير كافٍ حالياً لتلبية هذا الطلب.")
 
-    price = variant.get_price_for_user(customer)
-    subtotal = calculate_variant_subtotal(variant, customer, quantity)
+    # For direct gateway checkout, ensure we charge the displayed retail variant price,
+    # avoiding any unintended tier/cost price drop (e.g. 202 -> 161.57) unless an explicit coupon is applied.
+    if variant.price and variant.price > Decimal("0.00"):
+        price = Decimal(str(variant.price))
+    else:
+        price = variant.get_price_for_user(customer)
+
+    subtotal = price * Decimal(quantity)
 
     discount = Decimal("0.00")
     if coupon:

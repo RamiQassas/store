@@ -2501,8 +2501,9 @@ def product_detail(request, pk):
             quantity = 1
 
         coupon_code = request.POST.get("coupon_code")
-        from apps.orders.services import calculate_variant_subtotal
-        price = calculate_variant_subtotal(variant, request.user, quantity)
+        # Ensure subtotal calculation uses the displayed variant retail price
+        displayed_unit_price = Decimal(str(variant.price)) if (variant.price and variant.price > Decimal("0.00")) else variant.get_price_for_user(request.user)
+        price = displayed_unit_price * Decimal(quantity)
         
         # Check Coupon for balance check
         discount_amount = Decimal("0.00")
@@ -2620,13 +2621,18 @@ def product_detail(request, pk):
             from apps.orders.services import create_pending_gateway_order
             from apps.payments.gateways import gateway_for, PaymentGatewayError
             try:
+                gateway_curr = request.POST.get("gateway_currency") or "USD"
+                order_metadata = dict(metadata or {})
+                order_metadata["gateway_currency"] = gateway_curr
+                order_metadata["selected_currency"] = gateway_curr
+
                 order = create_pending_gateway_order(
                     customer=request.user,
                     variant_id=variant.id,
                     quantity=quantity,
-                    fulfillment_data=metadata,
+                    fulfillment_data=order_metadata,
                     coupon=coupon,
-                    metadata=metadata,
+                    metadata=order_metadata,
                     shipping_name=shipping_name,
                     shipping_phone=shipping_phone,
                     shipping_address=shipping_address,

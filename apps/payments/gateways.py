@@ -164,17 +164,18 @@ class PaymeraGateway(BasePaymentGateway):
         if not syp_currency:
             syp_currency = Currency.all_objects.filter(code="SYP", is_active=True).first()
 
-        exact_usd = Decimal("0.00")
-        for item in order.items.all():
-            exact_usd += Decimal(str(item.unit_price)) * item.quantity
-        if exact_usd <= 0:
-            exact_usd = order.total_amount
+        exact_amount = Decimal(str(order.total_amount)) if (order.total_amount and order.total_amount > Decimal("0.00")) else Decimal("0.00")
+        if exact_amount <= Decimal("0.00"):
+            for item in order.items.all():
+                exact_amount += Decimal(str(item.unit_price)) * item.quantity
+        if exact_amount <= Decimal("0.00"):
+            exact_amount = Decimal("1.00")
 
-        if syp_currency:
-            syp_val = syp_currency.from_base(exact_usd, "deposit")
+        if syp_currency and float(getattr(syp_currency, "buy_rate", 1) or 1) > 1.0:
+            syp_val = syp_currency.from_base(exact_amount, "deposit")
             charge_amount = int(round(float(syp_val)))
         else:
-            charge_amount = int(round(float(exact_usd)))
+            charge_amount = int(round(float(exact_amount)))
         if charge_amount <= 0:
             charge_amount = 1
 
@@ -436,11 +437,12 @@ class ShamCashGateway(BasePaymentGateway):
         if not req_curr:
             req_curr = meta.get("gateway_currency") or meta.get("selected_currency")
 
-        exact_usd = Decimal("0.00")
-        for item in order.items.all():
-            exact_usd += Decimal(str(item.unit_price)) * item.quantity
-        if exact_usd <= 0:
-            exact_usd = Decimal(str(order.total_amount))
+        exact_amount = Decimal(str(order.total_amount)) if (order.total_amount and order.total_amount > Decimal("0.00")) else Decimal("0.00")
+        if exact_amount <= Decimal("0.00"):
+            for item in order.items.all():
+                exact_amount += Decimal(str(item.unit_price)) * item.quantity
+        if exact_amount <= Decimal("0.00"):
+            exact_amount = Decimal("1.00")
 
         if req_curr and str(req_curr).upper() in ("SYP", "2"):
             # Syrian Pounds
@@ -451,18 +453,18 @@ class ShamCashGateway(BasePaymentGateway):
             if not syp_currency:
                 syp_currency = Currency.all_objects.filter(code="SYP", is_active=True).first()
 
-            if syp_currency:
-                syp_val = syp_currency.from_base(exact_usd, "deposit")
+            if syp_currency and float(getattr(syp_currency, "buy_rate", 1) or 1) > 1.0:
+                syp_val = syp_currency.from_base(exact_amount, "deposit")
                 charge_amount = Decimal(str(syp_val)).quantize(Decimal("0.01"))
             else:
-                charge_amount = exact_usd.quantize(Decimal("0.01"))
+                charge_amount = exact_amount.quantize(Decimal("0.01"))
 
             currency_id = ShamCashClient.CURRENCY_SYP
             currency_code = "SYP"
         else:
             # USD default
             currency_id = ShamCashClient.CURRENCY_USD
-            charge_amount = exact_usd.quantize(Decimal("0.01"))
+            charge_amount = exact_amount.quantize(Decimal("0.01"))
             currency_code = "USD"
 
         notes = f"سداد طلب رقم {order.number} للعميل {order.customer.email}"
