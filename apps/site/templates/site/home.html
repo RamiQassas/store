@@ -1,7 +1,7 @@
 ﻿{% extends "site/base.html" %}
 {% load static site_tags %}
 
-{% block title %}رقميات | المتجر الإلكتروني المتكامل للبطاقات الرقمية والعتاد التقني{% endblock %}
+{% block title %}رقميات | متجر التقنيات — الهواتف، اللابتوبات، الكاميرات وتجهيزات الشبكات{% endblock %}
 
 {% block content %}
 <div style="padding-bottom: 4rem; width: 100%; max-width: 100%; overflow-x: hidden;">
@@ -17,21 +17,21 @@
         <div>
           <div class="rq-hero-tag">
             <span style="width: 8px; height: 8px; border-radius: 50%; background: #38bdf8; box-shadow: 0 0 10px #38bdf8; animation: cyberDotPulse 1.8s infinite; display: inline-block;"></span>
-            <span>منصة معتمدة • تسوق رقمي آمن وتسليم آلي فوري</span>
+            <span>أحدث التقنيات والأجهزة الأصلية • ضمان معتمد وشحن سريع</span>
           </div>
 
           <h1 class="rq-hero-headline">
-            متجر رقميات — بوابتك لشحن الألعاب، البطاقات والعتاد التقني
+            متجر رقميات — وجهتك لأحدث الهواتف، اللابتوبات وتجهيزات الشبكات
           </h1>
 
           <p class="rq-hero-subtitle">
-            وجهتك الرسمية لشحن الألعاب الفوري، بطاقات المتاجر الرقمية، الاشتراكات السحابية، وأجهزة العتاد والملحقات الأصلية بأسعار معتمدة وضمان حقيقي.
+            نوفر لك أحدث الهواتف الذكية، الحواسيب المحمولة، كاميرات التصوير والمراقبة، راوترات ومقويات شبكات الإنترنت، والإكسسوارات والملحقات التقنية الأصلية بأفضل الأسعار وبضمان رسمي.
           </p>
 
           <!-- Direct Hero Cyber Search Bar -->
           <form method="get" action="{% url 'catalog' %}" style="position: relative; max-width: 560px; margin-bottom: 1.25rem;">
             <i class="fas fa-search" style="position: absolute; right: 1.25rem; top: 50%; transform: translateY(-50%); color: #38bdf8; font-size: 1rem; pointer-events: none;"></i>
-            <input type="text" name="q" placeholder="ابحث باسم اللعبة، البطاقة، الراوتر، أو الخدمة..." style="width: 100%; background: rgba(12, 17, 36, 0.95); border: 1.5px solid rgba(56, 189, 248, 0.45); border-radius: 9999px; padding: 0.85rem 3.25rem 0.85rem 7.5rem; color: #ffffff; font-size: 0.92rem; outline: none; box-shadow: 0 4px 20px rgba(0, 0, 0, 0.45), 0 0 18px rgba(56, 189, 248, 0.15); box-sizing: border-box;">
+            <input type="text" name="q" placeholder="ابحث عن هاتف، لابتوب، كاميرا، راوتر، أو إكسسوار..." style="width: 100%; background: rgba(12, 17, 36, 0.95); border: 1.5px solid rgba(56, 189, 248, 0.45); border-radius: 9999px; padding: 0.85rem 3.25rem 0.85rem 7.5rem; color: #ffffff; font-size: 0.92rem; outline: none; box-shadow: 0 4px 20px rgba(0, 0, 0, 0.45), 0 0 18px rgba(56, 189, 248, 0.15); box-sizing: border-box;">
             <button type="submit" class="rq-card-buy-btn" style="position: absolute; left: 0.4rem; top: 50%; transform: translateY(-50%); padding: 0.55rem 1.25rem; font-size: 0.85rem;">
               <span>بحث سريع</span>
               <i class="fas fa-arrow-left text-xs"></i>
@@ -51,25 +51,25 @@
           <div style="display: flex; flex-wrap: wrap; gap: 1rem; align-items: center; margin-bottom: 2rem;">
             <a href="{% url 'catalog' %}" class="rq-btn-3d-primary">
               <i class="fas fa-layer-group"></i>
-              <span>تصفح الكتالوج الشامل</span>
+              <span>تصفح كافة الأجهزة والمنتجات</span>
               <i class="fas fa-arrow-left text-xs"></i>
             </a>
             <a href="{% url 'catalog' %}?q=ط£ظ„ط¹ط§ط¨" class="rq-btn-3d-secondary">
               <i class="fas fa-bolt text-amber-400"></i>
-              <span>شحن الألعاب الفوري</span>
+              <span>راوترات وتجهيزات الشبكات</span>
             </a>
           </div>
 
           <!-- Mini Trust Indicators (Verifiable Facts) -->
           <div style="display: flex; flex-wrap: wrap; gap: 1.5rem; align-items: center; font-size: 0.8rem; color: #cbd5e1;">
             <span style="display: inline-flex; align-items: center; gap: 0.45rem;">
-              <i class="fas fa-bolt text-amber-400"></i> تسليم آلي فوري للخزنة
+              <i class="fas fa-bolt text-amber-400"></i> ضمان رسمي معتمد على الأجهزة
             </span>
             <span style="display: inline-flex; align-items: center; gap: 0.45rem;">
-              <i class="fas fa-shield-check text-emerald-400"></i> منتجات وضمان أصلي
+              <i class="fas fa-shield-check text-emerald-400"></i> شحن وتوصيل آمن وسريع
             </span>
             <span style="display: inline-flex; align-items: center; gap: 0.45rem;">
-              <i class="fas fa-credit-card text-sky-400"></i> دفع محلي وعالمي آمن
+              <i class="fas fa-credit-card text-sky-400"></i> دفع إلكتروني ونقدي موثوق
             </span>
           </div>
         </div>
@@ -158,7 +158,7 @@
     <div style="text-align: center; margin-top: 1.25rem;">
       <a href="{% url 'catalog' %}" class="rq-btn-3d-secondary">
         <i class="fas fa-layer-group text-blue-400"></i>
-        <span>استعراض كافة الأقسام والتصنيفات ({{ total_categories_count|default:categories|length }}) في الكتالوج</span>
+        <span>استعراض كافة أقسام الأجهزة والتقنيات ({{ total_categories_count|default:categories|length }}) في الكتالوج</span>
         <i class="fas fa-arrow-left text-xs"></i>
       </a>
     </div>
@@ -171,7 +171,7 @@
     <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.75rem;">
       <div>
         <h2 style="font-size: 1.4rem; font-weight: 900; color: #fff; margin: 0 0 0.25rem;">
-          المنتجات الأكثر طلباً
+          أحدث الأجهزة والتقنيات المتوفرة
         </h2>
         <p style="font-size: 0.85rem; color: var(--rq-text-muted); margin: 0;">مختارات معتمدة وفق أكثر المنتجات مبيعاً وتقييماً في المتجر</p>
       </div>
@@ -311,7 +311,7 @@
           البطاقات الرقمية وشحن الألعاب
         </h2>
         <p style="font-size: 0.85rem; color: var(--rq-text-muted); margin: 0;">
-          أكواد رقمية واشتراكات مع تسليم آلي فوري للخزنة فور تأكيد الدفع
+          أكواد رقمية واشتراكات مع ضمان رسمي معتمد على الأجهزة فور تأكيد الدفع
         </p>
       </div>
 

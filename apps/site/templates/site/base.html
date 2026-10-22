@@ -5,9 +5,9 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <meta name="theme-color" content="#08090c">
-  <title>{% filter tenant_title %}{% block title %}{% if is_tenant %}{{ STORE_NAME }}{% else %}رقميات | RAQAMIYAT — منصة البطاقات والخدمات الرقمية{% endif %}{% endblock %}{% endfilter %}</title>
+  <title>{% filter tenant_title %}{% block title %}{% if is_tenant %}{{ STORE_NAME }}{% else %}رقميات | RAQAMIYAT — متجر التقنيات، الهواتف، اللابتوبات وتجهيزات الشبكات{% endif %}{% endblock %}{% endfilter %}</title>
   
-  <meta name="description" content="متجر رقميات (Raqamiyat) - المنصة المتكاملة لبيع بطاقات الألعاب، الاشتراكات الرقمية، شحن الأرصدة، وتراخيص البرامج الأصلية.">
+  <meta name="description" content="متجر رقميات (Raqamiyat) - وجهتك المعتمدة لأحدث الهواتف الذكية، اللابتوبات، الكاميرات، راوترات وتجهيزات الشبكات والإنترنت، والإكسسوارات الأصلية.">
   <meta name="robots" content="index, follow">
 
   <link rel="manifest" href="{% static 'site/manifest.webmanifest' %}">
@@ -17,7 +17,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
-  <link rel="stylesheet" href="{% static 'site/css/app.css' %}?v=20261022_cleantech_v3">
+  <link rel="stylesheet" href="{% static 'site/css/app.css' %}?v=20261022_techhardware_v4">
 
   {% if META_PIXEL_ID and not '/control/' in request.path and not '/admin/' in request.path %}
   <script>
@@ -210,7 +210,7 @@
                 <span style="font-size: 1rem; font-weight: 900; color: #fff;">رقميات RAQAMIYAT</span>
               </div>
               <p style="font-size: 0.8rem; color: var(--rq-text-muted); line-height: 1.7; margin-bottom: 1rem;">
-                المنصة الإلكترونية المعتمدة لبيع وشحن البطاقات الرقمية، الألعاب، الاشتراكات السحابية، وتجهيزات العتاد التقني بأسعار موثوقة وتسليم فوري مؤتمت.
+                المتجر المعتمد لأحدث أجهزة التقنية، الهواتف الذكية، اللابتوبات، كاميرات التصوير والمراقبة، تجهيزات شبكات الإنترنت، والإكسسوارات الأصلية بضمان رسمي.
               </p>
               <div class="rq-pm-badges-row">
                 <span class="rq-pm-badge">شام كاش ShamCash</span>
@@ -221,12 +221,14 @@
             </div>
 
             <div class="rq-footer-col">
-              <h4>المنتجات والأقسام</h4>
+              <h4>أقسام المتجر</h4>
               <ul class="rq-footer-links">
-                <li><a href="{% url 'catalog' %}">كافة المنتجات والخدمات</a></li>
-                <li><a href="{% url 'catalog' %}?q=ألعاب">بطاقات الألعاب وشحن الشدات</a></li>
-                <li><a href="{% url 'catalog' %}?q=اشتراك">اشتراكات الترفيه والبث</a></li>
-                <li><a href="{% url 'catalog' %}?q=عتاد">أجهزة العتاد والملحقات التقنية</a></li>
+                <li><a href="{% url 'catalog' %}">كافة الأجهزة والمنتجات</a></li>
+                <li><a href="{% url 'catalog' %}?q=هاتف">الهواتف الذكية وملحقاتها</a></li>
+                <li><a href="{% url 'catalog' %}?q=لابتوب">اللابتوبات والحواسيب المحمولة</a></li>
+                <li><a href="{% url 'catalog' %}?q=كاميرا">الكاميرات وتجهيزات التصوير</a></li>
+                <li><a href="{% url 'catalog' %}?q=انترنت">راوترات وشبكات الإنترنت</a></li>
+                <li><a href="{% url 'catalog' %}?q=اكسسوارات">الإكسسوارات والقطع الأصلية</a></li>
               </ul>
             </div>
 
@@ -255,7 +257,7 @@
           </div>
 
           <div class="rq-footer-bottom">
-            <div>جميع الحقوق محفوظة &copy; {% now "Y" %} متجر رقميات (Raqamiyat Platform).</div>
+            <div style="font-weight: 700;">جميع الحقوق محفوظة &copy; {% now "Y" %} لمؤسسة رامي قصاص بن ماهر س ت حلب 98580</div>
             <div style="display: flex; gap: 1rem; align-items: center; flex-wrap: wrap;">
               <span>⚡ تسليم فوري للأكواد</span>
               <span>•</span>

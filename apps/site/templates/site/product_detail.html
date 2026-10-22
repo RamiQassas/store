@@ -141,7 +141,7 @@
         </h3>
         
         <div style="font-size: 0.9rem; line-height: 1.8; color: var(--rq-text-secondary); white-space: pre-line;">
-          {{ product.description|default:"خدمة رقمية معتمدة ومضمونة من متجر رقميات. تضمن لك المنصة استلام الطلب بصورة فورية ومباشرة في حسابك أو عبر الأكواد الرقمية المرخصة." }}
+          {{ product.description|default:"منتج وأجهزة تقنية أصلية معتمدة ومضمونة من متجر رقميات. تشمل كفالة تشغيلية وضماناً رسمياً مع إمكانية التوصيل والشحن لكافة المناطق." }}
         </div>
       </div>
 
@@ -153,7 +153,7 @@
           </div>
           <div>
             <div style="font-size: 0.82rem; font-weight: 800; color: #fff;">ضمان معتمد 100%</div>
-            <div style="font-size: 0.72rem; color: var(--rq-text-muted);">أكواد أصلية مرخصة مباشرة من الموزعين.</div>
+            <div style="font-size: 0.72rem; color: var(--rq-text-muted);">أجهزة وقطع أصلية جديدة ومضمونة 100%.</div>
           </div>
         </div>
 
@@ -163,7 +163,7 @@
           </div>
           <div>
             <div style="font-size: 0.82rem; font-weight: 800; color: #fff;">تفعيل فوري</div>
-            <div style="font-size: 0.72rem; color: var(--rq-text-muted);">معالجة آلية للطلب فور تأكيد الدفع.</div>
+            <div style="font-size: 0.72rem; color: var(--rq-text-muted);">تجهيز وتغليف وشحن سريع وآمن للطلب.</div>
           </div>
         </div>
 
@@ -173,7 +173,7 @@
           </div>
           <div>
             <div style="font-size: 0.82rem; font-weight: 800; color: #fff;">دفع آمن ومحمي</div>
-            <div style="font-size: 0.72rem; color: var(--rq-text-muted);">بوابات دفع مشفرة ومتوافقة مع المعايير.</div>
+            <div style="font-size: 0.72rem; color: var(--rq-text-muted);">طرق دفع متعددة محلية وإلكترونية موثوقة.</div>
           </div>
         </div>
 
@@ -183,7 +183,7 @@
           </div>
           <div>
             <div style="font-size: 0.82rem; font-weight: 800; color: #fff;">دعم فني متواصل</div>
-            <div style="font-size: 0.72rem; color: var(--rq-text-muted);">فريق دعم هندسي جاهز لمساعدتك دائماً.</div>
+            <div style="font-size: 0.72rem; color: var(--rq-text-muted);">فريق دعم فني وتقني متواجد للإجابة عن استفساراتك.</div>
           </div>
         </div>
       </div>
@@ -248,7 +248,7 @@
           {% if variants %}
           <div style="margin-bottom: 1.25rem;">
             <div class="rq-pdp-variant-selector-title">
-              <span>اختر الباقة / الفئة:</span>
+              <span>اختر الموديل / السعة / المواصفات:</span>
               <span style="font-size: 0.72rem; color: var(--rq-text-muted);">{{ variants|length }} خيارات متاحة</span>
             </div>
 
@@ -345,7 +345,7 @@
           <div style="margin-bottom: 1.25rem;">
             <div style="display: flex; gap: 0.5rem;">
               <input type="text" name="coupon_code" id="coupon-input" placeholder="هل لديك كوبون خصم؟" class="rq-input" style="text-transform: uppercase;">
-              <button type="button" onclick="applyCoupon()" class="rq-btn-auth-login" style="padding: 0 1.25rem; font-size: 0.8rem; flex-shrink: 0;">
+              <button type="button" onclick="applyCoupon()" class="rq-btn-secondary" style="padding: 0 1.25rem; font-size: 0.8rem; flex-shrink: 0; height: 38px !important;">
                 تطبيق
               </button>
             </div>
@@ -413,8 +413,8 @@
           </button>
           {% else %}
           <button type="submit" id="pdp-submit-btn" class="rq-pdp-buy-now">
-            <i class="fas fa-bolt"></i>
-            <span>تأكيد وشراء الطلب الآن</span>
+            <i class="fas fa-check-circle"></i>
+            <span>تأكيد الطلب الآن</span>
           </button>
           {% endif %}
 

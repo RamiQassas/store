@@ -30,11 +30,11 @@
             {% if selected_category %}
               {{ selected_category.name }}
             {% else %}
-              كتالوج المنتجات والخدمات الرقمية
+              كتالوج الأجهزة والتقنيات
             {% endif %}
           </h1>
           <p style="font-size: 0.88rem; color: var(--rq-text-muted); margin: 0; max-width: 650px;">
-            تصفح أكثر من 60 خدمة وبطاقة رقمية، شدات ألعاب، اشتراكات ترفيهية، وتجهيزات شبكات وعتاد بأفضل أسعار السوق مع ضمان الاستلام الفوري.
+            تصفح مجموعتنا الواسعة من الهواتف الذكية، الحواسيب المحمولة، كاميرات المراقبة والتصوير، راوترات وشبكات الإنترنت، والإكسسوارات الأصلية بضمان رسمي.
           </p>
         </div>
 
@@ -43,9 +43,9 @@
           <form method="get" action="{% url 'catalog' %}" style="position: relative;">
             {% if active_category %}<input type="hidden" name="category" value="{{ active_category }}">{% endif %}
             <i class="fas fa-search" style="position: absolute; right: 1.1rem; top: 50%; transform: translateY(-50%); color: var(--rq-primary-light); font-size: 0.85rem; pointer-events: none;"></i>
-            <input type="text" name="q" value="{{ query }}" placeholder="ابحث باسم الخدمة، اللعبة، أو البطاقة..." class="rq-search-input" style="padding-right: 2.75rem;">
+            <input type="text" name="q" value="{{ query }}" placeholder="ابحث عن هاتف، لابتوب، كاميرا، راوتر، أو ملحقات..." class="rq-search-input" style="padding-right: 2.75rem;">
             {% if query %}
-            <a href="{% url 'catalog' %}{% if active_category %}?category={{ active_category }}{% endif %}" style="position: absolute; left: 0.85rem; top: 50%; transform: translateY(-50%); color: var(--rq-text-muted); font-size: 0.85rem;" title="ظ…ط³ط­">
+            <a href="{% url 'catalog' %}{% if active_category %}?category={{ active_category }}{% endif %}" style="position: absolute; left: 0.85rem; top: 50%; transform: translateY(-50%); color: var(--rq-text-muted); font-size: 0.85rem;" title="مسح البحث">
               <i class="fas fa-times"></i>
             </a>
             {% endif %}
@@ -201,12 +201,12 @@
           {% if total_products_count > 0 %}
           <div style="display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 1rem; background: var(--rq-surface-card); border: 1px solid var(--rq-border); border-radius: var(--rq-radius-lg); padding: 0.85rem 1.25rem;">
             {% if page_obj.has_previous %}
-            <a href="?start={{ prev_start }}{% if query %}&q={{ query }}{% endif %}{% if active_category %}&category={{ active_category }}{% endif %}{% if sort %}&sort={{ sort }}{% endif %}&view=products" class="rq-btn-3d-secondary" style="padding: 0.45rem 1.15rem; font-size: 0.8rem;">
+            <a href="?start={{ prev_start }}{% if query %}&q={{ query }}{% endif %}{% if active_category %}&category={{ active_category }}{% endif %}{% if sort %}&sort={{ sort }}{% endif %}&view=products" class="rq-btn-secondary rq-btn-sm">
               <i class="fas fa-chevron-right text-xs"></i>
               <span>السابق</span>
             </a>
             {% else %}
-            <span style="opacity: 0.35; cursor: not-allowed;" class="rq-btn-3d-secondary" style="padding: 0.45rem 1.15rem; font-size: 0.8rem;">
+            <span style="opacity: 0.35; cursor: not-allowed;" class="rq-btn-secondary rq-btn-sm">
               <i class="fas fa-chevron-right text-xs"></i>
               <span>السابق</span>
             </span>
@@ -217,12 +217,12 @@
             </div>
 
             {% if page_obj.has_next %}
-            <a href="?start={{ next_start }}{% if query %}&q={{ query }}{% endif %}{% if active_category %}&category={{ active_category }}{% endif %}{% if sort %}&sort={{ sort }}{% endif %}&view=products" class="rq-btn-3d-secondary" style="padding: 0.45rem 1.15rem; font-size: 0.8rem;">
+            <a href="?start={{ next_start }}{% if query %}&q={{ query }}{% endif %}{% if active_category %}&category={{ active_category }}{% endif %}{% if sort %}&sort={{ sort }}{% endif %}&view=products" class="rq-btn-secondary rq-btn-sm">
               <span>التالي</span>
               <i class="fas fa-chevron-left text-xs"></i>
             </a>
             {% else %}
-            <span style="opacity: 0.35; cursor: not-allowed;" class="rq-btn-3d-secondary" style="padding: 0.45rem 1.15rem; font-size: 0.8rem;">
+            <span style="opacity: 0.35; cursor: not-allowed;" class="rq-btn-secondary rq-btn-sm">
               <span>التالي</span>
               <i class="fas fa-chevron-left text-xs"></i>
             </span>
