@@ -76,27 +76,46 @@
           <div class="rq-method-card {% if forloop.first %}selected{% endif %}"
                data-method-id="{{ m.id }}"
                data-method-name="{{ m.name|escape }}"
-               data-currency-id="{{ m.currency.id }}"
-               data-currency-code="{{ m.currency.code }}"
-               data-currency-symbol="{{ m.currency.symbol }}"
-               data-min="{{ m.min_deposit }}"
-               data-max="{{ m.max_deposit }}"
-               data-fee="{{ m.deposit_fee_percent }}"
-               data-instructions="{{ m.instructions|default:''|escapejs }}"
+               data-is-gateway="{% if m.gateway and m.gateway.is_active %}true{% else %}false{% endif %}"
+               data-gateway-provider="{% if m.gateway %}{{ m.gateway.provider }}{% endif %}"
+               data-currency-id="{{ m.supported_currencies.first.id|default:'' }}"
+               data-currency-code="{{ m.supported_currencies.first.code|default:'USD' }}"
+               data-currency-symbol="{{ m.supported_currencies.first.symbol|default:'$' }}"
+               data-min="{{ m.deposit_min_amount|default:0 }}"
+               data-max="{{ m.deposit_max_amount|default:0 }}"
+               data-fee="0"
+               data-instructions="{{ m.deposit_instructions|default:''|escapejs }}"
                data-currencies='[{% for c in m.supported_currencies.all %}{"id":"{{ c.id }}","code":"{{ c.code }}","symbol":"{{ c.symbol }}","name":"{{ c.name }}"}{% if not forloop.last %},{% endif %}{% endfor %}]'
                onclick="selectDepositMethod(this)">
             
-            {% if m.logo %}
+            {% if m.gateway and m.gateway.provider == 'sham_cash' %}
+            <img src="/static/site/img/brands/shamcash.svg" alt="{{ m.name }}" class="rq-method-logo" style="height: 40px; width: 40px; object-fit: contain;">
+            {% elif m.gateway and m.gateway.provider == 'paymera' %}
+            <img src="/media/payment-methods/logos/paymera.png" alt="{{ m.name }}" class="rq-method-logo" style="height: 40px; width: 40px; object-fit: contain;">
+            {% elif m.logo %}
             <img src="{{ m.logo.url }}" alt="{{ m.name }}" class="rq-method-logo">
             {% else %}
-            <div style="width: 48px; height: 48px; border-radius: 12px; background: rgba(37, 99, 235, 0.15); color: #3b82f6; display: flex; align-items: center; justify-content: center; font-size: 1.5rem;">
+            <div style="width: 44px; height: 44px; border-radius: 12px; background: rgba(37, 99, 235, 0.15); color: #3b82f6; display: flex; align-items: center; justify-content: center; font-size: 1.4rem;">
               <i class="fas fa-money-bill-wave"></i>
             </div>
             {% endif %}
 
-            <div>
-              <div style="font-size: 0.85rem; font-weight: 800; color: #fff;">{{ m.name }}</div>
-              <span style="font-size: 0.7rem; color: var(--rq-text-muted);">{{ m.currency.code }}</span>
+            <div style="flex: 1;">
+              <div style="display: flex; align-items: center; justify-content: space-between; gap: 0.5rem; margin-bottom: 0.25rem;">
+                <div style="font-size: 0.88rem; font-weight: 800; color: #fff;">{{ m.name }}</div>
+                {% if m.gateway and m.gateway.is_active %}
+                <span style="font-size: 0.65rem; font-weight: 800; color: #00C9A7; background: rgba(0, 201, 167, 0.15); border: 1px solid rgba(0, 201, 167, 0.3); padding: 0.15rem 0.45rem; border-radius: 6px;">
+                  ⚡ فوري مؤتمت
+                </span>
+                {% else %}
+                <span style="font-size: 0.65rem; color: #94a3b8; background: rgba(255, 255, 255, 0.05); padding: 0.15rem 0.45rem; border-radius: 6px;">
+                  تحويل يدوي
+                </span>
+                {% endif %}
+              </div>
+              <span style="font-size: 0.72rem; color: var(--rq-text-muted);">
+                {% for c in m.supported_currencies.all %}{{ c.code }}{% if not forloop.last %} • {% endif %}{% empty %}USD{% endfor %}
+              </span>
             </div>
           </div>
           {% endfor %}
@@ -119,6 +138,17 @@
           <i class="fas fa-calculator text-blue-500"></i>
           <span>الخطوة 2: تحديد المبلغ وتعليمات التحويل</span>
         </h3>
+        <!-- Automated Gateway Instant Notice -->
+        <div id="gateway-auto-notice" style="display: none; margin-bottom: 1.5rem; padding: 1.15rem 1.25rem; border-radius: var(--rq-radius-md); background: rgba(0, 201, 167, 0.08); border: 1.5px solid rgba(0, 201, 167, 0.35);">
+          <div style="display: flex; align-items: center; gap: 0.6rem; color: #00C9A7; font-weight: 800; font-size: 0.95rem; margin-bottom: 0.35rem;">
+            <i class="fas fa-bolt text-lg"></i>
+            <span id="gateway-auto-title">بوابة شام كاش - دفع وشحن فوري مؤتمت 100%</span>
+          </div>
+          <p id="gateway-auto-desc" style="font-size: 0.82rem; color: #cbd5e1; margin: 0; line-height: 1.7;">
+            سيتم توجيهك فوراً وبأمان إلى بوابة الدفع لإتمام السداد، وسيتم شحن الرصيد في محفظتك تلقائياً دون أي حاجة لرفع إشعار تحويل يدوي أو انتظار الموافقة من الإدارة.
+          </p>
+        </div>
+
 
         <!-- Instructions Box -->
         <div id="method-instructions-box" style="background: rgba(0, 0, 0, 0.35); border: 1px solid rgba(59, 130, 246, 0.3); border-radius: var(--rq-radius-md); padding: 1.25rem; margin-bottom: 1.5rem;">
@@ -164,9 +194,16 @@
             <i class="fas fa-arrow-right text-xs"></i>
             <span>الرجوع للوسائل</span>
           </button>
-          <button type="button" onclick="goToStep(3)" class="rq-btn-auth-register" style="padding: 0.75rem 2rem; font-size: 0.88rem;">
+          <!-- Button for Manual Transfer Methods (Goes to Step 3 to upload proof) -->
+          <button type="button" id="btn-to-step-3" onclick="goToStep(3)" class="rq-btn-auth-register" style="padding: 0.75rem 2rem; font-size: 0.88rem;">
             <span>متابعة لإرفاق الإشعار</span>
             <i class="fas fa-arrow-left text-xs"></i>
+          </button>
+
+          <!-- Button for Automated Instant Gateways (Submits form directly & redirects to gateway!) -->
+          <button type="submit" id="btn-gateway-direct-submit" class="rq-btn-auth-register" style="display: none; background: linear-gradient(135deg, #00C9A7 0%, #008f75 100%); padding: 0.85rem 2.25rem; font-size: 0.92rem; font-weight: 800; box-shadow: 0 4px 20px rgba(0, 201, 167, 0.4);">
+            <span id="gateway-submit-btn-text">الانتقال للدفع الفوري عبر شام كاش ⚡</span>
+            <i class="fas fa-external-link-alt text-xs mr-1"></i>
           </button>
         </div>
       </div>
@@ -288,6 +325,8 @@ function selectDepositMethod(el) {
   activeMethodData = {
     id: el.getAttribute('data-method-id'),
     name: el.getAttribute('data-method-name'),
+    isGateway: el.getAttribute('data-is-gateway') === 'true',
+    gatewayProvider: el.getAttribute('data-gateway-provider') || '',
     currencyId: el.getAttribute('data-currency-id'),
     currencyCode: el.getAttribute('data-currency-code'),
     currencySymbol: el.getAttribute('data-currency-symbol'),
@@ -353,6 +392,47 @@ function renderCurrencySelector(currencies) {
 }
 
 function updateMethodDetailsView() {
+  const btnToStep3 = document.getElementById('btn-to-step-3');
+  const btnGwSubmit = document.getElementById('btn-gateway-direct-submit');
+  const gwNotice = document.getElementById('gateway-auto-notice');
+  const gwTitle = document.getElementById('gateway-auto-title');
+  const gwDesc = document.getElementById('gateway-auto-desc');
+  const gwBtnText = document.getElementById('gateway-submit-btn-text');
+  const stepTab3 = document.getElementById('step-tab-3');
+
+  if (activeMethodData.isGateway) {
+    if (btnToStep3) btnToStep3.style.display = 'none';
+    if (btnGwSubmit) btnGwSubmit.style.display = 'inline-flex';
+    if (gwNotice) gwNotice.style.display = 'block';
+
+    if (activeMethodData.gatewayProvider === 'sham_cash') {
+      if (gwTitle) gwTitle.innerText = 'بوابة شام كاش (ShamCash) - دفع وشحن فوري مؤتمت 100%';
+      if (gwDesc) gwDesc.innerText = 'سيتم توجيهك فوراً وبأمان إلى تطبيق/بوابة شام كاش لإتمام السداد، وسيتم شحن الرصيد في محفظتك تلقائياً دون أي حاجة لرفع إشعار تحويل يدوي أو انتظار الموافقة من الإدارة.';
+      if (gwBtnText) gwBtnText.innerText = 'الانتقال للدفع الفوري عبر شام كاش ⚡';
+      if (btnGwSubmit) btnGwSubmit.style.background = 'linear-gradient(135deg, #00C9A7 0%, #008f75 100%)';
+    } else if (activeMethodData.gatewayProvider === 'paymera') {
+      if (gwTitle) gwTitle.innerText = 'بوابة بيميرا (Paymera) - دفع فوري مؤتمت بالبطاقة المصرفية';
+      if (gwDesc) gwDesc.innerText = 'سيتم توجيهك فوراً إلى بوابة بيميرا لسداد المبلغ ببطاقتك المصرفية وشحن الرصيد فوراً.';
+      if (gwBtnText) gwBtnText.innerText = 'الانتقال للدفع الفوري عبر بيميرا 💳';
+      if (btnGwSubmit) btnGwSubmit.style.background = 'linear-gradient(135deg, #7c3aed 0%, #6d28d9 100%)';
+    }
+
+    if (stepTab3) {
+      stepTab3.style.opacity = '0.35';
+      const labelSpan = stepTab3.querySelector('span');
+      if (labelSpan) labelSpan.innerText = 'إثبات التحويل (غير مطلوب ⚡)';
+    }
+  } else {
+    if (btnToStep3) btnToStep3.style.display = 'inline-flex';
+    if (btnGwSubmit) btnGwSubmit.style.display = 'none';
+    if (gwNotice) gwNotice.style.display = 'none';
+    if (stepTab3) {
+      stepTab3.style.opacity = '1';
+      const labelSpan = stepTab3.querySelector('span');
+      if (labelSpan) labelSpan.innerText = 'إثبات التحويل';
+    }
+  }
+
   const instrText = document.getElementById('method-instructions-text');
   const limitsHint = document.getElementById('amount-limits-hint');
   const currLabel = document.getElementById('amount-currency-label');

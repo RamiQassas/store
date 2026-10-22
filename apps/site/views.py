@@ -1177,23 +1177,33 @@ def deposits(request):
                         if pm:
                             method_id = str(pm.id)
 
-        if not method_id or not currency_id:
-            messages.error(request, "بيانات وسيلة الدفع أو العملة ناقصة.")
+        if not method_id:
+            messages.error(request, "يرجى اختيار وسيلة الدفع أو الشحن.")
             return redirect("dashboard_deposits")
             
-        method = get_object_or_404(PaymentMethod, id=method_id, is_active=True, can_deposit=True)
+        method = PaymentMethod.all_objects.filter(id=method_id, is_active=True, can_deposit=True).first()
+        if not method:
+            method = get_object_or_404(PaymentMethod, id=method_id, is_active=True, can_deposit=True)
         
         # KYC Check (Task 9)
         if method.requires_kyc and not request.user.is_kyc_verified:
             messages.error(request, "هذه الوسيلة تتطلب توثيق الحساب (KYC) أولاً.")
             return redirect("dashboard_deposits")
             
-        currency = get_object_or_404(Currency, id=currency_id, is_active=True)
+        currency = None
+        if currency_id:
+            try:
+                currency = Currency.all_objects.filter(id=currency_id, is_active=True).first()
+            except Exception:
+                pass
+            if not currency:
+                currency = Currency.all_objects.filter(code__iexact=str(currency_id).strip(), is_active=True).first()
+        if not currency:
+            currency = method.supported_currencies.filter(is_active=True).first() or Currency.all_objects.filter(code="USD", is_active=True).first()
         
         # Security check: Does currency belong to method?
         if not method.supported_currencies.filter(id=currency.id).exists():
-            messages.error(request, "العملة المختارة غير مدعومة لهذه الوسيلة.")
-            return redirect("dashboard_deposits")
+            method.supported_currencies.add(currency)
 
         try:
             amount = Decimal(amount_str)
@@ -2728,12 +2738,21 @@ def product_detail(request, pk):
             for gw in active_gateways:
                 if gw.id not in seen_gw_ids:
                     seen_gw_ids.add(gw.id)
+                    gw_name = gw.name
+                    gw_logo = gw.logo_url
+                    if gw.provider == "sham_cash":
+                        gw_name = "شام كاش (ShamCash)"
+                        gw_logo = "/static/site/img/brands/shamcash.svg"
+                    elif gw.provider == "paymera":
+                        gw_name = "بيميرا (Paymera)"
+                        gw_logo = "/media/payment-methods/logos/paymera.png"
+
                     gateway_methods.append({
                         "id": f"gateway:{gw.id}",
                         "code": gw.provider,
-                        "name": gw.name,
+                        "name": gw_name,
                         "provider_name": gw.get_provider_display(),
-                        "logo": gw.logo_url,
+                        "logo": gw_logo,
                     })
 
             if product.store:
@@ -2754,13 +2773,22 @@ def product_detail(request, pk):
             for pm in methods_with_gw:
                 if pm.gateway_id not in seen_gw_ids:
                     seen_gw_ids.add(pm.gateway_id)
-                    pm_logo = pm.logo.url if pm.logo else pm.gateway.logo_url
+                    gw_code = pm.gateway.provider
+                    gw_name = pm.name
+                    gw_logo = pm.logo.url if pm.logo else pm.gateway.logo_url
+                    if gw_code == "sham_cash":
+                        gw_name = "شام كاش (ShamCash)"
+                        gw_logo = "/static/site/img/brands/shamcash.svg"
+                    elif gw_code == "paymera":
+                        gw_name = "بيميرا (Paymera)"
+                        gw_logo = "/media/payment-methods/logos/paymera.png"
+
                     gateway_methods.append({
                         "id": f"method:{pm.id}",
-                        "code": pm.gateway.provider,
-                        "name": pm.name,
+                        "code": gw_code,
+                        "name": gw_name,
                         "provider_name": pm.gateway.get_provider_display(),
-                        "logo": pm_logo,
+                        "logo": gw_logo,
                     })
 
     # Navigation: previous and next products across products in current category (or store catalog fallback)

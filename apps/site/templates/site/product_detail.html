@@ -330,60 +330,80 @@
             <div id="coupon-feedback" style="font-size: 0.72rem; margin-top: 0.35rem; display: none;"></div>
           </div>
 
-          <!-- 6. Payment Method Selector -->
+          <!-- 6. Payment Method Selector (Prominent Side-by-Side Direct Buttons) -->
           <div style="margin-bottom: 1.5rem;">
-            <div style="font-size: 0.82rem; font-weight: 800; color: #e2e8f0; margin-bottom: 0.65rem;">طريقة الدفع:</div>
+            <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.65rem;">
+              <span style="font-size: 0.85rem; font-weight: 800; color: #e2e8f0;">طريقة الدفع والشراء:</span>
+              <span id="pdp-active-pm-badge" style="font-size: 0.72rem; font-weight: 800; color: #38bdf8; background: rgba(56, 189, 248, 0.12); padding: 0.15rem 0.55rem; border-radius: 6px; border: 1px solid rgba(56, 189, 248, 0.3);">
+                محفظة المتجر
+              </span>
+            </div>
             
-            <div style="display: flex; flex-direction: column; gap: 0.5rem;">
-              <!-- Wallet Option -->
-              <label style="display: flex; align-items: center; justify-content: space-between; padding: 0.75rem 1rem; border-radius: var(--rq-radius-md); background: rgba(0, 0, 0, 0.3); border: 1px solid var(--rq-border); cursor: pointer;">
-                <div style="display: flex; align-items: center; gap: 0.65rem;">
-                  <input type="radio" name="payment_method" value="wallet" checked style="accent-color: var(--rq-primary);" onchange="handlePaymentMethodChange(this)">
-                  <span style="font-size: 0.85rem; font-weight: 800; color: #fff;">رصيد المحفظة</span>
+            <input type="hidden" name="payment_method" id="selected-payment-method" value="wallet">
+
+            <!-- Side-by-side Button Cards Grid -->
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(135px, 1fr)); gap: 0.5rem;" id="pdp-pm-buttons-grid">
+              
+              <!-- 1. Store Wallet Button -->
+              <div class="pdp-pm-card active" id="pm-btn-wallet" onclick="selectPdpMethod('wallet', this)" style="display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 0.35rem; padding: 0.85rem 0.5rem; border-radius: var(--rq-radius-md); background: rgba(56, 189, 248, 0.08); border: 2px solid #38bdf8; cursor: pointer; transition: all 0.2s; text-align: center;">
+                <div style="display: flex; align-items: center; gap: 0.4rem;">
+                  <i class="fas fa-wallet text-sky-400" style="font-size: 1rem;"></i>
+                  <span style="font-size: 0.82rem; font-weight: 800; color: #fff;">رصيد المحفظة</span>
                 </div>
-                {% if user.is_authenticated and user.wallet %}
-                <span class="tabular-nums" style="font-size: 0.78rem; font-weight: 800; color: #34d399;">
+                <div style="font-size: 0.7rem; color: #34d399; font-weight: 700;">
+                  {% if user.is_authenticated and user.wallet %}
                   المتاح: {% format_price user.wallet.available_balance %}
-                </span>
-                {% else %}
-                <span style="font-size: 0.72rem; color: var(--rq-text-muted);">تسجيل الدخول مطلوب</span>
-                {% endif %}
-              </label>
-
-              <!-- Direct Gateways (Paymera etc.) -->
-              {% for gw in gateway_methods %}
-              <label style="display: flex; align-items: center; justify-content: space-between; padding: 0.75rem 1rem; border-radius: var(--rq-radius-md); background: rgba(0, 0, 0, 0.3); border: 1px solid var(--rq-border); cursor: pointer;">
-                <div style="display: flex; align-items: center; gap: 0.65rem;">
-                  <input type="radio" name="payment_method" value="{{ gw.id }}" data-gw-code="{{ gw.code }}" style="accent-color: var(--rq-primary);" onchange="handlePaymentMethodChange(this)">
-                  <span style="font-size: 0.85rem; font-weight: 800; color: #fff;">{{ gw.name }}</span>
-                </div>
-                {% if gw.logo %}
-                <img src="{{ gw.logo }}" alt="{{ gw.name }}" style="height: 20px; object-fit: contain;">
-                {% endif %}
-              </label>
-              {% endfor %}
-
-<!-- ShamCash Dual Currency Selection -->
-              <div id="shamcash-currency-box" style="display: none; margin-top: 0.75rem; padding: 0.85rem; border-radius: var(--rq-radius-md); background: rgba(0, 201, 167, 0.08); border: 1px dashed rgba(0, 201, 167, 0.4);">
-                <div style="font-size: 0.8rem; font-weight: 800; color: #00C9A7; margin-bottom: 0.5rem; display: flex; align-items: center; gap: 0.4rem;">
-                  <i class="fas fa-coins"></i>
-                  <span>اختر عملة الدفع عبر شام كاش:</span>
-                </div>
-                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem;">
-                  <label style="display: flex; align-items: center; gap: 0.5rem; padding: 0.5rem 0.75rem; border-radius: 8px; background: rgba(0,0,0,0.4); border: 1px solid rgba(255,255,255,0.1); cursor: pointer;">
-                    <input type="radio" name="gateway_currency" value="USD" checked onchange="updateShamCashDisplay()">
-                    <span style="font-size: 0.8rem; font-weight: 700; color: #fff;">بالدولار (USD $)</span>
-                  </label>
-                  <label style="display: flex; align-items: center; gap: 0.5rem; padding: 0.5rem 0.75rem; border-radius: 8px; background: rgba(0,0,0,0.4); border: 1px solid rgba(255,255,255,0.1); cursor: pointer;">
-                    <input type="radio" name="gateway_currency" value="SYP" onchange="updateShamCashDisplay()">
-                    <span style="font-size: 0.8rem; font-weight: 700; color: #fff;">بالليرة السورية (SYP)</span>
-                  </label>
-                </div>
-                <div id="shamcash-conversion-hint" style="display: none; margin-top: 0.5rem; font-size: 0.75rem; color: #34d399; font-weight: 700;">
-                  المبلغ التقريبي بالليرة السورية: <span id="shamcash-syp-preview">0</span> ل.س
+                  {% else %}
+                  <span style="color: var(--rq-text-muted);">رصيد المتجر</span>
+                  {% endif %}
                 </div>
               </div>
+
+              <!-- 2. ShamCash Direct Purchase Button -->
+              <div class="pdp-pm-card" id="pm-btn-shamcash" onclick="selectPdpMethod('sham_cash', this)" style="display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 0.35rem; padding: 0.85rem 0.5rem; border-radius: var(--rq-radius-md); background: rgba(0, 0, 0, 0.3); border: 2px solid var(--rq-border); cursor: pointer; transition: all 0.2s; text-align: center;">
+                <div style="display: flex; align-items: center; gap: 0.4rem;">
+                  <img src="/static/site/img/brands/shamcash.svg" alt="ShamCash" style="height: 18px; width: 18px; object-fit: contain;">
+                  <span style="font-size: 0.82rem; font-weight: 800; color: #fff;">شام كاش</span>
+                </div>
+                <div style="font-size: 0.68rem; font-weight: 800; color: #00C9A7; background: rgba(0, 201, 167, 0.15); padding: 0.15rem 0.45rem; border-radius: 4px;">
+                  ⚡ شراء مباشر فوري
+                </div>
+              </div>
+
+              <!-- 3. Paymera Direct Purchase Button -->
+              <div class="pdp-pm-card" id="pm-btn-paymera" onclick="selectPdpMethod('paymera', this)" style="display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 0.35rem; padding: 0.85rem 0.5rem; border-radius: var(--rq-radius-md); background: rgba(0, 0, 0, 0.3); border: 2px solid var(--rq-border); cursor: pointer; transition: all 0.2s; text-align: center;">
+                <div style="display: flex; align-items: center; gap: 0.4rem;">
+                  <img src="/media/payment-methods/logos/paymera.png" alt="Paymera" style="height: 18px; object-fit: contain;">
+                  <span style="font-size: 0.82rem; font-weight: 800; color: #fff;">بيميرا</span>
+                </div>
+                <div style="font-size: 0.68rem; font-weight: 800; color: #a78bfa; background: rgba(139, 92, 246, 0.15); padding: 0.15rem 0.45rem; border-radius: 4px;">
+                  💳 بطاقة بنكية
+                </div>
+              </div>
+
             </div>
+
+            <!-- ShamCash Dual Currency Selection Box (Opens when ShamCash is active) -->
+            <div id="shamcash-currency-box" style="display: none; margin-top: 0.75rem; padding: 0.85rem; border-radius: var(--rq-radius-md); background: rgba(0, 201, 167, 0.08); border: 1.5px dashed rgba(0, 201, 167, 0.45);">
+              <div style="font-size: 0.78rem; font-weight: 800; color: #00C9A7; margin-bottom: 0.5rem; display: flex; align-items: center; gap: 0.4rem;">
+                <i class="fas fa-coins"></i>
+                <span>اختر عملة الدفع والسداد عبر شام كاش:</span>
+              </div>
+              <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem;">
+                <label id="shamcash-curr-usd-label" style="display: flex; align-items: center; gap: 0.4rem; padding: 0.5rem 0.65rem; border-radius: 8px; background: rgba(0, 201, 167, 0.18); border: 1.5px solid #00C9A7; cursor: pointer;">
+                  <input type="radio" name="gateway_currency" value="USD" checked onchange="updateShamCashDisplay()" style="accent-color: #00C9A7;">
+                  <span style="font-size: 0.78rem; font-weight: 800; color: #fff;">بالدولار (USD $)</span>
+                </label>
+                <label id="shamcash-curr-syp-label" style="display: flex; align-items: center; gap: 0.4rem; padding: 0.5rem 0.65rem; border-radius: 8px; background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.1); cursor: pointer;">
+                  <input type="radio" name="gateway_currency" value="SYP" onchange="updateShamCashDisplay()" style="accent-color: #00C9A7;">
+                  <span style="font-size: 0.78rem; font-weight: 800; color: #fff;">بالليرة السورية (SYP)</span>
+                </label>
+              </div>
+              <div id="shamcash-conversion-hint" style="display: none; margin-top: 0.5rem; padding: 0.45rem 0.65rem; border-radius: 6px; background: rgba(0, 0, 0, 0.35); font-size: 0.75rem; color: #34d399; font-weight: 800;">
+                <i class="fas fa-calculator ml-1"></i> الإجمالي بالليرة السورية: <span id="shamcash-syp-preview" class="font-mono text-amber-300">0</span> ل.س
+              </div>
+            </div>
+
           </div>
 
           <!-- 7. Price Calculation Breakdown -->
@@ -500,6 +520,80 @@ function applyCoupon() {
       feedback.style.color = '#f87171';
       feedback.innerText = 'تعذر التحقق من الكوبون حالياً.';
     });
+}
+
+function selectPdpMethod(code, cardEl) {
+  document.getElementById('selected-payment-method').value = code;
+
+  // Update card styling
+  document.querySelectorAll('.pdp-pm-card').forEach(c => {
+    c.style.borderColor = 'var(--rq-border)';
+    c.style.background = 'rgba(0, 0, 0, 0.3)';
+    c.classList.remove('active');
+  });
+
+  if (cardEl) {
+    cardEl.classList.add('active');
+  }
+
+  const badge = document.getElementById('pdp-active-pm-badge');
+  const shamBox = document.getElementById('shamcash-currency-box');
+  const submitBtn = document.getElementById('pdp-submit-btn');
+
+  if (code === 'sham_cash') {
+    if (cardEl) {
+      cardEl.style.borderColor = '#00C9A7';
+      cardEl.style.background = 'rgba(0, 201, 167, 0.12)';
+    }
+    if (badge) {
+      badge.style.color = '#00C9A7';
+      badge.style.background = 'rgba(0, 201, 167, 0.15)';
+      badge.style.borderColor = 'rgba(0, 201, 167, 0.3)';
+      badge.innerText = 'شام كاش (شراء فوري)';
+    }
+    if (shamBox) shamBox.style.display = 'block';
+    if (submitBtn) {
+      submitBtn.innerHTML = '<i class="fas fa-bolt"></i> <span>الدفع والشراء المباشر عبر شام كاش ⚡</span>';
+      submitBtn.style.background = 'linear-gradient(135deg, #00C9A7 0%, #008f75 100%)';
+      submitBtn.style.boxShadow = '0 4px 20px rgba(0, 201, 167, 0.4)';
+    }
+    updateShamCashDisplay();
+  } else if (code === 'paymera') {
+    if (cardEl) {
+      cardEl.style.borderColor = '#8b5cf6';
+      cardEl.style.background = 'rgba(139, 92, 246, 0.12)';
+    }
+    if (badge) {
+      badge.style.color = '#a78bfa';
+      badge.style.background = 'rgba(139, 92, 246, 0.15)';
+      badge.style.borderColor = 'rgba(139, 92, 246, 0.3)';
+      badge.innerText = 'بيميرا (بطاقة مصرفية)';
+    }
+    if (shamBox) shamBox.style.display = 'none';
+    if (submitBtn) {
+      submitBtn.innerHTML = '<i class="fas fa-credit-card"></i> <span>الدفع والشراء المباشر عبر بيميرا 💳</span>';
+      submitBtn.style.background = 'linear-gradient(135deg, #7c3aed 0%, #6d28d9 100%)';
+      submitBtn.style.boxShadow = '0 4px 20px rgba(124, 58, 237, 0.4)';
+    }
+  } else {
+    // Wallet
+    if (cardEl) {
+      cardEl.style.borderColor = '#38bdf8';
+      cardEl.style.background = 'rgba(56, 189, 248, 0.08)';
+    }
+    if (badge) {
+      badge.style.color = '#38bdf8';
+      badge.style.background = 'rgba(56, 189, 248, 0.12)';
+      badge.style.borderColor = 'rgba(56, 189, 248, 0.25)';
+      badge.innerText = 'محفظة المتجر';
+    }
+    if (shamBox) shamBox.style.display = 'none';
+    if (submitBtn) {
+      submitBtn.innerHTML = '<i class="fas fa-check-circle"></i> <span>تأكيد الطلب الآن</span>';
+      submitBtn.style.background = '';
+      submitBtn.style.boxShadow = '';
+    }
+  }
 }
 
 function handlePaymentMethodChange(radio) {
