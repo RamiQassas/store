@@ -1,7 +1,7 @@
 ﻿{% extends "site/base.html" %}
 {% load static site_tags %}
 
-{% block title %}ط§ظ„ظƒطھط§ظ„ظˆط¬ ط§ظ„ط´ط§ظ…ظ„ ظ„ظ„ظ…ظ†طھط¬ط§طھ ظˆط§ظ„ط®ط¯ظ…ط§طھ | {% if is_tenant %}{{ STORE_NAME }}{% else %}ط±ظ‚ظ…ظٹط§طھ RAQAMIYAT{% endif %}{% endblock %}
+{% block title %}الكتالوج الشامل للمنتجات والخدمات | {% if is_tenant %}{{ STORE_NAME }}{% else %}رقميات RAQAMIYAT{% endif %}{% endblock %}
 
 {% block content %}
 <div style="min-height: 100vh; padding: 2rem 0 5rem;">
@@ -9,14 +9,14 @@
 
     <!-- â”€â”€ Breadcrumbs & Header â”€â”€ -->
     <div style="margin-bottom: 2rem; border-bottom: 1px solid var(--rq-border); padding-bottom: 1.5rem;">
-      <nav style="display: flex; align-items: center; gap: 0.5rem; font-size: 0.8rem; color: var(--rq-text-muted); margin-bottom: 0.85rem;" aria-label="ظ…ط³ط§ط± ط§ظ„طھطµظپط­">
+      <nav style="display: flex; align-items: center; gap: 0.5rem; font-size: 0.8rem; color: var(--rq-text-muted); margin-bottom: 0.85rem;" aria-label="مسار التصفح">
         <a href="{% url 'home' %}" style="display: flex; align-items: center; gap: 0.35rem; color: var(--rq-text-muted);">
           <i class="fas fa-home text-xs"></i>
-          <span>ط§ظ„ط±ط¦ظٹط³ظٹط©</span>
+          <span>الرئيسية</span>
         </a>
         <i class="fas fa-chevron-left text-[10px] text-slate-600"></i>
         <a href="{% url 'catalog' %}" style="color: var(--rq-primary-light); font-weight: 700;">
-          ط§ظ„ظƒطھط§ظ„ظˆط¬ ط§ظ„ط´ط§ظ…ظ„
+          الكتالوج الشامل
         </a>
         {% if selected_category %}
         <i class="fas fa-chevron-left text-[10px] text-slate-600"></i>
@@ -30,11 +30,11 @@
             {% if selected_category %}
               {{ selected_category.name }}
             {% else %}
-              ظƒطھط§ظ„ظˆط¬ ط§ظ„ظ…ظ†طھط¬ط§طھ ظˆط§ظ„ط®ط¯ظ…ط§طھ ط§ظ„ط±ظ‚ظ…ظٹط©
+              كتالوج المنتجات والخدمات الرقمية
             {% endif %}
           </h1>
           <p style="font-size: 0.88rem; color: var(--rq-text-muted); margin: 0; max-width: 650px;">
-            طھطµظپط­ ط£ظƒط«ط± ظ…ظ† 60 ط®ط¯ظ…ط© ظˆط¨ط·ط§ظ‚ط© ط±ظ‚ظ…ظٹط©طŒ ط´ط¯ط§طھ ط£ظ„ط¹ط§ط¨طŒ ط§ط´طھط±ط§ظƒط§طھ طھط±ظپظٹظ‡ظٹط©طŒ ظˆطھط¬ظ‡ظٹط²ط§طھ ط´ط¨ظƒط§طھ ظˆط¹طھط§ط¯ ط¨ط£ظپط¶ظ„ ط£ط³ط¹ط§ط± ط§ظ„ط³ظˆظ‚ ظ…ط¹ ط¶ظ…ط§ظ† ط§ظ„ط§ط³طھظ„ط§ظ… ط§ظ„ظپظˆط±ظٹ.
+            تصفح أكثر من 60 خدمة وبطاقة رقمية، شدات ألعاب، اشتراكات ترفيهية، وتجهيزات شبكات وعتاد بأفضل أسعار السوق مع ضمان الاستلام الفوري.
           </p>
         </div>
 
@@ -43,7 +43,7 @@
           <form method="get" action="{% url 'catalog' %}" style="position: relative;">
             {% if active_category %}<input type="hidden" name="category" value="{{ active_category }}">{% endif %}
             <i class="fas fa-search" style="position: absolute; right: 1.1rem; top: 50%; transform: translateY(-50%); color: var(--rq-primary-light); font-size: 0.85rem; pointer-events: none;"></i>
-            <input type="text" name="q" value="{{ query }}" placeholder="ط§ط¨ط­ط« ط¨ط§ط³ظ… ط§ظ„ط®ط¯ظ…ط©طŒ ط§ظ„ظ„ط¹ط¨ط©طŒ ط£ظˆ ط§ظ„ط¨ط·ط§ظ‚ط©..." class="rq-search-input" style="padding-right: 2.75rem;">
+            <input type="text" name="q" value="{{ query }}" placeholder="ابحث باسم الخدمة، اللعبة، أو البطاقة..." class="rq-search-input" style="padding-right: 2.75rem;">
             {% if query %}
             <a href="{% url 'catalog' %}{% if active_category %}?category={{ active_category }}{% endif %}" style="position: absolute; left: 0.85rem; top: 50%; transform: translateY(-50%); color: var(--rq-text-muted); font-size: 0.85rem;" title="ظ…ط³ط­">
               <i class="fas fa-times"></i>
@@ -57,7 +57,7 @@
     <!-- â”€â”€ Mobile Horizontal Category Pills â”€â”€ -->
     <div class="rq-categories-scroller lg:hidden" style="margin-bottom: 1.5rem;">
       <a href="{% url 'catalog' %}{% if query %}?q={{ query }}{% endif %}" style="flex-shrink: 0; padding: 0.45rem 1rem; border-radius: var(--rq-radius-full); font-size: 0.8rem; font-weight: 800; border: 1px solid {% if not active_category %}var(--rq-primary-light){% else %}var(--rq-border){% endif %}; background: {% if not active_category %}rgba(37, 99, 235, 0.15){% else %}var(--rq-surface-card){% endif %}; color: {% if not active_category %}#fff{% else %}var(--rq-text-muted){% endif %};">
-        ظƒط§ظپط© ط§ظ„ط£ظ‚ط³ط§ظ… ({{ all_products_count }})
+        كافة الأقسام ({{ all_products_count }})
       </a>
       {% for cat in categories %}
       {% if cat.product_count > 0 %}
@@ -79,14 +79,14 @@
             <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.85rem;">
               <h3 style="font-size: 0.88rem; font-weight: 900; color: #fff; margin: 0; display: flex; align-items: center; gap: 0.5rem;">
                 <i class="fas fa-layer-group text-blue-500"></i>
-                <span>ط£ظ‚ط³ط§ظ… ط§ظ„ظ…طھط¬ط±</span>
+                <span>أقسام المتجر</span>
               </h3>
               <span class="tabular-nums" style="font-size: 0.72rem; color: var(--rq-text-muted);">{{ categories|length }} ظپط¦ط§طھ</span>
             </div>
 
             <div style="display: flex; flex-direction: column; gap: 0.35rem; max-height: 420px; overflow-y: auto; padding-left: 0.25rem;">
               <a href="{% url 'catalog' %}{% if query %}?q={{ query }}{% endif %}" style="display: flex; align-items: center; justify-content: space-between; padding: 0.6rem 0.85rem; border-radius: var(--rq-radius-md); font-size: 0.825rem; font-weight: 700; transition: all 0.2s; background: {% if not active_category %}rgba(37, 99, 235, 0.15){% else %}transparent{% endif %}; color: {% if not active_category %}#fff{% else %}var(--rq-text-secondary){% endif %}; border: 1px solid {% if not active_category %}rgba(59, 130, 246, 0.35){% else %}transparent{% endif %};">
-                <span>ظƒط§ظپط© ط§ظ„ظ…ظ†طھط¬ط§طھ</span>
+                <span>كافة المنتجات</span>
                 <span class="tabular-nums" style="font-size: 0.72rem; font-weight: 800; color: var(--rq-primary-light); background: rgba(37, 99, 235, 0.12); padding: 0.15rem 0.5rem; border-radius: var(--rq-radius-full);">{{ all_products_count }}</span>
               </a>
 
@@ -106,9 +106,9 @@
             <div style="background: rgba(0, 0, 0, 0.3); border: 1px dashed rgba(245, 158, 11, 0.35); border-radius: var(--rq-radius-lg); padding: 1rem; text-align: center;">
               <i class="fas fa-lightbulb text-amber-400 text-lg mb-1 block"></i>
               <h5 style="font-size: 0.825rem; font-weight: 800; color: #fff; margin: 0 0 0.25rem;">طھط¨ط­ط« ط¹ظ† ط®ط¯ظ…ط© ط£ظˆ ط¬ظ‡ط§ط² ظ…ط­ط¯ط¯طں</h5>
-              <p style="font-size: 0.72rem; color: var(--rq-text-muted); margin: 0 0 0.75rem; line-height: 1.4;">ط£ط±ط³ظ„ ظ„ظ†ط§ ط·ظ„ط¨ظƒ ظˆط³ظ†ظˆظپط±ظ‡ ظ„ظƒ ط¨ط£ط³ط±ط¹ ظˆظ‚طھ ظˆط¨ط£ظپط¶ظ„ ط³ط¹ط±.</p>
+              <p style="font-size: 0.72rem; color: var(--rq-text-muted); margin: 0 0 0.75rem; line-height: 1.4;">أرسل لنا طلبك وسنوفره لك بأسرع وقت وبأفضل سعر.</p>
               <button type="button" onclick="openSuggestionModal()" style="width: 100%; padding: 0.5rem; border-radius: 8px; background: rgba(245, 158, 11, 0.15); border: 1px solid rgba(245, 158, 11, 0.3); color: #fbbf24; font-size: 0.75rem; font-weight: 800; cursor: pointer;">
-                ط§ظ‚طھط±ط§ط­ ظ…ظ†طھط¬ ط¬ط¯ظٹط¯
+                اقتراح منتج جديد
               </button>
             </div>
           </div>
@@ -125,28 +125,28 @@
           <div style="display: inline-flex; align-items: center; gap: 0.3rem; background: rgba(0, 0, 0, 0.4); padding: 0.25rem; border-radius: 12px; border: 1px solid var(--rq-border);">
             <button type="button" id="tab-products-btn" onclick="switchCatalogView('products')" style="padding: 0.45rem 0.95rem; border-radius: 8px; border: none; font-size: 0.78rem; font-weight: 800; cursor: pointer; display: inline-flex; align-items: center; gap: 0.4rem; transition: all 0.2s; {% if view_type != 'categories' %}background: #ffffff; color: #08090c;{% else %}background: transparent; color: var(--rq-text-muted);{% endif %}">
               <i class="fas fa-th-large"></i>
-              <span>ط§ظ„ظ…ظ†طھط¬ط§طھ</span>
+              <span>المنتجات</span>
             </button>
             <button type="button" id="tab-categories-btn" onclick="switchCatalogView('categories')" style="padding: 0.45rem 0.95rem; border-radius: 8px; border: none; font-size: 0.78rem; font-weight: 800; cursor: pointer; display: inline-flex; align-items: center; gap: 0.4rem; transition: all 0.2s; {% if view_type == 'categories' %}background: #ffffff; color: #08090c;{% else %}background: transparent; color: var(--rq-text-muted);{% endif %}">
               <i class="fas fa-th-large"></i>
-              <span>ط§ظ„ط£ظ‚ط³ط§ظ…</span>
+              <span>الأقسام</span>
             </button>
           </div>
 
           <div style="display: flex; align-items: center; gap: 1rem;">
             <span class="tabular-nums" style="font-size: 0.8rem; color: var(--rq-text-muted);" class="hidden sm:inline">
-              ط§ظ„ظ†طھط§ط¦ط¬: <strong style="color: #fff;">{{ total_products_count }}</strong> ط¹ظ†طµط±
+              النتائج: <strong style="color: #fff;">{{ total_products_count }}</strong> عنصر
             </span>
 
             <form method="get" style="display: flex; align-items: center; gap: 0.5rem; margin: 0;">
               {% if active_category %}<input type="hidden" name="category" value="{{ active_category }}">{% endif %}
               {% if query %}<input type="hidden" name="q" value="{{ query }}">{% endif %}
               <input type="hidden" name="view" value="{{ view_type|default:'products' }}">
-              <label for="sort-select" style="font-size: 0.78rem; color: var(--rq-text-muted); font-weight: 700;">طھط±طھظٹط¨:</label>
+              <label for="sort-select" style="font-size: 0.78rem; color: var(--rq-text-muted); font-weight: 700;">ترتيب:</label>
               <select id="sort-select" name="sort" onchange="this.form.submit()" class="rq-currency-select">
-                <option value="newest" {% if sort == "newest" or not sort %}selected{% endif %}>ط§ظ„ط£ط­ط¯ط« ط£ظˆظ„ط§ظ‹</option>
-                <option value="price_low" {% if sort == "price_low" %}selected{% endif %}>ط§ظ„ط³ط¹ط±: ط§ظ„ط£ظ‚ظ„ ط£ظˆظ„ط§ظ‹</option>
-                <option value="price_high" {% if sort == "price_high" %}selected{% endif %}>ط§ظ„ط³ط¹ط±: ط§ظ„ط£ط¹ظ„ظ‰ ط£ظˆظ„ط§ظ‹</option>
+                <option value="newest" {% if sort == "newest" or not sort %}selected{% endif %}>الأحدث أولاً</option>
+                <option value="price_low" {% if sort == "price_low" %}selected{% endif %}>السعر: الأقل أولاً</option>
+                <option value="price_high" {% if sort == "price_high" %}selected{% endif %}>السعر: الأعلى أولاً</option>
               </select>
             </form>
           </div>
@@ -162,7 +162,7 @@
                 {% if p.product_type == 'physical' %}
                 <span class="rq-badge-delivery-physical"><i class="fas fa-truck text-[9px]"></i> ط´ط­ظ† ظˆطھظˆطµظٹظ„</span>
                 {% else %}
-                <span class="rq-badge-delivery-instant"><i class="fas fa-bolt text-[9px]"></i> طھط³ظ„ظٹظ… ظپظˆط±ظٹ</span>
+                <span class="rq-badge-delivery-instant"><i class="fas fa-bolt text-[9px]"></i> تسليم فوري</span>
                 {% endif %}
                 <img src="{{ p_img }}" alt="{{ p.name }}" loading="lazy" onerror="this.onerror=null; this.src='{% static 'site/img/raqamiyat_logo_square.jpg' %}';">
               </a>
@@ -175,11 +175,11 @@
                 </div>
                 <div class="rq-card-footer">
                   <div>
-                    <span class="rq-price-label">ط§ظ„ط³ط¹ط± ظٹط¨ط¯ط£ ظ…ظ†</span>
+                    <span class="rq-price-label">السعر يبدأ من</span>
                     <span class="tabular-nums rq-price-val">{% product_starting_price p %}</span>
                   </div>
                   <a href="{% url 'product_detail' p.id %}" class="rq-card-buy-btn">
-                    <span>ط·ظ„ط¨ ظ…ط¨ط§ط´ط±</span>
+                    <span>طلب مباشر</span>
                     <i class="fas fa-arrow-left text-[9px]"></i>
                   </a>
                 </div>
@@ -188,10 +188,10 @@
             {% empty %}
             <div style="grid-column: 1 / -1; padding: 4rem 1.5rem; text-align: center; background: var(--rq-surface-card); border: 1px solid var(--rq-border); border-radius: var(--rq-radius-lg);">
               <i class="fas fa-search text-4xl text-slate-500 mb-3 block"></i>
-              <h3 style="font-size: 1.1rem; font-weight: 900; color: #fff; margin: 0 0 0.5rem;">ظ„ظ… ظٹطھظ… ط§ظ„ط¹ط«ظˆط± ط¹ظ„ظ‰ ظ†طھط§ط¦ط¬ ظ…ط·ط§ط¨ظ‚ط©</h3>
-              <p style="font-size: 0.85rem; color: var(--rq-text-muted); margin: 0 0 1.25rem;">ط¬ط±ط¨ ظƒطھط§ط¨ط© ظƒظ„ظ…ط§طھ ط¨ط­ط« ط£ط®ط±ظ‰ ط£ظˆ ط§ط³طھظƒط´ظپ ظƒط§ظپط© ط§ظ„ط£ظ‚ط³ط§ظ… ط§ظ„ظ…طھط§ط­ط©.</p>
+              <h3 style="font-size: 1.1rem; font-weight: 900; color: #fff; margin: 0 0 0.5rem;">لم يتم العثور على نتائج مطابقة</h3>
+              <p style="font-size: 0.85rem; color: var(--rq-text-muted); margin: 0 0 1.25rem;">جرب كتابة كلمات بحث أخرى أو استكشف كافة الأقسام المتاحة.</p>
               <a href="{% url 'catalog' %}" class="rq-section-link">
-                طھطµظپط­ ظƒط§ظپط© ط§ظ„ظ…ظ†طھط¬ط§طھ
+                تصفح كافة المنتجات
               </a>
             </div>
             {% endfor %}
@@ -203,27 +203,27 @@
             {% if page_obj.has_previous %}
             <a href="?start={{ prev_start }}{% if query %}&q={{ query }}{% endif %}{% if active_category %}&category={{ active_category }}{% endif %}{% if sort %}&sort={{ sort }}{% endif %}&view=products" class="rq-btn-3d-secondary" style="padding: 0.45rem 1.15rem; font-size: 0.8rem;">
               <i class="fas fa-chevron-right text-xs"></i>
-              <span>ط§ظ„ط³ط§ط¨ظ‚</span>
+              <span>السابق</span>
             </a>
             {% else %}
             <span style="opacity: 0.35; cursor: not-allowed;" class="rq-btn-3d-secondary" style="padding: 0.45rem 1.15rem; font-size: 0.8rem;">
               <i class="fas fa-chevron-right text-xs"></i>
-              <span>ط§ظ„ط³ط§ط¨ظ‚</span>
+              <span>السابق</span>
             </span>
             {% endif %}
 
             <div style="font-size: 0.82rem; font-weight: 800; color: var(--rq-text-muted);">
-              ط¹ط±ط¶ <span class="tabular-nums" style="color: #fbbf24;">{{ start_num }} - {{ end_num }}</span> ظ…ظ† ط£طµظ„ <span class="tabular-nums" style="color: #fff;">{{ total_products_count }}</span> ط¹ظ†طµط±
+              عرض <span class="tabular-nums" style="color: #fbbf24;">{{ start_num }} - {{ end_num }}</span> من أصل <span class="tabular-nums" style="color: #fff;">{{ total_products_count }}</span> عنصر
             </div>
 
             {% if page_obj.has_next %}
             <a href="?start={{ next_start }}{% if query %}&q={{ query }}{% endif %}{% if active_category %}&category={{ active_category }}{% endif %}{% if sort %}&sort={{ sort }}{% endif %}&view=products" class="rq-btn-3d-secondary" style="padding: 0.45rem 1.15rem; font-size: 0.8rem;">
-              <span>ط§ظ„طھط§ظ„ظٹ</span>
+              <span>التالي</span>
               <i class="fas fa-chevron-left text-xs"></i>
             </a>
             {% else %}
             <span style="opacity: 0.35; cursor: not-allowed;" class="rq-btn-3d-secondary" style="padding: 0.45rem 1.15rem; font-size: 0.8rem;">
-              <span>ط§ظ„طھط§ظ„ظٹ</span>
+              <span>التالي</span>
               <i class="fas fa-chevron-left text-xs"></i>
             </span>
             {% endif %}
@@ -249,7 +249,7 @@
               </div>
               <h4 style="font-size: 0.9rem; font-weight: 800; color: #fff; margin: 0;">{{ cat.name }}</h4>
               <span class="tabular-nums" style="font-size: 0.72rem; color: var(--rq-primary-light); background: rgba(37, 99, 235, 0.12); padding: 0.15rem 0.6rem; border-radius: var(--rq-radius-full);">
-                {{ cat.product_count }} ط¹ظ†طµط±
+                {{ cat.product_count }} عنصر
               </span>
             </a>
             {% endif %}
@@ -269,7 +269,7 @@
     <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.25rem; border-bottom: 1px solid var(--rq-border); padding-bottom: 0.85rem;">
       <h3 style="font-size: 1rem; font-weight: 900; color: #fff; margin: 0; display: flex; align-items: center; gap: 0.5rem;">
         <i class="fas fa-lightbulb text-amber-400"></i>
-        <span>ط§ظ‚طھط±ط§ط­ ظ…ظ†طھط¬ ط£ظˆ ط®ط¯ظ…ط© ط¬ط¯ظٹط¯ط©</span>
+        <span>اقتراح منتج أو خدمة جديدة</span>
       </h3>
       <button type="button" onclick="closeSuggestionModal()" style="background: transparent; border: none; color: #94a3b8; font-size: 1.2rem; cursor: pointer;">
         <i class="fas fa-times"></i>
@@ -280,24 +280,24 @@
     <form id="suggestion-form" action="{% url 'site_product_suggestion' %}" method="post" style="display: flex; flex-direction: column; gap: 1rem;">
       {% csrf_token %}
       <div>
-        <label style="display: block; font-size: 0.78rem; font-weight: 800; color: #cbd5e1; margin-bottom: 0.4rem;">ط§ط³ظ… ط§ظ„ط®ط¯ظ…ط© ط£ظˆ ط§ظ„ظ…ظ†طھط¬ ط§ظ„ظ…ط·ظ„ظˆط¨</label>
-        <input type="text" name="product_name" style="width: 100%; background: #080c16; border: 1px solid var(--rq-border); border-radius: 10px; padding: 0.75rem; color: #fff; font-size: 0.82rem; outline: none;" placeholder="ظ…ط«ط§ظ„: ط¨ط·ط§ظ‚ط© ط´ط­ظ† ط®ط§طµط©طŒ ط§ط´طھط±ط§ظƒ ط³ظ†ظˆظٹ..." required>
+        <label style="display: block; font-size: 0.78rem; font-weight: 800; color: #cbd5e1; margin-bottom: 0.4rem;">اسم الخدمة أو المنتج المطلوب</label>
+        <input type="text" name="product_name" style="width: 100%; background: #080c16; border: 1px solid var(--rq-border); border-radius: 10px; padding: 0.75rem; color: #fff; font-size: 0.82rem; outline: none;" placeholder="مثال: بطاقة شحن خاصة، اشتراك سنوي..." required>
       </div>
       <div>
-        <label style="display: block; font-size: 0.78rem; font-weight: 800; color: #cbd5e1; margin-bottom: 0.4rem;">طھظپط§طµظٹظ„ ط¥ط¶ط§ظپظٹط© ط£ظˆ ط±ط§ط¨ط·</label>
-        <textarea name="description" rows="3" style="width: 100%; background: #080c16; border: 1px solid var(--rq-border); border-radius: 10px; padding: 0.75rem; color: #fff; font-size: 0.82rem; outline: none;" placeholder="ط§ط°ظƒط± ط£ظٹط© طھظپط§طµظٹظ„ ط£ظˆ ط§ظ„ظ…طھط·ظ„ط¨ط§طھ ط§ظ„ط®ط§طµط©..." required></textarea>
+        <label style="display: block; font-size: 0.78rem; font-weight: 800; color: #cbd5e1; margin-bottom: 0.4rem;">تفاصيل إضافية أو رابط</label>
+        <textarea name="description" rows="3" style="width: 100%; background: #080c16; border: 1px solid var(--rq-border); border-radius: 10px; padding: 0.75rem; color: #fff; font-size: 0.82rem; outline: none;" placeholder="اذكر أية تفاصيل أو المتطلبات الخاصة..." required></textarea>
       </div>
       <button type="submit" id="suggestion-submit-btn" class="rq-btn-auth-register" style="width: 100%; justify-content: center; padding: 0.8rem;">
-        ط¥ط±ط³ط§ظ„ ط§ظ„ط§ظ‚طھط±ط§ط­ ظ„ظ„ط¥ط¯ط§ط±ط©
+        إرسال الاقتراح للإدارة
       </button>
       <div id="suggestion-feedback" style="font-size: 0.8rem; text-align: center; font-weight: 800;"></div>
     </form>
     {% else %}
     <div style="text-align: center; padding: 1.5rem 0; display: flex; flex-direction: column; align-items: center; gap: 1rem;">
       <i class="fas fa-lock text-3xl text-amber-400"></i>
-      <p style="font-size: 0.82rem; color: #cbd5e1; margin: 0;">ظٹط±ط¬ظ‰ طھط³ط¬ظٹظ„ ط§ظ„ط¯ط®ظˆظ„ ط¥ظ„ظ‰ ط­ط³ط§ط¨ظƒ ط£ظˆظ„ط§ظ‹ ظ„طھطھظ…ظƒظ† ظ…ظ† ط¥ط±ط³ط§ظ„ ط§ظ‚طھط±ط§ط­ ظ„ظ…ظ†طھط¬ ط¬ط¯ظٹط¯.</p>
+      <p style="font-size: 0.82rem; color: #cbd5e1; margin: 0;">يرجى تسجيل الدخول إلى حسابك أولاً لتتمكن من إرسال اقتراح لمنتج جديد.</p>
       <a href="{% url 'site_login' %}?next={{ request.path }}" class="rq-btn-auth-register" style="padding: 0.65rem 1.5rem;">
-        طھط³ط¬ظٹظ„ ط§ظ„ط¯ط®ظˆظ„ ط§ظ„ط¢ظ†
+        تسجيل الدخول الآن
       </a>
     </div>
     {% endif %}
@@ -362,7 +362,7 @@ function closeSuggestionModal() {
     form.addEventListener('submit', function(e) {
       e.preventDefault();
       btn.disabled = true;
-      btn.innerText = 'ط¬ط§ط±ظٹ ط§ظ„ط¥ط±ط³ط§ظ„...';
+      btn.innerText = 'جاري الإرسال...';
       feedback.innerText = '';
 
       fetch(form.action, {
@@ -373,18 +373,18 @@ function closeSuggestionModal() {
       .then(function(res) { return res.json(); })
       .then(function(data) {
         if (data.status === 'success') {
-          feedback.innerHTML = '<span style="color: #34d399;">âœ… طھظ… ط¥ط±ط³ط§ظ„ ط§ظ‚طھط±ط§ط­ظƒ ط¨ظ†ط¬ط§ط­طŒ ط´ظƒط±ط§ظ‹ ظ„ظƒ!</span>';
+          feedback.innerHTML = '<span style="color: #34d399;">✅ تم إرسال اقتراحك بنجاح، شكراً لك!</span>';
           setTimeout(closeSuggestionModal, 2200);
         } else {
-          feedback.innerHTML = '<span style="color: #f87171;">âڑ ï¸ڈ ' + (data.message || 'ط­ط¯ط« ط®ط·ط£ ط£ط«ظ†ط§ط، ط§ظ„ط¥ط±ط³ط§ظ„') + '</span>';
+          feedback.innerHTML = '<span style="color: #f87171;">⚠️ ' + (data.message || 'حدث خطأ أثناء الإرسال') + '</span>';
           btn.disabled = false;
-          btn.innerText = 'ط¥ط±ط³ط§ظ„ ط§ظ„ط§ظ‚طھط±ط§ط­ ظ„ظ„ط¥ط¯ط§ط±ط©';
+          btn.innerText = 'إرسال الاقتراح للإدارة';
         }
       })
       .catch(function(err) {
-        feedback.innerHTML = '<span style="color: #f87171;">âڑ ï¸ڈ ط­ط¯ط« ط®ط·ط£ ظپظٹ ط§ظ„ط§طھطµط§ظ„طŒ ظٹط±ط¬ظ‰ ط§ظ„ظ…ط­ط§ظˆظ„ط© ظ„ط§ط­ظ‚ط§ظ‹</span>';
+        feedback.innerHTML = '<span style="color: #f87171;">⚠️ حدث خطأ في الاتصال، يرجى المحاولة لاحقاً</span>';
         btn.disabled = false;
-        btn.innerText = 'ط¥ط±ط³ط§ظ„ ط§ظ„ط§ظ‚طھط±ط§ط­ ظ„ظ„ط¥ط¯ط§ط±ط©';
+        btn.innerText = 'إرسال الاقتراح للإدارة';
       });
     });
   }
