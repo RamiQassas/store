@@ -160,15 +160,15 @@
             <div class="rq-card">
               <a href="{% url 'product_detail' p.id %}" class="rq-card-media">
                 {% if p.product_type == 'physical' %}
-                <span class="rq-badge-delivery-physical"><i class="fas fa-truck text-[9px]"></i> ط´ط­ظ† ظˆطھظˆطµظٹظ„</span>
+                <span class="rq-badge-delivery-physical"><i class="fas fa-truck text-[9px]"></i> شحن وتوصيل فوري</span>
                 {% else %}
-                <span class="rq-badge-delivery-instant"><i class="fas fa-bolt text-[9px]"></i> تسليم فوري</span>
+                <span class="rq-badge-delivery-instant" style="background: rgba(16, 185, 129, 0.12); color: #34d399; border-color: rgba(16, 185, 129, 0.3);"><i class="fas fa-shield-check text-[9px]"></i> جهاز أصلي معتمد</span>
                 {% endif %}
                 <img src="{{ p_img }}" alt="{{ p.name }}" loading="lazy" onerror="this.onerror=null; this.src='{% static 'site/img/raqamiyat_logo_square.jpg' %}';">
               </a>
               <div class="rq-card-body">
                 <div>
-                  <span class="rq-card-category">{{ p.category.name|default:'ط®ط¯ظ…ط© ظ…ط¹طھظ…ط¯ط©' }}</span>
+                  <span class="rq-card-category">{{ p.category.name|default:'أجهزة وتقنيات' }}</span>
                   <a href="{% url 'product_detail' p.id %}">
                     <h4 class="rq-card-title">{{ p.name }}</h4>
                   </a>
@@ -269,7 +269,7 @@
     <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.25rem; border-bottom: 1px solid var(--rq-border); padding-bottom: 0.85rem;">
       <h3 style="font-size: 1rem; font-weight: 900; color: #fff; margin: 0; display: flex; align-items: center; gap: 0.5rem;">
         <i class="fas fa-lightbulb text-amber-400"></i>
-        <span>اقتراح منتج أو خدمة جديدة</span>
+        <span>اقتراح جهاز أو منتج تقني جديد</span>
       </h3>
       <button type="button" onclick="closeSuggestionModal()" style="background: transparent; border: none; color: #94a3b8; font-size: 1.2rem; cursor: pointer;">
         <i class="fas fa-times"></i>
@@ -280,8 +280,8 @@
     <form id="suggestion-form" action="{% url 'site_product_suggestion' %}" method="post" style="display: flex; flex-direction: column; gap: 1rem;">
       {% csrf_token %}
       <div>
-        <label style="display: block; font-size: 0.78rem; font-weight: 800; color: #cbd5e1; margin-bottom: 0.4rem;">اسم الخدمة أو المنتج المطلوب</label>
-        <input type="text" name="product_name" style="width: 100%; background: #080c16; border: 1px solid var(--rq-border); border-radius: 10px; padding: 0.75rem; color: #fff; font-size: 0.82rem; outline: none;" placeholder="مثال: بطاقة شحن خاصة، اشتراك سنوي..." required>
+        <label style="display: block; font-size: 0.78rem; font-weight: 800; color: #cbd5e1; margin-bottom: 0.4rem;">اسم الجهاز أو القطعة المطلوبة</label>
+        <input type="text" name="product_name" style="width: 100%; background: #080c16; border: 1px solid var(--rq-border); border-radius: 10px; padding: 0.75rem; color: #fff; font-size: 0.82rem; outline: none;" placeholder="مثال: هاتف سامسونج، لابتوب ديل، راوتر واي فاي 6..." required>
       </div>
       <div>
         <label style="display: block; font-size: 0.78rem; font-weight: 800; color: #cbd5e1; margin-bottom: 0.4rem;">تفاصيل إضافية أو رابط</label>

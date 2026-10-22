@@ -56,20 +56,27 @@
       <!-- Top Brand & Navigation Rail -->
       <div>
         <div class="rq-sidebar-brand-row">
-          <a href="{% url 'home' %}" class="rq-sidebar-brand" title="الرئيسية">
-            {% if is_tenant and tenant_logo %}
-            <img src="{{ tenant_logo }}" alt="{{ STORE_NAME }}" class="rq-sidebar-logo">
-            {% else %}
-            <img src="{% static 'site/img/raqamiyat_logo_square.jpg' %}" alt="رقميات" class="rq-sidebar-logo">
-            {% endif %}
-            <div class="rq-sidebar-brand-text">
-              <span class="rq-sidebar-title">{% if is_tenant %}{{ STORE_NAME }}{% else %}رقميات{% endif %}</span>
-              <span class="rq-sidebar-badge">STORE</span>
+          <div style="display: flex; align-items: center; justify-content: space-between; width: 100%; gap: 0.5rem;">
+            <a href="{% url 'home' %}" class="rq-sidebar-brand" title="رقميات - الرئيسية">
+              {% if is_tenant and tenant_logo %}
+              <img src="{{ tenant_logo }}" alt="{{ STORE_NAME }}" class="rq-sidebar-logo" id="mainSidebarLogo">
+              {% else %}
+              <img src="{% static 'site/img/raqamiyat_logo_square.jpg' %}" alt="شعار رقميات" class="rq-sidebar-logo" id="mainSidebarLogo">
+              {% endif %}
+              <div class="rq-sidebar-brand-text">
+                <span class="rq-sidebar-title">{% if is_tenant %}{{ STORE_NAME }}{% else %}رقميات{% endif %}</span>
+                <span class="rq-sidebar-badge">TECH HARDWARE</span>
+              </div>
+            </a>
+            <div style="display: flex; align-items: center; gap: 0.35rem;">
+              <button type="button" onclick="copyLogoUrl(event)" class="rq-copy-logo-btn" title="نسخ رابط صورة شعار رقميات للمشاركة" aria-label="نسخ رابط الشعار">
+                <i class="fas fa-share-nodes"></i>
+              </button>
+              <button type="button" class="rq-sidebar-close-btn" onclick="toggleAppSidebar()" title="إغلاق">
+                <i class="fas fa-times"></i>
+              </button>
             </div>
-          </a>
-          <button type="button" class="rq-sidebar-close-btn" onclick="toggleAppSidebar()" title="إغلاق">
-            <i class="fas fa-times"></i>
-          </button>
+          </div>
         </div>
 
         <!-- Sidebar Navigation Menu -->
@@ -133,10 +140,7 @@
             <i class="fas fa-arrow-down-to-bracket" style="color: #34d399;"></i>
             <span>إيداع وتعبئة رصيد</span>
           </a>
-          <a href="{% url 'dashboard_recharge_wallet' %}" class="rq-sidebar-link {% if '/dashboard/recharge' in request.path %}active{% endif %}">
-            <i class="fas fa-credit-card" style="color: #60a5fa;"></i>
-            <span>شحن رصيد بكود كرت</span>
-          </a>
+
 
           <!-- Section 4: Support & Policies -->
           <div class="rq-nav-section-label">المساعدة والضمان</div>
@@ -223,12 +227,23 @@
       {% if not '/control/' in request.path and not '/admin/' in request.path %}
       <!-- Minimal Top Bar -->
       <header class="rq-app-topbar">
+
+        <!-- Top Brand Logo & Share -->
+        <div class="rq-top-brand-wrap">
+          <a href="{% url 'home' %}" class="rq-top-brand" title="رقميات - المتجر التقني">
+            <img src="{% static 'site/img/raqamiyat_logo_square.jpg' %}" alt="رقميات" class="rq-top-logo">
+            <span class="rq-top-title hide-mobile">رقميات</span>
+          </a>
+          <button type="button" onclick="copyLogoUrl(event)" class="rq-copy-logo-btn" title="نسخ رابط صورة الشعار لمشاركته" aria-label="نسخ رابط الشعار">
+            <i class="fas fa-share-nodes"></i>
+          </button>
+        </div>
         
         <!-- Search Trigger / Command Bar -->
         <div class="rq-top-search-wrap">
           <form method="get" action="{% url 'catalog' %}" class="rq-top-search-form">
             <i class="fas fa-search rq-top-search-icon"></i>
-            <input type="text" name="q" placeholder="ابحث باسم البطاقة، اللعبة، الاشتراك..." class="rq-top-search-input" value="{{ request.GET.q|default:'' }}" autocomplete="off" id="globalSearchInput">
+            <input type="text" name="q" placeholder="ابحث عن هاتف، لابتوب، كاميرا، راوتر، أو إكسسوار..." class="rq-top-search-input" value="{{ request.GET.q|default:'' }}" autocomplete="off" id="globalSearchInput">
             <span class="rq-kbd-badge hide-mobile">Ctrl K</span>
           </form>
         </div>
@@ -309,7 +324,7 @@
                 <li><a href="{% url 'contact' %}">مركز الاتصال والدعم الفني</a></li>
                 <li><a href="{% url 'dashboard' %}">لوحة التحكم والمحفظة</a></li>
                 <li><a href="{% url 'dashboard_orders' %}">تتبع حالة الطلبات</a></li>
-                <li><a href="{% url 'dashboard_deposits' %}">شحن وتعبئة الرصيد</a></li>
+                <li><a href="{% url 'dashboard_deposits' %}">إيداع وإضافة رصيد</a></li>
               </ul>
             </div>
 
@@ -318,7 +333,7 @@
           <div class="rq-footer-bottom">
             <div style="font-weight: 700;">جميع الحقوق محفوظة &copy; {% now "Y" %} لمؤسسة رامي قصاص بن ماهر س ت حلب 98580</div>
             <div style="display: flex; gap: 1rem; align-items: center; flex-wrap: wrap;">
-              <span>⚡ تسليم فوري للأكواد</span>
+              <span>🚚 فحص وشحن وتوصيل معتمد</span>
               <span>•</span>
               <span>🛡️ ضمان رسمي معتمد</span>
               <span>•</span>
@@ -421,6 +436,47 @@
   <script src="{% static 'site/js/app.js' %}?v=3"></script>
   <script src="{% static 'site/js/push.js' %}?v=2"></script>
   <script>
+  
+  function copyLogoUrl(e) {
+    if (e) {
+      e.preventDefault();
+      e.stopPropagation();
+    }
+    const logoUrl = "{{ request.scheme }}://{{ request.get_host }}{% static 'site/img/raqamiyat_logo_square.jpg' %}";
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(logoUrl).then(() => {
+        showLogoToast("تم نسخ رابط صورة شعار رقميات بنجاح! 📋");
+      }).catch(() => fallbackCopy(logoUrl));
+    } else {
+      fallbackCopy(logoUrl);
+    }
+  }
+
+  function fallbackCopy(text) {
+    const inp = document.createElement('input');
+    inp.value = text;
+    document.body.appendChild(inp);
+    inp.select();
+    try {
+      document.execCommand('copy');
+      showLogoToast("تم نسخ رابط صورة شعار رقميات بنجاح! 📋");
+    } catch(err) {}
+    document.body.removeChild(inp);
+  }
+
+  function showLogoToast(msg) {
+    let toast = document.getElementById('rq-toast');
+    if (!toast) {
+      toast = document.createElement('div');
+      toast.id = 'rq-toast';
+      toast.className = 'rq-toast';
+      document.body.appendChild(toast);
+    }
+    toast.innerText = msg;
+    toast.classList.add('show');
+    setTimeout(() => toast.classList.remove('show'), 2600);
+  }
+
   function toggleAppSidebar() {
     var sidebar = document.getElementById('appSidebar');
     var overlay = document.getElementById('sidebarOverlay');

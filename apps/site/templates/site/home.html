@@ -87,11 +87,11 @@
               </span>
               {% if spot.product_type == 'physical' %}
               <span class="rq-badge-delivery-physical" style="position: static !important;">
-                <i class="fas fa-truck text-[9px]"></i> ط´ط­ظ† ظˆطھظˆطµظٹظ„
+                <i class="fas fa-truck text-[9px]"></i> شحن وتوصيل سريع
               </span>
               {% else %}
               <span class="rq-badge-delivery-instant" style="position: static !important;">
-                <i class="fas fa-bolt text-[9px]"></i> تسليم آلي فوري
+                <i class="fas fa-shield-check text-[9px]"></i> جهاز أصلي معتمد
               </span>
               {% endif %}
             </div>
@@ -101,7 +101,7 @@
                 <img src="{{ spot_img }}" alt="{{ spot.name }}" style="max-height: 90%; max-width: 90%; object-fit: contain; transition: transform 0.3s;" onmouseover="this.style.transform='scale(1.08)'" onmouseout="this.style.transform='scale(1)'" onerror="this.onerror=null; this.src='{% static 'site/img/raqamiyat_logo_square.jpg' %}';">
               </div>
               <h3 style="font-size: 1.1rem; font-weight: 800; color: #fff; margin-bottom: 0.35rem; line-height: 1.35;">{{ spot.name }}</h3>
-              <p style="font-size: 0.8rem; color: #94a3b8; margin-bottom: 1rem;">{{ spot.category.name|default:'خدمة رقمية معتمدة' }}</p>
+              <p style="font-size: 0.8rem; color: #94a3b8; margin-bottom: 1rem;">{{ spot.category.name|default:'أجهزة وتقنيات أصلية' }}</p>
             </a>
 
             <div style="display: flex; align-items: center; justify-content: space-between; padding-top: 1rem; border-top: 1px solid var(--rq-border);">
@@ -195,17 +195,17 @@
             
             {% if product.product_type == 'physical' %}
             <span class="rq-badge-delivery-physical">
-              <i class="fas fa-truck text-[9px]"></i> ط´ط­ظ† ظˆطھظˆطµظٹظ„
+              <i class="fas fa-truck text-[9px]"></i> شحن وتوصيل سريع
             </span>
             {% else %}
             <span class="rq-badge-delivery-instant">
-              <i class="fas fa-bolt text-[9px]"></i> تسليم آلي فوري
+              <i class="fas fa-shield-check text-[9px]"></i> جهاز أصلي معتمد
             </span>
             {% endif %}
           </a>
 
           <!-- Category Badge -->
-          <span class="rq-card-category">{{ product.category.name|default:'ط®ط¯ظ…ط© ظ…ط¹طھظ…ط¯ط©' }}</span>
+          <span class="rq-card-category">{{ product.category.name|default:'عتاد وإلكترونيات' }}</span>
 
           <!-- Product Title (Clamped to 2 lines) -->
           <h3 class="rq-card-title">
@@ -267,7 +267,7 @@
           <a href="{% url 'product_detail' product.id %}" class="rq-card-media">
             <img src="{{ h_img }}" alt="{{ product.name }}" loading="lazy" onerror="this.onerror=null; this.src='{% static 'site/img/raqamiyat_logo_square.jpg' %}';">
             <span class="rq-badge-delivery-physical">
-              <i class="fas fa-shield-check text-[9px]"></i> ط£طµظ„ظٹ ظ…ط¹طھظ…ط¯
+              <i class="fas fa-shield-check text-[9px]"></i> أصلي معتمد 100%
             </span>
           </a>
 
@@ -306,7 +306,7 @@
     <div style="display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 1rem; margin-bottom: 1.75rem;">
       <div>
         <span style="font-size: 0.75rem; font-weight: 800; color: #34d399; text-transform: uppercase;">
-          <i class="fas fa-bolt"></i> تسليم فوري آلي
+          <i class="fas fa-truck-fast"></i> شحن وتوصيل لكافة المناطق
         </span>
         <h2 style="font-size: 1.4rem; font-weight: 900; color: #fff; margin: 0.25rem 0 0.25rem;">
           أجهزة إلكترونية وتجهيزات حديثة
@@ -332,11 +332,11 @@
           <a href="{% url 'product_detail' product.id %}" class="rq-card-media">
             <img src="{{ d_img }}" alt="{{ product.name }}" loading="lazy" onerror="this.onerror=null; this.src='{% static 'site/img/raqamiyat_logo_square.jpg' %}';">
             <span class="rq-badge-delivery-instant">
-              <i class="fas fa-bolt text-[9px]"></i> تسليم آلي فوري
+              <i class="fas fa-shield-check text-[9px]"></i> جهاز أصلي معتمد
             </span>
           </a>
 
-          <span class="rq-card-category">{{ product.category.name|default:'خدمة رقمية' }}</span>
+          <span class="rq-card-category">{{ product.category.name|default:'عتاد وإلكترونيات' }}</span>
 
           <h3 class="rq-card-title">
             <a href="{% url 'product_detail' product.id %}" style="color: inherit; text-decoration: none;">

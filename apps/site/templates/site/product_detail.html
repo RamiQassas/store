@@ -78,14 +78,14 @@
       <div>
         <h4 style="font-size: 0.95rem; font-weight: 900; color: #fff; margin: 0 0 0.25rem;">رصيد المحفظة غير كافٍ لإتمام العملية</h4>
         <p style="font-size: 0.8rem; color: #fca5a5; margin: 0;">
-          تحتاج إلى شحن مبلغ إضافي قدره <strong style="color: #fff; font-family: monospace;">{{ missing_amount }} {{ missing_currency }}</strong>
+          تحتاج إلى إيداع رصيد إضافي بقيمة <strong style="color: #fff; font-family: monospace;">{{ missing_amount }} {{ missing_currency }}</strong>
         </p>
       </div>
     </div>
     <div style="display: flex; align-items: center; gap: 0.5rem;">
       <a href="{% url 'dashboard_recharge_wallet' %}" class="rq-btn-auth-register" style="padding: 0.6rem 1.25rem; font-size: 0.8rem;">
         <i class="fas fa-credit-card"></i>
-        <span>شحن بكود بطاقة</span>
+        <span>تعبئة الرصيد</span>
       </a>
       <a href="{% url 'dashboard_deposits' %}" class="rq-btn-auth-login" style="padding: 0.6rem 1.25rem; font-size: 0.8rem;">
         <i class="fas fa-plus"></i>
@@ -112,7 +112,7 @@
           {% else %}
           <span style="background: rgba(245, 158, 11, 0.15); border: 1px solid rgba(245, 158, 11, 0.35); color: #fbbf24; font-size: 0.72rem; font-weight: 800; padding: 0.35rem 0.75rem; border-radius: var(--rq-radius-full); display: inline-flex; align-items: center; gap: 0.35rem;">
             <i class="fas fa-truck text-xs"></i>
-            <span>شحن وتوصيل مادي</span>
+            <span>توصيل وشحن منزلي معتمد</span>
           </span>
           {% endif %}
 

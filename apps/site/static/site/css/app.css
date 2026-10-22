@@ -1902,3 +1902,84 @@ img {
     justify-content: space-between;
   }
 }
+
+
+/* ── Logo & Share Toast System ── */
+.rq-toast {
+  position: fixed;
+  bottom: 2.5rem;
+  left: 50%;
+  transform: translateX(-50%) translateY(20px);
+  background: #0f172a;
+  color: #38bdf8;
+  border: 1px solid rgba(56, 189, 248, 0.4);
+  padding: 0.8rem 1.6rem;
+  border-radius: var(--rq-radius-full);
+  font-size: 0.875rem;
+  font-weight: 800;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.85), 0 0 20px rgba(56, 189, 248, 0.3);
+  opacity: 0;
+  pointer-events: none;
+  transition: all 0.28s cubic-bezier(0.16, 1, 0.3, 1);
+  z-index: 999999;
+}
+.rq-toast.show {
+  opacity: 1;
+  pointer-events: auto;
+  transform: translateX(-50%) translateY(0);
+}
+
+.rq-copy-logo-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid var(--rq-border);
+  color: #94a3b8;
+  cursor: pointer;
+  transition: all 0.18s ease;
+  font-size: 0.85rem;
+  flex-shrink: 0;
+}
+.rq-copy-logo-btn:hover {
+  background: rgba(56, 189, 248, 0.15);
+  border-color: rgba(56, 189, 248, 0.45);
+  color: #38bdf8;
+  transform: scale(1.06);
+}
+
+.rq-top-brand-wrap {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-shrink: 0;
+}
+.rq-top-brand {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  text-decoration: none;
+}
+.rq-top-logo {
+  width: 34px;
+  height: 34px;
+  border-radius: 9px;
+  object-fit: cover;
+  border: 1px solid var(--rq-border-light);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
+}
+.rq-top-title {
+  font-size: 1rem;
+  font-weight: 900;
+  color: #ffffff;
+  letter-spacing: -0.01em;
+}
+
+@media (max-width: 768px) {
+  .rq-top-brand-wrap {
+    margin-inline-end: 0.25rem;
+  }
+}

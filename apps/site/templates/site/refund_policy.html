@@ -1,33 +1,70 @@
 {% extends "site/base.html" %}
-{% block title %}سياسة الاسترجاع | {% if is_tenant %}{{ STORE_NAME }}{% else %}Raqamiyat - رقميات{% endif %}{% endblock %}
+{% block title %}سياسة الاسترجاع والضمان | {% if is_tenant %}{{ STORE_NAME }}{% else %}Raqamiyat - رقميات{% endif %}{% endblock %}
 {% block content %}
-<section class="page-head">
-  <div>
-    <span class="eyebrow">Legal</span>
-    <h1>سياسة الاسترجاع</h1>
-    <p>نحن نضمن حقوقك في حال عدم استلام الخدمة بشكل صحيح.</p>
+<div class="rq-container" style="max-width: 960px; padding: 3rem 1rem 6rem;">
+  
+  <div style="margin-bottom: 2rem; border-bottom: 1px solid var(--rq-border); padding-bottom: 1.5rem;">
+    <span style="font-size: 0.75rem; font-weight: 800; color: #38bdf8; text-transform: uppercase; letter-spacing: 0.08em; display: block; margin-bottom: 0.35rem;">
+      الضمان وحقوق المستهلك
+    </span>
+    <h1 style="font-size: clamp(1.5rem, 3vw, 2.2rem); font-weight: 900; color: #fff; margin: 0 0 0.5rem;">
+      سياسة الفحص، الضمان والاسترجاع
+    </h1>
+    <p style="font-size: 0.88rem; color: var(--rq-text-muted); margin: 0;">
+      نلتزم بتقديم أجهزة أصلية معتمدة مع ضمان حقيقي وسياسة استبدال عادلة تضمن حقك بالكامل.
+    </p>
   </div>
-</section>
 
-<article class="panel p-10 stack gap-6 text-slate-300">
-    <section>
-        <h2 class="text-cyan font-bold mb-2">1. الحالات التي يحق فيها الاسترجاع</h2>
-        <p>يحق للعميل استعادة كامل المبلغ إلى محفظته في حال تعذر تنفيذ الطلب من قبل المنصة لأي سبب تقني، أو في حال تأخر التنفيذ عن الوقت المحدد بشكل مبالغ فيه دون توضيح السبب.</p>
-    </section>
+  <div style="display: flex; flex-direction: column; gap: 1.5rem;">
+    
+    <!-- Section 1 -->
+    <div style="background: var(--rq-surface-card); border: 1px solid var(--rq-border); border-radius: var(--rq-radius-lg); padding: 1.5rem;">
+      <h3 style="font-size: 1.05rem; font-weight: 800; color: #38bdf8; margin: 0 0 0.75rem; display: flex; align-items: center; gap: 0.5rem;">
+        <i class="fas fa-shield-check"></i>
+        <span>1. كفالة وضمان الأجهزة والقطع الإلكترونية</span>
+      </h3>
+      <p style="font-size: 0.85rem; color: var(--rq-text-secondary); line-height: 1.8; margin: 0;">
+        تخضع جميع الأجهزة التقنية (الهواتف، اللابتوبات، كاميرات المراقبة، راوترات الشبكات والإكسسوارات الأصلية) للضمان التشغيلي والفحص الفني المعتمد ضد أي عيوب مصنعية.
+      </p>
+    </div>
 
-    <section>
-        <h2 class="text-cyan font-bold mb-2">2. الحالات التي لا يحق فيها الاسترجاع</h2>
-        <p>نظراً لطبيعة المنتجات الرقمية والخدمات التي يتم تسليمها فورياً، لا يمكن استرجاع المبالغ بعد اكتمال الطلب وتزويد العميل بالكود الرقمي أو شحن الحساب بنجاح.</p>
-    </section>
+    <!-- Section 2 -->
+    <div style="background: var(--rq-surface-card); border: 1px solid var(--rq-border); border-radius: var(--rq-radius-lg); padding: 1.5rem;">
+      <h3 style="font-size: 1.05rem; font-weight: 800; color: #38bdf8; margin: 0 0 0.75rem; display: flex; align-items: center; gap: 0.5rem;">
+        <i class="fas fa-truck"></i>
+        <span>2. حالات الاسترجاع والاستبدال عند الاستلام</span>
+      </h3>
+      <p style="font-size: 0.85rem; color: var(--rq-text-secondary); line-height: 1.8; margin: 0;">
+        يحق للعميل استبدال الجهاز أو استرجاع كامل قيمته إلى محفظته أو وسيلة دفعه في حال:
+        <br>• وصول جهاز غير مطابق للمواصفات المعروضة في الطلب.
+        <br>• وجود أي ضرر ناتج عن الشحن والتوصيل شرط الإبلاغ فور استلام الشحنة.
+        <br>• تعذر توفير المنتج أو تأكيد شحنه لأي أسباب فنية.
+      </p>
+    </div>
 
-    <section>
-        <h2 class="text-cyan font-bold mb-2">3. استرجاع رصيد المحفظة</h2>
-        <p>يمكن للعميل طلب سحب رصيده المودع وغير المستخدم في أي وقت، مع ملاحظة أن عملية السحب تخضع للتحقق الأمني وقد تستغرق من 24 إلى 72 ساعة عمل.</p>
-    </section>
+    <!-- Section 3 -->
+    <div style="background: var(--rq-surface-card); border: 1px solid var(--rq-border); border-radius: var(--rq-radius-lg); padding: 1.5rem;">
+      <h3 style="font-size: 1.05rem; font-weight: 800; color: #38bdf8; margin: 0 0 0.75rem; display: flex; align-items: center; gap: 0.5rem;">
+        <i class="fas fa-ban"></i>
+        <span>3. الحالات المستثناة من الضمان</span>
+      </h3>
+      <p style="font-size: 0.85rem; color: var(--rq-text-secondary); line-height: 1.8; margin: 0;">
+        لا يغطي الضمان الأعطال الناتجة عن سوء الاستخدام، الكسور، السقوط، تعرض الأجهزة للسوائل خارج معايير مقاومة الماء الرسمية، أو فتح الجهاز وصيانته لدى مراكز غير معتمدة.
+      </p>
+    </div>
 
-    <section>
-        <h2 class="text-cyan font-bold mb-2">4. آلية الاسترجاع</h2>
-        <p>يتم الاسترجاع دائماً إلى محفظة العميل داخل المنصة، ومن ثم يمكن للعميل استخدام الرصيد في عمليات شراء أخرى أو طلب سحبه عبر الوسائل المتاحة.</p>
-    </section>
-</article>
+    <!-- Section 4 -->
+    <div style="background: var(--rq-surface-card); border: 1px solid var(--rq-border); border-radius: var(--rq-radius-lg); padding: 1.5rem;">
+      <h3 style="font-size: 1.05rem; font-weight: 800; color: #38bdf8; margin: 0 0 0.75rem; display: flex; align-items: center; gap: 0.5rem;">
+        <i class="fas fa-wallet"></i>
+        <span>4. استرجاع المبالغ والمحفظة</span>
+      </h3>
+      <p style="font-size: 0.85rem; color: var(--rq-text-secondary); line-height: 1.8; margin: 0;">
+        تُرد المبالغ المستحقة إما لحساب المحفظة لاستخدامها في طلبات أخرى فوراً، أو لحساب العميل المصرفي ووسائل الدفع الأصلية وفقاً للأنظمة المتبعة.
+      </p>
+    </div>
+
+  </div>
+
+</div>
 {% endblock %}
