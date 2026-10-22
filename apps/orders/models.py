@@ -118,6 +118,14 @@ class Order(TimeStampedModel):
     tracking_number = models.CharField(max_length=100, blank=True, verbose_name="رقم التتبع")
 
     @property
+    def total_price(self):
+        return self.total_amount
+
+    @property
+    def subtotal(self):
+        return self.original_total or self.total_amount
+
+    @property
     def has_physical_products(self):
         return self.items.filter(variant__product__product_type="physical").exists()
 

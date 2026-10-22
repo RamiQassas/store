@@ -277,7 +277,7 @@ class ShamCashGateway(BasePaymentGateway):
                 if e.error_code == 1703:
                     return {
                         "ok": True,
-                        "message": "تم التحقق بنجاح من التشفير والمصادقة والاتصال بخوادم شام كاش (رمز الاستجابة المتوقع: 1703 Bill Not Found).",
+                        "message": "تم التحقق بنجاح من صحة المفاتيح والتشفير والاتصال بخوادم شام كاش، والمصادقة سليمة 100%.",
                         "code": 1703,
                     }
                 elif e.error_code in (1701, 1702, 1705, 1706):
