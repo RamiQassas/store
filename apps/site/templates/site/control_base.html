@@ -93,13 +93,135 @@
     .page-head h1 { font-size: 2.25rem; font-weight: 900; letter-spacing: -0.02em; color: #fff; }
     .eyebrow { font-size: 11px; font-weight: 900; color: var(--sham-cyan); text-transform: uppercase; letter-spacing: 0.25em; display: block; margin-bottom: 0.75rem; }
 
-    .btn { display: inline-flex; align-items: center; justify-content: center; gap: 0.5rem; padding: 0.75rem 1.5rem; border-radius: 16px; font-weight: 800; font-size: 0.85rem; transition: all 0.3s; cursor: pointer; border: 1px solid transparent; }
-    .btn-primary { background: linear-gradient(135deg, var(--sham-cyan), #0891b2); color: #000; box-shadow: 0 10px 20px -5px rgba(6, 182, 212, 0.3); }
-    .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 15px 30px -5px rgba(6, 182, 212, 0.5); }
-    .btn-outline { background: rgba(255,255,255,0.02); border-color: var(--admin-border); color: #94a3b8; }
-    .btn-outline:hover { background: rgba(255,255,255,0.05); color: #fff; border-color: #475569; }
+    /* ═══════════════════════════════════════════════════════════════
+       UNIFIED CONTROL PANEL DESIGN SYSTEM — Raqamiyat v4.0 Elite
+       ═══════════════════════════════════════════════════════════════ */
+    .btn {
+        display: inline-flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        gap: 0.45rem !important;
+        height: 38px !important;
+        min-height: 38px !important;
+        padding: 0 1.15rem !important;
+        border-radius: 12px !important;
+        font-weight: 800 !important;
+        font-size: 0.8rem !important;
+        line-height: 1 !important;
+        white-space: nowrap !important;
+        word-break: keep-all !important;
+        text-decoration: none !important;
+        transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1) !important;
+        cursor: pointer !important;
+        box-sizing: border-box !important;
+    }
+    .btn * {
+        white-space: nowrap !important;
+        line-height: 1 !important;
+    }
+    .btn-sm {
+        height: 34px !important;
+        min-height: 34px !important;
+        padding: 0 0.85rem !important;
+        font-size: 0.75rem !important;
+        border-radius: 10px !important;
+    }
+    .btn-xs {
+        height: 28px !important;
+        min-height: 28px !important;
+        padding: 0 0.65rem !important;
+        font-size: 0.7rem !important;
+        border-radius: 8px !important;
+    }
+    .btn-lg {
+        height: 44px !important;
+        min-height: 44px !important;
+        padding: 0 1.5rem !important;
+        font-size: 0.85rem !important;
+        border-radius: 14px !important;
+    }
 
-    .badge { padding: 6px 12px; border-radius: 10px; font-size: 10px; font-weight: 900; letter-spacing: 0.05em; text-transform: uppercase; border: 1px solid transparent; }
+    /* Primary: Solid High-Tech Cyan */
+    .btn-primary {
+        background: #06b6d4 !important;
+        color: #020617 !important;
+        border: 1px solid #22d3ee !important;
+        box-shadow: 0 4px 14px rgba(6, 182, 212, 0.25) !important;
+    }
+    .btn-primary:hover {
+        background: #22d3ee !important;
+        color: #000 !important;
+        box-shadow: 0 6px 20px rgba(6, 182, 212, 0.4) !important;
+        transform: translateY(-1px) !important;
+    }
+    .btn-primary i {
+        color: #020617 !important;
+    }
+
+    /* Emerald: Action & Unified */
+    .btn-emerald {
+        background: #10b981 !important;
+        color: #020617 !important;
+        border: 1px solid #34d399 !important;
+        box-shadow: 0 4px 14px rgba(16, 185, 129, 0.25) !important;
+    }
+    .btn-emerald:hover {
+        background: #34d399 !important;
+        color: #000 !important;
+        box-shadow: 0 6px 20px rgba(16, 185, 129, 0.4) !important;
+        transform: translateY(-1px) !important;
+    }
+    .btn-emerald i {
+        color: #020617 !important;
+    }
+
+    /* Outline: Clean Glass Neutral */
+    .btn-outline {
+        background: rgba(255, 255, 255, 0.04) !important;
+        border: 1px solid rgba(255, 255, 255, 0.1) !important;
+        color: #cbd5e1 !important;
+    }
+    .btn-outline:hover {
+        background: rgba(255, 255, 255, 0.09) !important;
+        border-color: rgba(255, 255, 255, 0.2) !important;
+        color: #ffffff !important;
+        transform: translateY(-1px) !important;
+    }
+    .btn-outline:hover i {
+        color: #38bdf8 !important;
+    }
+
+    /* Danger / Cancel */
+    .btn-danger {
+        background: rgba(239, 68, 68, 0.12) !important;
+        border: 1px solid rgba(239, 68, 68, 0.28) !important;
+        color: #f87171 !important;
+    }
+    .btn-danger:hover {
+        background: #ef4444 !important;
+        color: #ffffff !important;
+        border-color: #ef4444 !important;
+    }
+
+    /* Controls Panel Form Elements */
+    .builder-input, select.builder-input, input.builder-input {
+        height: 36px !important;
+        background: #0f172a !important;
+        border: 1px solid rgba(255, 255, 255, 0.12) !important;
+        border-radius: 10px !important;
+        color: #fff !important;
+        padding: 0 0.85rem !important;
+        font-size: 0.78rem !important;
+        font-weight: 700 !important;
+        outline: none !important;
+        transition: border-color 0.2s ease !important;
+    }
+    .builder-input:focus {
+        border-color: #06b6d4 !important;
+        box-shadow: 0 0 0 2px rgba(6, 182, 212, 0.2) !important;
+    }
+
+    .badge { padding: 6px 12px; border-radius: 10px; font-size: 10px; font-weight: 900; letter-spacing: 0.05em; text-transform: uppercase; border: 1px solid transparent; white-space: nowrap !important; }
     .badge.primary { background: rgba(6, 182, 212, 0.1); color: var(--sham-cyan); border-color: rgba(6, 182, 212, 0.2); }
     .badge.success { background: rgba(16, 185, 129, 0.1); color: #10b981; border-color: rgba(16, 185, 129, 0.2); }
     .badge.danger { background: rgba(239, 68, 68, 0.1); color: #ef4444; border-color: rgba(239, 68, 68, 0.2); }

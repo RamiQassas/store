@@ -5019,6 +5019,8 @@ def control_category_edit(request, pk=None):
 
 @support_required
 def control_products_list(request):
+    from django.contrib import messages
+    from decimal import Decimal
     store = getattr(request, "store", None)
     if request.method == "POST":
         action = request.POST.get("action")

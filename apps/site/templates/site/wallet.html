@@ -1,234 +1,234 @@
-{% extends "site/base.html" %}
-{% load static site_tags %}
-
-{% block title %}المحفظة الرقمية والمعاملات | {% if is_tenant %}{{ STORE_NAME }}{% else %}رقميات RAQAMIYAT{% endif %}{% endblock %}
-
-{% block content %}
-<div class="rq-dash-container">
-
-  <!-- ── 1. Page Breadcrumbs & Header ── -->
-  <div style="margin-bottom: 2rem; border-bottom: 1px solid var(--rq-border); padding-bottom: 1.5rem;">
-    <nav style="display: flex; align-items: center; gap: 0.5rem; font-size: 0.8rem; color: var(--rq-text-muted); margin-bottom: 0.85rem;">
-      <a href="{% url 'home' %}" style="display: flex; align-items: center; gap: 0.35rem; color: var(--rq-text-muted);">
-        <i class="fas fa-home text-xs"></i>
-        <span>الرئيسية</span>
-      </a>
-      <i class="fas fa-chevron-left text-[10px] text-slate-600"></i>
-      <a href="{% url 'dashboard' %}" style="color: var(--rq-text-muted);">
-        لوحة التحكم
-      </a>
-      <i class="fas fa-chevron-left text-[10px] text-slate-600"></i>
-      <span style="color: #fff; font-weight: 800;">المحفظة الرقمية</span>
-    </nav>
-
-    <div style="display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 1rem;">
-      <div>
-        <h1 style="font-size: clamp(1.5rem, 3vw, 2.2rem); font-weight: 900; color: #fff; margin: 0 0 0.35rem;">
-          المحفظة الرقمية وسجل المعاملات
-        </h1>
-        <p style="font-size: 0.88rem; color: var(--rq-text-muted); margin: 0;">
-          إدارة رصيدك المالي، عمليات الإيداع والسحب الفوري، وكشف حساب تفصيلي لكافة الحركات.
-        </p>
-      </div>
-
-      <div style="display: flex; align-items: center; gap: 0.65rem;">
-        {% if features.feature_deposits != False %}
-        <a href="{% url 'dashboard_deposits' %}" class="rq-btn-auth-register" style="padding: 0.65rem 1.35rem; font-size: 0.82rem;">
-          <i class="fas fa-arrow-down"></i>
-          <span>إيداع رصيد جديد</span>
-        </a>
-        {% endif %}
-        {% if not is_tenant and features.feature_withdrawals %}
-        <a href="{% url 'dashboard_withdrawals' %}" class="rq-btn-auth-login" style="padding: 0.65rem 1.25rem; font-size: 0.82rem;">
-          <i class="fas fa-arrow-up"></i>
-          <span>طلب سحب</span>
-        </a>
-        {% endif %}
-      </div>
-    </div>
-  </div>
-
-  <!-- ── 2. Master Balance Hero Card ── -->
-  <div class="rq-wallet-hero-card">
-    <div style="display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 1rem;">
-      <div style="display: flex; align-items: center; gap: 0.65rem;">
-        <div style="width: 42px; height: 42px; border-radius: 12px; background: rgba(245, 158, 11, 0.15); color: #fbbf24; display: flex; align-items: center; justify-content: center; font-size: 1.2rem;">
-          <i class="fas fa-vault"></i>
-        </div>
-        <div>
-          <span style="font-size: 0.72rem; font-weight: 800; color: #38bdf8; text-transform: uppercase;">الحساب المالي المعتمد</span>
-          <h4 style="font-size: 1rem; font-weight: 900; color: #fff; margin: 0;">رقميات FinTech Hub</h4>
-        </div>
-      </div>
-
-      <div style="display: flex; align-items: center; gap: 0.5rem; background: rgba(0, 0, 0, 0.4); padding: 0.4rem 0.85rem; border-radius: var(--rq-radius-full); border: 1px solid var(--rq-border);">
-        <span style="width: 8px; height: 8px; border-radius: 50%; background: #10b981; box-shadow: 0 0 8px #10b981;"></span>
-        <span style="font-size: 0.75rem; font-weight: 800; color: #cbd5e1;">محفظة نشطة وآمنة</span>
-      </div>
-    </div>
-
-    <div class="rq-wallet-balance-row">
-      <div>
-        <span style="font-size: 0.82rem; color: var(--rq-text-muted); display: block; margin-bottom: 0.35rem;">الرصيد المتاح القابل للاستخدام الفوري:</span>
-        <div class="rq-wallet-num tabular-nums">
-          {% format_price wallet.available_balance %}
-        </div>
-      </div>
-
-      {% if wallet.held_balance and wallet.held_balance > 0 %}
-      <div style="background: rgba(0, 0, 0, 0.35); border: 1px solid rgba(245, 158, 11, 0.3); border-radius: var(--rq-radius-md); padding: 0.85rem 1.35rem;">
-        <span style="font-size: 0.75rem; color: var(--rq-text-muted); display: block;">رصيد معلق قيد المعالجة:</span>
-        <span class="tabular-nums font-mono" style="font-size: 1.25rem; font-weight: 900; color: #fbbf24;">
-          {% format_price wallet.held_balance %}
-        </span>
-      </div>
-      {% endif %}
-    </div>
-
-    <!-- Quick Financial Action Bar -->
-    <div class="rq-wallet-quick-actions">
-      {% if features.feature_deposits != False %}
-      <a href="{% url 'dashboard_deposits' %}" class="rq-wallet-action-chip">
-        <i class="fas fa-plus text-emerald-400"></i>
-        <span>إيداع فوري</span>
-      </a>
-      {% endif %}
-      {% if not is_tenant and features.feature_withdrawals %}
-      <a href="{% url 'dashboard_withdrawals' %}" class="rq-wallet-action-chip">
-        <i class="fas fa-arrow-up text-amber-400"></i>
-        <span>سحب للأموال</span>
-      </a>
-      {% endif %}
-      {% if features.feature_recharge_cards %}
-      <a href="{% url 'dashboard_recharge_wallet' %}" class="rq-wallet-action-chip">
-        <i class="fas fa-credit-card text-blue-400"></i>
-        <span>شحن بكود بطاقة</span>
-      </a>
-      {% endif %}
-      {% if features.feature_p2p_transfers %}
-      <a href="{% url 'dashboard_transfer' %}" class="rq-wallet-action-chip">
-        <i class="fas fa-exchange-alt text-purple-400"></i>
-        <span>تحويل لمستخدم</span>
-      </a>
-      {% endif %}
-      <a href="{% url 'dashboard_orders' %}" class="rq-wallet-action-chip">
-        <i class="fas fa-history text-cyan-400"></i>
-        <span>الطلبات المشتراة</span>
-      </a>
-    </div>
-  </div>
-
-  <!-- ── 3. Financial Totals Statistics Grid ── -->
-  <div class="rq-dash-stats-grid">
-    <div class="rq-dash-stat-card">
-      <div>
-        <span style="font-size: 0.75rem; font-weight: 700; color: var(--rq-text-muted); display: block; margin-bottom: 0.25rem;">إجمالي الإيداعات الناجحة</span>
-        <span class="tabular-nums font-mono" style="font-size: 1.35rem; font-weight: 900; color: #34d399;">
-          +{% format_price total_deposited %}
-        </span>
-      </div>
-      <div style="width: 44px; height: 44px; border-radius: 12px; background: rgba(16, 185, 129, 0.15); color: #34d399; display: flex; align-items: center; justify-content: center; font-size: 1.15rem;">
-        <i class="fas fa-arrow-down"></i>
-      </div>
-    </div>
-
-    <div class="rq-dash-stat-card">
-      <div>
-        <span style="font-size: 0.75rem; font-weight: 700; color: var(--rq-text-muted); display: block; margin-bottom: 0.25rem;">إجمالي السحوبات المكتملة</span>
-        <span class="tabular-nums font-mono" style="font-size: 1.35rem; font-weight: 900; color: #f87171;">
-          -{% format_price total_withdrawn %}
-        </span>
-      </div>
-      <div style="width: 44px; height: 44px; border-radius: 12px; background: rgba(239, 68, 68, 0.15); color: #f87171; display: flex; align-items: center; justify-content: center; font-size: 1.15rem;">
-        <i class="fas fa-arrow-up"></i>
-      </div>
-    </div>
-
-    <div class="rq-dash-stat-card">
-      <div>
-        <span style="font-size: 0.75rem; font-weight: 700; color: var(--rq-text-muted); display: block; margin-bottom: 0.25rem;">إجمالي الشحن ببطاقات التعبئة</span>
-        <span class="tabular-nums font-mono" style="font-size: 1.35rem; font-weight: 900; color: #60a5fa;">
-          +{% format_price total_recharged %}
-        </span>
-      </div>
-      <div style="width: 44px; height: 44px; border-radius: 12px; background: rgba(37, 99, 235, 0.15); color: #60a5fa; display: flex; align-items: center; justify-content: center; font-size: 1.15rem;">
-        <i class="fas fa-credit-card"></i>
-      </div>
-    </div>
-  </div>
-
-  <!-- ── 4. Detailed Financial Ledger Table ── -->
-  <div style="background: var(--rq-surface-card); border: 1px solid var(--rq-border); border-radius: var(--rq-radius-xl); padding: 1.75rem; overflow: hidden;">
-    <div style="display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 1rem; margin-bottom: 1.5rem;">
-      <div style="display: flex; align-items: center; gap: 0.65rem;">
-        <i class="fas fa-list-alt text-blue-400 text-lg"></i>
-        <h3 style="font-size: 1.1rem; font-weight: 900; color: #fff; margin: 0;">كشف حساب الحركات والعمليات المالية</h3>
-      </div>
-
-      {% if not show_all and ledger_entries|length >= 20 %}
-      <a href="?show_all=1" class="rq-section-link">
-        <span>عرض كامل سجل الحركات</span>
-        <i class="fas fa-arrow-left text-xs"></i>
-      </a>
-      {% elif show_all %}
-      <a href="{% url 'dashboard_wallet' %}" class="rq-section-link">
-        <span>عرض أحدث 20 حركة فقط</span>
-      </a>
-      {% endif %}
-    </div>
-
-    <div style="overflow-x: auto; -webkit-overflow-scrolling: touch;">
-      <table style="width: 100%; border-collapse: collapse; text-align: right; font-size: 0.85rem;">
-        <thead>
-          <tr style="border-bottom: 1.5px solid var(--rq-border); color: var(--rq-text-muted); font-size: 0.78rem; text-transform: uppercase;">
-            <th style="padding: 0.85rem 1rem;">التاريخ والوقت</th>
-            <th style="padding: 0.85rem 1rem;">نوع الحركة</th>
-            <th style="padding: 0.85rem 1rem;">البيان / الوصف</th>
-            <th style="padding: 0.85rem 1rem;">المبلغ</th>
-            <th style="padding: 0.85rem 1rem;">الرصيد بعد الحركة</th>
-          </tr>
-        </thead>
-        <tbody>
-          {% for entry in ledger_entries %}
-          <tr style="border-bottom: 1px solid rgba(255, 255, 255, 0.05); transition: background 0.15s;" onmouseover="this.style.background='rgba(255,255,255,0.02)'" onmouseout="this.style.background='transparent'">
-            <td style="padding: 1rem; color: var(--rq-text-muted); font-size: 0.78rem; white-space: nowrap;">
-              {{ entry.created_at|date:"Y-m-d H:i" }}
-            </td>
-            <td style="padding: 1rem; white-space: nowrap;">
-              {% if entry.entry_type == 'credit' or entry.amount > 0 %}
-              <span class="rq-status-pill rq-status-completed" style="font-size: 0.7rem;">إيداع / إضافة</span>
-              {% elif entry.entry_type == 'debit' or entry.amount < 0 %}
-              <span class="rq-status-pill rq-status-cancelled" style="font-size: 0.7rem;">خصم / سحب</span>
-              {% else %}
-              <span class="rq-status-pill rq-status-processing" style="font-size: 0.7rem;">{{ entry.get_entry_type_display|default:entry.entry_type }}</span>
-              {% endif %}
-            </td>
-            <td style="padding: 1rem; color: #cbd5e1; max-width: 320px;">
-              {{ entry.description|default:"معاملة مالية" }}
-            </td>
-            <td style="padding: 1rem; white-space: nowrap;">
-              {% if entry.amount > 0 %}
-              <span class="tabular-nums font-mono" style="font-weight: 800; color: #34d399;">+{% format_price entry.amount %}</span>
-              {% else %}
-              <span class="tabular-nums font-mono" style="font-weight: 800; color: #f87171;">{% format_price entry.amount %}</span>
-              {% endif %}
-            </td>
-            <td style="padding: 1rem; color: #fff; font-family: monospace; white-space: nowrap;">
-              {% if entry.balance_after %}{% format_price entry.balance_after %}{% else %}-{% endif %}
-            </td>
-          </tr>
-          {% empty %}
-          <tr>
-            <td colspan="5" style="text-align: center; padding: 3rem 1rem; color: var(--rq-text-muted);">
-              <i class="fas fa-receipt text-3xl text-slate-600 mb-2 block"></i>
-              <span>لا توجد حركات مالية مسجلة في المحفظة حتى الآن.</span>
-            </td>
-          </tr>
-          {% endfor %}
-        </tbody>
-      </table>
-    </div>
-  </div>
-
-</div>
-{% endblock %}
+{% extends "site/base.html" %}
+{% load static site_tags %}
+
+{% block title %}المحفظة الرقمية والمعاملات | {% if is_tenant %}{{ STORE_NAME }}{% else %}رقميات RAQAMIYAT{% endif %}{% endblock %}
+
+{% block content %}
+<div class="rq-dash-container">
+
+  <!-- ── 1. Page Breadcrumbs & Header ── -->
+  <div style="margin-bottom: 2rem; border-bottom: 1px solid var(--rq-border); padding-bottom: 1.5rem;">
+    <nav style="display: flex; align-items: center; gap: 0.5rem; font-size: 0.8rem; color: var(--rq-text-muted); margin-bottom: 0.85rem;">
+      <a href="{% url 'home' %}" style="display: flex; align-items: center; gap: 0.35rem; color: var(--rq-text-muted);">
+        <i class="fas fa-home text-xs"></i>
+        <span>الرئيسية</span>
+      </a>
+      <i class="fas fa-chevron-left text-[10px] text-slate-600"></i>
+      <a href="{% url 'dashboard' %}" style="color: var(--rq-text-muted);">
+        لوحة التحكم
+      </a>
+      <i class="fas fa-chevron-left text-[10px] text-slate-600"></i>
+      <span style="color: #fff; font-weight: 800;">المحفظة الرقمية</span>
+    </nav>
+
+    <div style="display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 1rem;">
+      <div>
+        <h1 style="font-size: clamp(1.5rem, 3vw, 2.2rem); font-weight: 900; color: #fff; margin: 0 0 0.35rem;">
+          المحفظة الرقمية وسجل المعاملات
+        </h1>
+        <p style="font-size: 0.88rem; color: var(--rq-text-muted); margin: 0;">
+          إدارة رصيدك المالي، عمليات الإيداع والسحب الفوري، وكشف حساب تفصيلي لكافة الحركات.
+        </p>
+      </div>
+
+      <div style="display: flex; align-items: center; gap: 0.65rem;">
+        {% if features.feature_deposits != False %}
+        <a href="{% url 'dashboard_deposits' %}" class="rq-btn-auth-register" style="padding: 0.65rem 1.35rem; font-size: 0.82rem;">
+          <i class="fas fa-arrow-down"></i>
+          <span>إيداع رصيد جديد</span>
+        </a>
+        {% endif %}
+        {% if not is_tenant and features.feature_withdrawals %}
+        <a href="{% url 'dashboard_withdrawals' %}" class="rq-btn-auth-login" style="padding: 0.65rem 1.25rem; font-size: 0.82rem;">
+          <i class="fas fa-arrow-up"></i>
+          <span>طلب سحب</span>
+        </a>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
+  <!-- ── 2. Master Balance Hero Card ── -->
+  <div class="rq-wallet-hero-card">
+    <div style="display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 1rem;">
+      <div style="display: flex; align-items: center; gap: 0.65rem;">
+        <div style="width: 42px; height: 42px; border-radius: 12px; background: rgba(245, 158, 11, 0.15); color: #fbbf24; display: flex; align-items: center; justify-content: center; font-size: 1.2rem;">
+          <i class="fas fa-vault"></i>
+        </div>
+        <div>
+          <span style="font-size: 0.72rem; font-weight: 800; color: #38bdf8; text-transform: uppercase;">الحساب المالي المعتمد</span>
+          <h4 style="font-size: 1rem; font-weight: 900; color: #fff; margin: 0;">رقميات FinTech Hub</h4>
+        </div>
+      </div>
+
+      <div style="display: flex; align-items: center; gap: 0.5rem; background: rgba(0, 0, 0, 0.4); padding: 0.4rem 0.85rem; border-radius: var(--rq-radius-full); border: 1px solid var(--rq-border);">
+        <span style="width: 8px; height: 8px; border-radius: 50%; background: #10b981; box-shadow: 0 0 8px #10b981;"></span>
+        <span style="font-size: 0.75rem; font-weight: 800; color: #cbd5e1;">محفظة نشطة وآمنة</span>
+      </div>
+    </div>
+
+    <div class="rq-wallet-balance-row">
+      <div>
+        <span style="font-size: 0.82rem; color: var(--rq-text-muted); display: block; margin-bottom: 0.35rem;">الرصيد المتاح القابل للاستخدام الفوري:</span>
+        <div class="rq-wallet-num tabular-nums">
+          {% format_price wallet.available_balance %}
+        </div>
+      </div>
+
+      {% if wallet.held_balance and wallet.held_balance > 0 %}
+      <div style="background: rgba(0, 0, 0, 0.35); border: 1px solid rgba(245, 158, 11, 0.3); border-radius: var(--rq-radius-md); padding: 0.85rem 1.35rem;">
+        <span style="font-size: 0.75rem; color: var(--rq-text-muted); display: block;">رصيد معلق قيد المعالجة:</span>
+        <span class="tabular-nums font-mono" style="font-size: 1.25rem; font-weight: 900; color: #fbbf24;">
+          {% format_price wallet.held_balance %}
+        </span>
+      </div>
+      {% endif %}
+    </div>
+
+    <!-- Quick Financial Action Bar -->
+    <div class="rq-wallet-quick-actions">
+      {% if features.feature_deposits != False %}
+      <a href="{% url 'dashboard_deposits' %}" class="rq-wallet-action-chip">
+        <i class="fas fa-plus text-emerald-400"></i>
+        <span>إيداع فوري</span>
+      </a>
+      {% endif %}
+      {% if not is_tenant and features.feature_withdrawals %}
+      <a href="{% url 'dashboard_withdrawals' %}" class="rq-wallet-action-chip">
+        <i class="fas fa-arrow-up text-amber-400"></i>
+        <span>سحب للأموال</span>
+      </a>
+      {% endif %}
+      {% if features.feature_recharge_cards %}
+      <a href="{% url 'dashboard_recharge_wallet' %}" class="rq-wallet-action-chip">
+        <i class="fas fa-credit-card text-blue-400"></i>
+        <span>شحن بكود بطاقة</span>
+      </a>
+      {% endif %}
+      {% if features.feature_p2p_transfers %}
+      <a href="{% url 'dashboard_transfer' %}" class="rq-wallet-action-chip">
+        <i class="fas fa-exchange-alt text-purple-400"></i>
+        <span>تحويل لمستخدم</span>
+      </a>
+      {% endif %}
+      <a href="{% url 'dashboard_orders' %}" class="rq-wallet-action-chip">
+        <i class="fas fa-history text-cyan-400"></i>
+        <span>الطلبات المشتراة</span>
+      </a>
+    </div>
+  </div>
+
+  <!-- ── 3. Financial Totals Statistics Grid ── -->
+  <div class="rq-dash-stats-grid">
+    <div class="rq-dash-stat-card">
+      <div>
+        <span style="font-size: 0.75rem; font-weight: 700; color: var(--rq-text-muted); display: block; margin-bottom: 0.25rem;">إجمالي الإيداعات الناجحة</span>
+        <span class="tabular-nums font-mono" style="font-size: 1.35rem; font-weight: 900; color: #34d399;">
+          +{% format_price total_deposited %}
+        </span>
+      </div>
+      <div style="width: 44px; height: 44px; border-radius: 12px; background: rgba(16, 185, 129, 0.15); color: #34d399; display: flex; align-items: center; justify-content: center; font-size: 1.15rem;">
+        <i class="fas fa-arrow-down"></i>
+      </div>
+    </div>
+
+    <div class="rq-dash-stat-card">
+      <div>
+        <span style="font-size: 0.75rem; font-weight: 700; color: var(--rq-text-muted); display: block; margin-bottom: 0.25rem;">إجمالي السحوبات المكتملة</span>
+        <span class="tabular-nums font-mono" style="font-size: 1.35rem; font-weight: 900; color: #f87171;">
+          -{% format_price total_withdrawn %}
+        </span>
+      </div>
+      <div style="width: 44px; height: 44px; border-radius: 12px; background: rgba(239, 68, 68, 0.15); color: #f87171; display: flex; align-items: center; justify-content: center; font-size: 1.15rem;">
+        <i class="fas fa-arrow-up"></i>
+      </div>
+    </div>
+
+    <div class="rq-dash-stat-card">
+      <div>
+        <span style="font-size: 0.75rem; font-weight: 700; color: var(--rq-text-muted); display: block; margin-bottom: 0.25rem;">إجمالي الشحن ببطاقات التعبئة</span>
+        <span class="tabular-nums font-mono" style="font-size: 1.35rem; font-weight: 900; color: #60a5fa;">
+          +{% format_price total_recharged %}
+        </span>
+      </div>
+      <div style="width: 44px; height: 44px; border-radius: 12px; background: rgba(37, 99, 235, 0.15); color: #60a5fa; display: flex; align-items: center; justify-content: center; font-size: 1.15rem;">
+        <i class="fas fa-credit-card"></i>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── 4. Detailed Financial Ledger Table ── -->
+  <div style="background: var(--rq-surface-card); border: 1px solid var(--rq-border); border-radius: var(--rq-radius-xl); padding: 1.75rem; overflow: hidden;">
+    <div style="display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 1rem; margin-bottom: 1.5rem;">
+      <div style="display: flex; align-items: center; gap: 0.65rem;">
+        <i class="fas fa-list-alt text-blue-400 text-lg"></i>
+        <h3 style="font-size: 1.1rem; font-weight: 900; color: #fff; margin: 0;">كشف حساب الحركات والعمليات المالية</h3>
+      </div>
+
+      {% if not show_all and ledger_entries|length >= 20 %}
+      <a href="?show_all=1" class="rq-section-link">
+        <span>عرض كامل سجل الحركات</span>
+        <i class="fas fa-arrow-left text-xs"></i>
+      </a>
+      {% elif show_all %}
+      <a href="{% url 'dashboard_wallet' %}" class="rq-section-link">
+        <span>عرض أحدث 20 حركة فقط</span>
+      </a>
+      {% endif %}
+    </div>
+
+    <div style="overflow-x: auto; -webkit-overflow-scrolling: touch;">
+      <table style="width: 100%; border-collapse: collapse; text-align: right; font-size: 0.85rem;">
+        <thead>
+          <tr style="border-bottom: 1.5px solid var(--rq-border); color: var(--rq-text-muted); font-size: 0.78rem; text-transform: uppercase;">
+            <th style="padding: 0.85rem 1rem;">التاريخ والوقت</th>
+            <th style="padding: 0.85rem 1rem;">نوع الحركة</th>
+            <th style="padding: 0.85rem 1rem;">البيان / الوصف</th>
+            <th style="padding: 0.85rem 1rem;">المبلغ</th>
+            <th style="padding: 0.85rem 1rem;">الرصيد بعد الحركة</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for entry in ledger_entries %}
+          <tr style="border-bottom: 1px solid rgba(255, 255, 255, 0.05); transition: background 0.15s;" onmouseover="this.style.background='rgba(255,255,255,0.02)'" onmouseout="this.style.background='transparent'">
+            <td style="padding: 1rem; color: var(--rq-text-muted); font-size: 0.78rem; white-space: nowrap;">
+              {{ entry.created_at|date:"Y-m-d H:i" }}
+            </td>
+            <td style="padding: 1rem; white-space: nowrap;">
+              {% if entry.entry_type == 'credit' or entry.amount > 0 %}
+              <span class="rq-status-pill rq-status-completed" style="font-size: 0.7rem;">إيداع / إضافة</span>
+              {% elif entry.entry_type == 'debit' or entry.amount < 0 %}
+              <span class="rq-status-pill rq-status-cancelled" style="font-size: 0.7rem;">خصم / سحب</span>
+              {% else %}
+              <span class="rq-status-pill rq-status-processing" style="font-size: 0.7rem;">{{ entry.get_entry_type_display|default:entry.entry_type }}</span>
+              {% endif %}
+            </td>
+            <td style="padding: 1rem; color: #cbd5e1; max-width: 320px;">
+              {{ entry.description|default:"معاملة مالية" }}
+            </td>
+            <td style="padding: 1rem; white-space: nowrap;">
+              {% if entry.amount > 0 %}
+              <span class="tabular-nums font-mono" style="font-weight: 800; color: #34d399;">+{% format_price entry.amount %}</span>
+              {% else %}
+              <span class="tabular-nums font-mono" style="font-weight: 800; color: #f87171;">{% format_price entry.amount %}</span>
+              {% endif %}
+            </td>
+            <td style="padding: 1rem; color: #fff; font-family: monospace; white-space: nowrap;">
+              {% if entry.balance_after %}{% format_price entry.balance_after %}{% else %}-{% endif %}
+            </td>
+          </tr>
+          {% empty %}
+          <tr>
+            <td colspan="5" style="text-align: center; padding: 3rem 1rem; color: var(--rq-text-muted);">
+              <i class="fas fa-receipt text-3xl text-slate-600 mb-2 block"></i>
+              <span>لا توجد حركات مالية مسجلة في المحفظة حتى الآن.</span>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+</div>
+{% endblock %}
