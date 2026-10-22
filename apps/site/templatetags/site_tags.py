@@ -294,10 +294,18 @@ def get_item(dictionary, key):
 
 from django.utils.safestring import mark_safe
 
+def _sanitize_json_str(raw_json: str) -> str:
+    return (
+        str(raw_json)
+        .replace("&", "\\u0026")
+        .replace("<", "\\u003c")
+        .replace(">", "\\u003e")
+    )
+
 @register.simple_tag
 def get_deposit_config(payment_method, user):
     try:
-        return mark_safe(payment_method.to_deposit_json(user=user))
+        return mark_safe(_sanitize_json_str(payment_method.to_deposit_json(user=user)))
     except Exception as e:
         import logging
         logging.getLogger(__name__).error(f"Error in get_deposit_config: {e}", exc_info=True)
@@ -306,7 +314,7 @@ def get_deposit_config(payment_method, user):
 @register.simple_tag
 def get_withdrawal_config(payment_method, user):
     try:
-        return mark_safe(payment_method.to_withdrawal_json(user=user))
+        return mark_safe(_sanitize_json_str(payment_method.to_withdrawal_json(user=user)))
     except Exception as e:
         import logging
         logging.getLogger(__name__).error(f"Error in get_withdrawal_config: {e}", exc_info=True)
@@ -364,7 +372,7 @@ def jsonify(val):
     if val is None:
         return "[]"
     try:
-        return mark_safe(json.dumps(val, ensure_ascii=False))
+        return mark_safe(_sanitize_json_str(json.dumps(val, ensure_ascii=False)))
     except Exception:
         return "[]"
 

@@ -17,7 +17,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
-  <link rel="stylesheet" href="{% static 'site/css/app.css' %}?v=20261022_logo_v7">
+  <link rel="stylesheet" href="{% static 'site/css/app.css' %}?v=20261023_fintech_v8">
 
   {% if META_PIXEL_ID and not '/control/' in request.path and not '/admin/' in request.path %}
   <script>
@@ -39,6 +39,7 @@
   /></noscript>
   {% endif %}
 
+  {% block control_base_head %}{% endblock %}
   {% block extra_head %}{% endblock %}
 </head>
 <body class="{% if '/control/' in request.path or '/admin/' in request.path %}admin-page{% else %}storefront-page{% endif %}">
