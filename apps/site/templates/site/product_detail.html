@@ -165,37 +165,7 @@
         </div>
       </div>
 
-      <!-- Related Products Section -->
-      {% if related_products %}
-      <div style="margin-top: 1rem;">
-        <h3 style="font-size: 1.05rem; font-weight: 900; color: #fff; margin: 0 0 1rem; display: flex; align-items: center; gap: 0.5rem;">
-          <i class="fas fa-layer-group text-blue-500"></i>
-          <span>منتجات وخدمات مشابهة</span>
-        </h3>
-
-        <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 1rem;">
-          {% for rp in related_products|slice:":4" %}
-          {% product_display_image rp as rp_img %}
-          <div class="rq-card" style="margin-bottom: 0;">
-            <a href="{% url 'product_detail' rp.id %}" class="rq-card-media" style="height: 140px;">
-              <img src="{{ rp_img }}" alt="{{ rp.name }}" loading="lazy" onerror="this.onerror=null; this.src='{% static 'site/img/raqamiyat_logo_square.jpg' %}';">
-            </a>
-            <div class="rq-card-body" style="padding: 0.85rem;">
-              <a href="{% url 'product_detail' rp.id %}">
-                <h5 class="rq-card-title" style="font-size: 0.82rem;">{{ rp.name }}</h5>
-              </a>
-              <div class="rq-card-footer" style="padding-top: 0.5rem;">
-                <span class="tabular-nums" style="font-size: 0.88rem; font-weight: 900; color: #fbbf24;">{% product_starting_price rp %}</span>
-                <a href="{% url 'product_detail' rp.id %}" class="rq-card-buy-btn" style="padding: 0.35rem 0.65rem; font-size: 0.72rem;">
-                  <span>عرض</span>
-                </a>
-              </div>
-            </div>
-          </div>
-          {% endfor %}
-        </div>
-      </div>
-      {% endif %}
+<!-- Related products removed to keep purchase flow focused and clean -->
 
     </div>
 
@@ -341,14 +311,14 @@
             
             <input type="hidden" name="payment_method" id="selected-payment-method" value="wallet">
 
-            <!-- Payment Methods Cards Grid -->
+            <!-- Payment Methods Cards Grid (Clean, Simple, Dynamic from Site Gateways) -->
             <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 0.5rem;" id="pdp-pm-buttons-grid">
               
               <!-- 1. Store Wallet Button -->
-              <div class="pdp-pm-card active" id="pm-btn-wallet" onclick="selectPdpMethod('wallet', 'wallet', this)" style="display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 0.35rem; padding: 0.75rem 0.5rem; border-radius: var(--rq-radius-md); background: rgba(56, 189, 248, 0.08); border: 2px solid #38bdf8; cursor: pointer; transition: all 0.2s; text-align: center;">
+              <div class="pdp-pm-card active" id="pm-btn-wallet" onclick="selectPdpMethod('wallet', 'wallet', this, 'رصيد المحفظة')" style="display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 0.35rem; padding: 0.75rem 0.5rem; border-radius: var(--rq-radius-md); background: rgba(56, 189, 248, 0.08); border: 2px solid #38bdf8; cursor: pointer; transition: all 0.2s; text-align: center;">
                 <div style="display: flex; align-items: center; gap: 0.4rem;">
-                  <i class="fas fa-wallet text-sky-400" style="font-size: 1rem;"></i>
-                  <span style="font-size: 0.82rem; font-weight: 800; color: #fff;">رصيد المحفظة</span>
+                  <i class="fas fa-wallet text-sky-400" style="font-size: 1.1rem;"></i>
+                  <span style="font-size: 0.85rem; font-weight: 800; color: #fff;">رصيد المحفظة</span>
                 </div>
                 <div style="font-size: 0.7rem; color: #34d399; font-weight: 700;">
                   {% if user.is_authenticated and user.wallet %}
@@ -361,17 +331,17 @@
 
               {% if gateway_methods %}
               {% for gw in gateway_methods %}
-              <!-- Gateway Button: {{ gw.code }} -->
+              <!-- Dynamic Gateway Button from Site: {{ gw.name }} -->
               <div class="pdp-pm-card" id="pm-btn-{{ gw.code }}"
-                   onclick="selectPdpMethod('{{ gw.id }}', '{{ gw.code }}', this)"
+                   onclick="selectPdpMethod('{{ gw.id }}', '{{ gw.code }}', this, '{{ gw.name|escapejs }}')"
                    style="display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 0.35rem; padding: 0.75rem 0.5rem; border-radius: var(--rq-radius-md); background: rgba(0, 0, 0, 0.3); border: 2px solid var(--rq-border); cursor: pointer; transition: all 0.2s; text-align: center;">
-                <div style="display: flex; align-items: center; gap: 0.4rem;">
+                <div style="display: flex; align-items: center; gap: 0.45rem;">
                   {% if gw.logo %}
-                  <img src="{{ gw.logo }}" alt="{{ gw.name }}" style="height: 22px; width: 22px; object-fit: contain;">
+                  <img src="{{ gw.logo }}" alt="{{ gw.name }}" style="height: 24px; width: 24px; object-fit: contain;">
+                  {% else %}
+                  <i class="fas fa-credit-card text-emerald-400" style="font-size: 1rem;"></i>
                   {% endif %}
-                  <span style="font-size: 0.82rem; font-weight: 800; color: #fff;">
-                    {% if gw.code == 'sham_cash' %}شام كاش{% elif gw.code == 'paymera' %}بيميرا{% else %}{{ gw.name }}{% endif %}
-                  </span>
+                  <span style="font-size: 0.85rem; font-weight: 800; color: #fff;">{{ gw.name }}</span>
                 </div>
                 <div style="font-size: 0.68rem; font-weight: 800; {% if gw.code == 'sham_cash' %}color: #00C9A7; background: rgba(0, 201, 167, 0.15);{% elif gw.code == 'paymera' %}color: #a78bfa; background: rgba(139, 92, 246, 0.15);{% else %}color: #34d399; background: rgba(52, 211, 153, 0.15);{% endif %} padding: 0.15rem 0.45rem; border-radius: 4px;">
                   {% if gw.code == 'sham_cash' %}⚡ شراء مباشر فوري{% elif gw.code == 'paymera' %}💳 بطاقة بنكية{% else %}دفع إلكتروني{% endif %}
@@ -521,16 +491,12 @@ function applyCoupon() {
     });
 }
 
-function selectPdpMethod(arg1, arg2, arg3) {
-  let val, code, cardEl;
-  if (arg3 !== undefined) {
-    val = arg1;    // 'gateway:...' or 'wallet'
-    code = arg2;   // 'sham_cash', 'paymera', or 'wallet'
-    cardEl = arg3; // DOM element
-  } else {
-    val = arg1;
-    code = arg1;
-    cardEl = arg2;
+function selectPdpMethod(val, code, cardEl, gwName) {
+  // If called the old 2-argument way (val, cardEl)
+  if (cardEl === undefined) {
+    cardEl = code;
+    code = val;
+    gwName = '';
   }
 
   const hiddenInput = document.getElementById('selected-payment-method');
@@ -550,38 +516,43 @@ function selectPdpMethod(arg1, arg2, arg3) {
   const shamBox = document.getElementById('shamcash-currency-box');
   const submitBtn = document.getElementById('pdp-submit-btn');
 
-  if (code === 'sham_cash' || val.includes('sham')) {
+  const isSham = (code === 'sham_cash' || String(val).includes('sham'));
+  const isPaymera = (code === 'paymera' || String(val).includes('paymera'));
+
+  if (isSham) {
     if (cardEl && cardEl.style) {
       cardEl.style.borderColor = '#00C9A7';
       cardEl.style.background = 'rgba(0, 201, 167, 0.12)';
     }
+    const displayName = gwName || 'شام كاش';
     if (badge) {
       badge.style.color = '#00C9A7';
       badge.style.background = 'rgba(0, 201, 167, 0.15)';
       badge.style.borderColor = 'rgba(0, 201, 167, 0.3)';
-      badge.innerText = 'شام كاش (شراء مباشر فوري)';
+      badge.innerText = displayName;
     }
     if (shamBox) shamBox.style.display = 'block';
     if (submitBtn) {
-      submitBtn.innerHTML = '<i class="fas fa-bolt"></i> <span>الدفع والشراء المباشر عبر شام كاش ⚡</span>';
+      submitBtn.innerHTML = `<i class="fas fa-bolt"></i> <span>الشراء المباشر عبر ${displayName} ⚡</span>`;
       submitBtn.style.background = 'linear-gradient(135deg, #00C9A7 0%, #008f75 100%)';
       submitBtn.style.boxShadow = '0 4px 20px rgba(0, 201, 167, 0.4)';
     }
     updateShamCashDisplay();
-  } else if (code === 'paymera' || val.includes('paymera')) {
+  } else if (isPaymera) {
     if (cardEl && cardEl.style) {
       cardEl.style.borderColor = '#8b5cf6';
       cardEl.style.background = 'rgba(139, 92, 246, 0.12)';
     }
+    const displayName = gwName || 'بيميرا';
     if (badge) {
       badge.style.color = '#a78bfa';
       badge.style.background = 'rgba(139, 92, 246, 0.15)';
       badge.style.borderColor = 'rgba(139, 92, 246, 0.3)';
-      badge.innerText = 'بيميرا (بطاقة بنكية)';
+      badge.innerText = displayName;
     }
     if (shamBox) shamBox.style.display = 'none';
     if (submitBtn) {
-      submitBtn.innerHTML = '<i class="fas fa-credit-card"></i> <span>الدفع والشراء المباشر عبر بيميرا 💳</span>';
+      submitBtn.innerHTML = `<i class="fas fa-credit-card"></i> <span>الدفع بالبطاقة عبر ${displayName} 💳</span>`;
       submitBtn.style.background = 'linear-gradient(135deg, #7c3aed 0%, #6d28d9 100%)';
       submitBtn.style.boxShadow = '0 4px 20px rgba(124, 58, 237, 0.4)';
     }
@@ -595,11 +566,11 @@ function selectPdpMethod(arg1, arg2, arg3) {
       badge.style.color = '#38bdf8';
       badge.style.background = 'rgba(56, 189, 248, 0.12)';
       badge.style.borderColor = 'rgba(56, 189, 248, 0.25)';
-      badge.innerText = 'محفظة المتجر';
+      badge.innerText = 'رصيد المحفظة';
     }
     if (shamBox) shamBox.style.display = 'none';
     if (submitBtn) {
-      submitBtn.innerHTML = '<i class="fas fa-check-circle"></i> <span>تأكيد الطلب الآن</span>';
+      submitBtn.innerHTML = '<i class="fas fa-check-circle"></i> <span>تأكيد الشراء من المحفظة</span>';
       submitBtn.style.background = '';
       submitBtn.style.boxShadow = '';
     }

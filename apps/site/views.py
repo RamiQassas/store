@@ -1338,10 +1338,32 @@ def deposits(request):
             methods = request.session.get("v3_auth_methods", [])
             return v3_redirect_to_verification(request, methods)
 
-    # Task 9: Show all methods, KYC check handled in template/POST (gateways first)
+    # Task 9: Show active deposit methods (gateways first, deduplicated, current store + platform)
     from apps.common.tenant_utils import bypass_tenant_filter
     with bypass_tenant_filter():
-        methods_list = list(PaymentMethod.all_objects.filter(is_active=True, can_deposit=True).select_related('gateway'))
+        current_store = getattr(request, 'store', None)
+        if current_store:
+            base_methods = PaymentMethod.all_objects.filter(
+                Q(store=current_store) | Q(store__isnull=True),
+                is_active=True,
+                can_deposit=True
+            ).select_related('gateway', 'store')
+        else:
+            base_methods = PaymentMethod.all_objects.filter(
+                store__isnull=True,
+                is_active=True,
+                can_deposit=True
+            ).select_related('gateway', 'store')
+
+        seen_gw_providers = set()
+        deduped_methods = []
+        for m in base_methods:
+            if m.gateway and m.gateway.is_active:
+                if m.gateway.provider in seen_gw_providers:
+                    continue
+                seen_gw_providers.add(m.gateway.provider)
+            deduped_methods.append(m)
+
         def _deposit_method_priority(m):
             if not m.gateway or not m.gateway.is_active:
                 return 99
@@ -1350,8 +1372,9 @@ def deposits(request):
             if m.gateway.provider == 'paymera':
                 return 1
             return 2
-        methods_list.sort(key=_deposit_method_priority)
-        methods = methods_list
+
+        deduped_methods.sort(key=_deposit_method_priority)
+        methods = deduped_methods
 
     return render(request, "site/v3/v3_deposits.html", {
         "payment_methods": methods, 
@@ -2511,14 +2534,6 @@ def product_detail(request, pk):
         selected_gateway = None
 
         if is_direct_gateway:
-            # Custom merchant products cannot use platform electronic gateway (Paymera)
-            if product.store and not is_raqamiyat_product:
-                err_msg = "الدفع عبر بوابة الدفع الإلكتروني متاح فقط لمنتجات وخدمات رقميات المعتمدة. بالنسبة لمنتجات المتجر الخاصة، يرجى إتمام الدفع عبر رصيد المحفظة."
-                if request.headers.get('x-requested-with') == 'XMLHttpRequest' or request.POST.get('ajax') == '1':
-                    return JsonResponse({"success": False, "error": err_msg}, status=400)
-                messages.error(request, err_msg)
-                return redirect("product_detail", pk=pk)
-
             from apps.payments.models import PaymentGatewayIntegration, PaymentMethod
             from apps.common.tenant_utils import bypass_tenant_filter
             with bypass_tenant_filter():
@@ -2730,79 +2745,59 @@ def product_detail(request, pk):
         )
 
     gateway_methods = []
-    # If product is a merchant custom product, do not offer Paymera / platform direct gateways
-    if is_raqamiyat_product:
-        from apps.payments.models import PaymentGatewayIntegration, PaymentMethod
-        from apps.common.tenant_utils import bypass_tenant_filter
-        seen_gw_ids = set()
+    from apps.payments.models import PaymentGatewayIntegration, PaymentMethod
+    from apps.common.tenant_utils import bypass_tenant_filter
+    seen_gw_ids = set()
+    seen_providers = set()
 
-        with bypass_tenant_filter():
-            if product.store:
-                active_gateways = PaymentGatewayIntegration.all_objects.filter(
-                    Q(store=product.store) | Q(store__isnull=True),
-                    is_active=True
-                ).order_by("store_id")
-            else:
-                active_gateways = PaymentGatewayIntegration.all_objects.filter(
-                    store__isnull=True,
-                    is_active=True
-                )
+    with bypass_tenant_filter():
+        all_active_gateways = list(PaymentGatewayIntegration.all_objects.filter(is_active=True))
+        if product.store:
+            store_gws = [g for g in all_active_gateways if g.store_id == product.store_id]
+            global_gws = [g for g in all_active_gateways if not g.store_id]
+            gateways_to_evaluate = store_gws + global_gws
+        else:
+            gateways_to_evaluate = [g for g in all_active_gateways if not g.store_id]
+            if not gateways_to_evaluate:
+                gateways_to_evaluate = all_active_gateways
 
-            for gw in active_gateways:
-                if gw.id not in seen_gw_ids:
-                    seen_gw_ids.add(gw.id)
-                    gw_name = gw.name
-                    gw_logo = gw.logo_url
-                    if gw.provider == "sham_cash":
-                        gw_name = "شام كاش (ShamCash)"
-                        gw_logo = "/media/payment-methods/logos/shamcash.svg"
-                    elif gw.provider == "paymera":
-                        gw_name = "بيميرا (Paymera)"
-                        gw_logo = "/media/payment-methods/logos/paymera.png"
+        for gw in gateways_to_evaluate:
+            if gw.id in seen_gw_ids or gw.provider in seen_providers:
+                continue
+            seen_gw_ids.add(gw.id)
+            seen_providers.add(gw.provider)
 
-                    gateway_methods.append({
-                        "id": f"gateway:{gw.id}",
-                        "code": gw.provider,
-                        "name": gw_name,
-                        "provider_name": gw.get_provider_display(),
-                        "logo": gw_logo,
-                    })
+            # Look up associated PaymentMethod in the site to read user configured name and logo
+            pm = PaymentMethod.all_objects.filter(gateway=gw, is_active=True).first()
 
-            if product.store:
-                methods_with_gw = PaymentMethod.all_objects.filter(
-                    Q(store=product.store) | Q(store__isnull=True),
-                    is_active=True,
-                    gateway__isnull=False,
-                    gateway__is_active=True
-                )
-            else:
-                methods_with_gw = PaymentMethod.all_objects.filter(
-                    store__isnull=True,
-                    is_active=True,
-                    gateway__isnull=False,
-                    gateway__is_active=True
-                )
+            # Dynamic name: use PaymentMethod name if configured, otherwise Gateway name, otherwise display
+            gw_name = (pm.name if pm and pm.name else "") or (gw.name if gw.name else "") or gw.get_provider_display()
 
-            for pm in methods_with_gw:
-                if pm.gateway_id not in seen_gw_ids:
-                    seen_gw_ids.add(pm.gateway_id)
-                    gw_code = pm.gateway.provider
-                    gw_name = pm.name
-                    gw_logo = pm.logo.url if pm.logo else pm.gateway.logo_url
-                    if gw_code == "sham_cash":
-                        gw_name = "شام كاش (ShamCash)"
-                        gw_logo = "/media/payment-methods/logos/shamcash.svg"
-                    elif gw_code == "paymera":
-                        gw_name = "بيميرا (Paymera)"
-                        gw_logo = "/media/payment-methods/logos/paymera.png"
+            # Dynamic logo: use PaymentMethod logo if configured, otherwise Gateway logo
+            gw_logo = ""
+            if pm and pm.logo:
+                try: gw_logo = pm.logo.url
+                except Exception: pass
+            if not gw_logo and gw.logo:
+                try: gw_logo = gw.logo.url
+                except Exception: pass
+            if not gw_logo and gw.logo_url:
+                gw_logo = gw.logo_url
 
-                    gateway_methods.append({
-                        "id": f"method:{pm.id}",
-                        "code": gw_code,
-                        "name": gw_name,
-                        "provider_name": pm.gateway.get_provider_display(),
-                        "logo": gw_logo,
-                    })
+            # Fallback to local files only if no logo set in DB
+            if not gw_logo:
+                if gw.provider == "sham_cash":
+                    gw_logo = "/media/payment-methods/logos/shamcash.svg"
+                elif gw.provider == "paymera":
+                    gw_logo = "/media/payment-methods/logos/paymera.png"
+
+            gateway_methods.append({
+                "id": f"gateway:{gw.id}",
+                "code": gw.provider,
+                "name": gw_name,
+                "provider_name": gw.get_provider_display(),
+                "logo": gw_logo,
+            })
 
     # Navigation: previous and next products across products in current category (or store catalog fallback)
     if product.category:

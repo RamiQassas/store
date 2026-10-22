@@ -18,7 +18,7 @@
       <i class="fas fa-chevron-left text-[10px] text-slate-600"></i>
       <a href="{% url 'dashboard_wallet' %}" style="color: var(--rq-text-muted);">المحفظة</a>
       <i class="fas fa-chevron-left text-[10px] text-slate-600"></i>
-      <span style="color: #fff; font-weight: 800;">إيداع رصيد</span>
+      <span style="color: #fff; font-weight: 800;">إيداع وشحن الرصيد</span>
     </nav>
 
     <div style="display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 1rem;">
@@ -27,7 +27,7 @@
           إيداع رصيد وشحن المحفظة
         </h1>
         <p style="font-size: 0.85rem; color: var(--rq-text-muted); margin: 0;">
-          اختر وسيلة الدفع المناسبة، وأدخل المبلغ المطلوب لتأكيد العملية وإيداع الرصيد في محفظتك.
+          اختر وسيلة الدفع المناسبة وأدخل المبلغ لشحن رصيد محفظتك فوراً وبأمان.
         </p>
       </div>
 
@@ -40,38 +40,20 @@
     </div>
   </div>
 
-  <!-- ── 2. Step Progress Tracker ── -->
-  <div class="rq-wizard-steps">
-    <div class="rq-wizard-step active" id="step-tab-1">
-      <div class="rq-wizard-dot">1</div>
-      <span>وسيلة الدفع</span>
-    </div>
-    <div style="width: 40px; height: 1px; background: var(--rq-border);"></div>
-    <div class="rq-wizard-step" id="step-tab-2">
-      <div class="rq-wizard-dot">2</div>
-      <span>المبلغ والتعليمات</span>
-    </div>
-    <div style="width: 40px; height: 1px; background: var(--rq-border);"></div>
-    <div class="rq-wizard-step" id="step-tab-3">
-      <div class="rq-wizard-dot">3</div>
-      <span>إثبات التحويل</span>
-    </div>
-  </div>
-
-  <!-- ── 3. Deposit Main Form ── -->
+  <!-- ── 2. Deposit Main Form (Direct & Simple UX) ── -->
   <div style="background: var(--rq-surface-card); border: 1px solid var(--rq-border); border-radius: var(--rq-radius-xl); padding: 2rem; box-shadow: var(--rq-shadow-lg); margin-bottom: 2.5rem;">
     
     <form method="post" enctype="multipart/form-data" id="deposit-form" action="{% url 'dashboard_deposits' %}">
       {% csrf_token %}
 
-      <!-- STEP 1: Select Payment Method -->
-      <div id="step-panel-1">
-        <h3 style="font-size: 1rem; font-weight: 800; color: #fff; margin: 0 0 1.25rem; display: flex; align-items: center; gap: 0.5rem;">
+      <!-- SECTION 1: Select Payment Method Cards -->
+      <div style="margin-bottom: 2rem;">
+        <h3 style="font-size: 1rem; font-weight: 800; color: #fff; margin: 0 0 1rem; display: flex; align-items: center; gap: 0.5rem;">
           <i class="fas fa-credit-card text-blue-500"></i>
-          <span>الخطوة 1: اختر وسيلة الدفع أو الشحن</span>
+          <span>1. اختر وسيلة الدفع أو الشحن</span>
         </h3>
 
-        <div class="rq-method-grid">
+        <div class="rq-method-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 1rem;">
           {% for m in payment_methods %}
           <div class="rq-method-card {% if forloop.first %}selected{% endif %}"
                data-method-id="{{ m.id }}"
@@ -86,29 +68,30 @@
                data-fee="0"
                data-instructions="{{ m.deposit_instructions|default:''|escapejs }}"
                data-currencies='[{% for c in m.supported_currencies.all %}{"id":"{{ c.id }}","code":"{{ c.code }}","symbol":"{{ c.symbol }}","name":"{{ c.name }}"}{% if not forloop.last %},{% endif %}{% endfor %}]'
-               onclick="selectDepositMethod(this)">
+               onclick="selectDepositMethod(this)"
+               style="cursor: pointer; padding: 1.15rem; border-radius: var(--rq-radius-lg); border: 2px solid {% if forloop.first %}var(--rq-primary){% else %}var(--rq-border){% endif %}; background: rgba(0, 0, 0, 0.25); display: flex; align-items: center; gap: 1rem; transition: all 0.2s ease;">
             
-            {% if m.gateway and m.gateway.provider == 'sham_cash' %}
-            <img src="/media/payment-methods/logos/shamcash.svg" alt="{{ m.name }}" class="rq-method-logo" style="height: 40px; width: 40px; object-fit: contain;">
-            {% elif m.gateway and m.gateway.provider == 'paymera' %}
-            <img src="/media/payment-methods/logos/paymera.png" alt="{{ m.name }}" class="rq-method-logo" style="height: 40px; width: 40px; object-fit: contain;">
-            {% elif m.logo %}
-            <img src="{{ m.logo.url }}" alt="{{ m.name }}" class="rq-method-logo">
+            {% if m.logo %}
+            <img src="{{ m.logo.url }}" alt="{{ m.name }}" class="rq-method-logo" style="height: 42px; width: 42px; object-fit: contain; flex-shrink: 0;">
+            {% elif m.gateway and m.gateway.logo %}
+            <img src="{{ m.gateway.logo.url }}" alt="{{ m.name }}" class="rq-method-logo" style="height: 42px; width: 42px; object-fit: contain; flex-shrink: 0;">
+            {% elif m.gateway and m.gateway.logo_url %}
+            <img src="{{ m.gateway.logo_url }}" alt="{{ m.name }}" class="rq-method-logo" style="height: 42px; width: 42px; object-fit: contain; flex-shrink: 0;">
             {% else %}
-            <div style="width: 44px; height: 44px; border-radius: 12px; background: rgba(37, 99, 235, 0.15); color: #3b82f6; display: flex; align-items: center; justify-content: center; font-size: 1.4rem;">
+            <div style="width: 42px; height: 42px; border-radius: 12px; background: rgba(37, 99, 235, 0.15); color: #3b82f6; display: flex; align-items: center; justify-content: center; font-size: 1.3rem; flex-shrink: 0;">
               <i class="fas fa-money-bill-wave"></i>
             </div>
             {% endif %}
 
-            <div style="flex: 1;">
+            <div style="flex: 1; min-width: 0;">
               <div style="display: flex; align-items: center; justify-content: space-between; gap: 0.5rem; margin-bottom: 0.25rem;">
-                <div style="font-size: 0.88rem; font-weight: 800; color: #fff;">{{ m.name }}</div>
+                <div style="font-size: 0.88rem; font-weight: 800; color: #fff; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">{{ m.name }}</div>
                 {% if m.gateway and m.gateway.is_active %}
-                <span style="font-size: 0.65rem; font-weight: 800; color: #00C9A7; background: rgba(0, 201, 167, 0.15); border: 1px solid rgba(0, 201, 167, 0.3); padding: 0.15rem 0.45rem; border-radius: 6px;">
-                  ⚡ فوري مؤتمت
+                <span style="font-size: 0.65rem; font-weight: 800; color: #00C9A7; background: rgba(0, 201, 167, 0.15); border: 1px solid rgba(0, 201, 167, 0.3); padding: 0.15rem 0.45rem; border-radius: 6px; white-space: nowrap;">
+                  ⚡ شحن فوري
                 </span>
                 {% else %}
-                <span style="font-size: 0.65rem; color: #94a3b8; background: rgba(255, 255, 255, 0.05); padding: 0.15rem 0.45rem; border-radius: 6px;">
+                <span style="font-size: 0.65rem; color: #94a3b8; background: rgba(255, 255, 255, 0.05); padding: 0.15rem 0.45rem; border-radius: 6px; white-space: nowrap;">
                   تحويل يدوي
                 </span>
                 {% endif %}
@@ -123,102 +106,82 @@
 
         <input type="hidden" name="payment_method" id="selected-payment-method" value="{{ payment_methods.0.id }}">
         <input type="hidden" name="currency" id="selected-currency-id" value="{{ payment_methods.0.supported_currencies.first.id|default:'' }}">
-
-        <div style="display: flex; justify-content: flex-end; margin-top: 2rem;">
-          <button type="button" onclick="goToStep(2)" class="rq-btn-auth-register" style="padding: 0.75rem 2rem; font-size: 0.88rem;">
-            <span>متابعة إدخال المبلغ</span>
-            <i class="fas fa-arrow-left text-xs"></i>
-          </button>
-        </div>
       </div>
 
-      <!-- STEP 2: Amount & Instructions -->
-      <div id="step-panel-2" style="display: none;">
+      <!-- SECTION 2: Amount & Currency Section (Always Visible) -->
+      <div style="margin-bottom: 2rem; border-top: 1px solid var(--rq-border); padding-top: 1.75rem;">
         <h3 style="font-size: 1rem; font-weight: 800; color: #fff; margin: 0 0 1.25rem; display: flex; align-items: center; gap: 0.5rem;">
-          <i class="fas fa-calculator text-blue-500"></i>
-          <span>الخطوة 2: تحديد المبلغ وتعليمات التحويل</span>
+          <i class="fas fa-coins text-blue-500"></i>
+          <span>2. حدد عملة ومبلغ الإيداع</span>
         </h3>
-        <!-- Automated Gateway Instant Notice -->
-        <div id="gateway-auto-notice" style="display: none; margin-bottom: 1.5rem; padding: 1.15rem 1.25rem; border-radius: var(--rq-radius-md); background: rgba(0, 201, 167, 0.08); border: 1.5px solid rgba(0, 201, 167, 0.35);">
-          <div style="display: flex; align-items: center; gap: 0.6rem; color: #00C9A7; font-weight: 800; font-size: 0.95rem; margin-bottom: 0.35rem;">
-            <i class="fas fa-bolt text-lg"></i>
-            <span id="gateway-auto-title">بوابة شام كاش - دفع وشحن فوري مؤتمت 100%</span>
-          </div>
-          <p id="gateway-auto-desc" style="font-size: 0.82rem; color: #cbd5e1; margin: 0; line-height: 1.7;">
-            سيتم توجيهك فوراً وبأمان إلى بوابة الدفع لإتمام السداد، وسيتم شحن الرصيد في محفظتك تلقائياً دون أي حاجة لرفع إشعار تحويل يدوي أو انتظار الموافقة من الإدارة.
-          </p>
-        </div>
 
-
-        <!-- Instructions Box -->
-        <div id="method-instructions-box" style="background: rgba(0, 0, 0, 0.35); border: 1px solid rgba(59, 130, 246, 0.3); border-radius: var(--rq-radius-md); padding: 1.25rem; margin-bottom: 1.5rem;">
-          <div style="font-size: 0.78rem; font-weight: 800; color: #38bdf8; margin-bottom: 0.5rem;">تعليمات التحويل للوسيلة المختارة:</div>
-          <div id="method-instructions-text" style="font-size: 0.85rem; color: #cbd5e1; line-height: 1.7; white-space: pre-line;"></div>
-        </div>
-
-                <!-- Currency Selector for Multi-Currency Methods (ShamCash etc.) -->
-        <div id="method-currency-selector-box" style="display: none; margin-bottom: 1.25rem; background: rgba(0, 201, 167, 0.08); border: 1px dashed rgba(0, 201, 167, 0.4); border-radius: var(--rq-radius-md); padding: 1rem;">
+        <!-- Multi-Currency Selector Pills (e.g. ShamCash USD vs SYP) -->
+        <div id="method-currency-selector-box" style="display: none; margin-bottom: 1.25rem; background: rgba(0, 201, 167, 0.08); border: 1px dashed rgba(0, 201, 167, 0.35); border-radius: var(--rq-radius-md); padding: 1rem;">
           <label class="rq-label" style="margin-bottom: 0.65rem; display: flex; align-items: center; gap: 0.4rem; color: #00C9A7; font-weight: 800;">
-            <i class="fas fa-coins"></i>
-            <span>اختر عملة الإيداع:</span>
+            <i class="fas fa-exchange-alt"></i>
+            <span>اختر عملة الإيداع المعتمدة:</span>
           </label>
           <div id="method-currency-options" style="display: flex; gap: 0.75rem; flex-wrap: wrap;"></div>
         </div>
 
-<!-- Amount Input -->
-        <div class="rq-form-group">
-          <label class="rq-label">
-            <span>المبلغ المراد إيداعه:</span>
-            <span id="amount-limits-hint" style="font-size: 0.72rem; color: var(--rq-text-muted);"></span>
+        <!-- Amount Input -->
+        <div class="rq-form-group" style="margin-bottom: 1.25rem;">
+          <label class="rq-label" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
+            <span style="font-weight: 800; color: #fff;">المبلغ المراد إيداعه:</span>
+            <span id="amount-limits-hint" style="font-size: 0.75rem; color: var(--rq-text-muted);"></span>
           </label>
           <div style="position: relative;">
-            <input type="number" step="any" name="amount" id="deposit-amount-input" placeholder="0.00" class="rq-input" style="font-size: 1.25rem; font-weight: 900; font-family: monospace; padding-left: 4.5rem;" required oninput="calculateDepositNet()">
-            <span id="amount-currency-label" style="position: absolute; left: 1rem; top: 50%; transform: translateY(-50%); font-size: 0.85rem; font-weight: 800; color: var(--rq-primary-light); font-family: monospace;"></span>
+            <input type="number" step="any" min="0.01" name="amount" id="deposit-amount-input" placeholder="0.00" class="rq-input" style="font-size: 1.35rem; font-weight: 900; font-family: monospace; padding-left: 5.5rem; height: 54px;" required oninput="calculateDepositNet()">
+            <span id="amount-currency-label" style="position: absolute; left: 1rem; top: 50%; transform: translateY(-50%); font-size: 0.95rem; font-weight: 800; color: #38bdf8; font-family: monospace;">USD</span>
           </div>
         </div>
 
-        <!-- Fee & Net Calculation -->
-        <div style="background: rgba(0, 0, 0, 0.25); border-radius: var(--rq-radius-md); border: 1px solid var(--rq-border); padding: 1rem; margin-bottom: 1.5rem;">
-          <div style="display: flex; justify-content: space-between; font-size: 0.82rem; color: var(--rq-text-muted); margin-bottom: 0.35rem;">
+        <!-- Live Net & Fee Summary -->
+        <div style="background: rgba(0, 0, 0, 0.3); border-radius: var(--rq-radius-md); border: 1px solid var(--rq-border); padding: 1rem 1.25rem;">
+          <div style="display: flex; justify-content: space-between; font-size: 0.82rem; color: var(--rq-text-muted); margin-bottom: 0.4rem;">
             <span>رسوم الإيداع:</span>
             <span id="deposit-fee-text" class="tabular-nums font-mono" style="color: #fff;">0.00</span>
           </div>
           <div style="display: flex; justify-content: space-between; font-size: 0.95rem; font-weight: 900; color: #fff; padding-top: 0.5rem; border-top: 1px solid var(--rq-border);">
             <span>الصافي المضاف إلى المحفظة:</span>
-            <span id="deposit-net-text" class="tabular-nums font-mono" style="color: #34d399; font-size: 1.15rem;">0.00</span>
+            <span id="deposit-net-text" class="tabular-nums font-mono" style="color: #34d399; font-size: 1.2rem;">0.00</span>
           </div>
-        </div>
-
-        <div style="display: flex; justify-content: space-between; margin-top: 2rem;">
-          <button type="button" onclick="goToStep(1)" class="rq-btn-auth-login" style="padding: 0.75rem 1.75rem; font-size: 0.85rem;">
-            <i class="fas fa-arrow-right text-xs"></i>
-            <span>الرجوع للوسائل</span>
-          </button>
-          <!-- Button for Manual Transfer Methods (Goes to Step 3 to upload proof) -->
-          <button type="button" id="btn-to-step-3" onclick="goToStep(3)" class="rq-btn-auth-register" style="padding: 0.75rem 2rem; font-size: 0.88rem;">
-            <span>متابعة لإرفاق الإشعار</span>
-            <i class="fas fa-arrow-left text-xs"></i>
-          </button>
-
-          <!-- Button for Automated Instant Gateways (Submits form directly & redirects to gateway!) -->
-          <button type="submit" id="btn-gateway-direct-submit" class="rq-btn-auth-register" style="display: none; background: linear-gradient(135deg, #00C9A7 0%, #008f75 100%); padding: 0.85rem 2.25rem; font-size: 0.92rem; font-weight: 800; box-shadow: 0 4px 20px rgba(0, 201, 167, 0.4);">
-            <span id="gateway-submit-btn-text">الانتقال للدفع الفوري عبر شام كاش ⚡</span>
-            <i class="fas fa-external-link-alt text-xs mr-1"></i>
-          </button>
         </div>
       </div>
 
-      <!-- STEP 3: Proof Image & Confirmation -->
-      <div id="step-panel-3" style="display: none;">
-        <h3 style="font-size: 1rem; font-weight: 800; color: #fff; margin: 0 0 1.25rem; display: flex; align-items: center; gap: 0.5rem;">
-          <i class="fas fa-file-invoice text-blue-500"></i>
-          <span>الخطوة 3: إرفاق إشعار التحويل والملاحظات</span>
-        </h3>
+      <!-- SECTION 3A: AUTOMATED INSTANT GATEWAYS (ShamCash / Paymera) -->
+      <div id="gateway-instant-section" style="display: none; border-top: 1px solid var(--rq-border); padding-top: 1.75rem;">
+        <div style="margin-bottom: 1.5rem; padding: 1.25rem; border-radius: var(--rq-radius-md); background: rgba(0, 201, 167, 0.08); border: 1.5px solid rgba(0, 201, 167, 0.35);">
+          <div style="display: flex; align-items: center; gap: 0.6rem; color: #00C9A7; font-weight: 800; font-size: 1rem; margin-bottom: 0.35rem;">
+            <i class="fas fa-bolt text-lg"></i>
+            <span id="gateway-auto-title">شحن فوري مؤتمت 100%</span>
+          </div>
+          <p id="gateway-auto-desc" style="font-size: 0.84rem; color: #cbd5e1; margin: 0; line-height: 1.7;">
+            سيتم توجيهك فوراً وبأمان إلى بوابة الدفع لإتمام العملية، وسيتم إيداع الرصيد في محفظتك تلقائياً وبشكل فوري دون الحاجة لرفع إيصال تحويل أو انتظار الموافقة من الإدارة.
+          </p>
+        </div>
+
+        <button type="submit" id="btn-gateway-direct-submit" class="rq-btn-auth-register" style="width: 100%; justify-content: center; background: linear-gradient(135deg, #00C9A7 0%, #008f75 100%); padding: 1rem 2rem; font-size: 1.05rem; font-weight: 900; border-radius: 12px; cursor: pointer; border: none; color: #fff; box-shadow: 0 4px 20px rgba(0, 201, 167, 0.4); display: flex; align-items: center; gap: 0.75rem; transition: all 0.2s;">
+          <span id="gateway-submit-btn-text">الانتقال للدفع والشحن الفوري عبر شام كاش ⚡</span>
+          <i class="fas fa-external-link-alt text-sm"></i>
+        </button>
+      </div>
+
+      <!-- SECTION 3B: MANUAL TRANSFER (Only shown for non-gateway manual methods) -->
+      <div id="manual-transfer-section" style="display: none; border-top: 1px solid var(--rq-border); padding-top: 1.75rem;">
+        <!-- Instructions Box -->
+        <div id="method-instructions-box" style="background: rgba(0, 0, 0, 0.35); border: 1px solid rgba(59, 130, 246, 0.3); border-radius: var(--rq-radius-md); padding: 1.25rem; margin-bottom: 1.5rem;">
+          <div style="font-size: 0.8rem; font-weight: 800; color: #38bdf8; margin-bottom: 0.5rem; display: flex; align-items: center; gap: 0.4rem;">
+            <i class="fas fa-info-circle"></i>
+            <span>بيانات وتعليمات التحويل:</span>
+          </div>
+          <div id="method-instructions-text" style="font-size: 0.85rem; color: #cbd5e1; line-height: 1.7; white-space: pre-line;"></div>
+        </div>
 
         <!-- Proof Upload Dropzone -->
-        <div class="rq-form-group">
+        <div class="rq-form-group" style="margin-bottom: 1.25rem;">
           <label class="rq-label">صورة إشعار أو وصل التحويل (اختياري / موصى به للتحقق السريع):</label>
-          <div style="border: 2px dashed var(--rq-border); border-radius: var(--rq-radius-lg); padding: 2rem; text-align: center; background: rgba(0, 0, 0, 0.2); cursor: pointer; transition: all 0.2s;" onclick="document.getElementById('proof-image-input').click();">
+          <div style="border: 2px dashed var(--rq-border); border-radius: var(--rq-radius-lg); padding: 1.75rem; text-align: center; background: rgba(0, 0, 0, 0.2); cursor: pointer; transition: all 0.2s;" onclick="document.getElementById('proof-image-input').click();">
             <i class="fas fa-cloud-upload-alt text-3xl text-slate-500 mb-2 block"></i>
             <span style="font-size: 0.85rem; font-weight: 700; color: #fff; display: block;">اضغط لاختيار صورة الإشعار أو اسحب الملف هنا</span>
             <span style="font-size: 0.72rem; color: var(--rq-text-muted);">صيغ JPG, PNG أو WebP (الحد الأقصى 5 ميجابايت)</span>
@@ -230,27 +193,21 @@
           </div>
         </div>
 
-        <div class="rq-form-group">
+        <div class="rq-form-group" style="margin-bottom: 1.5rem;">
           <label class="rq-label">ملاحظات إضافية أو رقم العملية المرجعي:</label>
           <textarea name="customer_note" rows="2" class="rq-textarea" placeholder="اكتب أي ملاحظة أو رقم إشعار للمساعدة في تسريع مراجعة وتأكيد الإيداع..."></textarea>
         </div>
 
-        <div style="display: flex; justify-content: space-between; margin-top: 2rem;">
-          <button type="button" onclick="goToStep(2)" class="rq-btn-auth-login" style="padding: 0.75rem 1.75rem; font-size: 0.85rem;">
-            <i class="fas fa-arrow-right text-xs"></i>
-            <span>تعديل المبلغ</span>
-          </button>
-          <button type="submit" class="rq-pdp-buy-now" style="width: auto; padding: 0.75rem 2.5rem; font-size: 0.95rem;">
-            <i class="fas fa-check-circle"></i>
-            <span>تأكيد وإرسال طلب الإيداع</span>
-          </button>
-        </div>
+        <button type="submit" class="rq-pdp-buy-now" style="width: 100%; justify-content: center; padding: 0.95rem 2rem; font-size: 1rem; font-weight: 800; border-radius: 12px;">
+          <i class="fas fa-check-circle"></i>
+          <span>تأكيد وإرسال إشعار التحويل اليدوي</span>
+        </button>
       </div>
 
     </form>
   </div>
 
-  <!-- ── 4. Previous Deposit Requests History ── -->
+  <!-- ── 3. Previous Deposit Requests History ── -->
   <div style="background: var(--rq-surface-card); border: 1px solid var(--rq-border); border-radius: var(--rq-radius-xl); padding: 1.75rem;">
     <h3 style="font-size: 1.05rem; font-weight: 900; color: #fff; margin: 0 0 1.25rem; display: flex; align-items: center; gap: 0.5rem;">
       <i class="fas fa-history text-blue-400"></i>
@@ -314,8 +271,15 @@
 let activeMethodData = {};
 
 function selectDepositMethod(el) {
-  document.querySelectorAll('.rq-method-card').forEach(c => c.classList.remove('selected'));
+  document.querySelectorAll('.rq-method-card').forEach(c => {
+    c.classList.remove('selected');
+    c.style.borderColor = 'var(--rq-border)';
+    c.style.background = 'rgba(0, 0, 0, 0.25)';
+  });
+
   el.classList.add('selected');
+  el.style.borderColor = 'var(--rq-primary)';
+  el.style.background = 'rgba(37, 99, 235, 0.12)';
 
   let currencies = [];
   try {
@@ -371,10 +335,10 @@ function renderCurrencySelector(currencies) {
     const pill = document.createElement('div');
     pill.className = 'rq-currency-pill ' + (isSelected ? 'active' : '');
     pill.style.cssText = `
-      display: flex; align-items: center; gap: 0.5rem; padding: 0.6rem 1rem; border-radius: 10px;
-      cursor: pointer; font-size: 0.85rem; font-weight: 700; transition: all 0.2s ease;
+      display: flex; align-items: center; gap: 0.5rem; padding: 0.6rem 1.15rem; border-radius: 10px;
+      cursor: pointer; font-size: 0.88rem; font-weight: 800; transition: all 0.2s ease;
       background: ${isSelected ? 'rgba(0, 201, 167, 0.2)' : 'rgba(0, 0, 0, 0.35)'};
-      border: 1px solid ${isSelected ? '#00C9A7' : 'rgba(255, 255, 255, 0.1)'};
+      border: 1.5px solid ${isSelected ? '#00C9A7' : 'rgba(255, 255, 255, 0.12)'};
       color: ${isSelected ? '#00C9A7' : '#e2e8f0'};
     `;
     pill.innerHTML = `<i class="fas fa-check-circle" style="display: ${isSelected ? 'inline-block' : 'none'};"></i><span>${c.code} (${c.symbol})</span>`;
@@ -392,45 +356,49 @@ function renderCurrencySelector(currencies) {
 }
 
 function updateMethodDetailsView() {
-  const btnToStep3 = document.getElementById('btn-to-step-3');
-  const btnGwSubmit = document.getElementById('btn-gateway-direct-submit');
-  const gwNotice = document.getElementById('gateway-auto-notice');
+  const gwSection = document.getElementById('gateway-instant-section');
+  const manualSection = document.getElementById('manual-transfer-section');
   const gwTitle = document.getElementById('gateway-auto-title');
   const gwDesc = document.getElementById('gateway-auto-desc');
+  const gwBtn = document.getElementById('btn-gateway-direct-submit');
   const gwBtnText = document.getElementById('gateway-submit-btn-text');
-  const stepTab3 = document.getElementById('step-tab-3');
 
   if (activeMethodData.isGateway) {
-    if (btnToStep3) btnToStep3.style.display = 'none';
-    if (btnGwSubmit) btnGwSubmit.style.display = 'inline-flex';
-    if (gwNotice) gwNotice.style.display = 'block';
+    if (gwSection) gwSection.style.display = 'block';
+    if (manualSection) manualSection.style.display = 'none';
 
-    if (activeMethodData.gatewayProvider === 'sham_cash') {
-      if (gwTitle) gwTitle.innerText = 'بوابة شام كاش (ShamCash) - دفع وشحن فوري مؤتمت 100%';
-      if (gwDesc) gwDesc.innerText = 'سيتم توجيهك فوراً وبأمان إلى تطبيق/بوابة شام كاش لإتمام السداد، وسيتم شحن الرصيد في محفظتك تلقائياً دون أي حاجة لرفع إشعار تحويل يدوي أو انتظار الموافقة من الإدارة.';
-      if (gwBtnText) gwBtnText.innerText = 'الانتقال للدفع الفوري عبر شام كاش ⚡';
-      if (btnGwSubmit) btnGwSubmit.style.background = 'linear-gradient(135deg, #00C9A7 0%, #008f75 100%)';
-    } else if (activeMethodData.gatewayProvider === 'paymera') {
-      if (gwTitle) gwTitle.innerText = 'بوابة بيميرا (Paymera) - دفع فوري مؤتمت بالبطاقة المصرفية';
-      if (gwDesc) gwDesc.innerText = 'سيتم توجيهك فوراً إلى بوابة بيميرا لسداد المبلغ ببطاقتك المصرفية وشحن الرصيد فوراً.';
-      if (gwBtnText) gwBtnText.innerText = 'الانتقال للدفع الفوري عبر بيميرا 💳';
-      if (btnGwSubmit) btnGwSubmit.style.background = 'linear-gradient(135deg, #7c3aed 0%, #6d28d9 100%)';
-    }
+    const isSham = (activeMethodData.gatewayProvider === 'sham_cash');
+    const isPaymera = (activeMethodData.gatewayProvider === 'paymera');
+    const methodName = activeMethodData.name || 'بوابة الدفع';
 
-    if (stepTab3) {
-      stepTab3.style.opacity = '0.35';
-      const labelSpan = stepTab3.querySelector('span');
-      if (labelSpan) labelSpan.innerText = 'إثبات التحويل (غير مطلوب ⚡)';
+    if (isSham) {
+      if (gwTitle) gwTitle.innerText = `دفع وشحن فوري مؤتمت 100% عبر ${methodName}`;
+      if (gwDesc) gwDesc.innerText = `سيتم توجيهك فوراً وبأمان إلى تطبيق/بوابة ${methodName} لإتمام السداد، وسيتم شحن الرصيد في محفظتك تلقائياً دون أي حاجة لرفع إشعار تحويل يدوي أو انتظار الموافقة من الإدارة.`;
+      if (gwBtnText) gwBtnText.innerText = `الانتقال للدفع والشحن الفوري عبر ${methodName} ⚡`;
+      if (gwBtn) {
+        gwBtn.style.background = 'linear-gradient(135deg, #00C9A7 0%, #008f75 100%)';
+        gwBtn.style.boxShadow = '0 4px 20px rgba(0, 201, 167, 0.4)';
+      }
+    } else if (isPaymera) {
+      if (gwTitle) gwTitle.innerText = `دفع وشحن فوري مؤتمت بالبطاقة عبر ${methodName}`;
+      if (gwDesc) gwDesc.innerText = `سيتم توجيهك فوراً إلى بوابة ${methodName} لسداد المبلغ ببطاقتك المصرفية وشحن الرصيد فوراً.`;
+      if (gwBtnText) gwBtnText.innerText = `الانتقال للدفع والشحن الفوري عبر ${methodName} 💳`;
+      if (gwBtn) {
+        gwBtn.style.background = 'linear-gradient(135deg, #7c3aed 0%, #6d28d9 100%)';
+        gwBtn.style.boxShadow = '0 4px 20px rgba(124, 58, 237, 0.4)';
+      }
+    } else {
+      if (gwTitle) gwTitle.innerText = `دفع وشحن فوري عبر ${methodName}`;
+      if (gwDesc) gwDesc.innerText = `سيتم توجيهك فوراً إلى بوابة الدفع المعتمدة لإتمام العملية وشحن محفظتك تلقائياً.`;
+      if (gwBtnText) gwBtnText.innerText = `الانتقال للدفع والشحن الفوري عبر ${methodName} ⚡`;
+      if (gwBtn) {
+        gwBtn.style.background = 'linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%)';
+        gwBtn.style.boxShadow = '0 4px 20px rgba(37, 99, 235, 0.4)';
+      }
     }
   } else {
-    if (btnToStep3) btnToStep3.style.display = 'inline-flex';
-    if (btnGwSubmit) btnGwSubmit.style.display = 'none';
-    if (gwNotice) gwNotice.style.display = 'none';
-    if (stepTab3) {
-      stepTab3.style.opacity = '1';
-      const labelSpan = stepTab3.querySelector('span');
-      if (labelSpan) labelSpan.innerText = 'إثبات التحويل';
-    }
+    if (gwSection) gwSection.style.display = 'none';
+    if (manualSection) manualSection.style.display = 'block';
   }
 
   const instrText = document.getElementById('method-instructions-text');
@@ -438,7 +406,7 @@ function updateMethodDetailsView() {
   const currLabel = document.getElementById('amount-currency-label');
 
   if (instrText) {
-    instrText.innerText = activeMethodData.instructions || 'قم بالتحويل إلى الحساب الموضح وأرفق الإشعار لتأكيد الإيداع.';
+    instrText.innerText = activeMethodData.instructions || 'يرجى التحويل إلى الحساب الموضح أدناه، ثم إرفاق إشعار أو وصل التحويل ليقوم فريق الإدارة بمراجعته وتأكيد شحن محفظتك.';
   }
   if (limitsHint) {
     let limitStr = `الحد الأدنى: ${activeMethodData.min} ${activeMethodData.currencyCode}`;
@@ -463,24 +431,6 @@ function calculateDepositNet() {
 
   if (feeEl) feeEl.innerText = `${feeAmount.toFixed(2)} ${activeMethodData.currencyCode || ''} (${feePercent}%)`;
   if (netEl) netEl.innerText = `${netAmount.toFixed(2)} ${activeMethodData.currencyCode || ''}`;
-}
-
-function goToStep(step) {
-  if (step === 3 && activeMethodData && activeMethodData.isGateway) {
-    document.getElementById('deposit-form').submit();
-    return;
-  }
-  [1, 2, 3].forEach(s => {
-    const panel = document.getElementById(`step-panel-${s}`);
-    const tab = document.getElementById(`step-tab-${s}`);
-    if (panel) panel.style.display = (s === step) ? 'block' : 'none';
-    if (tab) {
-      if (s === step) tab.classList.add('active');
-      else if (s < step) tab.classList.add('completed');
-      else tab.classList.remove('active', 'completed');
-    }
-  });
-  window.scrollTo({ top: 120, behavior: 'smooth' });
 }
 
 function previewProofImage(input) {
