@@ -1,12 +1,16 @@
 """
 ShamCash E-Payment Webhook and Browser Redirect Views
 Documentation: ShamCash E-Payment Integration Guide v1.0.0
+Terms & Conditions: ShamCash B2B Collection Specification
+
 Specification:
-- Webhook receives Direct JWE encrypted payload in {"encData": "..."}
-- Server verifies token expiration, decrypts using AES-256-GCM, and validates bill status.
+- Webhook receives Direct JWE encrypted payload in {"encData": "..."}.
+- Server decrypts using AES-256-GCM, checks exp claim against replay attacks, and verifies payload.
+- Full 5-Year Webhook & Audit logging per Article 14 of ShamCash Terms.
+- Zero customer surcharge compliance per Article 7.
 - Idempotent processing of Wallet Deposits and Direct Order Checkouts.
-- Returns HTTP 200 within 10 seconds.
-- Seamless dual currency support: USD (currencyId=1) and SYP (currencyId=2).
+- Returns HTTP 200 with result code 2500 within the 10-second safety window.
+- Dual Currency support: USD (currencyId=1) and SYP (currencyId=2).
 """
 
 import json
@@ -23,12 +27,17 @@ from django.urls import reverse
 from django.utils import timezone
 from django.views.decorators.csrf import csrf_exempt
 
+from apps.accounts.models import ActivityLog
 from apps.common.tenant_utils import bypass_tenant_filter
 from apps.notifications.services import notify_user
 from apps.orders.models import Order, OrderLog
 from apps.orders.services import finalize_paid_gateway_order
-from apps.payments.models import DepositRequest, PaymentGatewayIntegration
-from apps.accounts.models import ActivityLog
+from apps.payments.models import (
+    DepositRequest,
+    PaymentGatewayIntegration,
+    ShamCashBillRecord,
+    ShamCashWebhookLog,
+)
 from apps.payments.shamcash import ShamCashClient, ShamCashError
 from apps.wallets.services import credit_wallet, get_or_create_wallet
 
@@ -38,23 +47,28 @@ logger = logging.getLogger(__name__)
 def _get_active_shamcash_integration():
     """Retrieve active PaymentGatewayIntegration for ShamCash."""
     with bypass_tenant_filter():
-        return PaymentGatewayIntegration.all_objects.filter(
-            provider=PaymentGatewayIntegration.Provider.SHAM_CASH,
-            is_active=True,
-        ).first()
+        return (
+            PaymentGatewayIntegration.all_objects.filter(
+                provider=PaymentGatewayIntegration.Provider.SHAM_CASH,
+                is_active=True,
+            )
+            .exclude(api_key="")
+            .first()
+        )
 
 
 def _complete_successful_shamcash_deposit(deposit: DepositRequest, tran_id: Any, status_data: dict) -> bool:
     """
     Atomically credits the user's wallet and marks DepositRequest as COMPLETED.
-    Guarantees idempotency via select_for_update().
+    Guarantees strict idempotency via select_for_update().
+    Enforces Article 7: ZERO extra surcharge on the customer.
     """
     with transaction.atomic():
         with bypass_tenant_filter():
             locked_deposit = DepositRequest.objects.select_for_update().get(pk=deposit.pk)
 
             if locked_deposit.status == DepositRequest.Status.COMPLETED:
-                logger.info(f"Deposit {deposit.id} already completed, skipping credit.")
+                logger.info(f"Deposit {deposit.id} already completed; skipping redundant credit.")
                 return False
 
             if tran_id:
@@ -64,17 +78,19 @@ def _complete_successful_shamcash_deposit(deposit: DepositRequest, tran_id: Any,
                 locked_deposit.metadata = {}
             locked_deposit.metadata["shamcash_status_data"] = status_data
             locked_deposit.metadata["shamcash_verified_at"] = timezone.now().isoformat()
+            locked_deposit.metadata["shamcash_tran_id"] = tran_id
 
-            # Recalculate fees and final amount
-            locked_deposit.calculate_fees()
-            final_amount = locked_deposit.final_amount
+            # Zero surcharge policy: client gets 100% of their deposit amount
+            deposit_amount = locked_deposit.amount
+            locked_deposit.fee_amount = Decimal("0.00")
+            locked_deposit.final_amount = deposit_amount
 
-            # Credit wallet in wallet currency (e.g. USD)
+            # Credit wallet in wallet currency
             wallet = get_or_create_wallet(locked_deposit.user)
             if locked_deposit.currency and locked_deposit.currency.code == wallet.currency.code:
-                wallet_final_amount = final_amount
+                wallet_final_amount = deposit_amount
             else:
-                base_val = locked_deposit.currency.to_base(final_amount, "deposit") if locked_deposit.currency else final_amount
+                base_val = locked_deposit.currency.to_base(deposit_amount, "deposit") if locked_deposit.currency else deposit_amount
                 wallet_final_amount = wallet.currency.from_base(base_val, "deposit")
 
             if wallet_final_amount <= 0:
@@ -85,31 +101,44 @@ def _complete_successful_shamcash_deposit(deposit: DepositRequest, tran_id: Any,
                 wallet_id=wallet.id,
                 amount=wallet_final_amount,
                 reference=f"shamcash:{locked_deposit.id}",
-                description=f"إيداع مؤكد عبر شام كاش (فاتورة: {locked_deposit.gateway_payment_id})",
+                description=f"إيداع مؤكد عبر شام كاش (رقم الفاتورة: {locked_deposit.gateway_payment_id} - رقم العملية: {tran_id or 'N/A'})",
                 created_by=locked_deposit.user,
                 source="deposit",
                 metadata={
                     "from_shamcash": True,
                     "tranId": tran_id,
                     "billNo": locked_deposit.gateway_payment_id,
+                    "provider": "sham_cash",
                 },
             )
 
             locked_deposit.status = DepositRequest.Status.COMPLETED
             locked_deposit.is_verified = True
             locked_deposit.admin_note = (
-                f"شام كاش - تم الدفع بنجاح. رقم العملية: {tran_id or 'N/A'}"
+                f"شام كاش - تم استلام وتأكيد الدفع بنجاح. رقم الحركة: {tran_id or 'N/A'}"
             )
             locked_deposit.save(
                 update_fields=[
                     "status",
                     "is_verified",
                     "transaction_id",
+                    "fee_amount",
+                    "final_amount",
                     "metadata",
                     "admin_note",
                     "updated_at",
                 ]
             )
+
+            # Update ShamCashBillRecord if exists
+            bill_no = locked_deposit.gateway_payment_id
+            if bill_no:
+                ShamCashBillRecord.objects.filter(bill_no=bill_no).update(
+                    status_id=ShamCashClient.STATUS_PAID,
+                    status_name=ShamCashClient.STATUS_NAMES[ShamCashClient.STATUS_PAID],
+                    tran_id=int(tran_id) if tran_id and str(tran_id).isdigit() else None,
+                    updated_at=timezone.now(),
+                )
 
             ActivityLog.objects.create(
                 user=locked_deposit.user,
@@ -127,11 +156,11 @@ def _complete_successful_shamcash_deposit(deposit: DepositRequest, tran_id: Any,
 
             notify_user(
                 user=locked_deposit.user,
-                title="تم تأكيد الإيداع عبر شام كاش",
+                title="تم تأكيد الإيداع عبر شام كاش بنجاح",
                 body=f"تم إيداع {locked_deposit.amount} {locked_deposit.currency.symbol if locked_deposit.currency else '$'} في محفظتك بنجاح.",
                 category="financial",
             )
-            logger.info(f"Successfully completed Deposit {deposit.id} via ShamCash.")
+            logger.info(f"Successfully completed Deposit {deposit.id} via ShamCash [tranId={tran_id}].")
             return True
 
 
@@ -139,10 +168,15 @@ def _complete_successful_shamcash_deposit(deposit: DepositRequest, tran_id: Any,
 def shamcash_callback_view(request):
     """
     Asynchronous Webhook endpoint invoked by ShamCash backend.
+    Documentation: ShamCash E-Payment Integration Guide v1.0.0 (Section 9).
     Receives {"encData": "..."} containing encrypted status updates.
     Endpoint: /payments/shamcash/callback/
     """
-    logger.info(f"ShamCash webhook received: method={request.method}")
+    client_ip = request.META.get("HTTP_X_FORWARDED_FOR") or request.META.get("REMOTE_ADDR")
+    if client_ip and "," in client_ip:
+        client_ip = client_ip.split(",")[0].strip()
+
+    logger.info(f"ShamCash webhook received from IP={client_ip}: method={request.method}")
 
     # Extract encData from JSON body or POST form data
     enc_data = None
@@ -157,36 +191,70 @@ def shamcash_callback_view(request):
     if not enc_data:
         enc_data = request.POST.get("encData")
 
+    # Initial Webhook Log for 5-Year compliance audit
+    webhook_log = ShamCashWebhookLog.objects.create(
+        raw_enc_data=enc_data or (request.body.decode("utf-8", errors="ignore")[:2000] if request.body else ""),
+        ip_address=client_ip,
+        is_valid=False,
+        processed_successfully=False,
+    )
+
     if not enc_data:
-        logger.warning("ShamCash webhook missing encData payload.")
-        return JsonResponse({"result": 1702, "message": "Missing encData"}, status=400)
+        err_msg = "Missing encData payload in request"
+        logger.warning(f"ShamCash webhook missing encData payload [log_id={webhook_log.id}].")
+        webhook_log.error_message = err_msg
+        webhook_log.save(update_fields=["error_message"])
+        return JsonResponse({"result": 1700, "message": err_msg}, status=400)
 
     integration = _get_active_shamcash_integration()
     if not integration:
         logger.error("ShamCash webhook: No active ShamCash integration configured.")
-        return JsonResponse({"result": 1700, "message": "Integration inactive"}, status=500)
+        webhook_log.error_message = "No active ShamCash integration found"
+        webhook_log.save(update_fields=["error_message"])
+        return JsonResponse({"result": 1702, "message": "Integration not active"}, status=500)
 
     client = ShamCashClient.from_integration(integration)
 
     try:
-        # Decrypt Direct JWE payload and verify expiration
+        # Decrypt Direct JWE payload and verify expiration claim (Doc Section 5 & 9)
         payload = client.decrypt_payload(enc_data, verify_exp=True)
     except ShamCashError as err:
         logger.error(f"ShamCash webhook decryption failed: {err}")
-        return JsonResponse({"result": 1702, "message": f"Decryption failed: {err}"}, status=400)
+        webhook_log.error_message = f"Decryption/validation failed: {err}"
+        webhook_log.save(update_fields=["error_message"])
+        return JsonResponse({"result": 1705, "message": f"Decryption failed: {err}"}, status=400)
 
     bill_no = str(payload.get("billNo") or "").strip()
     tran_id = payload.get("tranId")
     status_id = payload.get("statusId")
+
+    webhook_log.bill_no = bill_no
+    webhook_log.tran_id = int(tran_id) if tran_id and str(tran_id).isdigit() else None
+    webhook_log.status_id = int(status_id) if status_id is not None else None
+    webhook_log.decrypted_payload = payload
+    webhook_log.is_valid = True
+    webhook_log.save(update_fields=["bill_no", "tran_id", "status_id", "decrypted_payload", "is_valid"])
 
     logger.info(
         f"ShamCash webhook verified: billNo={bill_no}, tranId={tran_id}, statusId={status_id}"
     )
 
     if not bill_no:
-        return JsonResponse({"result": 1705, "message": "Missing billNo in payload"}, status=400)
+        webhook_log.error_message = "Missing billNo in decrypted payload"
+        webhook_log.save(update_fields=["error_message"])
+        return JsonResponse({"result": 1700, "message": "Missing billNo in payload"}, status=400)
 
-    # ── Check if Deposit ─────────────────────────────────────────────────────────
+    # Update central ShamCashBillRecord status
+    bill_record = ShamCashBillRecord.objects.filter(bill_no=bill_no).first()
+    if bill_record:
+        if status_id is not None:
+            bill_record.status_id = int(status_id)
+            bill_record.status_name = ShamCashClient.STATUS_NAMES.get(int(status_id), str(status_id))
+        if tran_id:
+            bill_record.tran_id = int(tran_id) if str(tran_id).isdigit() else None
+        bill_record.save(update_fields=["status_id", "status_name", "tran_id", "updated_at"])
+
+    # ── Handle Wallet Deposit ──────────────────────────────────────────────────
     query_deposit_id = request.GET.get("id") or request.GET.get("deposit_id")
     is_deposit = bill_no.startswith("DEP-") or (request.GET.get("type") == "deposit") or bool(query_deposit_id)
 
@@ -198,7 +266,6 @@ def shamcash_callback_view(request):
             if not deposit:
                 deposit = DepositRequest.objects.filter(gateway_payment_id=bill_no).first()
             if not deposit and "-" in bill_no:
-                # Attempt parsing DEP-{id}-{timestamp}
                 parts = bill_no.split("-")
                 if len(parts) >= 2:
                     possible_id = parts[1]
@@ -206,24 +273,32 @@ def shamcash_callback_view(request):
 
             if not deposit:
                 logger.error(f"ShamCash webhook: Deposit not found for billNo={bill_no}")
-                return JsonResponse({"result": 1705, "message": "Deposit record not found"}, status=404)
+                webhook_log.error_message = f"Deposit record not found for {bill_no}"
+                webhook_log.save(update_fields=["error_message"])
+                return JsonResponse({"result": 1703, "message": "Deposit record not found"}, status=404)
 
             # Status 4 = Paid (Success)
             if status_id == ShamCashClient.STATUS_PAID:
                 _complete_successful_shamcash_deposit(deposit, tran_id, payload)
+                webhook_log.processed_successfully = True
+                webhook_log.save(update_fields=["processed_successfully"])
                 return JsonResponse({"result": 2500, "message": "Deposit confirmed successfully"})
 
             # Status 3 = Expired
             elif status_id == ShamCashClient.STATUS_EXPIRED:
                 if deposit.status == DepositRequest.Status.PENDING:
                     deposit.status = DepositRequest.Status.REJECTED
-                    deposit.admin_note = "انتهت صلاحية الفاتورة في شام كاش دون تسديد."
+                    deposit.admin_note = "انتهت مهلة صلاحية الفاتورة في شام كاش (10 دقائق) دون تسديد."
                     deposit.save(update_fields=["status", "admin_note", "updated_at"])
+                webhook_log.processed_successfully = True
+                webhook_log.save(update_fields=["processed_successfully"])
                 return JsonResponse({"result": 2500, "message": "Deposit marked expired"})
 
+            webhook_log.processed_successfully = True
+            webhook_log.save(update_fields=["processed_successfully"])
             return JsonResponse({"result": 2500, "message": f"Status {status_id} recorded"})
 
-    # ── Check if Order ───────────────────────────────────────────────────────────
+    # ── Handle Direct Order ────────────────────────────────────────────────────
     query_order_id = request.GET.get("id") or request.GET.get("order_id")
     is_order = bill_no.startswith("ORD-") or (request.GET.get("type") == "order") or bool(query_order_id)
 
@@ -242,7 +317,16 @@ def shamcash_callback_view(request):
 
             if not order:
                 logger.error(f"ShamCash webhook: Order not found for billNo={bill_no}")
-                return JsonResponse({"result": 1705, "message": "Order record not found"}, status=404)
+                webhook_log.error_message = f"Order record not found for {bill_no}"
+                webhook_log.save(update_fields=["error_message"])
+                return JsonResponse({"result": 1703, "message": "Order record not found"}, status=404)
+
+            # Idempotency check: if order is already processed, return 2500 safely
+            if order.status in (Order.Status.PROCESSING, Order.Status.COMPLETED):
+                logger.info(f"Order {order.id} already completed; skipping redundant webhook processing.")
+                webhook_log.processed_successfully = True
+                webhook_log.save(update_fields=["processed_successfully"])
+                return JsonResponse({"result": 2500, "message": "Order already processed"})
 
             if status_id == ShamCashClient.STATUS_PAID:
                 gateway_data = {
@@ -254,24 +338,32 @@ def shamcash_callback_view(request):
                     "payload": payload,
                 }
                 finalize_paid_gateway_order(order, gateway_data)
+                webhook_log.processed_successfully = True
+                webhook_log.save(update_fields=["processed_successfully"])
                 return JsonResponse({"result": 2500, "message": "Order payment accepted and processed"})
 
             elif status_id == ShamCashClient.STATUS_EXPIRED:
                 if order.status == Order.Status.PENDING:
                     order.status = Order.Status.CANCELLED
-                    order.admin_note = "انتهت صلاحية فاتورة شام كاش دون دفع."
+                    order.admin_note = "انتهت صلاحية فاتورة شام كاش دون تسديد (10 دقائق)."
                     order.save(update_fields=["status", "admin_note", "updated_at"])
                     OrderLog.objects.create(
                         order=order,
                         status=Order.Status.CANCELLED,
                         note="تم إلغاء الطلب لانتهاء مهلة سداد فاتورة شام كاش.",
                     )
+                webhook_log.processed_successfully = True
+                webhook_log.save(update_fields=["processed_successfully"])
                 return JsonResponse({"result": 2500, "message": "Order marked expired"})
 
+            webhook_log.processed_successfully = True
+            webhook_log.save(update_fields=["processed_successfully"])
             return JsonResponse({"result": 2500, "message": f"Status {status_id} recorded"})
 
-    # Fallback response for unhandled bill formats
-    return JsonResponse({"result": 2500, "message": "Notification received"})
+    # Fallback response
+    webhook_log.processed_successfully = True
+    webhook_log.save(update_fields=["processed_successfully"])
+    return JsonResponse({"result": 2500, "message": "Notification received successfully"})
 
 
 def shamcash_redirect_view(request):
@@ -298,7 +390,7 @@ def shamcash_redirect_view(request):
                 deposit = DepositRequest.objects.filter(gateway_payment_id=bill_no).first()
 
             if deposit:
-                # Active verification if still pending
+                # Active fallback verification if still pending
                 if deposit.status == DepositRequest.Status.PENDING and client and bill_no:
                     try:
                         bill_info = client.get_bill_info(bill_no)
@@ -307,7 +399,7 @@ def shamcash_redirect_view(request):
                             _complete_successful_shamcash_deposit(deposit, bill_info.get("tranId"), bill_info)
                         elif status_id == ShamCashClient.STATUS_EXPIRED:
                             deposit.status = DepositRequest.Status.REJECTED
-                            deposit.admin_note = "انتهت صلاحية الفاتورة."
+                            deposit.admin_note = "انتهت صلاحية الفاتورة دون دفع."
                             deposit.save(update_fields=["status", "admin_note", "updated_at"])
                     except Exception as err:
                         logger.warning(f"Could not actively verify ShamCash bill on return: {err}")
@@ -318,7 +410,7 @@ def shamcash_redirect_view(request):
                 elif deposit.status == DepositRequest.Status.REJECTED:
                     messages.warning(request, "تم إلغاء أو انتهاء صلاحية عملية الدفع عبر شام كاش.")
                 else:
-                    messages.info(request, "عملية الإيداع قيد المراجعة، وسيتم إضافة الرصيد فور وصول إشعار السداد.")
+                    messages.info(request, "عملية الإيداع قيد المراجعة، وسيتم إضافة الرصيد فور استلام إشعار السداد.")
 
         return redirect("dashboard_deposits")
 
@@ -332,7 +424,7 @@ def shamcash_redirect_view(request):
                 order = Order.all_objects.filter(metadata__gateway_payment_id=bill_no).first()
 
             if order:
-                # Active verification if still pending
+                # Active fallback verification if still pending
                 if order.status == Order.Status.PENDING and client and bill_no:
                     try:
                         bill_info = client.get_bill_info(bill_no)
@@ -349,15 +441,16 @@ def shamcash_redirect_view(request):
                             finalize_paid_gateway_order(order, gateway_data)
                         elif status_id == ShamCashClient.STATUS_EXPIRED:
                             order.status = Order.Status.CANCELLED
-                            order.save(update_fields=["status", "updated_at"])
+                            order.admin_note = "انتهت مهلة الدفع في شام كاش."
+                            order.save(update_fields=["status", "admin_note", "updated_at"])
                     except Exception as err:
                         logger.warning(f"Could not actively verify ShamCash order on return: {err}")
 
                 order.refresh_from_db()
                 if order.status in (Order.Status.PROCESSING, Order.Status.COMPLETED):
-                    messages.success(request, "تم سداد قيمة الطلب بنجاح عبر شام كاش وجارٍ تنفيذه!")
+                    messages.success(request, "تم سداد قيمة الطلب بنجاح عبر شام كاش وجارٍ تنفيذه فوراً!")
                 elif order.status == Order.Status.CANCELLED:
-                    messages.warning(request, "تم إلغاء عملية الدفع عبر شام كاش.")
+                    messages.warning(request, "تم إلغاء أو انتهاء مهلة الدفع عبر شام كاش.")
                 else:
                     messages.info(request, "طلبك قيد المتابعة وسيتم تحديثه تلقائياً.")
 

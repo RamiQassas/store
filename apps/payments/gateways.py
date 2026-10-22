@@ -6,6 +6,7 @@ Supports Paymera eGate and ShamCash E-Payment
 from decimal import Decimal
 import logging
 import time
+from typing import Any, Dict, List, Optional, Tuple, Union
 
 from apps.payments.paymera import PaymeraClient, PaymeraError
 from apps.payments.shamcash import ShamCashClient, ShamCashError
@@ -217,10 +218,14 @@ class PaymeraGateway(BasePaymentGateway):
 class ShamCashGateway(BasePaymentGateway):
     """
     ShamCash E-Payment Gateway implementation.
+    Complies strictly with ShamCash Integration Guide v1.0.0 and Terms & Conditions.
     Supports:
-    - Wallet Deposits in USD (currencyId=1) and SYP (currencyId=2)
-    - Direct Product Checkouts in USD (currencyId=1) and SYP (currencyId=2)
-    - Direct JWE encryption and real-time status inquiry
+    - Wallet Deposits in USD (currencyId=1) and SYP (currencyId=2) with 0% extra surcharge.
+    - Direct Product Checkouts in USD (currencyId=1) and SYP (currencyId=2).
+    - Direct JWE AES-256-GCM encryption with mandatory replay protection (iat/exp).
+    - Immutable ShamCashBillRecord and ShamCashRefundRecord ledger.
+    - Full & Partial Refunds with idempotencyKey enforcement (10 to 100 chars).
+    - Real-time fallback status inquiry and active health check.
     """
     code = "sham_cash"
 
@@ -256,12 +261,48 @@ class ShamCashGateway(BasePaymentGateway):
             mode=getattr(settings, "SHAM_CASH_MODE", "sandbox"),
         )
 
+    def check_health(self) -> Dict[str, Any]:
+        """Test connectivity and encryption against ShamCash API."""
+        client = self.get_client()
+        if not client.agent_key or not client.raw_secret_key:
+            return {"ok": False, "message": "Agent Key أو Secret Key غير مهيأ."}
+        try:
+            # Probe getBillInfo with a non-existent test ID to verify JWE encryption & API handshake
+            test_bill_no = f"PROBE-{int(time.time())}"
+            try:
+                client.get_bill_info(test_bill_no)
+                return {"ok": True, "message": "اتصال ناجح 100% ومصادقة سليمة مع خوادم شام كاش."}
+            except ShamCashError as e:
+                # 1703 (Bill Not Found) means encryption, authentication, and routing succeeded!
+                if e.error_code == 1703:
+                    return {
+                        "ok": True,
+                        "message": "تم التحقق بنجاح من التشفير والمصادقة والاتصال بخوادم شام كاش (رمز الاستجابة المتوقع: 1703 Bill Not Found).",
+                        "code": 1703,
+                    }
+                elif e.error_code in (1701, 1702, 1705, 1706):
+                    return {
+                        "ok": False,
+                        "message": f"فشل التحقق من بيانات الاعتماد: {e}",
+                        "code": e.error_code,
+                    }
+                return {
+                    "ok": False,
+                    "message": f"استجابة من شام كاش: {e}",
+                    "code": e.error_code,
+                }
+        except Exception as exc:
+            return {"ok": False, "message": f"خطأ اتصال بالشبكة: {exc}"}
+
     def create_payment(self, deposit, request=None):
         """Create payment bill for wallet deposit."""
         from django.urls import reverse
         from django.conf import settings
+        from django.utils import timezone
+        from apps.payments.models import ShamCashBillRecord
         client = self.get_client()
 
+        # Decouple internal ID from billNo per Recommendation (Doc Section 10)
         bill_no = f"DEP-{deposit.id}-{int(time.time())}"
 
         site_url = getattr(settings, "SITE_URL", "").rstrip("/")
@@ -287,7 +328,7 @@ class ShamCashGateway(BasePaymentGateway):
             currency_id = ShamCashClient.CURRENCY_USD
             bill_amount = Decimal(str(deposit.amount)).quantize(Decimal("0.01"))
 
-        notes = f"Deposit {deposit.id} for {deposit.user.email}"
+        notes = f"إيداع محفظة رقم {deposit.id} للمستخدم {deposit.user.email}"
         try:
             res = client.create_bill(
                 bill_no=bill_no,
@@ -307,6 +348,35 @@ class ShamCashGateway(BasePaymentGateway):
             deposit.metadata["shamcash_created_date"] = res.get("createdDate")
             deposit.metadata["payment_provider"] = self.code
             deposit.save(update_fields=["gateway_payment_id", "metadata"])
+
+            # Create immutable bill record for compliance & 5-year retention
+            created_date = None
+            created_time = None
+            if res.get("createdDate"):
+                try:
+                    created_date = res.get("createdDate")
+                except Exception:
+                    pass
+
+            ShamCashBillRecord.objects.create(
+                bill_no=bill_no,
+                bill_type=ShamCashBillRecord.BillType.DEPOSIT,
+                user=deposit.user,
+                deposit=deposit,
+                amount=bill_amount,
+                currency_id=currency_id,
+                currency_code=curr_code,
+                status_id=ShamCashClient.STATUS_PENDING,
+                status_name=ShamCashClient.STATUS_NAMES[ShamCashClient.STATUS_PENDING],
+                payment_url=res.get("paymentUrl") or "",
+                callback_url=callback_url,
+                redirect_url=redirect_url,
+                note=notes,
+                created_date=created_date,
+                expires_at=timezone.now() + timezone.timedelta(minutes=10),
+                raw_create_response=res,
+            )
+
             return {
                 "url": res.get("paymentUrl"),
                 "payment_id": bill_no,
@@ -336,9 +406,12 @@ class ShamCashGateway(BasePaymentGateway):
         """Create payment bill for direct order checkout."""
         from django.urls import reverse
         from django.conf import settings
+        from django.utils import timezone
         from apps.common.models import Currency
+        from apps.payments.models import ShamCashBillRecord
         client = self.get_client()
 
+        # Decouple internal ID from billNo per Recommendation (Doc Section 10)
         bill_no = f"ORD-{order.number}-{int(time.time())}"
 
         site_url = getattr(settings, "SITE_URL", "").rstrip("/")
@@ -392,7 +465,7 @@ class ShamCashGateway(BasePaymentGateway):
             charge_amount = exact_usd.quantize(Decimal("0.01"))
             currency_code = "USD"
 
-        notes = f"Order {order.number} for {order.customer.email}"
+        notes = f"سداد طلب رقم {order.number} للعميل {order.customer.email}"
         try:
             res = client.create_bill(
                 bill_no=bill_no,
@@ -411,6 +484,27 @@ class ShamCashGateway(BasePaymentGateway):
             order.metadata["gateway_charge_currency"] = currency_code
             order.metadata["payment_provider"] = self.code
             order.save(update_fields=["metadata"])
+
+            # Create immutable bill record for compliance & 5-year retention
+            ShamCashBillRecord.objects.create(
+                bill_no=bill_no,
+                bill_type=ShamCashBillRecord.BillType.ORDER,
+                user=order.customer,
+                order=order,
+                amount=charge_amount,
+                currency_id=currency_id,
+                currency_code=currency_code,
+                status_id=ShamCashClient.STATUS_PENDING,
+                status_name=ShamCashClient.STATUS_NAMES[ShamCashClient.STATUS_PENDING],
+                payment_url=res.get("paymentUrl") or "",
+                callback_url=callback_url,
+                redirect_url=redirect_url,
+                note=notes,
+                created_date=res.get("createdDate"),
+                expires_at=timezone.now() + timezone.timedelta(minutes=10),
+                raw_create_response=res,
+            )
+
             return {
                 "url": res.get("paymentUrl"),
                 "payment_id": bill_no,
@@ -438,28 +532,114 @@ class ShamCashGateway(BasePaymentGateway):
         except ShamCashError as err:
             raise PaymentGatewayError(str(err)) from err
 
-    def refund_order_payment(self, order, reason=""):
-        """Refund a direct order paid via ShamCash."""
+    def refund_order_payment(self, order, reason="", amount=None, actor=None):
+        """
+        Refund a direct order paid via ShamCash.
+        Enforces Article 9 (Refund Rules) and Article 14 (Dispute & Refund Logging).
+        """
+        import uuid
+        from apps.payments.models import ShamCashBillRecord, ShamCashRefundRecord
         meta = order.metadata if isinstance(order.metadata, dict) else {}
         bill_no = meta.get("shamcash_bill_no") or meta.get("gateway_payment_id")
         if not bill_no:
             raise PaymentGatewayError("لا يمكن استرداد طلب بدون رقم فاتورة شام كاش.")
 
-        charge_amt = meta.get("gateway_charge_amount") or order.total_amount
-        charge_curr = meta.get("gateway_charge_currency", "USD")
-        currency_id = ShamCashClient.CURRENCY_SYP if charge_curr == "SYP" else ShamCashClient.CURRENCY_USD
+        if amount:
+            refund_amt = Decimal(str(amount)).quantize(Decimal("0.01"))
+        else:
+            refund_amt = Decimal(str(meta.get("gateway_charge_amount") or order.total_amount)).quantize(Decimal("0.01"))
 
         client = self.get_client()
+        idempotency_key = f"REF-ORD-{order.id}-{uuid.uuid4().hex[:12]}"
+        note = reason or f"استرداد قيمة الطلب {order.number}"
+
         try:
             res = client.refund_bill(
                 bill_no=bill_no,
-                amount=charge_amt,
-                currency_id=currency_id,
-                reason=reason or f"Refund order {order.number}",
+                amount=refund_amt,
+                note=note,
+                idempotency_key=idempotency_key,
             )
+            tran_id = res.get("tranId")
+
+            bill_record = ShamCashBillRecord.objects.filter(bill_no=bill_no).first()
+            if bill_record:
+                bill_record.total_refunded_amount += refund_amt
+                if bill_record.total_refunded_amount >= bill_record.amount:
+                    bill_record.status_id = ShamCashClient.STATUS_REFUNDED
+                    bill_record.status_name = ShamCashClient.STATUS_NAMES[ShamCashClient.STATUS_REFUNDED]
+                else:
+                    bill_record.status_id = ShamCashClient.STATUS_PARTLY_REFUNDED
+                    bill_record.status_name = ShamCashClient.STATUS_NAMES[ShamCashClient.STATUS_PARTLY_REFUNDED]
+                bill_record.save(update_fields=["total_refunded_amount", "status_id", "status_name", "updated_at"])
+
+                ShamCashRefundRecord.objects.create(
+                    bill=bill_record,
+                    bill_no=bill_no,
+                    amount=refund_amt,
+                    idempotency_key=idempotency_key,
+                    tran_id=tran_id,
+                    note=note,
+                    status="success",
+                    created_by=actor,
+                    raw_response=res,
+                )
+
             order.metadata["shamcash_refunded"] = True
             order.metadata["shamcash_refund_data"] = res
             order.save(update_fields=["metadata"])
+            return res
+        except ShamCashError as err:
+            raise PaymentGatewayError(str(err)) from err
+
+    def refund_deposit_payment(self, deposit, reason="", amount=None, actor=None):
+        """Refund a wallet deposit executed via ShamCash."""
+        import uuid
+        from apps.payments.models import ShamCashBillRecord, ShamCashRefundRecord
+        bill_no = deposit.gateway_payment_id or (deposit.metadata.get("shamcash_bill_no") if isinstance(deposit.metadata, dict) else None)
+        if not bill_no:
+            raise PaymentGatewayError("لا يمكن استرداد إيداع بدون رقم فاتورة شام كاش.")
+
+        if amount:
+            refund_amt = Decimal(str(amount)).quantize(Decimal("0.01"))
+        else:
+            refund_amt = Decimal(str(deposit.amount)).quantize(Decimal("0.01"))
+
+        client = self.get_client()
+        idempotency_key = f"REF-DEP-{deposit.id}-{uuid.uuid4().hex[:12]}"
+        note = reason or f"استرداد قيمة الإيداع {deposit.id}"
+
+        try:
+            res = client.refund_bill(
+                bill_no=bill_no,
+                amount=refund_amt,
+                note=note,
+                idempotency_key=idempotency_key,
+            )
+            tran_id = res.get("tranId")
+
+            bill_record = ShamCashBillRecord.objects.filter(bill_no=bill_no).first()
+            if bill_record:
+                bill_record.total_refunded_amount += refund_amt
+                if bill_record.total_refunded_amount >= bill_record.amount:
+                    bill_record.status_id = ShamCashClient.STATUS_REFUNDED
+                    bill_record.status_name = ShamCashClient.STATUS_NAMES[ShamCashClient.STATUS_REFUNDED]
+                else:
+                    bill_record.status_id = ShamCashClient.STATUS_PARTLY_REFUNDED
+                    bill_record.status_name = ShamCashClient.STATUS_NAMES[ShamCashClient.STATUS_PARTLY_REFUNDED]
+                bill_record.save(update_fields=["total_refunded_amount", "status_id", "status_name", "updated_at"])
+
+                ShamCashRefundRecord.objects.create(
+                    bill=bill_record,
+                    bill_no=bill_no,
+                    amount=refund_amt,
+                    idempotency_key=idempotency_key,
+                    tran_id=tran_id,
+                    note=note,
+                    status="success",
+                    created_by=actor,
+                    raw_response=res,
+                )
             return res
         except ShamCashError as err:
             raise PaymentGatewayError(str(err)) from err

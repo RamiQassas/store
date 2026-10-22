@@ -1158,7 +1158,25 @@ def deposits(request):
         amount_str = request.POST.get("amount", "0")
         proof_image = request.FILES.get("proof_image")
         
-        # Validation
+        # Validation & Gateway Auto-Resolution
+        if method_id:
+            from apps.payments.models import PaymentGatewayIntegration
+            from apps.common.tenant_utils import bypass_tenant_filter
+            with bypass_tenant_filter():
+                if str(method_id).startswith("gateway:"):
+                    gw_val = str(method_id).split(":", 1)[1]
+                    gw_obj = PaymentGatewayIntegration.all_objects.filter(pk=gw_val, is_active=True).first() or PaymentGatewayIntegration.all_objects.filter(provider=gw_val, is_active=True).first()
+                    if gw_obj:
+                        pm = PaymentMethod.all_objects.filter(gateway=gw_obj, is_active=True).first()
+                        if pm:
+                            method_id = str(pm.id)
+                elif str(method_id) in ("sham_cash", "shamcash", "direct_sham_cash"):
+                    gw_obj = PaymentGatewayIntegration.all_objects.filter(provider=PaymentGatewayIntegration.Provider.SHAM_CASH, is_active=True).first()
+                    if gw_obj:
+                        pm = PaymentMethod.all_objects.filter(gateway=gw_obj, is_active=True).first()
+                        if pm:
+                            method_id = str(pm.id)
+
         if not method_id or not currency_id:
             messages.error(request, "بيانات وسيلة الدفع أو العملة ناقصة.")
             return redirect("dashboard_deposits")

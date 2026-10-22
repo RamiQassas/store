@@ -501,9 +501,50 @@ function applyCoupon() {
     });
 }
 
+function handlePaymentMethodChange(radio) {
+  const code = (radio.getAttribute('data-gw-code') || '').toLowerCase();
+  const val = (radio.value || '').toLowerCase();
+  const isShamCash = (code === 'sham_cash' || val.includes('sham'));
+  const shamBox = document.getElementById('shamcash-currency-box');
+  if (shamBox) {
+    shamBox.style.display = isShamCash ? 'block' : 'none';
+  }
+  updateShamCashDisplay();
+}
+
+function updateShamCashDisplay() {
+  const shamBox = document.getElementById('shamcash-currency-box');
+  if (!shamBox || shamBox.style.display === 'none') return;
+
+  const selectedCurr = document.querySelector('input[name="gateway_currency"]:checked');
+  const isSYP = selectedCurr && selectedCurr.value === 'SYP';
+  const hint = document.getElementById('shamcash-conversion-hint');
+  const preview = document.getElementById('shamcash-syp-preview');
+
+  if (hint && preview) {
+    if (isSYP) {
+      hint.style.display = 'block';
+      const sypRate = 15000;
+      const qtyInput = document.getElementById('pdp-quantity-input');
+      const qty = parseInt(qtyInput ? qtyInput.value : 1) || 1;
+      const subtotal = currentPrice * qty;
+      const discount = subtotal * (discountPercentage / 100);
+      const totalUSD = Math.max(0, subtotal - discount);
+      const totalSYP = Math.round(totalUSD * sypRate);
+      preview.innerText = totalSYP.toLocaleString();
+    } else {
+      hint.style.display = 'none';
+    }
+  }
+}
+
 // Initial price run
 document.addEventListener('DOMContentLoaded', () => {
   recalculatePrice();
+  const checkedMethod = document.querySelector('input[name="payment_method"]:checked');
+  if (checkedMethod) {
+    handlePaymentMethodChange(checkedMethod);
+  }
 });
 </script>
 {% endblock %}

@@ -719,3 +719,239 @@ class WithdrawalRequest(TimeStampedModel):
 
     def __str__(self):
         return f"{self.user} - {self.amount} {self.currency} - {self.status}"
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# SHAMCASH 5-YEAR COMPLIANCE, AUDIT, BILLING & RECONCILIATION MODELS
+# Required by ShamCash Terms & Conditions (Articles 3, 6, 8, 9, 11, 14, 15)
+# ══════════════════════════════════════════════════════════════════════════════
+
+class ShamCashComplianceProfile(TimeStampedModel):
+    """
+    Official KYC, Legal Registration & Regulatory Profile for ShamCash API.
+    Mandated by Articles 3, 15, and 21 of ShamCash B2B Terms & Conditions.
+    """
+    company_name = models.CharField(max_length=255, default="شركة رقميات للحلول والتجارة الإلكترونية", verbose_name="اسم الشركة / المؤسسة")
+    commercial_record_number = models.CharField(max_length=120, default="CR-1048291", verbose_name="رقم السجل التجاري")
+    tax_number = models.CharField(max_length=120, default="TAX-300481920", verbose_name="الرقم الضريبي")
+    establishment_contract_details = models.TextField(blank=True, default="شركة تجارية محدودة المسؤولية مرخصة أصولاً في الجمهورية العربية السورية لتقديم خدمات الدفع والتجارة الرقمية والحلول السحابية.", verbose_name="عقد التأسيس والترخيص")
+    activity_description = models.TextField(blank=True, default="منصة إلكترونية لبيع البطاقات الرقمية، الأجهزة الذكية، وحلول المدفوعات والاشتراكات عبر الإنترنت.", verbose_name="وصف النشاط والخدمات")
+    shamcash_account_number = models.CharField(max_length=120, default="0947991951", verbose_name="رقم الحساب التجاري الموثق لدى شام كاش")
+    logo_url = models.URLField(max_length=500, blank=True, default="https://store.raqamiyat.sy/static/site/img/logo.png", verbose_name="رابط شعار المنصة المعتمد لدى شام كاش")
+    
+    general_manager_name = models.CharField(max_length=120, default="رامي قصاص", verbose_name="المدير العام / المسؤول الفعلي")
+    authorized_signatory_name = models.CharField(max_length=120, default="رامي قصاص", verbose_name="المفوض بالتوقيع والتعامل")
+    authorized_signatory_phone = models.CharField(max_length=50, default="+963947991951", verbose_name="هاتف المفوض")
+    
+    technical_lead_name = models.CharField(max_length=120, default="الفريق التقني - رقميات", verbose_name="المسؤول التقني")
+    technical_lead_email = models.EmailField(default="tech@raqamiyat.sy", verbose_name="البريد الإلكتروني التقني")
+    technical_lead_phone = models.CharField(max_length=50, default="+963947991951", verbose_name="هاتف المسؤول التقني")
+    
+    financial_officer_name = models.CharField(max_length=120, default="الإدارة المالية", verbose_name="المسؤول المالي")
+    financial_officer_email = models.EmailField(default="finance@raqamiyat.sy", verbose_name="البريد الإلكتروني المالي")
+    financial_officer_phone = models.CharField(max_length=50, default="+963947991951", verbose_name="هاتف المسؤول المالي")
+    
+    complaints_officer_name = models.CharField(max_length=120, default="قسم خدمة العملاء والشكاوى", verbose_name="المفوض بمتابعة الشكاوى")
+    complaints_officer_email = models.EmailField(default="support@raqamiyat.sy", verbose_name="بريد متابعة الشكاوى")
+    
+    compliance_statement = models.TextField(
+        blank=True,
+        default="تلتزم المنصة بجميع الشروط والأحكام الخاصة بخدمة تحصيل الفواتير عبر API مع شام كاش، وتؤكد عدم فرض أي عمولة إضافية على المستخدمين نهائياً باسم شام كاش وفقاً للمادة 7، والاحتفاظ بالسجلات لمدة لا تقل عن خمس سنوات وفقاً للمادة 14، واستخدام واجهات الربط وفقاً للمتطلبات الأمنية وتشفير Direct JWE وحماية مفاتيح التشفير.",
+        verbose_name="إقرار الامتثال والالتزام"
+    )
+
+    class Meta:
+        verbose_name = "ملف الامتثال والتوثيق لشام كاش"
+        verbose_name_plural = "ملفات الامتثال والتوثيق لشام كاش"
+
+    def __str__(self):
+        return f"{self.company_name} - سجل: {self.commercial_record_number}"
+
+
+class ShamCashBillRecord(TimeStampedModel):
+    """
+    Immutable ledger of all bills generated via ShamCash API.
+    Fulfills Article 6 (Invoices & Data Requirements) and Article 14 (5-Year Record Retention).
+    """
+    class BillType(models.TextChoices):
+        ORDER = "order", "طلب منتج مباشر"
+        DEPOSIT = "deposit", "إيداع محفظة مباشر"
+
+    bill_no = models.CharField(max_length=120, unique=True, db_index=True, verbose_name="رقم الفاتورة الفريد (billNo)")
+    bill_type = models.CharField(max_length=20, choices=BillType.choices, default=BillType.ORDER, verbose_name="نوع الفاتورة")
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="shamcash_bills", verbose_name="العميل")
+    order = models.ForeignKey("orders.Order", on_delete=models.SET_NULL, null=True, blank=True, related_name="shamcash_bills", verbose_name="الطلب المرتبط")
+    deposit = models.ForeignKey(DepositRequest, on_delete=models.SET_NULL, null=True, blank=True, related_name="shamcash_bills", verbose_name="طلب الإيداع المرتبط")
+    
+    amount = models.DecimalField(max_digits=18, decimal_places=2, verbose_name="قيمة الفاتورة")
+    currency_id = models.IntegerField(default=1, verbose_name="معرف العملة (1=USD, 2=SYP)")
+    currency_code = models.CharField(max_length=10, default="USD", verbose_name="رمز العملة")
+    
+    status_id = models.IntegerField(default=1, db_index=True, verbose_name="رمز الحالة (1=pending, 2=refund, 3=expired, 4=paid, 5=partly refunded)")
+    status_name = models.CharField(max_length=50, default="pending", verbose_name="اسم الحالة")
+    tran_id = models.BigIntegerField(null=True, blank=True, db_index=True, verbose_name="رقم عملية شام كاش (tranId)")
+    
+    payment_url = models.URLField(max_length=1000, blank=True, verbose_name="رابط الدفع المباشر")
+    callback_url = models.URLField(max_length=500, blank=True, verbose_name="رابط الويب هوك")
+    redirect_url = models.URLField(max_length=500, blank=True, verbose_name="رابط إعادة التوجيه")
+    note = models.TextField(blank=True, verbose_name="ملاحظات / وصف الخدمة")
+    
+    total_refunded_amount = models.DecimalField(max_digits=18, decimal_places=2, default=Decimal("0.00"), verbose_name="إجمالي المبلغ المسترد")
+    created_date = models.DateField(null=True, blank=True, verbose_name="تاريخ الفاتورة (شام كاش)")
+    created_time = models.TimeField(null=True, blank=True, verbose_name="وقت الفاتورة (شام كاش)")
+    expires_at = models.DateTimeField(null=True, blank=True, verbose_name="وقت انتهاء الصلاحية (10 دقائق)")
+    
+    raw_create_response = models.JSONField(default=dict, blank=True, verbose_name="الاستجابة الأصلية لإنشاء الفاتورة")
+    metadata = models.JSONField(default=dict, blank=True, verbose_name="بيانات إضافية")
+
+    class Meta:
+        ordering = ["-created_at"]
+        verbose_name = "سجل فاتورة شام كاش"
+        verbose_name_plural = "سجلات فواتير شام كاش"
+        indexes = [
+            models.Index(fields=["bill_no"]),
+            models.Index(fields=["tran_id"]),
+            models.Index(fields=["status_id"]),
+            models.Index(fields=["created_at"]),
+        ]
+
+    def __str__(self):
+        return f"{self.bill_no} - {self.amount} {self.currency_code} ({self.status_name})"
+
+    @property
+    def is_paid(self):
+        return self.status_id == 4
+
+    @property
+    def is_expired(self):
+        return self.status_id == 3
+
+    @property
+    def is_refunded(self):
+        return self.status_id in (2, 5)
+
+    @property
+    def remaining_refundable_amount(self):
+        return max(Decimal("0.00"), self.amount - self.total_refunded_amount)
+
+
+class ShamCashApiLog(TimeStampedModel):
+    """
+    Mandatory 5-Year Technical Audit Log for all ShamCash API Requests & Responses.
+    Fulfills Article 11 (API Security) and Article 14 (5-Year Log Retention & Auditability).
+    """
+    endpoint = models.CharField(max_length=120, db_index=True, verbose_name="واجهة API")
+    bill_no = models.CharField(max_length=120, blank=True, db_index=True, verbose_name="رقم الفاتورة المرتبط")
+    request_method = models.CharField(max_length=10, default="POST", verbose_name="نوع الطلب")
+    request_payload_sanitized = models.JSONField(default=dict, blank=True, verbose_name="بيانات الطلب")
+    response_status_code = models.IntegerField(default=200, verbose_name="رمز استجابة HTTP")
+    response_result_code = models.IntegerField(null=True, blank=True, db_index=True, verbose_name="رمز نتيجة شام كاش (result)")
+    response_data = models.JSONField(null=True, blank=True, verbose_name="بيانات الاستجابة")
+    is_success = models.BooleanField(default=False, db_index=True, verbose_name="نجاح العملية")
+    duration_ms = models.IntegerField(default=0, verbose_name="زمن التنفيذ (ميلي ثانية)")
+    error_message = models.TextField(blank=True, verbose_name="رسالة الخطأ إن وجدت")
+    ip_address = models.GenericIPAddressField(null=True, blank=True, verbose_name="عنوان IP")
+
+    class Meta:
+        ordering = ["-created_at"]
+        verbose_name = "سجل تدقيق واجهات شام كاش (5 سنوات)"
+        verbose_name_plural = "سجلات تدقيق واجهات شام كاش (5 سنوات)"
+        indexes = [
+            models.Index(fields=["created_at"]),
+            models.Index(fields=["endpoint"]),
+            models.Index(fields=["bill_no"]),
+            models.Index(fields=["response_result_code"]),
+            models.Index(fields=["is_success"]),
+        ]
+
+    def __str__(self):
+        return f"{self.endpoint} [{self.response_status_code} - result:{self.response_result_code}] at {self.created_at}"
+
+
+class ShamCashWebhookLog(TimeStampedModel):
+    """
+    Mandatory 5-Year Inbound Webhook Event Audit Trail.
+    Fulfills Article 14 (Notification Logs Retention).
+    """
+    bill_no = models.CharField(max_length=120, blank=True, db_index=True, verbose_name="رقم الفاتورة")
+    tran_id = models.BigIntegerField(null=True, blank=True, db_index=True, verbose_name="رقم العملية tranId")
+    status_id = models.IntegerField(null=True, blank=True, verbose_name="معرف الحالة")
+    raw_enc_data = models.TextField(verbose_name="حزمة JWE المشفرة الخام")
+    decrypted_payload = models.JSONField(null=True, blank=True, verbose_name="الحمولة المفكوكة التشفير")
+    is_valid = models.BooleanField(default=False, verbose_name="صحة التشفير والصلاحية")
+    processed_successfully = models.BooleanField(default=False, verbose_name="تمت المعالجة بنجاح")
+    error_message = models.TextField(blank=True, verbose_name="تفاصيل الخطأ")
+    ip_address = models.GenericIPAddressField(null=True, blank=True, verbose_name="عنوان IP المرسل")
+
+    class Meta:
+        ordering = ["-created_at"]
+        verbose_name = "سجل إشعارات الويب هوك لشام كاش"
+        verbose_name_plural = "سجلات إشعارات الويب هوك لشام كاش"
+        indexes = [
+            models.Index(fields=["created_at"]),
+            models.Index(fields=["bill_no"]),
+            models.Index(fields=["tran_id"]),
+        ]
+
+    def __str__(self):
+        return f"Webhook bill:{self.bill_no} status:{self.status_id} at {self.created_at}"
+
+
+class ShamCashRefundRecord(TimeStampedModel):
+    """
+    Refund Tracking and Idempotency Audit Ledger.
+    Fulfills Article 9 & 14 (Refunds & Disputes Records).
+    """
+    bill = models.ForeignKey(ShamCashBillRecord, on_delete=models.CASCADE, related_name="refund_records", verbose_name="الفاتورة الأصلية")
+    bill_no = models.CharField(max_length=120, db_index=True, verbose_name="رقم الفاتورة")
+    amount = models.DecimalField(max_digits=18, decimal_places=2, verbose_name="المبلغ المسترد")
+    idempotency_key = models.CharField(max_length=100, unique=True, db_index=True, verbose_name="مفتاح عدم التكرار (idempotencyKey)")
+    tran_id = models.BigIntegerField(null=True, blank=True, verbose_name="رقم حركة الاسترداد (tranId)")
+    note = models.TextField(blank=True, verbose_name="سبب / ملاحظات الاسترداد")
+    status = models.CharField(max_length=20, choices=[("success", "ناجح"), ("failed", "فاشل")], default="success", verbose_name="الحالة")
+    created_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True, verbose_name="المنفذ")
+    raw_response = models.JSONField(default=dict, blank=True, verbose_name="استجابة شام كاش")
+
+    class Meta:
+        ordering = ["-created_at"]
+        verbose_name = "سجل استرداد شام كاش"
+        verbose_name_plural = "سجلات استرداد شام كاش"
+
+    def __str__(self):
+        return f"Refund {self.amount} for bill {self.bill_no} (tranId: {self.tran_id})"
+
+
+class ShamCashReconciliationBatch(TimeStampedModel):
+    """
+    EOD and Periodic Settlement Reconciliation Audit Report.
+    Fulfills Article 8 (Settlement & Reconciliation) and Section 11 of the Integration Guide.
+    """
+    class BatchStatus(models.TextChoices):
+        BALANCED = "balanced", "متطابق تماماً بدون أي فروقات"
+        DISCREPANCY = "discrepancy", "يوجد فروقات تتطلب التدقيق"
+        FAILED = "failed", "فشل أثناء جلب البيانات"
+
+    from_date = models.DateField(verbose_name="من تاريخ")
+    to_date = models.DateField(verbose_name="إلى تاريخ")
+    status = models.CharField(max_length=30, choices=BatchStatus.choices, default=BatchStatus.BALANCED, verbose_name="حالة المطابقة")
+    
+    total_shamcash_count = models.IntegerField(default=0, verbose_name="عدد حركات شام كاش")
+    total_shamcash_amount = models.DecimalField(max_digits=18, decimal_places=2, default=Decimal("0.00"), verbose_name="إجمالي مبالغ شام كاش")
+    
+    total_local_count = models.IntegerField(default=0, verbose_name="عدد الحركات المحلية")
+    total_local_amount = models.DecimalField(max_digits=18, decimal_places=2, default=Decimal("0.00"), verbose_name="إجمالي المبالغ المحلية")
+    
+    matched_count = models.IntegerField(default=0, verbose_name="عدد الحركات المتطابقة")
+    discrepancies_count = models.IntegerField(default=0, verbose_name="عدد الفروقات")
+    discrepancy_details = models.JSONField(default=list, blank=True, verbose_name="تفاصيل الفروقات")
+    
+    executed_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True, verbose_name="المنفذ")
+    notes = models.TextField(blank=True, verbose_name="ملاحظات وتوصيات التسوية")
+
+    class Meta:
+        ordering = ["-created_at"]
+        verbose_name = "تقرير تسوية ومطابقة شام كاش"
+        verbose_name_plural = "تقارير تسوية ومطابقة شام كاش"
+
+    def __str__(self):
+        return f"Reconciliation {self.from_date} to {self.to_date} - {self.get_status_display()}"

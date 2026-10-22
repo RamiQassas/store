@@ -1,0 +1,297 @@
+{% extends "site/control_base.html" %}
+{% load static %}
+
+{% block title %}فاتورة شام كاش: {{ bill.bill_no }} | لوحة التحكم{% endblock %}
+
+{% block control_content %}
+<div class="page-head" style="margin-bottom: 2rem;">
+    <div>
+        <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.35rem;">
+            <a href="{% url 'shamcash_bills' %}" style="color: #00C9A7; font-size: 0.8rem; font-weight: 700;">
+                <i class="fas fa-arrow-right ml-1"></i> العودة لقائمة الفواتير
+            </a>
+            <span style="color: #475569;">/</span>
+            <span class="eyebrow" style="margin: 0; color: #94a3b8;">Article 6 Compliant Invoice</span>
+        </div>
+        <div style="display: flex; align-items: center; gap: 0.75rem;">
+            <h1 style="font-size: 1.6rem; font-weight: 900; color: #fff; margin: 0;">فاتورة شام كاش الرسمية: {{ bill.bill_no }}</h1>
+            <span class="badge {% if bill.status_id == 4 %}success{% elif bill.status_id == 1 %}warning{% elif bill.status_id == 3 %}muted{% else %}danger{% endif %}" style="font-size: 0.8rem; font-weight: 800;">
+                {{ bill.status_name|upper }}
+            </span>
+        </div>
+    </div>
+    <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+        <button onclick="checkBillLive('{{ bill.bill_no }}')" class="btn btn-outline btn-sm">
+            <i class="fas fa-sync-alt ml-1"></i> فحص الحالة الحية (Live Check)
+        </button>
+        {% if bill.status_id == 4 or bill.status_id == 5 %}
+        <button onclick="openRefundModal()" class="btn btn-primary btn-sm" style="background: #f59e0b; border: none; color: #000; font-weight: 800;">
+            <i class="fas fa-undo-alt ml-1"></i> تنفيذ استرداد مالي (Refund)
+        </button>
+        {% endif %}
+        <button onclick="window.print()" class="btn btn-outline btn-sm">
+            <i class="fas fa-print ml-1"></i> طباعة الفاتورة
+        </button>
+    </div>
+</div>
+
+<div class="grid grid-cols-1 lg:grid-cols-12 gap-8" style="margin-bottom: 2rem;">
+    <!-- Formal Invoice Presentation (Article 6 Compliance) -->
+    <div class="lg:col-span-8 glass-panel" style="padding: 2rem; background: #090e1a; border: 1px solid rgba(0, 201, 167, 0.3);">
+        <div style="display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 1.5rem; margin-bottom: 1.5rem;">
+            <div>
+                <div style="font-size: 1.25rem; font-weight: 900; color: #fff;">{{ compliance_profile.company_name }}</div>
+                <div style="font-size: 0.8rem; color: #94a3b8; margin-top: 0.25rem;">
+                    سجل تجاري: {{ compliance_profile.commercial_record_number }} | الرقم الضريبي: {{ compliance_profile.tax_number }}
+                </div>
+                <div style="font-size: 0.8rem; color: #94a3b8;">
+                    حساب تجاري شام كاش: {{ compliance_profile.shamcash_account_number }}
+                </div>
+            </div>
+            <div style="text-align: left;">
+                <div style="display: flex; align-items: center; gap: 0.5rem;">
+                    <img src="{% static 'site/img/brands/shamcash.svg' %}" alt="ShamCash" style="width: 36px; height: 36px;">
+                    <span style="font-weight: 900; color: #00C9A7; font-size: 1.1rem;">ShamCash E-Pay</span>
+                </div>
+                <div style="font-size: 0.75rem; color: #64748b; margin-top: 0.25rem;">Direct JWE Certified</div>
+            </div>
+        </div>
+
+        <!-- Mandatory Article 6 Invoice Table -->
+        <div style="margin-bottom: 1.5rem;">
+            <h4 style="font-size: 0.85rem; font-weight: 800; color: #00C9A7; margin-bottom: 1rem; text-transform: uppercase;">
+                <i class="fas fa-receipt ml-1"></i> بيانات ومحددات الفاتورة الأصولية (المادة 6)
+            </h4>
+
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; font-size: 0.85rem;">
+                <div style="background: rgba(0,0,0,0.3); padding: 0.85rem; border-radius: 8px;">
+                    <span style="color: #94a3b8; font-size: 0.75rem; display: block;">رقم الفاتورة الفريد (billNo):</span>
+                    <strong style="color: #38bdf8; font-family: monospace; font-size: 0.95rem;">{{ bill.bill_no }}</strong>
+                </div>
+
+                <div style="background: rgba(0,0,0,0.3); padding: 0.85rem; border-radius: 8px;">
+                    <span style="color: #94a3b8; font-size: 0.75rem; display: block;">الرقم المرجعي للتتبع (tranId):</span>
+                    <strong style="color: #34d399; font-family: monospace; font-size: 0.95rem;">{{ bill.tran_id|default:"قيد الانتظار (لم يسدد بعد)" }}</strong>
+                </div>
+
+                <div style="background: rgba(0,0,0,0.3); padding: 0.85rem; border-radius: 8px;">
+                    <span style="color: #94a3b8; font-size: 0.75rem; display: block;">قيمة الفاتورة الأصلية:</span>
+                    <strong style="color: #fff; font-size: 1.1rem;">{{ bill.amount }} {{ bill.currency_code }}</strong>
+                </div>
+
+                <div style="background: rgba(0,0,0,0.3); padding: 0.85rem; border-radius: 8px;">
+                    <span style="color: #94a3b8; font-size: 0.75rem; display: block;">معرف العملة (currencyId):</span>
+                    <strong style="color: #fff;">{{ bill.currency_id }} ({{ bill.currency_code }})</strong>
+                </div>
+
+                <div style="background: rgba(0,0,0,0.3); padding: 0.85rem; border-radius: 8px;">
+                    <span style="color: #94a3b8; font-size: 0.75rem; display: block;">تاريخ ووقت الإنشاء:</span>
+                    <strong style="color: #fff;">{{ bill.created_at|date:"Y-m-d H:i:s" }}</strong>
+                </div>
+
+                <div style="background: rgba(0,0,0,0.3); padding: 0.85rem; border-radius: 8px;">
+                    <span style="color: #94a3b8; font-size: 0.75rem; display: block;">انتهاء الصلاحية التلقائي (10 دقائق):</span>
+                    <strong style="color: #f59e0b;">{{ bill.expires_at|date:"Y-m-d H:i:s"|default:"10 دقائق من الإنشاء" }}</strong>
+                </div>
+
+                <div style="background: rgba(0,0,0,0.3); padding: 0.85rem; border-radius: 8px; grid-column: span 2;">
+                    <span style="color: #94a3b8; font-size: 0.75rem; display: block;">وصف الخدمة أو السلعة (note):</span>
+                    <strong style="color: #fff;">{{ bill.note|default:"تسديد عبر شام كاش" }}</strong>
+                </div>
+            </div>
+        </div>
+
+        <!-- Technical URLs -->
+        <div style="background: rgba(0,0,0,0.4); padding: 1rem; border-radius: 8px; border: 1px solid rgba(255,255,255,0.05); font-size: 0.75rem; font-family: monospace;">
+            <div style="margin-bottom: 0.5rem; word-break: break-all;">
+                <span style="color: #94a3b8;">رابط الدفع (paymentUrl):</span><br>
+                <a href="{{ bill.payment_url }}" target="_blank" style="color: #38bdf8; text-decoration: underline;">{{ bill.payment_url|default:"-" }}</a>
+            </div>
+            <div style="margin-bottom: 0.5rem; word-break: break-all;">
+                <span style="color: #94a3b8;">رابط الإشعار الخفي (callbackUrl):</span><br>
+                <span style="color: #a78bfa;">{{ bill.callback_url|default:"-" }}</span>
+            </div>
+            <div style="word-break: break-all;">
+                <span style="color: #94a3b8;">رابط العودة للمتصفح (redirectUrl):</span><br>
+                <span style="color: #cbd5e1;">{{ bill.redirect_url|default:"-" }}</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Customer & Financial Summary -->
+    <div class="lg:col-span-4 stack gap-6">
+        <div class="glass-panel" style="padding: 1.5rem;">
+            <h4 style="font-size: 0.95rem; font-weight: 900; color: #fff; margin-bottom: 1rem;">
+                <i class="fas fa-user-circle text-cyan"></i> بيانات العميل والطلب
+            </h4>
+            <div style="font-size: 0.85rem; line-height: 1.8;">
+                <div><span style="color: #94a3b8;">العميل:</span> <strong style="color: #fff;">{{ bill.user.email }}</strong></div>
+                <div><span style="color: #94a3b8;">اسم العميل:</span> <strong style="color: #fff;">{{ bill.user.get_full_name|default:bill.user.username }}</strong></div>
+                {% if bill.order %}
+                <div><span style="color: #94a3b8;">الطلب:</span> <a href="{% url 'dashboard_order_detail' bill.order.id %}" style="color: #38bdf8; font-weight: 700;">#{{ bill.order.number }}</a></div>
+                <div><span style="color: #94a3b8;">حالة الطلب:</span> <strong style="color: #fff;">{{ bill.order.get_status_display }}</strong></div>
+                {% endif %}
+                {% if bill.deposit %}
+                <div><span style="color: #94a3b8;">طلب الإيداع:</span> <strong style="color: #fff;">#{{ bill.deposit.id }}</strong></div>
+                <div><span style="color: #94a3b8;">حالة الإيداع:</span> <strong style="color: #fff;">{{ bill.deposit.get_status_display }}</strong></div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Refund Status Card -->
+        <div class="glass-panel" style="padding: 1.5rem; border: 1px solid rgba(245,158,11,0.2);">
+            <h4 style="font-size: 0.95rem; font-weight: 900; color: #f59e0b; margin-bottom: 0.75rem;">
+                <i class="fas fa-undo-alt"></i> ملخص الاسترداد (المادة 9)
+            </h4>
+            <div style="font-size: 0.85rem; line-height: 1.8;">
+                <div><span style="color: #94a3b8;">المبلغ الإجمالي المسترد:</span> <strong style="color: #f59e0b;">{{ bill.total_refunded_amount }} {{ bill.currency_code }}</strong></div>
+                <div><span style="color: #94a3b8;">الرصيد المتبقي للاسترداد:</span> <strong style="color: #34d399;">{{ bill.remaining_refundable_amount }} {{ bill.currency_code }}</strong></div>
+                <div><span style="color: #94a3b8;">حركات الاسترداد:</span> <strong style="color: #fff;">{{ refund_records.count }} حركة</strong></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Refund Records Table -->
+{% if refund_records %}
+<div class="glass-panel" style="padding: 1.5rem; margin-bottom: 2rem;">
+    <h3 style="font-size: 1.05rem; font-weight: 900; color: #f59e0b; margin-bottom: 1rem;">
+        <i class="fas fa-history ml-1"></i> حركات الاسترداد المالي المنفذة لهذه الفاتورة
+    </h3>
+    <table class="w-full text-right text-sm">
+        <thead class="bg-black/40">
+            <tr>
+                <th class="p-3 text-[10px] text-slate-400">رقم حركة شام كاش (tranId)</th>
+                <th class="p-3 text-[10px] text-slate-400">المبلغ المسترد</th>
+                <th class="p-3 text-[10px] text-slate-400">مفتاح عدم التكرار (idempotencyKey)</th>
+                <th class="p-3 text-[10px] text-slate-400">السبب / الملاحظة</th>
+                <th class="p-3 text-[10px] text-slate-400">التاريخ</th>
+                <th class="p-3 text-[10px] text-slate-400">المنفذ</th>
+            </tr>
+        </thead>
+        <tbody class="divide-y divide-white/5">
+            {% for ref in refund_records %}
+            <tr>
+                <td class="p-3 font-mono text-emerald-400 font-bold">{{ ref.tran_id|default:"-" }}</td>
+                <td class="p-3 font-bold text-white">{{ ref.amount }} {{ bill.currency_code }}</td>
+                <td class="p-3 font-mono text-xs text-slate-400">{{ ref.idempotency_key }}</td>
+                <td class="p-3 text-xs text-slate-300">{{ ref.note }}</td>
+                <td class="p-3 text-xs text-slate-400">{{ ref.created_at|date:"Y-m-d H:i" }}</td>
+                <td class="p-3 text-xs text-slate-400">{{ ref.created_by.email|default:"النظام" }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endif %}
+
+<!-- Modal: Execute Refund -->
+<div id="refund-modal" style="display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.8); z-index: 9999; align-items: center; justify-content: center; padding: 1rem;">
+    <div class="glass-panel" style="width: 100%; max-width: 480px; padding: 1.75rem; background: #0f172a; border: 1px solid rgba(245,158,11,0.4);">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.25rem;">
+            <h3 style="font-size: 1.15rem; font-weight: 900; color: #f59e0b; margin: 0; display: flex; align-items: center; gap: 0.5rem;">
+                <i class="fas fa-undo-alt"></i> تنفيذ استرداد مالي (Refund)
+            </h3>
+            <button onclick="closeRefundModal()" style="background: none; border: none; color: #94a3b8; font-size: 1.25rem; cursor: pointer;">&times;</button>
+        </div>
+
+        <p style="font-size: 0.85rem; color: #cbd5e1; margin-bottom: 1.25rem;">
+            تنفيذ استرداد كلي أو جزئي للفاتورة <strong>{{ bill.bill_no }}</strong> عبر واجهة <code>refundBill</code> التابعة لشام كاش.
+        </p>
+
+        <form id="refund-form" onsubmit="submitRefundForm(event)">
+            {% csrf_token %}
+            <input type="hidden" name="bill_no" value="{{ bill.bill_no }}">
+
+            <div style="margin-bottom: 1rem;">
+                <label style="display: block; font-size: 0.8rem; font-weight: 700; color: #cbd5e1; margin-bottom: 0.35rem;">
+                    مبلغ الاسترداد (الحد الأقصى: {{ bill.remaining_refundable_amount }} {{ bill.currency_code }}):
+                </label>
+                <input type="number" step="0.01" min="0.01" max="{{ bill.remaining_refundable_amount }}" name="amount" value="{{ bill.remaining_refundable_amount }}" required class="input" style="width: 100%; padding: 0.65rem 0.85rem; border-radius: 8px; background: rgba(0,0,0,0.4); border: 1px solid rgba(255,255,255,0.1); color: #fff; font-size: 1.1rem; font-weight: 800;">
+            </div>
+
+            <div style="margin-bottom: 1.5rem;">
+                <label style="display: block; font-size: 0.8rem; font-weight: 700; color: #cbd5e1; margin-bottom: 0.35rem;">سبب أو ملاحظة الاسترداد:</label>
+                <input type="text" name="note" value="طلب استرداد من العميل" required class="input" style="width: 100%; padding: 0.65rem 0.85rem; border-radius: 8px; background: rgba(0,0,0,0.4); border: 1px solid rgba(255,255,255,0.1); color: #fff;">
+            </div>
+
+            <div id="refund-result" style="display: none; padding: 0.85rem; border-radius: 8px; margin-bottom: 1rem; font-size: 0.85rem;"></div>
+
+            <div style="display: flex; gap: 0.75rem; justify-content: flex-end;">
+                <button type="button" onclick="closeRefundModal()" class="btn btn-outline btn-sm">إلغاء</button>
+                <button type="submit" id="execute-refund-btn" class="btn btn-primary btn-sm" style="background: #f59e0b; border: none; color: #000; font-weight: 800;">
+                    <i class="fas fa-check ml-1"></i> تأكيد الاسترداد فوراً
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+function checkBillLive(billNo) {
+    const url = "{% url 'shamcash_check_bill_status' 'BILL_NO_PLACEHOLDER' %}".replace('BILL_NO_PLACEHOLDER', billNo);
+    fetch(url, {
+        method: "POST",
+        headers: {
+            "X-CSRFToken": "{{ csrf_token }}",
+            "Content-Type": "application/json"
+        }
+    })
+    .then(r => r.json())
+    .then(data => {
+        alert(data.message);
+        location.reload();
+    })
+    .catch(err => alert('خطأ: ' + err));
+}
+
+function openRefundModal() {
+    document.getElementById('refund-modal').style.display = 'flex';
+}
+
+function closeRefundModal() {
+    document.getElementById('refund-modal').style.display = 'none';
+}
+
+function submitRefundForm(e) {
+    e.preventDefault();
+    if (!confirm('هل أنت متأكد من تنفيذ هذا الاسترداد المالي عبر شام كاش؟')) return;
+    const form = document.getElementById('refund-form');
+    const resultDiv = document.getElementById('refund-result');
+    const btn = document.getElementById('execute-refund-btn');
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin ml-1"></i> جارٍ التنفيذ...';
+    btn.disabled = true;
+
+    const formData = new FormData(form);
+
+    fetch("{% url 'shamcash_refund_bill' %}", {
+        method: "POST",
+        body: formData
+    })
+    .then(r => r.json())
+    .then(data => {
+        btn.innerHTML = '<i class="fas fa-check ml-1"></i> تأكيد الاسترداد فوراً';
+        btn.disabled = false;
+        resultDiv.style.display = 'block';
+        if (data.ok) {
+            resultDiv.style.background = 'rgba(16, 185, 129, 0.15)';
+            resultDiv.style.color = '#34d399';
+            resultDiv.innerHTML = data.message;
+            setTimeout(() => { location.reload(); }, 2000);
+        } else {
+            resultDiv.style.background = 'rgba(239, 68, 68, 0.15)';
+            resultDiv.style.color = '#f87171';
+            resultDiv.innerHTML = data.message;
+        }
+    })
+    .catch(err => {
+        btn.innerHTML = '<i class="fas fa-check ml-1"></i> تأكيد الاسترداد فوراً';
+        btn.disabled = false;
+        resultDiv.style.display = 'block';
+        resultDiv.style.background = 'rgba(239, 68, 68, 0.15)';
+        resultDiv.style.color = '#f87171';
+        resultDiv.innerHTML = 'خطأ: ' + err;
+    });
+}
+</script>
+{% endblock %}

@@ -8,6 +8,8 @@ Security Principles:
 - Direct JWE (alg="dir", enc="A256GCM", cty="json") encryption with 5-segment compact token.
 - Mandatory iat and exp claim verification to prevent replay attacks.
 - Dual Currency support: USD (currencyId=1) and SYP (currencyId=2).
+- Zero user surcharge compliance (Article 7 of Terms & Conditions).
+- 5-Year log retention integration (Article 14 of Terms & Conditions).
 """
 
 import base64
@@ -15,8 +17,9 @@ import json
 import logging
 import os
 import time
+import uuid
 from decimal import Decimal
-from typing import Any, Dict, Optional, Tuple, Union
+from typing import Any, Dict, List, Optional, Tuple, Union
 
 import requests
 from cryptography.hazmat.primitives.ciphers.aead import AESGCM
@@ -42,14 +45,34 @@ class ShamCashClient:
     STAGING_BASE_URL = "https://dev.shamlogix.tech/services"
     LIVE_BASE_URL = "https://api.shamcash.sy/services"
 
-    # Status Identifiers
-    STATUS_PENDING = 1
-    STATUS_PARTIALLY_REFUNDED = 2
-    STATUS_EXPIRED = 3
-    STATUS_PAID = 4
-    STATUS_FULLY_REFUNDED = 5
+    # Official Bill Status Identifiers (Doc Section 6.3 & Table page 16)
+    STATUS_PENDING = 1          # pending: Bill is awaiting user payment
+    STATUS_REFUNDED = 2         # refund: The bill payment has been fully refunded back to the user
+    STATUS_EXPIRED = 3          # expired: Bill expired (not paid within 10 minutes)
+    STATUS_PAID = 4             # paid: Bill successfully paid
+    STATUS_PARTLY_REFUNDED = 5  # partly refunded: A portion of the paid amount has been refunded
 
-    # Currency Identifiers
+    # Backwards-compatible aliases
+    STATUS_FULLY_REFUNDED = STATUS_REFUNDED
+    STATUS_PARTIALLY_REFUNDED = STATUS_PARTLY_REFUNDED
+
+    STATUS_NAMES = {
+        STATUS_PENDING: "pending",
+        STATUS_REFUNDED: "refund",
+        STATUS_EXPIRED: "expired",
+        STATUS_PAID: "paid",
+        STATUS_PARTLY_REFUNDED: "partly refunded",
+    }
+
+    STATUS_ARABIC_NAMES = {
+        STATUS_PENDING: "قيد الانتظار (في انتظار السداد)",
+        STATUS_REFUNDED: "مسترد بالكامل",
+        STATUS_EXPIRED: "منتهي الصلاحية (تجاوز 10 دقائق)",
+        STATUS_PAID: "مدفوع بنجاح",
+        STATUS_PARTLY_REFUNDED: "مسترد جزئياً",
+    }
+
+    # Official Currency Identifiers
     CURRENCY_USD = 1
     CURRENCY_SYP = 2
 
@@ -217,10 +240,13 @@ class ShamCashClient:
 
         return payload
 
-    # ── HTTP Layer ───────────────────────────────────────────────────────────────
+    # ── HTTP Layer with 5-Year Compliance Audit Logging ──────────────────────────
 
     def _request(self, endpoint: str, payload_dict: Dict[str, Any]) -> Dict[str, Any]:
-        """Send encrypted request to ShamCash endpoint and handle response."""
+        """
+        Send encrypted request to ShamCash endpoint and handle response.
+        Complies with 5-year retention audit requirements by recording every call.
+        """
         url = f"{self.base_url.rstrip('/')}/{endpoint.lstrip('/')}"
         token = self.encrypt_payload(payload_dict)
 
@@ -234,39 +260,126 @@ class ShamCashClient:
             "encData": token,
         }
 
-        logger.info(f"Sending ShamCash request to {url} [billNo={payload_dict.get('billNo')}]")
+        bill_no = str(payload_dict.get("billNo") or "").strip()
+        logger.info(f"Sending ShamCash request to {url} [billNo={bill_no}]")
+
+        start_time = time.time()
+        status_code = 0
+        raw_res = None
+        error_msg = ""
+        result_code = None
 
         try:
             response = requests.post(url, json=body, headers=headers, timeout=self.timeout)
+            status_code = response.status_code
+            duration_ms = int((time.time() - start_time) * 1000)
+
+            try:
+                raw_res = response.json()
+            except Exception:
+                raw_res = {"text": response.text[:500]}
+                error_msg = f"Non-JSON response (HTTP {status_code})"
+
+            if isinstance(raw_res, dict):
+                result_code = raw_res.get("result")
+
+            # 2500 is official ShamCash success code
+            is_success = (status_code == 200 and result_code == 2500)
+            if not is_success and not error_msg:
+                error_msg = (raw_res.get("message") if isinstance(raw_res, dict) else "") or f"Result code {result_code}"
+
+            self._log_api_call(
+                endpoint=endpoint,
+                bill_no=bill_no,
+                request_payload=payload_dict,
+                status_code=status_code,
+                result_code=result_code,
+                response_data=raw_res,
+                duration_ms=duration_ms,
+                is_success=is_success,
+                error_message=error_msg,
+            )
+
         except requests.exceptions.Timeout as err:
+            duration_ms = int((time.time() - start_time) * 1000)
+            self._log_api_call(
+                endpoint=endpoint,
+                bill_no=bill_no,
+                request_payload=payload_dict,
+                status_code=504,
+                result_code=1000,
+                response_data=None,
+                duration_ms=duration_ms,
+                is_success=False,
+                error_message=f"Timeout: {err}",
+            )
             logger.error(f"ShamCash request timeout ({url}): {err}")
             raise ShamCashError("ShamCash API request timed out.", error_code=504) from err
+
         except requests.exceptions.RequestException as err:
+            duration_ms = int((time.time() - start_time) * 1000)
+            self._log_api_call(
+                endpoint=endpoint,
+                bill_no=bill_no,
+                request_payload=payload_dict,
+                status_code=502,
+                result_code=1000,
+                response_data=None,
+                duration_ms=duration_ms,
+                is_success=False,
+                error_message=f"Network error: {err}",
+            )
             logger.error(f"ShamCash request failed ({url}): {err}")
             raise ShamCashError(f"ShamCash network error: {err}", error_code=502) from err
 
-        try:
-            data = response.json()
-        except Exception:
-            logger.error(f"ShamCash non-JSON response ({response.status_code}): {response.text[:300]}")
+        if not isinstance(raw_res, dict):
             raise ShamCashError(
-                f"ShamCash returned unexpected response (HTTP {response.status_code})",
-                error_code=response.status_code,
-                raw_response={"text": response.text[:500]},
+                f"ShamCash returned unexpected response (HTTP {status_code})",
+                error_code=status_code,
+                raw_response={"text": str(raw_res)},
             )
 
-        # Result 2500 indicates Success according to the official manual
-        result_code = data.get("result")
-        if response.status_code != 200 or (result_code is not None and result_code != 2500):
-            msg = data.get("message") or f"API error with result code {result_code}"
-            logger.warning(f"ShamCash error returned: code={result_code}, message={msg}, data={data}")
+        # Handle business logic failures
+        if status_code != 200 or (result_code is not None and result_code != 2500):
+            msg = raw_res.get("message") or f"API error with result code {result_code}"
+            logger.warning(f"ShamCash error returned: code={result_code}, message={msg}, data={raw_res}")
             raise ShamCashError(
                 message=f"ShamCash: {msg}",
-                error_code=result_code or response.status_code,
-                raw_response=data,
+                error_code=result_code or status_code,
+                raw_response=raw_res,
             )
 
-        return data
+        return raw_res
+
+    def _log_api_call(
+        self,
+        endpoint: str,
+        bill_no: str,
+        request_payload: dict,
+        status_code: int,
+        result_code: Optional[int],
+        response_data: Any,
+        duration_ms: int,
+        is_success: bool,
+        error_message: str = "",
+    ):
+        """Asynchronously or safely persist API log to ShamCashApiLog model for 5-year retention."""
+        try:
+            from apps.payments.models import ShamCashApiLog
+            ShamCashApiLog.objects.create(
+                endpoint=endpoint,
+                bill_no=bill_no,
+                request_payload_sanitized=request_payload,
+                response_status_code=status_code,
+                response_result_code=result_code,
+                response_data=response_data if isinstance(response_data, dict) else {"raw": str(response_data)},
+                duration_ms=duration_ms,
+                is_success=is_success,
+                error_message=error_message[:500],
+            )
+        except Exception as log_err:
+            # Never let audit logging failure block the payment pipeline
+            logger.debug(f"Audit log writing skipped: {log_err}")
 
     # ── Business Endpoints ───────────────────────────────────────────────────────
 
@@ -280,8 +393,8 @@ class ShamCashClient:
         note: str = "",
     ) -> Dict[str, Any]:
         """
-        Create a payable bill on ShamCash.
-        Returns the data object containing paymentUrl, billNo, statusId, etc.
+        Create a payable bill on ShamCash (Doc Section 6.1).
+        Handles network interruption / retry with 1704 gracefully per Doc Section 10 recommendations.
         """
         amt = Decimal(str(amount)).quantize(Decimal("0.01"))
         if amt <= Decimal("0.00"):
@@ -299,7 +412,20 @@ class ShamCashClient:
             "note": str(note or "").strip()[:500],
         }
 
-        res = self._request("api/ElectronicPayment/createBill", payload)
+        try:
+            res = self._request("api/ElectronicPayment/createBill", payload)
+        except ShamCashError as err:
+            # Recommendation (Doc Section 10): Intercept 1704 (Bill No Already Exists) gracefully
+            if err.error_code == 1704:
+                logger.info(f"createBill returned 1704 for {bill_no}; querying existing bill status.")
+                try:
+                    existing_bill = self.get_bill_info(bill_no)
+                    if existing_bill:
+                        return existing_bill
+                except Exception as query_err:
+                    logger.warning(f"Fallback getBillInfo failed for 1704: {query_err}")
+            raise err
+
         data = res.get("data") or {}
         if not data.get("paymentUrl"):
             logger.error(f"ShamCash createBill response missing paymentUrl: {res}")
@@ -308,7 +434,10 @@ class ShamCashClient:
         return data
 
     def get_bill_info(self, bill_no: str) -> Dict[str, Any]:
-        """Query the current real-time status of a bill."""
+        """
+        Query the current status of a bill (Doc Section 6.2).
+        Used solely as fallback reconciliation when webhook is not received.
+        """
         payload = {"billNo": str(bill_no).strip()}
         res = self._request("api/ElectronicPayment/getBillInfo", payload)
         return res.get("data") or {}
@@ -317,22 +446,29 @@ class ShamCashClient:
         self,
         bill_no: str,
         amount: Union[Decimal, float, int, str],
-        currency_id: int,
-        reason: str = "",
+        note: str = "",
         idempotency_key: Optional[str] = None,
     ) -> Dict[str, Any]:
         """
-        Refund a previously paid bill (partially or fully).
-        idempotencyKey: 10 to 100 characters unique key per ShamCash spec.
+        Initiate a full or partial refund for a paid bill (Doc Section 6.3).
+        - Currency is implicitly inherited from the original bill (no currencyId sent).
+        - idempotencyKey: 10 to 100 characters unique key.
+        - note: explanation note (field name in spec is 'note').
+        - Returns data object with tranId.
         """
-        import uuid
         amt = Decimal(str(amount)).quantize(Decimal("0.01"))
+        if amt <= Decimal("0.00"):
+            raise ShamCashError("Refund amount must be greater than zero.")
+
+        key = str(idempotency_key or uuid.uuid4()).strip()
+        if len(key) < 10 or len(key) > 100:
+            key = f"REF-{uuid.uuid4().hex}"
+
         payload = {
             "billNo": str(bill_no).strip(),
             "amount": float(amt),
-            "currencyId": int(currency_id),
-            "idempotencyKey": str(idempotency_key or uuid.uuid4()).strip()[:100],
-            "reason": str(reason or "").strip()[:200],
+            "idempotencyKey": key,
+            "note": str(note or "").strip()[:200],
         }
         res = self._request("api/ElectronicPayment/refundBill", payload)
         return res.get("data") or {}
@@ -341,18 +477,26 @@ class ShamCashClient:
         self,
         from_date: Optional[str] = None,
         to_date: Optional[str] = None,
-        after_tran_id: Optional[int] = None,
-        page_size: int = 20,
+        after_tran_id: int = 0,
+        limit: int = 500,
     ) -> Dict[str, Any]:
         """
-        Query agent transactions log with cursor-based pagination.
-        Parameters match ShamCash spec: fromDate, toDate, afterTranId, pageSize.
+        Query agent financial ledger using cursor-based pagination (Doc Section 6.4 & 11).
+        Parameters:
+        - fromDate: Optional starting date filter (yyyy-MM-dd)
+        - toDate: Optional ending date filter (yyyy-MM-dd)
+        - afterTranId: Cursor transaction ID (defaults to 0)
+        - limit: 10 to 2500 (defaults to 500)
+        Returns:
+        - hasMore: bool
+        - lastReturnedTranId: int
+        - list: list of transaction objects
         """
+        bounded_limit = max(10, min(2500, int(limit or 500)))
         payload: Dict[str, Any] = {
-            "pageSize": max(1, min(100, int(page_size))),
+            "afterTranId": int(after_tran_id or 0),
+            "limit": bounded_limit,
         }
-        if after_tran_id is not None:
-            payload["afterTranId"] = int(after_tran_id)
         if from_date:
             payload["fromDate"] = str(from_date).strip()
         if to_date:
@@ -360,3 +504,39 @@ class ShamCashClient:
 
         res = self._request("api/ElectronicPayment/getTransactions", payload)
         return res.get("data") or {}
+
+    def fetch_all_reconciliation_transactions(
+        self,
+        from_date: Optional[str] = None,
+        to_date: Optional[str] = None,
+        limit: int = 1000,
+        max_pages: int = 100,
+    ) -> List[Dict[str, Any]]:
+        """
+        Executes the official reconciliation loop pattern (Doc Section 11):
+        Iterates with cursor afterTranId until hasMore is false.
+        """
+        all_transactions = []
+        after_tran_id = 0
+        pages = 0
+
+        while pages < max_pages:
+            pages += 1
+            res = self.get_transactions(
+                from_date=from_date,
+                to_date=to_date,
+                after_tran_id=after_tran_id,
+                limit=limit,
+            )
+            tx_list = res.get("list") or []
+            all_transactions.extend(tx_list)
+
+            has_more = bool(res.get("hasMore"))
+            last_id = res.get("lastReturnedTranId")
+
+            if not has_more or not tx_list or not last_id or last_id == after_tran_id:
+                break
+
+            after_tran_id = int(last_id)
+
+        return all_transactions

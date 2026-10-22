@@ -18,6 +18,7 @@ class User(AbstractUser):
         SUPPORT = "support", "دعم"
         EMPLOYEE = "employee", "موظف"
         VERIFIED_MERCHANT = "verified_merchant", "تاجر معتمد"
+        SHAMCASH_AUDITOR = "shamcash_auditor", "مدقق شام كاش (ShamCash Auditor)"
         CUSTOMER = "customer", "عميل"
 
     class Status(models.TextChoices):
@@ -262,6 +263,10 @@ class User(AbstractUser):
     @property
     def remaining_withdrawal_limit(self):
         return max(Decimal("0.00"), self.daily_withdrawal_limit - self.daily_withdrawal_usage)
+
+    @property
+    def is_shamcash_auditor(self):
+        return self.role == self.Role.SHAMCASH_AUDITOR or self.is_superuser or self.is_staff or self.role in (self.Role.SUPER_ADMIN, self.Role.ADMIN, self.Role.FINANCE)
 
     @property
     def is_platform_staff(self):

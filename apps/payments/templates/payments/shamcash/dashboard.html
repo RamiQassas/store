@@ -1,0 +1,432 @@
+{% extends "site/control_base.html" %}
+{% load static %}
+
+{% block title %}إدارة بوابة شام كاش (ShamCash) | لوحة التحكم{% endblock %}
+
+{% block control_content %}
+<div class="page-head" style="margin-bottom: 2rem;">
+    <div style="display: flex; align-items: center; gap: 1.25rem;">
+        <div style="width: 56px; height: 56px; border-radius: 14px; background: rgba(0, 201, 167, 0.1); border: 1px solid rgba(0, 201, 167, 0.3); display: flex; align-items: center; justify-content: center; padding: 8px;">
+            <img src="{% static 'site/img/brands/shamcash.svg' %}" alt="ShamCash" style="max-width: 100%; max-height: 100%;">
+        </div>
+        <div>
+            <div style="display: flex; align-items: center; gap: 0.75rem;">
+                <span class="eyebrow" style="color: #00C9A7;"><i class="fas fa-shield-alt"></i> بوابة الدفع الإلكتروني المعتمدة</span>
+                <span class="badge {% if integration.mode == 'live' %}success{% else %}warning{% endif %}" style="font-size: 0.7rem; font-weight: 800;">
+                    {% if integration.mode == 'live' %}بيئة التشغيل الفعلي (LIVE){% else %}بيئة الاختبار (SANDBOX){% endif %}
+                </span>
+                {% if integration.is_active %}
+                <span class="badge success" style="font-size: 0.7rem;"><i class="fas fa-check-circle ml-1"></i> مفعلة ونشطة</span>
+                {% else %}
+                <span class="badge muted" style="font-size: 0.7rem;"><i class="fas fa-pause-circle ml-1"></i> معطلة</span>
+                {% endif %}
+            </div>
+            <h1 style="margin: 0.25rem 0 0.5rem; font-size: 1.75rem; font-weight: 900; color: #fff;">بوابة شام كاش الإلكترونية (ShamCash)</h1>
+            <p class="text-muted" style="margin: 0; font-size: 0.85rem;">
+                الربط الإلكتروني المباشر لتحصيل الفواتير، الإيداع الفوري، إدارة الاسترداد، وحفظ سجلات الامتثال لمدة 5 سنوات.
+            </p>
+        </div>
+    </div>
+    <div style="display: flex; gap: 0.65rem; flex-wrap: wrap;">
+        <button id="health-check-btn" onclick="runHealthCheck()" class="btn btn-outline btn-sm" style="border-color: rgba(0,201,167,0.4); color: #00C9A7;">
+            <i class="fas fa-heartbeat ml-1"></i> فحص الاتصال الفوري
+        </button>
+        <a href="{% url 'shamcash_auditor_portal' %}" target="_blank" class="btn btn-primary btn-sm" style="background: linear-gradient(135deg, #00C9A7, #059669); border: none;">
+            <i class="fas fa-user-shield ml-1"></i> بوابة مدقق شام كاش (Portal)
+        </a>
+    </div>
+</div>
+
+<!-- Health Check Banner (Dynamic via JS) -->
+<div id="health-banner" style="display: none; margin-bottom: 1.5rem; padding: 1rem 1.25rem; border-radius: 12px; border: 1px solid; font-size: 0.9rem; font-weight: 700;"></div>
+
+<!-- Quick Navigation Bar -->
+<div style="display: flex; gap: 0.75rem; margin-bottom: 1.75rem; flex-wrap: wrap;">
+    <a href="{% url 'shamcash_dashboard' %}" class="btn btn-sm" style="background: rgba(0,201,167,0.15); color: #00C9A7; border: 1px solid rgba(0,201,167,0.3); font-weight: 800;">
+        <i class="fas fa-chart-pie ml-1"></i> اللوحة العامة
+    </a>
+    <a href="{% url 'shamcash_bills' %}" class="btn btn-outline btn-sm">
+        <i class="fas fa-file-invoice-dollar ml-1"></i> سجل الفواتير ({{ total_bills }})
+    </a>
+    <a href="{% url 'shamcash_reconciliation' %}" class="btn btn-outline btn-sm">
+        <i class="fas fa-balance-scale ml-1"></i> المطابقة والتسوية (EOD)
+    </a>
+    <a href="{% url 'shamcash_logs' %}" class="btn btn-outline btn-sm">
+        <i class="fas fa-history ml-1"></i> سجلات التدقيق (5 سنوات)
+    </a>
+    <a href="{% url 'shamcash_compliance_dossier' %}" class="btn btn-outline btn-sm">
+        <i class="fas fa-id-card ml-1"></i> ملف الامتثال والتوثيق (KYC)
+    </a>
+    <button onclick="openAuditorModal()" class="btn btn-outline btn-sm" style="border-color: rgba(245,158,11,0.4); color: #f59e0b;">
+        <i class="fas fa-user-plus ml-1"></i> إنشاء حساب مدقق شام كاش
+    </button>
+</div>
+
+<!-- Stats Grid -->
+<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 1rem; margin-bottom: 2rem;">
+    <!-- USD Volume -->
+    <div class="glass-panel" style="padding: 1.25rem; border: 1px solid rgba(0, 201, 167, 0.2); background: rgba(0, 201, 167, 0.03);">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
+            <span style="font-size: 0.75rem; color: #94a3b8; font-weight: 800; text-transform: uppercase;">تحصيل الدولار (USD)</span>
+            <i class="fas fa-dollar-sign" style="color: #00C9A7;"></i>
+        </div>
+        <div style="font-size: 1.6rem; font-weight: 900; color: #fff;">${{ total_usd_volume|floatformat:2 }}</div>
+        <div style="font-size: 0.75rem; color: #64748b; margin-top: 0.25rem;">إجمالي الفواتير المحصلة بالدولار</div>
+    </div>
+
+    <!-- SYP Volume -->
+    <div class="glass-panel" style="padding: 1.25rem; border: 1px solid rgba(16, 185, 129, 0.2); background: rgba(16, 185, 129, 0.03);">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
+            <span style="font-size: 0.75rem; color: #94a3b8; font-weight: 800; text-transform: uppercase;">تحصيل الليرة (SYP)</span>
+            <i class="fas fa-coins" style="color: #10b981;"></i>
+        </div>
+        <div style="font-size: 1.6rem; font-weight: 900; color: #fff;">{{ total_syp_volume|floatformat:0 }} <span style="font-size: 0.9rem; font-weight: 700;">ل.س</span></div>
+        <div style="font-size: 0.75rem; color: #64748b; margin-top: 0.25rem;">إجمالي الفواتير المحصلة بالليرة السورية</div>
+    </div>
+
+    <!-- Paid Bills -->
+    <div class="glass-panel" style="padding: 1.25rem; border: 1px solid rgba(59, 130, 246, 0.2);">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
+            <span style="font-size: 0.75rem; color: #94a3b8; font-weight: 800; text-transform: uppercase;">فواتير ناجحة / نسبة النجاح</span>
+            <i class="fas fa-check-circle" style="color: #3b82f6;"></i>
+        </div>
+        <div style="font-size: 1.6rem; font-weight: 900; color: #fff;">{{ paid_bills_count }} <span style="font-size: 0.9rem; color: #38bdf8; font-weight: 700;">({{ success_rate }}%)</span></div>
+        <div style="font-size: 0.75rem; color: #64748b; margin-top: 0.25rem;">من أصل {{ total_bills }} فاتورة تم إنشاؤها</div>
+    </div>
+
+    <!-- Expired & Refunds -->
+    <div class="glass-panel" style="padding: 1.25rem; border: 1px solid rgba(245, 158, 11, 0.2);">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
+            <span style="font-size: 0.75rem; color: #94a3b8; font-weight: 800; text-transform: uppercase;">الاسترداد والانتهاء</span>
+            <i class="fas fa-undo-alt" style="color: #f59e0b;"></i>
+        </div>
+        <div style="font-size: 1.3rem; font-weight: 900; color: #fff;">{{ refunded_bills_count }} <span style="font-size: 0.8rem; color: #f59e0b; font-weight: 700;">مسترد</span> | {{ expired_bills_count }} <span style="font-size: 0.8rem; color: #94a3b8; font-weight: 700;">منتهي</span></div>
+        <div style="font-size: 0.75rem; color: #64748b; margin-top: 0.25rem;">إجمالي المبالغ المستردة: {{ total_refunded_amount }}</div>
+    </div>
+</div>
+
+<!-- Integration Specifications & Auditor Access Card -->
+<div class="grid grid-cols-1 lg:grid-cols-12 gap-6" style="margin-bottom: 2rem;">
+    <!-- Technical Config Card -->
+    <div class="lg:col-span-7 glass-panel" style="padding: 1.5rem;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.25rem;">
+            <h3 style="font-size: 1.05rem; font-weight: 900; color: #fff; display: flex; align-items: center; gap: 0.5rem; margin: 0;">
+                <i class="fas fa-cogs text-cyan"></i> مواصفات ومعلمات الربط التقني
+            </h3>
+            {% if integration %}
+            <a href="{% url 'payment_gateway_integration_edit' integration.id %}" class="btn btn-outline btn-sm text-[10px]">
+                <i class="fas fa-edit ml-1"></i> تعديل المفاتيح
+            </a>
+            {% endif %}
+        </div>
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; font-size: 0.85rem;">
+            <div style="background: rgba(0,0,0,0.3); padding: 0.85rem; border-radius: 8px; border: 1px solid rgba(255,255,255,0.05);">
+                <div style="color: #94a3b8; font-size: 0.75rem; margin-bottom: 0.25rem;">معرف العميل (Agent Key):</div>
+                <div style="font-family: monospace; font-weight: 700; color: #38bdf8; word-break: break-all;">
+                    {{ integration.api_key|default:"LELCNDrzTrEgXtv00OUdVeECa1CEZZiC" }}
+                </div>
+            </div>
+
+            <div style="background: rgba(0,0,0,0.3); padding: 0.85rem; border-radius: 8px; border: 1px solid rgba(255,255,255,0.05);">
+                <div style="color: #94a3b8; font-size: 0.75rem; margin-bottom: 0.25rem;">نوع التشفير المعتمد:</div>
+                <div style="font-weight: 800; color: #34d399;">
+                    Direct JWE (A256GCM / 256-bit AES)
+                </div>
+            </div>
+
+            <div style="background: rgba(0,0,0,0.3); padding: 0.85rem; border-radius: 8px; border: 1px solid rgba(255,255,255,0.05); grid-column: span 2;">
+                <div style="color: #94a3b8; font-size: 0.75rem; margin-bottom: 0.25rem;">رابط API الأساسي (Base URL):</div>
+                <div style="font-family: monospace; font-weight: 700; color: #fff;">
+                    {{ integration.base_url|default:"https://dev.shamlogix.tech/services" }}
+                </div>
+            </div>
+
+            <div style="background: rgba(0,0,0,0.3); padding: 0.85rem; border-radius: 8px; border: 1px solid rgba(255,255,255,0.05); grid-column: span 2;">
+                <div style="color: #94a3b8; font-size: 0.75rem; margin-bottom: 0.25rem;">رابط الويب هوك المعتمد (callbackUrl):</div>
+                <div style="font-family: monospace; font-size: 0.8rem; color: #a78bfa; word-break: break-all;">
+                    {{ request.scheme }}://{{ request.get_host }}{% url 'shamcash_callback' %}
+                </div>
+            </div>
+        </div>
+
+        <div style="margin-top: 1rem; padding: 0.85rem; border-radius: 8px; background: rgba(0, 201, 167, 0.08); border: 1px dashed rgba(0, 201, 167, 0.3); font-size: 0.8rem; color: #6ee7b7; line-height: 1.5;">
+            <i class="fas fa-info-circle ml-1"></i>
+            <strong>إقرار الامتثال بالعمولة:</strong> وفقاً للمادة 7 من الشروط والأحكام، لا يتم تحميل العميل أي عمولة إضافية مقابل الدفع عبر شام كاش (نسبة التحصيل للعميل 0%).
+        </div>
+    </div>
+
+    <!-- Auditor Accounts & Compliance Summary -->
+    <div class="lg:col-span-5 glass-panel" style="padding: 1.5rem;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.25rem;">
+            <h3 style="font-size: 1.05rem; font-weight: 900; color: #fff; display: flex; align-items: center; gap: 0.5rem; margin: 0;">
+                <i class="fas fa-user-shield text-amber-400"></i> حسابات مدققي شام كاش
+            </h3>
+            <button onclick="openAuditorModal()" class="btn btn-outline btn-sm text-[10px]" style="border-color: rgba(245,158,11,0.4); color: #f59e0b;">
+                <i class="fas fa-plus ml-1"></i> إنشاء حساب
+            </button>
+        </div>
+
+        <p style="font-size: 0.8rem; color: #94a3b8; margin-bottom: 1rem;">
+            يتيح هذا الحساب لفريق التفتيش والامتثال لدى شركة شام كاش الدخول إلى بوابة تدقيق مخصصة للاطلاع على ملف الشركة القانوني، وسجلات الفواتير، وسجلات الـ API المحفوظة لمدة 5 سنوات، وإجراء المطابقة.
+        </p>
+
+        <div style="max-height: 220px; overflow-y: auto;">
+            {% for aud in auditor_users %}
+            <div style="display: flex; justify-content: space-between; align-items: center; padding: 0.75rem; background: rgba(0,0,0,0.3); border-radius: 8px; margin-bottom: 0.5rem; border: 1px solid rgba(255,255,255,0.05);">
+                <div>
+                    <div style="font-size: 0.85rem; font-weight: 800; color: #fff;">{{ aud.email }}</div>
+                    <div style="font-size: 0.75rem; color: #f59e0b;">رتبة: {{ aud.get_role_display }}</div>
+                </div>
+                <span class="badge {% if aud.is_active %}success{% else %}muted{% endif %}" style="font-size: 0.7rem;">
+                    {% if aud.is_active %}نشط{% else %}معطل{% endif %}
+                </span>
+            </div>
+            {% empty %}
+            <div style="padding: 1.5rem; text-align: center; color: #64748b; font-size: 0.85rem;">
+                لم يتم إنشاء حساب مخصص لمدققي شام كاش بعد.<br>
+                <button onclick="openAuditorModal()" class="btn btn-primary btn-sm" style="margin-top: 0.75rem; background: #f59e0b; border: none; color: #000; font-weight: 800;">
+                    <i class="fas fa-plus ml-1"></i> إنشاء الحساب الآن
+                </button>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+
+<!-- Recent Invoices & Bills Table -->
+<div class="glass-panel" style="padding: 1.5rem; margin-bottom: 2rem;">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.25rem;">
+        <div>
+            <h3 style="font-size: 1.1rem; font-weight: 900; color: #fff; margin: 0;">أحدث فواتير وعمليات شام كاش</h3>
+            <span style="font-size: 0.8rem; color: #94a3b8;">عرض أحدث 10 فواتير مسجلة في النظام مع تفاصيل التتبع الحي</span>
+        </div>
+        <a href="{% url 'shamcash_bills' %}" class="btn btn-outline btn-sm">
+            عرض الكل ({{ total_bills }}) <i class="fas fa-arrow-left mr-1"></i>
+        </a>
+    </div>
+
+    <div class="overflow-x-auto">
+        <table class="w-full text-right text-sm">
+            <thead class="bg-black/40">
+                <tr>
+                    <th class="p-3 text-[10px] font-black text-slate-400 uppercase">رقم الفاتورة (billNo)</th>
+                    <th class="p-3 text-[10px] font-black text-slate-400 uppercase">نوع العملية</th>
+                    <th class="p-3 text-[10px] font-black text-slate-400 uppercase">العميل</th>
+                    <th class="p-3 text-[10px] font-black text-slate-400 uppercase">المبلغ والعملة</th>
+                    <th class="p-3 text-[10px] font-black text-slate-400 uppercase text-center">الحالة</th>
+                    <th class="p-3 text-[10px] font-black text-slate-400 uppercase">رقم عملية شام كاش (tranId)</th>
+                    <th class="p-3 text-[10px] font-black text-slate-400 uppercase">تاريخ الإنشاء</th>
+                    <th class="p-3 text-[10px] font-black text-slate-400 uppercase text-center">الإجراءات</th>
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-white/5">
+                {% for bill in recent_bills %}
+                <tr class="hover:bg-white/[0.02]">
+                    <td class="p-3 font-mono font-bold text-xs text-white">
+                        <a href="{% url 'shamcash_bill_detail' bill.bill_no %}" style="color: #38bdf8; text-decoration: underline;">
+                            {{ bill.bill_no }}
+                        </a>
+                    </td>
+                    <td class="p-3">
+                        {% if bill.bill_type == 'order' %}
+                        <span class="badge primary text-[9px]">طلب منتج</span>
+                        {% else %}
+                        <span class="badge success text-[9px]">إيداع محفظة</span>
+                        {% endif %}
+                    </td>
+                    <td class="p-3 text-xs text-slate-300">{{ bill.user.email }}</td>
+                    <td class="p-3 font-bold text-xs text-white">
+                        {{ bill.amount }} {{ bill.currency_code }}
+                        {% if bill.total_refunded_amount > 0 %}
+                        <div style="font-size: 0.7rem; color: #f59e0b;">(مسترد: {{ bill.total_refunded_amount }})</div>
+                        {% endif %}
+                    </td>
+                    <td class="p-3 text-center">
+                        {% if bill.status_id == 4 %}
+                        <span class="badge success text-[9px]">مدفوع بنجاح</span>
+                        {% elif bill.status_id == 1 %}
+                        <span class="badge warning text-[9px]">قيد الانتظار</span>
+                        {% elif bill.status_id == 3 %}
+                        <span class="badge muted text-[9px]">منتهي الصلاحية</span>
+                        {% elif bill.status_id == 2 %}
+                        <span class="badge danger text-[9px]">مسترد بالكامل</span>
+                        {% elif bill.status_id == 5 %}
+                        <span class="badge warning text-[9px]">مسترد جزئياً</span>
+                        {% else %}
+                        <span class="badge muted text-[9px]">{{ bill.status_name }}</span>
+                        {% endif %}
+                    </td>
+                    <td class="p-3 font-mono text-xs text-slate-400">
+                        {{ bill.tran_id|default:"-" }}
+                    </td>
+                    <td class="p-3 text-xs text-slate-400">{{ bill.created_at|date:"Y-m-d H:i" }}</td>
+                    <td class="p-3 text-center">
+                        <div class="flex items-center justify-center gap-2">
+                            <button onclick="checkBillLive('{{ bill.bill_no }}')" class="btn btn-outline btn-sm text-[10px]" title="فحص الحالة المباشر من خوادم شام كاش">
+                                <i class="fas fa-sync-alt"></i>
+                            </button>
+                            <a href="{% url 'shamcash_bill_detail' bill.bill_no %}" class="btn btn-outline btn-sm text-[10px]">
+                                التفاصيل
+                            </a>
+                        </div>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="8" class="p-8 text-center text-slate-500">لا توجد فواتير مسجلة بعد.</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Modal: Create ShamCash Auditor Account -->
+<div id="auditor-modal" style="display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.8); z-index: 9999; align-items: center; justify-content: center; padding: 1rem;">
+    <div class="glass-panel" style="width: 100%; max-width: 480px; padding: 1.75rem; background: #0f172a; border: 1px solid rgba(245,158,11,0.4);">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.25rem;">
+            <h3 style="font-size: 1.15rem; font-weight: 900; color: #f59e0b; margin: 0; display: flex; align-items: center; gap: 0.5rem;">
+                <i class="fas fa-user-shield"></i> إنشاء حساب مدقق شام كاش
+            </h3>
+            <button onclick="closeAuditorModal()" style="background: none; border: none; color: #94a3b8; font-size: 1.25rem; cursor: pointer;">&times;</button>
+        </div>
+
+        <p style="font-size: 0.85rem; color: #cbd5e1; margin-bottom: 1.25rem;">
+            قم بإنشاء حساب خاص لفريق مراجعة وتدقيق شام كاش لتزويدهم به للاطلاع على فواتير الربط، مطابقة العمليات، وسجلات الامتثال.
+        </p>
+
+        <form id="auditor-form" onsubmit="submitAuditorForm(event)">
+            {% csrf_token %}
+            <div style="margin-bottom: 1rem;">
+                <label style="display: block; font-size: 0.8rem; font-weight: 700; color: #cbd5e1; margin-bottom: 0.35rem;">البريد الإلكتروني للمدقق:</label>
+                <input type="email" name="email" value="auditor.shamcash@shamcash.sy" required class="input" style="width: 100%; padding: 0.65rem 0.85rem; border-radius: 8px; background: rgba(0,0,0,0.4); border: 1px solid rgba(255,255,255,0.1); color: #fff;">
+            </div>
+
+            <div style="margin-bottom: 1.5rem;">
+                <label style="display: block; font-size: 0.8rem; font-weight: 700; color: #cbd5e1; margin-bottom: 0.35rem;">كلمة المرور المؤقتة:</label>
+                <input type="text" name="password" value="ShamCash@Audit2026!" required class="input" style="width: 100%; padding: 0.65rem 0.85rem; border-radius: 8px; background: rgba(0,0,0,0.4); border: 1px solid rgba(255,255,255,0.1); color: #fff; font-family: monospace;">
+            </div>
+
+            <div id="auditor-result" style="display: none; padding: 0.85rem; border-radius: 8px; margin-bottom: 1rem; font-size: 0.85rem;"></div>
+
+            <div style="display: flex; gap: 0.75rem; justify-content: flex-end;">
+                <button type="button" onclick="closeAuditorModal()" class="btn btn-outline btn-sm">إلغاء</button>
+                <button type="submit" id="save-auditor-btn" class="btn btn-primary btn-sm" style="background: #f59e0b; border: none; color: #000; font-weight: 800;">
+                    <i class="fas fa-check ml-1"></i> حفظ وتفعيل الحساب
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+function runHealthCheck() {
+    const btn = document.getElementById('health-check-btn');
+    const banner = document.getElementById('health-banner');
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin ml-1"></i> جارٍ الفحص...';
+    btn.disabled = true;
+
+    fetch("{% url 'shamcash_test_connection' %}", {
+        method: "POST",
+        headers: {
+            "X-CSRFToken": "{{ csrf_token }}",
+            "Content-Type": "application/json"
+        }
+    })
+    .then(r => r.json())
+    .then(data => {
+        btn.innerHTML = '<i class="fas fa-heartbeat ml-1"></i> فحص الاتصال الفوري';
+        btn.disabled = false;
+        banner.style.display = 'block';
+        if (data.ok) {
+            banner.style.background = 'rgba(16, 185, 129, 0.15)';
+            banner.style.borderColor = 'rgba(16, 185, 129, 0.4)';
+            banner.style.color = '#34d399';
+            banner.innerHTML = '<i class="fas fa-check-circle ml-2"></i> ' + data.message;
+        } else {
+            banner.style.background = 'rgba(239, 68, 68, 0.15)';
+            banner.style.borderColor = 'rgba(239, 68, 68, 0.4)';
+            banner.style.color = '#f87171';
+            banner.innerHTML = '<i class="fas fa-exclamation-triangle ml-2"></i> ' + data.message;
+        }
+    })
+    .catch(err => {
+        btn.innerHTML = '<i class="fas fa-heartbeat ml-1"></i> فحص الاتصال الفوري';
+        btn.disabled = false;
+        banner.style.display = 'block';
+        banner.style.background = 'rgba(239, 68, 68, 0.15)';
+        banner.style.borderColor = 'rgba(239, 68, 68, 0.4)';
+        banner.style.color = '#f87171';
+        banner.innerHTML = '<i class="fas fa-exclamation-triangle ml-2"></i> خطأ أثناء الاتصال: ' + err;
+    });
+}
+
+function checkBillLive(billNo) {
+    if (!confirm('فحص حالة الفاتورة ' + billNo + ' مباشرة من خوادم شام كاش؟')) return;
+    const url = "{% url 'shamcash_check_bill_status' 'BILL_NO_PLACEHOLDER' %}".replace('BILL_NO_PLACEHOLDER', billNo);
+
+    fetch(url, {
+        method: "POST",
+        headers: {
+            "X-CSRFToken": "{{ csrf_token }}",
+            "Content-Type": "application/json"
+        }
+    })
+    .then(r => r.json())
+    .then(data => {
+        alert(data.message);
+        location.reload();
+    })
+    .catch(err => alert('خطأ أثناء الفحص: ' + err));
+}
+
+function openAuditorModal() {
+    document.getElementById('auditor-modal').style.display = 'flex';
+}
+
+function closeAuditorModal() {
+    document.getElementById('auditor-modal').style.display = 'none';
+}
+
+function submitAuditorForm(e) {
+    e.preventDefault();
+    const form = document.getElementById('auditor-form');
+    const resultDiv = document.getElementById('auditor-result');
+    const btn = document.getElementById('save-auditor-btn');
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin ml-1"></i> جارٍ الحفظ...';
+    btn.disabled = true;
+
+    const formData = new FormData(form);
+
+    fetch("{% url 'shamcash_create_auditor' %}", {
+        method: "POST",
+        body: formData
+    })
+    .then(r => r.json())
+    .then(data => {
+        btn.innerHTML = '<i class="fas fa-check ml-1"></i> حفظ وتفعيل الحساب';
+        btn.disabled = false;
+        resultDiv.style.display = 'block';
+        if (data.ok) {
+            resultDiv.style.background = 'rgba(16, 185, 129, 0.15)';
+            resultDiv.style.color = '#34d399';
+            resultDiv.innerHTML = data.message + '<br><br><strong>رابط البوابة:</strong> <a href="' + data.portal_url + '" target="_blank" style="text-decoration: underline; color: #fff;">' + data.portal_url + '</a>';
+            setTimeout(() => { location.reload(); }, 2500);
+        } else {
+            resultDiv.style.background = 'rgba(239, 68, 68, 0.15)';
+            resultDiv.style.color = '#f87171';
+            resultDiv.innerHTML = data.message;
+        }
+    })
+    .catch(err => {
+        btn.innerHTML = '<i class="fas fa-check ml-1"></i> حفظ وتفعيل الحساب';
+        btn.disabled = false;
+        resultDiv.style.display = 'block';
+        resultDiv.style.background = 'rgba(239, 68, 68, 0.15)';
+        resultDiv.style.color = '#f87171';
+        resultDiv.innerHTML = 'خطأ: ' + err;
+    });
+}
+</script>
+{% endblock %}

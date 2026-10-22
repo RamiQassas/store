@@ -1,0 +1,184 @@
+{% extends "site/control_base.html" %}
+{% load static %}
+
+{% block title %}سجل فواتير وعمليات شام كاش | لوحة التحكم{% endblock %}
+
+{% block control_content %}
+<div class="page-head" style="margin-bottom: 1.5rem;">
+    <div>
+        <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.35rem;">
+            <a href="{% url 'shamcash_dashboard' %}" style="color: #00C9A7; font-size: 0.8rem; font-weight: 700;">
+                <i class="fas fa-arrow-right ml-1"></i> العودة للوحة شام كاش
+            </a>
+            <span style="color: #475569;">/</span>
+            <span class="eyebrow" style="margin: 0; color: #94a3b8;">Article 6 & 14 Compliance Ledger</span>
+        </div>
+        <h1 style="font-size: 1.6rem; font-weight: 900; color: #fff; margin: 0 0 0.35rem;">سجل فواتير وعمليات شام كاش</h1>
+        <p class="text-muted" style="margin: 0; font-size: 0.85rem;">
+            سجل إلكتروني غير قابل للتعديل لكافة الفواتير الصادرة والمحصلة والملغاة متوافق مع متطلبات الاحتفاظ لمدة 5 سنوات.
+        </p>
+    </div>
+    <div style="display: flex; gap: 0.5rem;">
+        <a href="{% url 'shamcash_reconciliation' %}" class="btn btn-outline btn-sm">
+            <i class="fas fa-balance-scale ml-1"></i> مطابقة وتسوية
+        </a>
+    </div>
+</div>
+
+<!-- Search & Filters Form -->
+<form method="get" class="glass-panel" style="padding: 1.25rem; margin-bottom: 1.5rem; display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)) auto; gap: 1rem; align-items: end;">
+    <div>
+        <label style="display: block; font-size: 0.75rem; font-weight: 700; color: #94a3b8; margin-bottom: 0.35rem;">البحث:</label>
+        <input type="text" name="q" value="{{ query }}" placeholder="رقم الفاتورة، tranId، البريد..." class="input" style="width: 100%; padding: 0.5rem 0.75rem; border-radius: 8px; background: rgba(0,0,0,0.4); border: 1px solid rgba(255,255,255,0.1); color: #fff; font-size: 0.85rem;">
+    </div>
+
+    <div>
+        <label style="display: block; font-size: 0.75rem; font-weight: 700; color: #94a3b8; margin-bottom: 0.35rem;">حالة الفاتورة:</label>
+        <select name="status" class="input" style="width: 100%; padding: 0.5rem 0.75rem; border-radius: 8px; background: rgba(0,0,0,0.4); border: 1px solid rgba(255,255,255,0.1); color: #fff; font-size: 0.85rem;">
+            <option value="">جميع الحالات</option>
+            <option value="4" {% if status_filter == '4' %}selected{% endif %}>مدفوع بنجاح (Paid)</option>
+            <option value="1" {% if status_filter == '1' %}selected{% endif %}>قيد الانتظار (Pending)</option>
+            <option value="3" {% if status_filter == '3' %}selected{% endif %}>منتهي الصلاحية (Expired)</option>
+            <option value="2" {% if status_filter == '2' %}selected{% endif %}>مسترد بالكامل (Refunded)</option>
+            <option value="5" {% if status_filter == '5' %}selected{% endif %}>مسترد جزئياً (Partly Refunded)</option>
+        </select>
+    </div>
+
+    <div>
+        <label style="display: block; font-size: 0.75rem; font-weight: 700; color: #94a3b8; margin-bottom: 0.35rem;">نوع العملية:</label>
+        <select name="type" class="input" style="width: 100%; padding: 0.5rem 0.75rem; border-radius: 8px; background: rgba(0,0,0,0.4); border: 1px solid rgba(255,255,255,0.1); color: #fff; font-size: 0.85rem;">
+            <option value="">جميع الأنواع</option>
+            <option value="order" {% if type_filter == 'order' %}selected{% endif %}>طلب منتج مباشر</option>
+            <option value="deposit" {% if type_filter == 'deposit' %}selected{% endif %}>إيداع محفظة مباشر</option>
+        </select>
+    </div>
+
+    <div>
+        <label style="display: block; font-size: 0.75rem; font-weight: 700; color: #94a3b8; margin-bottom: 0.35rem;">العملة:</label>
+        <select name="currency" class="input" style="width: 100%; padding: 0.5rem 0.75rem; border-radius: 8px; background: rgba(0,0,0,0.4); border: 1px solid rgba(255,255,255,0.1); color: #fff; font-size: 0.85rem;">
+            <option value="">جميع العملات</option>
+            <option value="1" {% if currency_filter == '1' %}selected{% endif %}>الدولار (USD $)</option>
+            <option value="2" {% if currency_filter == '2' %}selected{% endif %}>الليرة السورية (SYP)</option>
+        </select>
+    </div>
+
+    <div style="display: flex; gap: 0.5rem;">
+        <button type="submit" class="btn btn-primary btn-sm" style="background: #00C9A7; border: none; font-weight: 800; color: #000;">
+            <i class="fas fa-filter ml-1"></i> تصفية
+        </button>
+        {% if query or status_filter or type_filter or currency_filter %}
+        <a href="{% url 'shamcash_bills' %}" class="btn btn-outline btn-sm">إلغاء</a>
+        {% endif %}
+    </div>
+</form>
+
+<!-- Bills Table -->
+<div class="glass-panel" style="padding: 1.5rem; overflow: hidden;">
+    <div class="overflow-x-auto">
+        <table class="w-full text-right text-sm">
+            <thead class="bg-black/40">
+                <tr>
+                    <th class="p-3 text-[10px] font-black text-slate-400 uppercase">رقم الفاتورة (billNo)</th>
+                    <th class="p-3 text-[10px] font-black text-slate-400 uppercase">النوع</th>
+                    <th class="p-3 text-[10px] font-black text-slate-400 uppercase">العميل</th>
+                    <th class="p-3 text-[10px] font-black text-slate-400 uppercase">المبلغ والعملة</th>
+                    <th class="p-3 text-[10px] font-black text-slate-400 uppercase text-center">الحالة</th>
+                    <th class="p-3 text-[10px] font-black text-slate-400 uppercase">رقم الحركة (tranId)</th>
+                    <th class="p-3 text-[10px] font-black text-slate-400 uppercase">تاريخ الإنشاء</th>
+                    <th class="p-3 text-[10px] font-black text-slate-400 uppercase text-center">الإجراءات</th>
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-white/5">
+                {% for bill in page_obj %}
+                <tr class="hover:bg-white/[0.02]">
+                    <td class="p-3 font-mono font-bold text-xs">
+                        <a href="{% url 'shamcash_bill_detail' bill.bill_no %}" style="color: #38bdf8; text-decoration: underline;">
+                            {{ bill.bill_no }}
+                        </a>
+                    </td>
+                    <td class="p-3">
+                        {% if bill.bill_type == 'order' %}
+                        <span class="badge primary text-[9px]">طلب منتج</span>
+                        {% else %}
+                        <span class="badge success text-[9px]">إيداع محفظة</span>
+                        {% endif %}
+                    </td>
+                    <td class="p-3 text-xs text-slate-300">{{ bill.user.email }}</td>
+                    <td class="p-3 font-bold text-xs text-white">
+                        {{ bill.amount }} {{ bill.currency_code }}
+                        {% if bill.total_refunded_amount > 0 %}
+                        <div style="font-size: 0.7rem; color: #f59e0b;">(مسترد: {{ bill.total_refunded_amount }})</div>
+                        {% endif %}
+                    </td>
+                    <td class="p-3 text-center">
+                        {% if bill.status_id == 4 %}
+                        <span class="badge success text-[9px]">مدفوع بنجاح</span>
+                        {% elif bill.status_id == 1 %}
+                        <span class="badge warning text-[9px]">قيد الانتظار</span>
+                        {% elif bill.status_id == 3 %}
+                        <span class="badge muted text-[9px]">منتهي الصلاحية</span>
+                        {% elif bill.status_id == 2 %}
+                        <span class="badge danger text-[9px]">مسترد بالكامل</span>
+                        {% elif bill.status_id == 5 %}
+                        <span class="badge warning text-[9px]">مسترد جزئياً</span>
+                        {% else %}
+                        <span class="badge muted text-[9px]">{{ bill.status_name }}</span>
+                        {% endif %}
+                    </td>
+                    <td class="p-3 font-mono text-xs text-slate-400">{{ bill.tran_id|default:"-" }}</td>
+                    <td class="p-3 text-xs text-slate-400">{{ bill.created_at|date:"Y-m-d H:i" }}</td>
+                    <td class="p-3 text-center">
+                        <div class="flex items-center justify-center gap-2">
+                            <button onclick="checkBillLive('{{ bill.bill_no }}')" class="btn btn-outline btn-sm text-[10px]" title="فحص وتحديث الحالة الحية">
+                                <i class="fas fa-sync-alt"></i>
+                            </button>
+                            <a href="{% url 'shamcash_bill_detail' bill.bill_no %}" class="btn btn-outline btn-sm text-[10px]">
+                                الفاتورة
+                            </a>
+                        </div>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="8" class="p-12 text-center text-slate-500">لا توجد نتائج مطابقة لبحثك.</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Pagination -->
+    {% if page_obj.has_other_pages %}
+    <div style="display: flex; justify-content: center; gap: 0.5rem; margin-top: 1.5rem;">
+        {% if page_obj.has_previous %}
+        <a href="?page={{ page_obj.previous_page_number }}&q={{ query }}&status={{ status_filter }}&type={{ type_filter }}&currency={{ currency_filter }}" class="btn btn-outline btn-sm">السابق</a>
+        {% endif %}
+        <span class="btn btn-sm" style="background: rgba(255,255,255,0.05); color: #fff;">صفحة {{ page_obj.number }} من {{ page_obj.paginator.num_pages }}</span>
+        {% if page_obj.has_next %}
+        <a href="?page={{ page_obj.next_page_number }}&q={{ query }}&status={{ status_filter }}&type={{ type_filter }}&currency={{ currency_filter }}" class="btn btn-outline btn-sm">التالي</a>
+        {% endif %}
+    </div>
+    {% endif %}
+</div>
+
+<script>
+function checkBillLive(billNo) {
+    if (!confirm('فحص حالة الفاتورة ' + billNo + ' مباشرة من خوادم شام كاش؟')) return;
+    const url = "{% url 'shamcash_check_bill_status' 'BILL_NO_PLACEHOLDER' %}".replace('BILL_NO_PLACEHOLDER', billNo);
+
+    fetch(url, {
+        method: "POST",
+        headers: {
+            "X-CSRFToken": "{{ csrf_token }}",
+            "Content-Type": "application/json"
+        }
+    })
+    .then(r => r.json())
+    .then(data => {
+        alert(data.message);
+        location.reload();
+    })
+    .catch(err => alert('خطأ أثناء الفحص: ' + err));
+}
+</script>
+{% endblock %}

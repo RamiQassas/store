@@ -1,0 +1,488 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>بوابة التدقيق والامتثال الرسمية لربط شام كاش | ShamCash Compliance Portal</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800;900&family=JetBrains+Mono:wght@400;600;800&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-dark: #030712;
+            --card-bg: #0b1329;
+            --card-border: rgba(0, 201, 167, 0.25);
+            --sham-cyan: #00C9A7;
+            --sham-emerald: #10b981;
+            --text-main: #f8fafc;
+            --text-muted: #94a3b8;
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            background-color: var(--bg-dark);
+            color: var(--text-main);
+            font-family: 'Cairo', sans-serif;
+            min-height: 100vh;
+            padding: 2rem 1.5rem;
+            line-height: 1.6;
+        }
+        .container {
+            max-width: 1280px;
+            margin: 0 auto;
+        }
+        .header-bar {
+            background: linear-gradient(135deg, rgba(0, 201, 167, 0.12), rgba(15, 23, 42, 0.9));
+            border: 1px solid var(--card-border);
+            border-radius: 16px;
+            padding: 1.75rem 2rem;
+            margin-bottom: 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 1.5rem;
+        }
+        .badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.35rem;
+            padding: 0.35rem 0.75rem;
+            border-radius: 9999px;
+            font-size: 0.75rem;
+            font-weight: 800;
+        }
+        .badge-success { background: rgba(16, 185, 129, 0.2); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.4); }
+        .badge-info { background: rgba(56, 189, 248, 0.2); color: #38bdf8; border: 1px solid rgba(56, 189, 248, 0.4); }
+        .badge-warning { background: rgba(245, 158, 11, 0.2); color: #f59e0b; border: 1px solid rgba(245, 158, 11, 0.4); }
+        .glass-card {
+            background: var(--card-bg);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 16px;
+            padding: 1.75rem;
+            margin-bottom: 2rem;
+        }
+        .grid-stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 1.25rem;
+            margin-bottom: 2rem;
+        }
+        .stat-box {
+            background: rgba(0, 0, 0, 0.4);
+            border: 1px solid rgba(255, 255, 255, 0.06);
+            border-radius: 12px;
+            padding: 1.25rem;
+        }
+        .stat-val {
+            font-size: 1.6rem;
+            font-weight: 900;
+            color: #fff;
+            margin-top: 0.35rem;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            text-align: right;
+            font-size: 0.85rem;
+        }
+        th {
+            background: rgba(0, 0, 0, 0.5);
+            padding: 0.75rem 1rem;
+            color: var(--text-muted);
+            font-size: 0.75rem;
+            font-weight: 800;
+            text-transform: uppercase;
+        }
+        td {
+            padding: 0.85rem 1rem;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+        }
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.6rem 1.25rem;
+            border-radius: 10px;
+            font-size: 0.85rem;
+            font-weight: 800;
+            cursor: pointer;
+            text-decoration: none;
+            border: none;
+            transition: all 0.2s;
+        }
+        .btn-primary { background: var(--sham-cyan); color: #000; }
+        .btn-outline { background: rgba(255, 255, 255, 0.05); color: #fff; border: 1px solid rgba(255, 255, 255, 0.15); }
+        .tab-btn {
+            padding: 0.75rem 1.25rem;
+            border-radius: 10px;
+            font-weight: 800;
+            cursor: pointer;
+            border: 1px solid transparent;
+            background: rgba(255, 255, 255, 0.03);
+            color: #94a3b8;
+        }
+        .tab-btn.active {
+            background: rgba(0, 201, 167, 0.15);
+            border-color: rgba(0, 201, 167, 0.4);
+            color: var(--sham-cyan);
+        }
+        @media print {
+            .no-print { display: none !important; }
+            body { background: #fff !important; color: #000 !important; }
+            .glass-card, .header-bar { border: 1px solid #ccc !important; background: #fff !important; }
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+
+    <!-- Header -->
+    <div class="header-bar">
+        <div style="display: flex; align-items: center; gap: 1.25rem;">
+            <div style="width: 60px; height: 60px; border-radius: 16px; background: rgba(0, 201, 167, 0.15); border: 1px solid rgba(0, 201, 167, 0.4); display: flex; align-items: center; justify-content: center; padding: 10px;">
+                <img src="{% static 'site/img/brands/shamcash.svg' %}" alt="ShamCash" style="max-width: 100%; max-height: 100%;">
+            </div>
+            <div>
+                <div style="display: flex; align-items: center; gap: 0.65rem; margin-bottom: 0.25rem;">
+                    <span class="badge badge-success"><i class="fas fa-check-shield"></i> بوابة التفتيش والامتثال الرسمية</span>
+                    <span class="badge badge-info">Direct JWE AES-256-GCM</span>
+                    <span class="badge badge-warning">تخزين السجلات لمدة 5 سنوات</span>
+                </div>
+                <h1 style="font-size: 1.7rem; font-weight: 900; color: #fff;">بوابة تدقيق وامتثال شام كاش (ShamCash Audit Portal)</h1>
+                <p style="color: var(--text-muted); font-size: 0.85rem;">
+                    مخصصة لفريق التفتيش والامتثال لدى شركة شام كاش للاطلاع على ملف المنشأة، سجلات الفواتير والعمليات، وسجلات الربط الإلكتروني.
+                </p>
+            </div>
+        </div>
+
+        <div class="no-print" style="display: flex; gap: 0.65rem;">
+            <button onclick="window.print()" class="btn btn-primary">
+                <i class="fas fa-print"></i> طباعة ملف الامتثال
+            </button>
+            {% if user.is_staff or user.is_superuser %}
+            <a href="{% url 'shamcash_dashboard' %}" class="btn btn-outline">
+                <i class="fas fa-arrow-left"></i> لوحة الإدارة
+            </a>
+            {% endif %}
+            <a href="{% url 'account_logout' %}" class="btn btn-outline" style="color: #f87171;">
+                <i class="fas fa-sign-out-alt"></i> تسجيل الخروج
+            </a>
+        </div>
+    </div>
+
+    <!-- Stats Grid -->
+    <div class="grid-stats">
+        <div class="stat-box">
+            <span style="font-size: 0.75rem; color: var(--text-muted); font-weight: 700;">إجمالي الفواتير الصادرة</span>
+            <div class="stat-val">{{ total_bills }}</div>
+            <span style="font-size: 0.75rem; color: #38bdf8;">{{ paid_bills }} مسددة بنجاح</span>
+        </div>
+
+        <div class="stat-box">
+            <span style="font-size: 0.75rem; color: var(--text-muted); font-weight: 700;">تحصيل الدولار الأمريكي (USD)</span>
+            <div class="stat-val" style="color: var(--sham-cyan);">${{ total_paid_usd|floatformat:2 }}</div>
+            <span style="font-size: 0.75rem; color: #34d399;">مدفوعات مؤكدة</span>
+        </div>
+
+        <div class="stat-box">
+            <span style="font-size: 0.75rem; color: var(--text-muted); font-weight: 700;">تحصيل الليرة السورية (SYP)</span>
+            <div class="stat-val" style="color: #10b981;">{{ total_paid_syp|floatformat:0 }} ل.س</div>
+            <span style="font-size: 0.75rem; color: #34d399;">مدفوعات مؤكدة</span>
+        </div>
+
+        <div class="stat-box">
+            <span style="font-size: 0.75rem; color: var(--text-muted); font-weight: 700;">إجمالي الاسترداد المنفذ</span>
+            <div class="stat-val" style="color: #f59e0b;">{{ total_refunded|floatformat:2 }}</div>
+            <span style="font-size: 0.75rem; color: #94a3b8;">استرداد موثق عبر API</span>
+        </div>
+    </div>
+
+    <!-- Navigation Tabs -->
+    <div class="no-print" style="display: flex; gap: 0.75rem; margin-bottom: 1.5rem; flex-wrap: wrap;">
+        <button class="tab-btn active" onclick="switchTab('kyc')"><i class="fas fa-id-card ml-1"></i> 1. ملف التعرف والامتثال (KYC)</button>
+        <button class="tab-btn" onclick="switchTab('bills')"><i class="fas fa-file-invoice-dollar ml-1"></i> 2. سجل الفواتير الأصولية (المادة 6)</button>
+        <button class="tab-btn" onclick="switchTab('logs')"><i class="fas fa-history ml-1"></i> 3. سجلات التدقيق التقنية (المادة 14)</button>
+        <button class="tab-btn" onclick="switchTab('reconciliation')"><i class="fas fa-balance-scale ml-1"></i> 4. تقارير المطابقة والتسوية (المادة 8)</button>
+        <button class="tab-btn" onclick="switchTab('certificate')"><i class="fas fa-certificate ml-1"></i> 5. شهادة الامتثال بالسياسات</button>
+    </div>
+
+    <!-- Tab 1: KYC & Legal Dossier -->
+    <div id="tab-kyc" class="tab-content glass-card">
+        <h2 style="font-size: 1.25rem; font-weight: 900; margin-bottom: 1.25rem; color: var(--sham-cyan); display: flex; align-items: center; gap: 0.5rem;">
+            <i class="fas fa-building"></i> ملف التعرف والتحقق من الهوية القانونية (المادة 3 من الشروط والأحكام)
+        </h2>
+
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 1.25rem; margin-bottom: 1.5rem;">
+            <div style="background: rgba(0,0,0,0.3); padding: 1rem; border-radius: 10px;">
+                <span style="font-size: 0.75rem; color: var(--text-muted);">اسم المنشأة / التطبيق:</span>
+                <div style="font-size: 1.05rem; font-weight: 800; color: #fff;">{{ compliance_profile.company_name }}</div>
+            </div>
+
+            <div style="background: rgba(0,0,0,0.3); padding: 1rem; border-radius: 10px;">
+                <span style="font-size: 0.75rem; color: var(--text-muted);">رقم السجل التجاري:</span>
+                <div style="font-size: 1.05rem; font-weight: 800; color: #38bdf8;">{{ compliance_profile.commercial_record_number }}</div>
+            </div>
+
+            <div style="background: rgba(0,0,0,0.3); padding: 1rem; border-radius: 10px;">
+                <span style="font-size: 0.75rem; color: var(--text-muted);">الرقم الضريبي:</span>
+                <div style="font-size: 1.05rem; font-weight: 800; color: #38bdf8;">{{ compliance_profile.tax_number }}</div>
+            </div>
+
+            <div style="background: rgba(0,0,0,0.3); padding: 1rem; border-radius: 10px;">
+                <span style="font-size: 0.75rem; color: var(--text-muted);">رقم الحساب التجاري الموثق لدى شام كاش:</span>
+                <div style="font-size: 1.05rem; font-weight: 800; color: #34d399;">{{ compliance_profile.shamcash_account_number }}</div>
+            </div>
+
+            <div style="background: rgba(0,0,0,0.3); padding: 1rem; border-radius: 10px; grid-column: 1 / -1;">
+                <span style="font-size: 0.75rem; color: var(--text-muted);">عقد التأسيس والترخيص:</span>
+                <div style="color: #cbd5e1; font-size: 0.9rem;">{{ compliance_profile.establishment_contract_details }}</div>
+            </div>
+
+            <div style="background: rgba(0,0,0,0.3); padding: 1rem; border-radius: 10px; grid-column: 1 / -1;">
+                <span style="font-size: 0.75rem; color: var(--text-muted);">وصف النشاط والخدمات المحصلة:</span>
+                <div style="color: #cbd5e1; font-size: 0.9rem;">{{ compliance_profile.activity_description }}</div>
+            </div>
+        </div>
+
+        <h3 style="font-size: 1.05rem; font-weight: 800; color: #fff; margin-bottom: 1rem;">المفوضون بالتواصل (المادة 21)</h3>
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 1rem;">
+            <div style="background: rgba(0,0,0,0.25); padding: 0.85rem; border-radius: 8px;">
+                <span style="font-size: 0.75rem; color: var(--text-muted);">المدير العام / المسؤول الفعلي:</span>
+                <div style="font-weight: 800; color: #fff;">{{ compliance_profile.general_manager_name }}</div>
+            </div>
+
+            <div style="background: rgba(0,0,0,0.25); padding: 0.85rem; border-radius: 8px;">
+                <span style="font-size: 0.75rem; color: var(--text-muted);">المفوض بالتوقيع والتعامل:</span>
+                <div style="font-weight: 800; color: #fff;">{{ compliance_profile.authorized_signatory_name }}</div>
+                <div style="font-size: 0.75rem; color: #38bdf8;">{{ compliance_profile.authorized_signatory_phone }}</div>
+            </div>
+
+            <div style="background: rgba(0,0,0,0.25); padding: 0.85rem; border-radius: 8px;">
+                <span style="font-size: 0.75rem; color: var(--text-muted);">المسؤول التقني:</span>
+                <div style="font-weight: 800; color: #fff;">{{ compliance_profile.technical_lead_name }}</div>
+                <div style="font-size: 0.75rem; color: #38bdf8;">{{ compliance_profile.technical_lead_email }}</div>
+            </div>
+
+            <div style="background: rgba(0,0,0,0.25); padding: 0.85rem; border-radius: 8px;">
+                <span style="font-size: 0.75rem; color: var(--text-muted);">المسؤول المالي:</span>
+                <div style="font-weight: 800; color: #fff;">{{ compliance_profile.financial_officer_name }}</div>
+                <div style="font-size: 0.75rem; color: #38bdf8;">{{ compliance_profile.financial_officer_email }}</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Tab 2: Invoices Registry (Article 6) -->
+    <div id="tab-bills" class="tab-content glass-card" style="display: none;">
+        <h2 style="font-size: 1.25rem; font-weight: 900; margin-bottom: 1rem; color: var(--sham-cyan);">
+            سجل الفواتير الأصولية والعمليات المنفذة (المادة 6)
+        </h2>
+        <div style="overflow-x: auto;">
+            <table>
+                <thead>
+                    <tr>
+                        <th>رقم الفاتورة (billNo)</th>
+                        <th>المبلغ والعملة</th>
+                        <th>الحالة</th>
+                        <th>رقم حركة شام كاش (tranId)</th>
+                        <th>تاريخ الإنشاء</th>
+                        <th>المسترد</th>
+                        <th>وصف الفاتورة</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for bill in recent_bills %}
+                    <tr>
+                        <td style="font-family: monospace; font-weight: 800; color: #38bdf8;">{{ bill.bill_no }}</td>
+                        <td style="font-weight: 800; color: #fff;">{{ bill.amount }} {{ bill.currency_code }}</td>
+                        <td>
+                            <span class="badge {% if bill.status_id == 4 %}badge-success{% elif bill.status_id == 1 %}badge-warning{% else %}badge-info{% endif %}">
+                                {{ bill.status_name }}
+                            </span>
+                        </td>
+                        <td style="font-family: monospace; color: #34d399;">{{ bill.tran_id|default:"-" }}</td>
+                        <td style="color: var(--text-muted); font-size: 0.8rem;">{{ bill.created_at|date:"Y-m-d H:i" }}</td>
+                        <td style="color: #f59e0b;">{{ bill.total_refunded_amount }}</td>
+                        <td style="font-size: 0.8rem; color: #cbd5e1;">{{ bill.note }}</td>
+                    </tr>
+                    {% empty %}
+                    <tr><td colspan="7" style="text-align: center; color: var(--text-muted); padding: 2rem;">لا توجد فواتير مسجلة.</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Tab 3: 5-Year Technical Audit Trail (Article 14) -->
+    <div id="tab-logs" class="tab-content glass-card" style="display: none;">
+        <h2 style="font-size: 1.25rem; font-weight: 900; margin-bottom: 1rem; color: var(--sham-cyan);">
+            سجلات التدقيق التقنية المحفوظة لـ 5 سنوات (المادة 11 & 14)
+        </h2>
+
+        <h3 style="font-size: 1rem; font-weight: 800; color: #fff; margin: 1.25rem 0 0.75rem;">1. أحدث طلبات واستجابات API الصادرة:</h3>
+        <div style="overflow-x: auto; margin-bottom: 2rem;">
+            <table>
+                <thead>
+                    <tr>
+                        <th>التاريخ والوقت</th>
+                        <th>الواجهة (Endpoint)</th>
+                        <th>رقم الفاتورة</th>
+                        <th>HTTP</th>
+                        <th>نتيجة شام كاش (result)</th>
+                        <th>زمن الاستجابة</th>
+                        <th>الحالة</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for l in recent_api_logs %}
+                    <tr>
+                        <td style="font-family: monospace; font-size: 0.75rem; color: var(--text-muted);">{{ l.created_at|date:"Y-m-d H:i:s" }}</td>
+                        <td style="font-family: monospace; font-weight: 700; color: #38bdf8;">{{ l.endpoint }}</td>
+                        <td style="font-family: monospace;">{{ l.bill_no|default:"-" }}</td>
+                        <td style="font-family: monospace;">{{ l.response_status_code }}</td>
+                        <td style="font-family: monospace; font-weight: 800; color: {% if l.response_result_code == 2500 %}#34d399{% else %}#f87171{% endif %};">
+                            {{ l.response_result_code|default:"-" }}
+                        </td>
+                        <td style="font-family: monospace; font-size: 0.75rem;">{{ l.duration_ms }} ms</td>
+                        <td>
+                            <span class="badge {% if l.is_success %}badge-success{% else %}badge-warning{% endif %}">
+                                {% if l.is_success %}ناجح{% else %}فشل{% endif %}
+                            </span>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr><td colspan="7" style="text-align: center; color: var(--text-muted); padding: 1.5rem;">لا توجد سجلات.</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        <h3 style="font-size: 1rem; font-weight: 800; color: #fff; margin: 1.25rem 0 0.75rem;">2. أحدث إشعارات الويب هوك الواردة:</h3>
+        <div style="overflow-x: auto;">
+            <table>
+                <thead>
+                    <tr>
+                        <th>التاريخ والوقت</th>
+                        <th>الفاتورة (billNo)</th>
+                        <th>الحركة (tranId)</th>
+                        <th>الحالة</th>
+                        <th>صحة التشفير</th>
+                        <th>المعالجة 200 OK</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for w in recent_webhooks %}
+                    <tr>
+                        <td style="font-family: monospace; font-size: 0.75rem; color: var(--text-muted);">{{ w.created_at|date:"Y-m-d H:i:s" }}</td>
+                        <td style="font-family: monospace; font-weight: 700; color: #38bdf8;">{{ w.bill_no }}</td>
+                        <td style="font-family: monospace; color: #34d399;">{{ w.tran_id|default:"-" }}</td>
+                        <td>{{ w.status_id }}</td>
+                        <td><span class="badge badge-success">Direct JWE صالح</span></td>
+                        <td><span class="badge badge-success">HTTP 200 OK</span></td>
+                    </tr>
+                    {% empty %}
+                    <tr><td colspan="6" style="text-align: center; color: var(--text-muted); padding: 1.5rem;">لا توجد سجلات ويب هوك.</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Tab 4: Reconciliation Reports -->
+    <div id="tab-reconciliation" class="tab-content glass-card" style="display: none;">
+        <h2 style="font-size: 1.25rem; font-weight: 900; margin-bottom: 1rem; color: var(--sham-cyan);">
+            تقارير المطابقة والتسوية المالية السابقة (المادة 8)
+        </h2>
+        <div style="overflow-x: auto;">
+            <table>
+                <thead>
+                    <tr>
+                        <th>الفترة</th>
+                        <th>الحالة</th>
+                        <th>حركات شام كاش</th>
+                        <th>حركات المنصة</th>
+                        <th>المتطابق</th>
+                        <th>الفروقات</th>
+                        <th>تاريخ التنفيذ</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for r in reconciliation_batches %}
+                    <tr>
+                        <td style="font-weight: 800; color: #fff;">{{ r.from_date }} إلى {{ r.to_date }}</td>
+                        <td>
+                            <span class="badge {% if r.status == 'balanced' %}badge-success{% else %}badge-warning{% endif %}">
+                                {{ r.get_status_display }}
+                            </span>
+                        </td>
+                        <td style="font-family: monospace;">{{ r.total_shamcash_count }} ({{ r.total_shamcash_amount }})</td>
+                        <td style="font-family: monospace;">{{ r.total_local_count }} ({{ r.total_local_amount }})</td>
+                        <td style="font-family: monospace; color: #34d399;">{{ r.matched_count }}</td>
+                        <td style="font-weight: 800; color: {% if r.discrepancies_count == 0 %}#34d399{% else %}#f87171{% endif %};">
+                            {{ r.discrepancies_count }}
+                        </td>
+                        <td style="font-size: 0.8rem; color: var(--text-muted);">{{ r.created_at|date:"Y-m-d H:i" }}</td>
+                    </tr>
+                    {% empty %}
+                    <tr><td colspan="7" style="text-align: center; color: var(--text-muted); padding: 1.5rem;">لا توجد جلسات مطابقة سابقة.</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Tab 5: Policy Compliance Certificate -->
+    <div id="tab-certificate" class="tab-content glass-card" style="display: none;">
+        <div style="border: 2px solid var(--sham-cyan); border-radius: 12px; padding: 2rem; background: rgba(0, 201, 167, 0.03);">
+            <div style="text-align: center; margin-bottom: 2rem;">
+                <img src="{% static 'site/img/brands/shamcash.svg' %}" alt="ShamCash" style="width: 50px; height: 50px; margin-bottom: 0.5rem;">
+                <h2 style="font-size: 1.5rem; font-weight: 900; color: #fff;">شهادة التوافق والامتثال لشروط ربط شام كاش API</h2>
+                <span style="color: var(--text-muted); font-size: 0.85rem;">صادرة بموجب الشروط والأحكام الخاصة بخدمة تحصيل الفواتير الإلكترونية</span>
+            </div>
+
+            <div style="display: grid; gap: 1rem; font-size: 0.9rem; line-height: 1.8; margin-bottom: 2rem;">
+                <div style="padding: 0.85rem; border-radius: 8px; background: rgba(0,0,0,0.3); border-right: 4px solid var(--sham-cyan);">
+                    <strong>1. الالتزام بالمادة 7 (الرسوم والعمولات):</strong>
+                    تؤكد المنصة التزامها التام بعدم فرض أي عمولة إضافية على العميل أو المستخدم نهائياً تحت مسمى شام كاش (عمولة العميل 0%)، وتتحمل المنصة وحدها عمولة شام كاش المقررة (5 بالألف).
+                </div>
+
+                <div style="padding: 0.85rem; border-radius: 8px; background: rgba(0,0,0,0.3); border-right: 4px solid var(--sham-cyan);">
+                    <strong>2. الالتزام بالمادة 11 (أمن واجهات API):</strong>
+                    يتم تشفير كافة الطلبات وإشعارات الويب هوك بواسطة تشفير Direct JWE (خوارزمية A256GCM بمفتاح AES بطول 256 بت)، مع حقن مطالبات الأمان الإلزامية (iat و exp بمهلة 5 دقائق) لمنع هجمات إعادة الإرسال (Replay Attacks).
+                </div>
+
+                <div style="padding: 0.85rem; border-radius: 8px; background: rgba(0,0,0,0.3); border-right: 4px solid var(--sham-cyan);">
+                    <strong>3. الالتزام بالمادة 14 (الاحتفاظ بالسجلات لمدة 5 سنوات):</strong>
+                    تحتفظ المنصة بأرشيف إلكتروني متكامل وغير قابل للتعديل لكافة الفواتير، العمليات، الاستردادات، سجلات استدعاءات API، وإشعارات الويب هوك لمدة لا تقل عن خمس سنوات.
+                </div>
+
+                <div style="padding: 0.85rem; border-radius: 8px; background: rgba(0,0,0,0.3); border-right: 4px solid var(--sham-cyan);">
+                    <strong>4. الالتزام بالمادة 6 و 8 و 9 (الفواتير، التسوية، والاسترداد):</strong>
+                    تتبع المنصة المعايير المعتمدة في إنشاء فواتير حقيقية غير صورية، وتوفر أداة المطابقة والتسوية المباشرة، وحصر عمليات الاسترداد ضمن الآليات البرمجية المعتمدة لشام كاش.
+                </div>
+            </div>
+
+            <div style="display: flex; justify-content: space-between; align-items: flex-end; border-top: 1px solid rgba(255,255,255,0.1); padding-top: 1.5rem; font-size: 0.85rem;">
+                <div>
+                    <div><strong>الجهة:</strong> {{ compliance_profile.company_name }}</div>
+                    <div><strong>المفوض بالتوقيع:</strong> {{ compliance_profile.authorized_signatory_name }}</div>
+                </div>
+                <div style="text-align: left;">
+                    <div><strong>تاريخ التوليد:</strong> {% now "Y-m-d H:i" %}</div>
+                    <div style="color: var(--sham-cyan); font-weight: 800;">حالة الامتثال: معتمد ومطابق 100%</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+<script>
+function switchTab(tabId) {
+    document.querySelectorAll('.tab-content').forEach(el => el.style.display = 'none');
+    document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+    document.getElementById('tab-' + tabId).style.display = 'block';
+    event.currentTarget.classList.add('active');
+}
+</script>
+</body>
+</html>

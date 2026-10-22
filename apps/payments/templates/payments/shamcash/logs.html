@@ -1,0 +1,160 @@
+{% extends "site/control_base.html" %}
+{% load static %}
+
+{% block title %}سجلات تدقيق شام كاش (5 سنوات) | لوحة التحكم{% endblock %}
+
+{% block control_content %}
+<div class="page-head" style="margin-bottom: 2rem;">
+    <div>
+        <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.35rem;">
+            <a href="{% url 'shamcash_dashboard' %}" style="color: #00C9A7; font-size: 0.8rem; font-weight: 700;">
+                <i class="fas fa-arrow-right ml-1"></i> العودة للوحة شام كاش
+            </a>
+            <span style="color: #475569;">/</span>
+            <span class="eyebrow" style="margin: 0; color: #94a3b8;">Article 11 & 14 Compliance Trail</span>
+        </div>
+        <h1 style="font-size: 1.6rem; font-weight: 900; color: #fff; margin: 0 0 0.35rem;">سجلات التدقيق التقنية (تخزين 5 سنوات)</h1>
+        <p class="text-muted" style="margin: 0; font-size: 0.85rem;">
+            أرشفة وتتبع كافة طلبات واستجابات API وإشعارات الويب هوك (Webhooks) المشفرة بـ Direct JWE لضمان الامتثال الرقابي.
+        </p>
+    </div>
+</div>
+
+<!-- Tabs: API Logs vs Webhook Logs -->
+<div style="display: flex; gap: 0.75rem; margin-bottom: 1.5rem;">
+    <a href="?type=api" class="btn btn-sm {% if log_type == 'api' %}btn-primary{% else %}btn-outline{% endif %}" style="{% if log_type == 'api' %}background: #00C9A7; color: #000; border: none; font-weight: 800;{% endif %}">
+        <i class="fas fa-network-wired ml-1"></i> سجلات طلبات API الصادرة
+    </a>
+    <a href="?type=webhook" class="btn btn-sm {% if log_type == 'webhook' %}btn-primary{% else %}btn-outline{% endif %}" style="{% if log_type == 'webhook' %}background: #00C9A7; color: #000; border: none; font-weight: 800;{% endif %}">
+        <i class="fas fa-satellite-dish ml-1"></i> سجلات إشعارات الويب هوك الواردة
+    </a>
+</div>
+
+<!-- Search Bar -->
+<form method="get" class="glass-panel" style="padding: 1rem; margin-bottom: 1.5rem; display: flex; gap: 0.75rem;">
+    <input type="hidden" name="type" value="{{ log_type }}">
+    <input type="text" name="q" value="{{ query }}" placeholder="بحث برقم الفاتورة (billNo)، أو الخطأ..." class="input" style="flex: 1; padding: 0.5rem 0.75rem; border-radius: 8px; background: rgba(0,0,0,0.4); border: 1px solid rgba(255,255,255,0.1); color: #fff; font-size: 0.85rem;">
+    <button type="submit" class="btn btn-primary btn-sm" style="background: #00C9A7; border: none; color: #000; font-weight: 800;">
+        <i class="fas fa-search ml-1"></i> بحث
+    </button>
+    {% if query %}
+    <a href="?type={{ log_type }}" class="btn btn-outline btn-sm">إلغاء</a>
+    {% endif %}
+</form>
+
+<!-- Table -->
+<div class="glass-panel" style="padding: 1.5rem; overflow: hidden;">
+    <div class="overflow-x-auto">
+        {% if log_type == 'webhook' %}
+        <!-- Webhooks Table -->
+        <table class="w-full text-right text-sm">
+            <thead class="bg-black/40">
+                <tr>
+                    <th class="p-3 text-[10px] text-slate-400">الوقت والتاريخ</th>
+                    <th class="p-3 text-[10px] text-slate-400">رقم الفاتورة (billNo)</th>
+                    <th class="p-3 text-[10px] text-slate-400">رقم العملية (tranId)</th>
+                    <th class="p-3 text-[10px] text-slate-400 text-center">رمز الحالة</th>
+                    <th class="p-3 text-[10px] text-slate-400 text-center">صحة التشفير</th>
+                    <th class="p-3 text-[10px] text-slate-400 text-center">المعالجة</th>
+                    <th class="p-3 text-[10px] text-slate-400">عنوان IP</th>
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-white/5">
+                {% for log in page_obj %}
+                <tr>
+                    <td class="p-3 text-xs text-slate-400 font-mono">{{ log.created_at|date:"Y-m-d H:i:s" }}</td>
+                    <td class="p-3 font-bold text-xs text-white font-mono">{{ log.bill_no|default:"-" }}</td>
+                    <td class="p-3 font-mono text-xs text-emerald-400">{{ log.tran_id|default:"-" }}</td>
+                    <td class="p-3 text-center font-bold text-xs">
+                        {% if log.status_id == 4 %}
+                        <span class="badge success text-[9px]">4 (مدفوع)</span>
+                        {% elif log.status_id == 3 %}
+                        <span class="badge muted text-[9px]">3 (منتهي)</span>
+                        {% else %}
+                        <span class="badge warning text-[9px]">{{ log.status_id|default:"-" }}</span>
+                        {% endif %}
+                    </td>
+                    <td class="p-3 text-center">
+                        {% if log.is_valid %}
+                        <span class="badge success text-[9px]">Direct JWE صالح</span>
+                        {% else %}
+                        <span class="badge danger text-[9px]">غير صالح / خطأ</span>
+                        {% endif %}
+                    </td>
+                    <td class="p-3 text-center">
+                        {% if log.processed_successfully %}
+                        <span class="badge success text-[9px]">تمت المعالجة 200 OK</span>
+                        {% else %}
+                        <span class="badge danger text-[9px]">فشل: {{ log.error_message|truncatechars:20 }}</span>
+                        {% endif %}
+                    </td>
+                    <td class="p-3 font-mono text-xs text-slate-400">{{ log.ip_address|default:"-" }}</td>
+                </tr>
+                {% empty %}
+                <tr><td colspan="7" class="p-8 text-center text-slate-500">لا توجد سجلات ويب هوك.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        {% else %}
+        <!-- API Requests Table -->
+        <table class="w-full text-right text-sm">
+            <thead class="bg-black/40">
+                <tr>
+                    <th class="p-3 text-[10px] text-slate-400">الوقت والتاريخ</th>
+                    <th class="p-3 text-[10px] text-slate-400">الواجهة (Endpoint)</th>
+                    <th class="p-3 text-[10px] text-slate-400">الفاتورة (billNo)</th>
+                    <th class="p-3 text-[10px] text-slate-400 text-center">HTTP Status</th>
+                    <th class="p-3 text-[10px] text-slate-400 text-center">نتيجة شام كاش (result)</th>
+                    <th class="p-3 text-[10px] text-slate-400 text-center">الاستجابة (ms)</th>
+                    <th class="p-3 text-[10px] text-slate-400 text-center">النجاح</th>
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-white/5">
+                {% for log in page_obj %}
+                <tr>
+                    <td class="p-3 text-xs text-slate-400 font-mono">{{ log.created_at|date:"Y-m-d H:i:s" }}</td>
+                    <td class="p-3 font-mono text-xs text-cyan font-bold">{{ log.endpoint }}</td>
+                    <td class="p-3 font-mono text-xs text-white">{{ log.bill_no|default:"-" }}</td>
+                    <td class="p-3 text-center font-mono text-xs">
+                        <span class="badge {% if log.response_status_code == 200 %}success{% else %}danger{% endif %} text-[9px]">
+                            {{ log.response_status_code }}
+                        </span>
+                    </td>
+                    <td class="p-3 text-center font-mono text-xs font-bold">
+                        {% if log.response_result_code == 2500 %}
+                        <span style="color: #34d399;">2500 (Success)</span>
+                        {% else %}
+                        <span style="color: #f87171;">{{ log.response_result_code|default:"-" }}</span>
+                        {% endif %}
+                    </td>
+                    <td class="p-3 text-center font-mono text-xs text-slate-400">{{ log.duration_ms }} ms</td>
+                    <td class="p-3 text-center">
+                        {% if log.is_success %}
+                        <span class="badge success text-[9px]">ناجح</span>
+                        {% else %}
+                        <span class="badge danger text-[9px]">فشل: {{ log.error_message|truncatechars:18 }}</span>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% empty %}
+                <tr><td colspan="7" class="p-8 text-center text-slate-500">لا توجد سجلات API.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        {% endif %}
+    </div>
+
+    <!-- Pagination -->
+    {% if page_obj.has_other_pages %}
+    <div style="display: flex; justify-content: center; gap: 0.5rem; margin-top: 1.5rem;">
+        {% if page_obj.has_previous %}
+        <a href="?page={{ page_obj.previous_page_number }}&type={{ log_type }}&q={{ query }}" class="btn btn-outline btn-sm">السابق</a>
+        {% endif %}
+        <span class="btn btn-sm" style="background: rgba(255,255,255,0.05); color: #fff;">صفحة {{ page_obj.number }} من {{ page_obj.paginator.num_pages }}</span>
+        {% if page_obj.has_next %}
+        <a href="?page={{ page_obj.next_page_number }}&type={{ log_type }}&q={{ query }}" class="btn btn-outline btn-sm">التالي</a>
+        {% endif %}
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

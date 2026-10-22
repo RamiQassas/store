@@ -1,6 +1,6 @@
 from django.urls import path
 from apps.site import views, api_views
-from apps.payments import views_paymera, views_shamcash
+from apps.payments import views_paymera, views_shamcash, views_shamcash_admin
 from apps.stores import views_admin, views_saas
 
 urlpatterns = [
@@ -76,9 +76,20 @@ urlpatterns = [
     path("api/users/lookup/", api_views.api_lookup_user, name="api_lookup_user"),
     path("api/products/live-search/", api_views.api_live_product_search, name="api_live_product_search"),
 
-    # ShamCash Gateway Endpoints
+    # ShamCash Gateway Endpoints, Admin Management & Auditor Portal
     path("payments/shamcash/callback/", views_shamcash.shamcash_callback_view, name="shamcash_callback"),
     path("payments/shamcash/redirect/", views_shamcash.shamcash_redirect_view, name="shamcash_redirect"),
+    path("control/shamcash/", views_shamcash_admin.shamcash_dashboard_view, name="shamcash_dashboard"),
+    path("control/shamcash/bills/", views_shamcash_admin.shamcash_bills_list_view, name="shamcash_bills"),
+    path("control/shamcash/bills/<str:bill_no>/", views_shamcash_admin.shamcash_bill_detail_view, name="shamcash_bill_detail"),
+    path("control/shamcash/bills/<str:bill_no>/check/", views_shamcash_admin.shamcash_check_bill_status_view, name="shamcash_check_bill_status"),
+    path("control/shamcash/refund/", views_shamcash_admin.shamcash_refund_bill_view, name="shamcash_refund_bill"),
+    path("control/shamcash/reconciliation/", views_shamcash_admin.shamcash_reconciliation_view, name="shamcash_reconciliation"),
+    path("control/shamcash/logs/", views_shamcash_admin.shamcash_logs_view, name="shamcash_logs"),
+    path("control/shamcash/compliance/", views_shamcash_admin.shamcash_compliance_dossier_view, name="shamcash_compliance_dossier"),
+    path("control/shamcash/create-auditor/", views_shamcash_admin.shamcash_create_auditor_view, name="shamcash_create_auditor"),
+    path("control/shamcash/test-connection/", views_shamcash_admin.shamcash_test_connection_view, name="shamcash_test_connection"),
+    path("shamcash/portal/", views_shamcash_admin.shamcash_auditor_portal_view, name="shamcash_auditor_portal"),
 
     # Paymera Gateway Endpoints
     path("payments/paymera/callback/", views_paymera.paymera_callback_view, name="paymera_callback"),

@@ -1,0 +1,148 @@
+{% extends "site/control_base.html" %}
+{% load static %}
+
+{% block title %}المطابقة والتسوية المالية مع شام كاش | لوحة التحكم{% endblock %}
+
+{% block control_content %}
+<div class="page-head" style="margin-bottom: 2rem;">
+    <div>
+        <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.35rem;">
+            <a href="{% url 'shamcash_dashboard' %}" style="color: #00C9A7; font-size: 0.8rem; font-weight: 700;">
+                <i class="fas fa-arrow-right ml-1"></i> العودة للوحة شام كاش
+            </a>
+            <span style="color: #475569;">/</span>
+            <span class="eyebrow" style="margin: 0; color: #94a3b8;">Article 8 & Section 11 Reconciliation Approach</span>
+        </div>
+        <h1 style="font-size: 1.6rem; font-weight: 900; color: #fff; margin: 0 0 0.35rem;">المطابقة والتسوية المالية مع شام كاش</h1>
+        <p class="text-muted" style="margin: 0; font-size: 0.85rem;">
+            تنفيذ المطابقة الدورية ونهاية اليوم (EOD) عبر حلقة المؤشر بعد العملية (Cursor-based afterTranId) ومقارنة سجلات المنصة بسجلات شام كاش.
+        </p>
+    </div>
+</div>
+
+<!-- Run New Reconciliation Panel -->
+<div class="glass-panel" style="padding: 1.75rem; margin-bottom: 2rem; border: 1px solid rgba(0, 201, 167, 0.3);">
+    <h3 style="font-size: 1.1rem; font-weight: 900; color: #fff; margin-bottom: 1rem; display: flex; align-items: center; gap: 0.5rem;">
+        <i class="fas fa-play-circle text-emerald-400"></i> تشغيل مطابقة جديدة (EOD Reconciliation Run)
+    </h3>
+
+    <form method="post" style="display: grid; grid-template-columns: 1fr 1fr auto; gap: 1rem; align-items: end;">
+        {% csrf_token %}
+        <div>
+            <label style="display: block; font-size: 0.8rem; font-weight: 700; color: #cbd5e1; margin-bottom: 0.35rem;">من تاريخ (fromDate):</label>
+            <input type="date" name="from_date" value="{{ today_str }}" required class="input" style="width: 100%; padding: 0.65rem 0.85rem; border-radius: 8px; background: rgba(0,0,0,0.4); border: 1px solid rgba(255,255,255,0.1); color: #fff;">
+        </div>
+
+        <div>
+            <label style="display: block; font-size: 0.8rem; font-weight: 700; color: #cbd5e1; margin-bottom: 0.35rem;">إلى تاريخ (toDate):</label>
+            <input type="date" name="to_date" value="{{ today_str }}" required class="input" style="width: 100%; padding: 0.65rem 0.85rem; border-radius: 8px; background: rgba(0,0,0,0.4); border: 1px solid rgba(255,255,255,0.1); color: #fff;">
+        </div>
+
+        <button type="submit" class="btn btn-primary" style="background: linear-gradient(135deg, #00C9A7, #059669); border: none; font-weight: 800; color: #000; padding: 0.75rem 1.5rem;">
+            <i class="fas fa-bolt ml-1"></i> بدء المطابقة والتسوية
+        </button>
+    </form>
+</div>
+
+<!-- Latest Batch Result Card -->
+{% if recent_batch %}
+<div class="glass-panel" style="padding: 1.75rem; margin-bottom: 2rem; border: 1px solid {% if recent_batch.status == 'balanced' %}rgba(16, 185, 129, 0.4){% else %}rgba(239, 68, 68, 0.4){% endif %};">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.25rem;">
+        <div>
+            <span class="badge {% if recent_batch.status == 'balanced' %}success{% else %}danger{% endif %}" style="font-size: 0.8rem; font-weight: 800;">
+                {{ recent_batch.get_status_display }}
+            </span>
+            <h3 style="font-size: 1.25rem; font-weight: 900; color: #fff; margin: 0.35rem 0 0;">
+                نتائج مطابقة الفترة: {{ recent_batch.from_date }} إلى {{ recent_batch.to_date }}
+            </h3>
+        </div>
+        <div style="font-size: 0.8rem; color: #94a3b8;">
+            المنفذ: {{ recent_batch.executed_by.email|default:"النظام" }}
+        </div>
+    </div>
+
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; margin-bottom: 1.5rem;">
+        <div style="background: rgba(0,0,0,0.3); padding: 1rem; border-radius: 8px;">
+            <div style="color: #94a3b8; font-size: 0.75rem;">حركات شام كاش / الإجمالي:</div>
+            <div style="font-size: 1.2rem; font-weight: 900; color: #38bdf8;">{{ recent_batch.total_shamcash_count }} حركة | {{ recent_batch.total_shamcash_amount }}</div>
+        </div>
+
+        <div style="background: rgba(0,0,0,0.3); padding: 1rem; border-radius: 8px;">
+            <div style="color: #94a3b8; font-size: 0.75rem;">حركات المنصة المحلية / الإجمالي:</div>
+            <div style="font-size: 1.2rem; font-weight: 900; color: #34d399;">{{ recent_batch.total_local_count }} حركة | {{ recent_batch.total_local_amount }}</div>
+        </div>
+
+        <div style="background: rgba(0,0,0,0.3); padding: 1rem; border-radius: 8px;">
+            <div style="color: #94a3b8; font-size: 0.75rem;">الحركات المتطابقة:</div>
+            <div style="font-size: 1.2rem; font-weight: 900; color: #10b981;">{{ recent_batch.matched_count }} حركة</div>
+        </div>
+
+        <div style="background: rgba(0,0,0,0.3); padding: 1rem; border-radius: 8px;">
+            <div style="color: #94a3b8; font-size: 0.75rem;">الفروقات المكتشفة:</div>
+            <div style="font-size: 1.2rem; font-weight: 900; color: {% if recent_batch.discrepancies_count == 0 %}#10b981{% else %}#f87171{% endif %};">
+                {{ recent_batch.discrepancies_count }} فرق
+            </div>
+        </div>
+    </div>
+
+    {% if recent_batch.discrepancy_details %}
+    <div style="margin-top: 1rem;">
+        <h4 style="font-size: 0.95rem; font-weight: 800; color: #f87171; margin-bottom: 0.75rem;">
+            <i class="fas fa-exclamation-circle ml-1"></i> جدول الفروقات التفصيلي:
+        </h4>
+        <div style="background: rgba(0,0,0,0.4); padding: 1rem; border-radius: 8px; max-height: 200px; overflow-y: auto;">
+            <pre style="color: #fca5a5; font-size: 0.8rem; margin: 0; font-family: monospace;">{{ recent_batch.discrepancy_details|pprint }}</pre>
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% endif %}
+
+<!-- History of Reconciliation Batches -->
+<div class="glass-panel" style="padding: 1.5rem;">
+    <h3 style="font-size: 1.1rem; font-weight: 900; color: #fff; margin-bottom: 1.25rem;">
+        <i class="fas fa-history ml-1"></i> سجل تقارير التسوية والمطابقة السابقة (5 سنوات)
+    </h3>
+
+    <div class="overflow-x-auto">
+        <table class="w-full text-right text-sm">
+            <thead class="bg-black/40">
+                <tr>
+                    <th class="p-3 text-[10px] text-slate-400">الفترة الزمنية</th>
+                    <th class="p-3 text-[10px] text-slate-400 text-center">الحالة</th>
+                    <th class="p-3 text-[10px] text-slate-400">حركات شام كاش</th>
+                    <th class="p-3 text-[10px] text-slate-400">حركات المنصة</th>
+                    <th class="p-3 text-[10px] text-slate-400">المتطابق</th>
+                    <th class="p-3 text-[10px] text-slate-400 text-center">الفروقات</th>
+                    <th class="p-3 text-[10px] text-slate-400">المنفذ</th>
+                    <th class="p-3 text-[10px] text-slate-400">تاريخ التنفيذ</th>
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-white/5">
+                {% for b in batches %}
+                <tr>
+                    <td class="p-3 font-bold text-white">{{ b.from_date }} إلى {{ b.to_date }}</td>
+                    <td class="p-3 text-center">
+                        <span class="badge {% if b.status == 'balanced' %}success{% else %}danger{% endif %} text-[9px]">
+                            {{ b.get_status_display }}
+                        </span>
+                    </td>
+                    <td class="p-3 font-mono text-xs">{{ b.total_shamcash_count }} ({{ b.total_shamcash_amount }})</td>
+                    <td class="p-3 font-mono text-xs">{{ b.total_local_count }} ({{ b.total_local_amount }})</td>
+                    <td class="p-3 font-mono text-xs text-emerald-400">{{ b.matched_count }}</td>
+                    <td class="p-3 text-center font-bold {% if b.discrepancies_count == 0 %}text-emerald-400{% else %}text-rose-400{% endif %}">
+                        {{ b.discrepancies_count }}
+                    </td>
+                    <td class="p-3 text-xs text-slate-400">{{ b.executed_by.email|default:"النظام" }}</td>
+                    <td class="p-3 text-xs text-slate-400">{{ b.created_at|date:"Y-m-d H:i" }}</td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="8" class="p-8 text-center text-slate-500">لم يتم تنفيذ أي عمليات مطابقة بعد.</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

@@ -61,6 +61,11 @@
                     </td>
                     <td class="p-4">
                         <div class="flex items-center justify-center gap-2">
+                            {% if gateway.provider == 'sham_cash' %}
+                            <a href="{% url 'shamcash_dashboard' %}" class="btn btn-outline btn-sm text-[10px]" style="border-color: rgba(0,201,167,0.4); color: #00C9A7; font-weight: 800;">
+                                <i class="fas fa-shield-alt ml-1"></i> إدارة البوابة
+                            </a>
+                            {% endif %}
                             <a href="{% url 'payment_gateway_integration_edit' gateway.id %}" class="btn btn-outline btn-sm text-[10px]">تعديل</a>
                             <a href="{% url 'payment_gateway_integration_delete' gateway.id %}" class="btn btn-outline btn-sm text-[10px] text-rose-400 border-rose-500/20" onclick="return confirm('حذف بوابة الدفع؟');">حذف</a>
                         </div>
