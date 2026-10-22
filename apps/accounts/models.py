@@ -270,7 +270,17 @@ class User(AbstractUser):
 
     @property
     def is_platform_staff(self):
-        return self.role != self.Role.CUSTOMER or self.is_staff or self.is_superuser
+        return (
+            self.is_superuser
+            or self.is_staff
+            or self.role in (
+                self.Role.SUPER_ADMIN,
+                self.Role.ADMIN,
+                self.Role.MODERATOR,
+                self.Role.FINANCE,
+                self.Role.SUPPORT,
+            )
+        )
 
     @property
     def is_account_active(self):

@@ -150,12 +150,12 @@ def v3_init_verification(request, user, action_type):
     if not methods: 
         return True # No security methods configured, bypass
     
-    # Check for 5-minute cooldown
-    last_verified = request.session.get("v3_action_verified_at")
+    # Check for 5-minute cooldown bound to specific action_type
+    last_verified = request.session.get(f"v3_action_verified_at_{action_type}")
     if last_verified:
         try:
             if (timezone.now() - timezone.datetime.fromisoformat(last_verified)).total_seconds() < 300:
-                return True # Within 5-minute cooldown, bypass
+                return True # Within 5-minute cooldown for this specific action, bypass
         except:
             pass
             
@@ -340,6 +340,8 @@ def v3_verify_sp_view(request):
             # Set grace period for BOTH keys
             now_iso = timezone.now().isoformat()
             request.session["v3_action_verified_at"] = now_iso
+            if purpose:
+                request.session[f"v3_action_verified_at_{purpose}"] = now_iso
             request.session["v3_sp_verified_at"] = now_iso
             
             # Complete pending purchase or financial action
@@ -355,7 +357,7 @@ def v3_verify_sp_view(request):
             clean_verification_session(request)
                 
             invalid_redirects = ["/auth/login/", "/auth/verify-otp/", "/auth/register/", reverse("site_login"), reverse("site_verify_otp"), reverse("site_register")]
-            if next_url and next_url not in invalid_redirects:
+            if next_url and next_url not in invalid_redirects and _is_safe_redirect(next_url, request):
                 return redirect(next_url)
             return redirect("control_dashboard" if (user.is_staff and getattr(request, 'store', None) is None) else "dashboard")
             
@@ -398,6 +400,7 @@ def v3_login_view(request):
             return redirect("control_dashboard" if (request.user.is_staff and getattr(request, 'store', None) is None) else "dashboard")
         else:
             # Alien session: do not flush session, simply treat as anonymous so user can log in
+            from django.contrib.auth.models import AnonymousUser
             request.user = AnonymousUser()
 
     form = LoginForm(request.POST or None)
@@ -505,19 +508,20 @@ def v3_register_view(request):
                     messages.error(request, error)
     return render(request, "site/v3/v3_register.html", {"form": form})
 
-def _is_safe_redirect(url):
+def _is_safe_redirect(url, request=None):
     if not url:
         return False
     try:
         from urllib.parse import urlparse
         parsed = urlparse(url)
+        allowed = {request.get_host()} if request is not None else set()
         if not url_has_allowed_host_and_scheme(
             url,
-            allowed_hosts=set(),
-            require_https=not settings.DEBUG,
+            allowed_hosts=allowed,
+            require_https=(request.is_secure() if request is not None else not settings.DEBUG),
         ):
             return False
-        if parsed.netloc or parsed.scheme or url.startswith("//"):
+        if request is None and (parsed.netloc or parsed.scheme or url.startswith("//")):
             return False
         path = parsed.path.rstrip("/")
         blocked = [
@@ -630,6 +634,8 @@ def v3_verify_otp_view(request):
             
             now_iso = timezone.now().isoformat()
             request.session["v3_action_verified_at"] = now_iso
+            if purpose:
+                request.session[f"v3_action_verified_at_{purpose}"] = now_iso
             request.session["v3_sp_verified_at"] = now_iso
 
             # Complete pending purchase or financial action
@@ -691,7 +697,10 @@ def v3_2fa_verify_view(request):
                 user.save(update_fields=["last_session_key"])
             request.session["last_activity"] = timezone.now().timestamp()
                 
-            request.session["v3_action_verified_at"] = timezone.now().isoformat()
+            now_iso = timezone.now().isoformat()
+            request.session["v3_action_verified_at"] = now_iso
+            if purpose:
+                request.session[f"v3_action_verified_at_{purpose}"] = now_iso
             
             # Complete pending purchase or financial action
             purchase_redirect = complete_pending_purchase(request, user)
@@ -1093,6 +1102,8 @@ def transfer_page(request):
             messages.error(request, str(e.message) if hasattr(e, 'message') else str(e))
             
     # Calculate limits in USD
+    from apps.accounts.models import KYCSettings
+    settings_obj = KYCSettings.get_settings()
     limit_usd = request.user.custom_p2p_transfer_limit if request.user.has_custom_limits and request.user.custom_p2p_transfer_limit else (settings_obj.verified_transfer_limit if request.user.is_kyc_verified else settings_obj.unverified_transfer_limit)
     
     # Calculate sent transfers today in USD
@@ -1201,9 +1212,7 @@ def deposits(request):
         if not currency:
             currency = method.supported_currencies.filter(is_active=True).first() or Currency.all_objects.filter(code="USD", is_active=True).first()
         
-        # Security check: Does currency belong to method?
-        if not method.supported_currencies.filter(id=currency.id).exists():
-            method.supported_currencies.add(currency)
+        # Security check: Do not mutate supported_currencies from customer request
 
         try:
             amount = Decimal(amount_str)
@@ -3325,7 +3334,10 @@ def send_financial_notification(user, title, body, action_url="/dashboard/wallet
 @finance_required
 def control_deposit_detail(request, pk):
     from apps.payments.models import DepositRequest
-    deposit = get_object_or_404(DepositRequest.objects.select_related('user', 'currency', 'payment_method'), pk=pk)
+    qs = DepositRequest.objects.select_related('user', 'currency', 'payment_method')
+    if getattr(request, "store", None) and not request.user.is_superuser:
+        qs = qs.filter(store=request.store)
+    deposit = get_object_or_404(qs, pk=pk)
 
     if request.method == "POST":
         action = request.POST.get("action")
@@ -3359,6 +3371,7 @@ def control_deposit_detail(request, pk):
                     if wallet_final_amount <= 0:
                         raise ValueError("يجب أن يكون المبلغ أكبر من صفر.")
 
+                    use_pending = bool(deposit.wallet_amount and deposit.wallet_amount > Decimal("0.00") and wallet.pending_balance >= deposit.wallet_amount)
                     credit_wallet(
                         wallet_id=wallet.id,
                         amount=wallet_final_amount,
@@ -3367,7 +3380,7 @@ def control_deposit_detail(request, pk):
                         created_by=request.user,
                         source="deposit",
                         metadata={
-                            "from_pending": True,
+                            "from_pending": use_pending,
                             "pending_amount": str(deposit.wallet_amount),
                             "source_amount": str(deposit.amount),
                             "source_currency": deposit.currency.code,
@@ -3421,14 +3434,18 @@ def control_deposit_detail(request, pk):
                     
                     if deposit.status != DepositRequest.Status.REJECTED:
                         wallet = get_object_or_404(Wallet, user=deposit.user)
-                        from apps.wallets.services import cancel_pending_deposit
-                        cancel_pending_deposit(
-                            wallet_id=wallet.id,
-                            amount=deposit.wallet_amount,
-                            reference=f"deposit_reject:{deposit.id}",
-                            description=f"إلغاء إيداع معلق مرفوض عبر {deposit.payment_method.name}",
-                            created_by=request.user
-                        )
+                        if deposit.wallet_amount and deposit.wallet_amount > Decimal("0.00") and wallet.pending_balance >= deposit.wallet_amount:
+                            from apps.wallets.services import cancel_pending_deposit
+                            try:
+                                cancel_pending_deposit(
+                                    wallet_id=wallet.id,
+                                    amount=deposit.wallet_amount,
+                                    reference=f"deposit_reject:{deposit.id}",
+                                    description=f"إلغاء إيداع معلق مرفوض عبر {deposit.payment_method.name}",
+                                    created_by=request.user
+                                )
+                            except Exception:
+                                pass
                         # Task 2 & 3: Reverse Usage
                         try:
                             amt_usd = deposit.currency.to_base(deposit.amount, "deposit")
@@ -3458,6 +3475,8 @@ def control_deposit_detail(request, pk):
                         raise ValueError("المبلغ الجديد مطلوب.")
                     
                     new_amount = Decimal(str(new_amount_str))
+                    if new_amount <= Decimal("0.00"):
+                        raise ValueError("المبلغ الجديد يجب أن يكون أكبر من الصفر.")
                     old_amount = deposit.final_amount
                     diff_amount = new_amount - old_amount
                     
@@ -3522,7 +3541,10 @@ def control_deposit_detail(request, pk):
 
 @finance_required
 def control_withdrawal_detail(request, pk):
-    withdrawal = get_object_or_404(WithdrawalRequest.objects.select_related('user', 'payment_method'), pk=pk)
+    qs = WithdrawalRequest.objects.select_related('user', 'payment_method')
+    if getattr(request, "store", None) and not request.user.is_superuser:
+        qs = qs.filter(store=request.store)
+    withdrawal = get_object_or_404(qs, pk=pk)
     if request.method == "POST":
         action = request.POST.get("action")
         admin_note = request.POST.get("admin_note", "")
@@ -3584,6 +3606,8 @@ def control_withdrawal_detail(request, pk):
                         raise ValueError("المبلغ الجديد مطلوب.")
 
                     new_amount = Decimal(str(new_amount_str))
+                    if new_amount <= Decimal("0.00"):
+                        raise ValueError("المبلغ الجديد يجب أن يكون أكبر من الصفر.")
                     old_amount = withdrawal.amount
                     diff_amount = new_amount - old_amount
 
@@ -4019,7 +4043,10 @@ def control_kyc_settings(request):
 
 @support_required
 def control_order_detail(request, pk):
-    order = get_object_or_404(Order.all_objects.select_related('customer'), pk=pk)
+    qs = Order.all_objects.select_related('customer')
+    if getattr(request, "store", None) and not request.user.is_superuser:
+        qs = qs.filter(store=request.store)
+    order = get_object_or_404(qs, pk=pk)
     if request.method == "POST":
         action = request.POST.get("action")
         if action == "update_status":
@@ -4189,6 +4216,8 @@ def control_order_detail(request, pk):
             else:
                 try:
                     new_total = Decimal(val)
+                    if new_total < Decimal("0.00"):
+                        raise ValueError("Negative price")
                 except:
                     messages.error(request, "قيمة السعر غير صالحة.")
                     return redirect("control_order_detail", pk=pk)
@@ -4299,7 +4328,10 @@ def control_order_detail(request, pk):
 
 @support_required
 def control_order_status_update(request, pk):
-    order = get_object_or_404(Order.all_objects, pk=pk)
+    qs = Order.all_objects.all()
+    if getattr(request, "store", None) and not request.user.is_superuser:
+        qs = qs.filter(store=request.store)
+    order = get_object_or_404(qs, pk=pk)
     new_status = request.POST.get("status")
     if new_status in Order.Status.values:
         old_status = order.status
@@ -6732,8 +6764,12 @@ def control_feature_toggle_ajax(request):
     })
 
 
+@admin_required
 def control_product_delete(request, pk):
-    product = get_object_or_404(Product, pk=pk)
+    qs = Product.objects.all()
+    if getattr(request, "store", None) and not request.user.is_superuser:
+        qs = qs.filter(store=request.store)
+    product = get_object_or_404(qs, pk=pk)
     product.delete()
     messages.success(request, "تم حذف المنتج بنجاح.")
     if getattr(request, "store", None):
@@ -6900,10 +6936,10 @@ def control_backup(request):
                 send_brevo_email(
                     to_email=email_address,
                     to_name="مدير الموقع",
-                    subject=f"ğŸ“¦ Ù†Ø³Ø®Ø© Ø§Ø­ØªÙŠØ§Ø·ÙŠØ© â€” {now_str}",
+                    subject=f"📦 نسخة احتياطية — {now_str}",
                     html_content=f"""
                     <div dir="rtl" style="font-family: Arial, sans-serif; max-width: 600px; margin: auto;">
-                        <h2 style="color: #06b6d4;">ğŸ“¦ Ù†Ø³Ø®Ø© Ø§Ø­ØªÙŠØ§Ø·ÙŠØ© ÙƒØ§Ù…Ù„Ø© Ù„Ù„Ù…ÙˆÙ‚Ø¹</h2>
+                        <h2 style="color: #06b6d4;">📦 نسخة احتياطية كاملة للموقع</h2>
                         <p>تم إنشاء النسخة الاحتياطية بنجاح في <strong>{now_str}</strong>.</p>
                         <ul>
                             <li>عدد السجلات المُصدَّرة: <strong>{total_records:,}</strong></li>
@@ -8913,7 +8949,10 @@ def set_currency(request):
         if request.user.is_authenticated:
             request.user.preferred_currency = curr
             request.user.save(update_fields=["preferred_currency"])
-    return redirect(request.META.get('HTTP_REFERER', 'home'))
+    ref = request.META.get('HTTP_REFERER', '')
+    if ref and _is_safe_redirect(ref, request):
+        return redirect(ref)
+    return redirect('home')
 
 @admin_required
 def payment_methods_list(request):

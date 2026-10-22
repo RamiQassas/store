@@ -48,19 +48,9 @@ def get_conversion_preview(request):
         
     currency = get_object_or_404(Currency, id=currency_id)
     
-    # If deposit: convert from local to USD (base)
-    # If withdraw: convert from local to USD (base) using sell_rate
-    # This logic seems to depend on `to_base` vs `from_base`.
-    # Based on models.py:
-    # to_base: amount in currency -> USD
-    # from_base: USD -> amount in currency
-    
     if operation == "deposit":
-        # User is depositing in local, what is it in USD?
         usd_value = currency.to_base(amount, operation="deposit")
     else:
-        # User is withdrawing in local, what is it in USD?
-        # Actually user wants to know what their USD balance is in local
         usd_value = currency.to_base(amount, operation="withdraw")
         
     return JsonResponse({
@@ -69,16 +59,20 @@ def get_conversion_preview(request):
     })
 
 from django.shortcuts import redirect
-from rest_framework.test import APIRequestFactory
+from rest_framework.test import APIRequestFactory, force_authenticate
 from apps.payments.views import DepositRequestViewSet, WithdrawalRequestViewSet
 
-def _run_action(request, pk, action, viewset_class):
+def _run_action(request, pk, action_or_viewset, viewset_or_action):
+    if isinstance(action_or_viewset, str):
+        action, viewset_class = action_or_viewset, viewset_or_action
+    else:
+        viewset_class, action = action_or_viewset, viewset_or_action
+
     factory = APIRequestFactory()
     # Mock a POST request for the action
-    api_request = factory.post(f"/{action}/")
+    api_request = factory.post(f"/{action}/", data=request.POST)
+    force_authenticate(api_request, user=request.user)
     api_request.user = request.user
-    # Need to pass data if present
-    api_request.data = request.POST
     
     view = viewset_class.as_view({'post': action})
     return view(api_request, pk=pk)
@@ -93,8 +87,7 @@ def api_deposit_reject(request, pk):
 
 @user_passes_test(is_staff)
 def api_deposit_correct(request, pk):
-    # Deposit doesn't have 'correct' in viewset.
-    return HttpResponse("Not implemented", status=501)
+    return _run_action(request, pk, DepositRequestViewSet, 'correct')
 
 @user_passes_test(is_staff)
 def api_wallet_hold(request, pk):
@@ -311,4 +304,3 @@ def api_live_product_search(request):
     data = {"results": results, "total": len(results)}
     cache.set(cache_key, data, 120)
     return JsonResponse(data)
-

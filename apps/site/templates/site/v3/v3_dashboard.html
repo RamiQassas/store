@@ -91,13 +91,13 @@
       </a>
       {% endif %}
       {% if features.feature_p2p_transfers %}
-      <a href="{% url 'dashboard_transfers' %}" class="rq-wallet-action-chip">
+      <a href="{% url 'dashboard_transfer' %}" class="rq-wallet-action-chip">
         <i class="fas fa-paper-plane text-purple-400"></i>
         <span>تحويل رصيد</span>
       </a>
       {% endif %}
       {% if features.feature_recharge_cards %}
-      <a href="{% url 'dashboard_redeem_card' %}" class="rq-wallet-action-chip">
+      <a href="{% url 'dashboard_recharge_wallet' %}" class="rq-wallet-action-chip">
         <i class="fas fa-ticket text-rose-400"></i>
         <span>شحن بطاقة</span>
       </a>

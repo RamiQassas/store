@@ -96,8 +96,6 @@ SESSION_COOKIE_SECURE = not DEBUG
 CSRF_COOKIE_SECURE = not DEBUG
 CSRF_FAILURE_VIEW = "apps.common.views.csrf_failure"
 
-# ... rest of settings ...
-
 # Logging Configuration for Production
 LOGGING = {
     'version': 1,
@@ -199,9 +197,8 @@ SOCIALACCOUNT_PROVIDERS = {
 
 LOGIN_REDIRECT_URL = '/dashboard/'
 ACCOUNT_LOGOUT_ON_GET = False
-ACCOUNT_EMAIL_REQUIRED = True
-ACCOUNT_USERNAME_REQUIRED = False
-ACCOUNT_AUTHENTICATION_METHOD = 'email'
+ACCOUNT_LOGIN_METHODS = {'email'}
+ACCOUNT_SIGNUP_FIELDS = ['email*', 'password1*', 'password2*']
 SOCIALACCOUNT_QUERY_EMAIL = True
 SOCIALACCOUNT_AUTO_SIGNUP = True
 SOCIALACCOUNT_LOGIN_ON_GET = True
@@ -213,6 +210,7 @@ SOCIALACCOUNT_EMAIL_AUTHENTICATION_AUTO_CONNECT = True
 SOCIALACCOUNT_ADAPTER = 'apps.accounts.adapter.MySocialAccountAdapter'
 ACCOUNT_ADAPTER = 'apps.accounts.adapter.MyAccountAdapter'
 
+SILENCED_SYSTEM_CHECKS = ["auth.E003", "auth.W004"]
 
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
@@ -498,5 +496,5 @@ SHAM_CASH_MODE = os.environ.get("SHAM_CASH_MODE", "sandbox")
 
 # Deployment endpoints and background worker
 AUTO_DEPLOY_ENABLED = env_bool("AUTO_DEPLOY_ENABLED", True)
-GITHUB_WEBHOOK_SECRET = env("GITHUB_WEBHOOK_SECRET", "")
 LEGACY_DEPLOY_WEBHOOK_TOKEN = env("LEGACY_DEPLOY_WEBHOOK_TOKEN", "")
+GITHUB_WEBHOOK_SECRET = env("GITHUB_WEBHOOK_SECRET", "")

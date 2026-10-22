@@ -4,6 +4,7 @@
 {% block title %}تفاصيل طلب السحب #{{ withdrawal.id|stringformat:".8s" }} | Raqamiyat Admin{% endblock %}
 
 {% block extra_head %}
+{{ block.super }}
 <style>
     .withdrawal-grid { display: grid; grid-template-columns: 1fr 350px; gap: 24px; }
     @media (max-width: 1024px) { .withdrawal-grid { grid-template-columns: 1fr; } }

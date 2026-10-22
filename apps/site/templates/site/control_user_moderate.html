@@ -4,6 +4,7 @@
 {% block title %}إدارة الحساب الاستراتيجية | {{ user_to_moderate.email }}{% endblock %}
 
 {% block extra_head %}
+{{ block.super }}
 <style>
     :root { --panel-bg: rgba(18, 25, 44, 0.4); --card-border: rgba(255, 255, 255, 0.05); }
     .glass-panel { background: var(--panel-bg); backdrop-filter: blur(20px); border: 1px solid var(--card-border); border-radius: 24px; overflow: hidden; }

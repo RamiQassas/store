@@ -252,7 +252,7 @@
                              data-qty-type="{{ var_data.variant.metadata.qty_type|default:'none' }}"
                              data-qty-min="{{ var_data.variant.metadata.qty_min|default:1 }}"
                              data-qty-max="{{ var_data.variant.metadata.qty_max|default:999999 }}"
-                             data-qty-list='{% if var_data.variant.metadata.qty_list %}{{ var_data.variant.metadata.qty_list|safe }}{% else %}[]{% endif %}'>
+                             data-qty-list="{% if var_data.variant.metadata.qty_list %}{{ var_data.variant.metadata.qty_list|escape }}{% else %}[]{% endif %}">
                             <div class="variant-info">
                                 <span class="variant-name">
                                     <i class="fa-regular fa-circle mr-2 variant-radio"></i>

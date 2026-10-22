@@ -152,6 +152,8 @@ class DepositRequestViewSet(viewsets.ModelViewSet):
                 
             from decimal import Decimal
             new_amount = Decimal(str(new_amount))
+            if new_amount <= Decimal("0.00"):
+                return response.Response({"detail": "المبلغ الجديد يجب أن يكون أكبر من الصفر."}, status=status.HTTP_400_BAD_REQUEST)
             admin_note = request.data.get("admin_note", "")
 
             # 1. Calculate the difference
@@ -213,13 +215,17 @@ class DepositRequestViewSet(viewsets.ModelViewSet):
 
             if deposit.status != DepositRequest.Status.REJECTED:
                 wallet = get_or_create_wallet(deposit.user)
-                cancel_pending_deposit(
-                    wallet_id=wallet.id,
-                    amount=deposit.wallet_amount,
-                    reference=f"deposit_reject:{deposit.id}",
-                    description=f"إلغاء إيداع معلق مرفوض عبر {deposit.payment_method.name}",
-                    created_by=request.user
-                )
+                if deposit.wallet_amount and deposit.wallet_amount > Decimal("0.00") and wallet.pending_balance >= deposit.wallet_amount:
+                    try:
+                        cancel_pending_deposit(
+                            wallet_id=wallet.id,
+                            amount=deposit.wallet_amount,
+                            reference=f"deposit_reject:{deposit.id}",
+                            description=f"إلغاء إيداع معلق مرفوض عبر {deposit.payment_method.name}",
+                            created_by=request.user
+                        )
+                    except Exception:
+                        pass
 
             deposit.status = DepositRequest.Status.REJECTED
             deposit.admin_note = request.data.get("admin_note", deposit.admin_note)

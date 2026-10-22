@@ -23,7 +23,7 @@
             <label class="auth-label" for="id_email">البريد الإلكتروني</label>
             <div class="auth-input-wrapper">
                 <i class="fas fa-envelope field-icon"></i>
-                <input type="email" name="email" required placeholder="name@domain.com" id="id_email" autocomplete="email">
+                <input type="email" name="email" required placeholder="name@domain.com" id="id_email" autocomplete="email" dir="ltr" style="text-align: right;">
             </div>
             {% for error in form.email.errors %}
             <span style="font-size: 0.72rem; color: #f87171; font-weight: 600;">{{ error }}</span>

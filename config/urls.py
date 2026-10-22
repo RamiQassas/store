@@ -95,29 +95,33 @@ def deploy_webhook(request, secret_token):
 
 @require_GET
 def version_view(request):
-    """Public liveness endpoint with diagnostic catalog stats."""
+    """Public liveness endpoint with diagnostic catalog stats (internal breakdown restricted to superusers)."""
     from apps.catalog.models import Product, ProductVariant, Category
     from apps.providers.models import ProviderProfile, ProviderProduct
     from apps.common.auto_deploy import get_local_commit_sha
 
-    from django.db import models
-    stores_info = list(Product.all_objects.values('store', 'store__name', 'store__subdomain').annotate(cnt=models.Count('id')))
-    profiles_info = list(ProviderProfile.all_objects.values('id', 'provider_name', 'store_id', 'store__name', 'store__subdomain'))
-    return JsonResponse({
+    payload = {
         "status": "online",
         "commit": get_local_commit_sha(),
-        "provider_products_count": ProviderProduct.objects.count(),
-        "provider_products_active": ProviderProduct.objects.filter(is_active=True).count(),
-        "products_all_count": Product.all_objects.count(),
         "products_active_count": Product.all_objects.filter(is_active=True).count(),
-        "products_store_null_active": Product.all_objects.filter(store__isnull=True, is_active=True).count(),
-        "variants_count": ProductVariant.objects.count(),
-        "variants_active": ProductVariant.objects.filter(is_active=True).count(),
-        "categories_count": Category.all_objects.count(),
         "categories_active": Category.all_objects.filter(is_active=True).count(),
-        "stores_breakdown": stores_info,
-        "profiles_breakdown": profiles_info,
-    })
+    }
+    if request.user.is_authenticated and request.user.is_superuser:
+        from django.db import models
+        stores_info = list(Product.all_objects.values('store', 'store__name', 'store__subdomain').annotate(cnt=models.Count('id')))
+        profiles_info = list(ProviderProfile.all_objects.values('id', 'provider_name', 'store_id', 'store__name', 'store__subdomain'))
+        payload.update({
+            "provider_products_count": ProviderProduct.objects.count(),
+            "provider_products_active": ProviderProduct.objects.filter(is_active=True).count(),
+            "products_all_count": Product.all_objects.count(),
+            "products_store_null_active": Product.all_objects.filter(store__isnull=True, is_active=True).count(),
+            "variants_count": ProductVariant.objects.count(),
+            "variants_active": ProductVariant.objects.filter(is_active=True).count(),
+            "categories_count": Category.all_objects.count(),
+            "stores_breakdown": stores_info,
+            "profiles_breakdown": profiles_info,
+        })
+    return JsonResponse(payload)
 
 
 @require_GET
@@ -156,7 +160,6 @@ def debug_provider_products(request):
     return JsonResponse({"count": len(prods), "token_prefix": token, "products": prods})
 
 
-
 @require_GET
 def alkasr_raw_products(request):
     if not settings.DEBUG and not (request.user.is_authenticated and request.user.is_superuser):
@@ -182,30 +185,17 @@ def alkasr_raw_products(request):
     return JsonResponse({"total": len(raw_list), "sample": raw_list[:20]})
 
 
-
 @csrf_exempt
 def trigger_remap_catalog(request):
     token = request.GET.get("token") or request.POST.get("token") or request.headers.get("X-Remap-Token")
-    expected_token = getattr(settings, "GITHUB_WEBHOOK_SECRET", "") or "raqamiyat_remap_secret_2026"
+    expected_token = getattr(settings, "GITHUB_WEBHOOK_SECRET", "")
     is_authorized = (
-        (request.user.is_authenticated and (request.user.is_superuser or request.user.is_staff))
-        or (token and token in ("raqamiyat_remap_secret_2026", expected_token))
+        (request.user.is_authenticated and request.user.is_superuser)
+        or bool(expected_token and token and hmac.compare_digest(str(token), str(expected_token)))
     )
     if not is_authorized:
         return JsonResponse({"detail": "Authentication required."}, status=403)
-    from apps.catalog.models import Product, Category
-    from apps.common.tenant_utils import bypass_tenant_filter
     from django.core.cache import cache
-
-    # Quick fix: reassign platform products and categories to store=None
-    fix_stores = request.GET.get("fix_stores") == "1" or request.POST.get("fix_stores") == "1" or request.GET.get("fix") == "1"
-    if fix_stores:
-        with bypass_tenant_filter():
-            p_cnt = Product.all_objects.filter(api_provider='alkasr', store__isnull=False).update(store=None)
-            c_cnt = Category.all_objects.filter(store__isnull=False).update(store=None)
-            cache.delete("home_page_ctx_v2_global")
-            cache.delete("home_page_ctx_v2")
-            return JsonResponse({"status": "ok", "fixed_products": p_cnt, "fixed_categories": c_cnt})
 
     # Rebrand products with authentic images and Raqamiyat hallmark badge
     rebrand = request.GET.get("rebrand") == "1" or request.POST.get("rebrand") == "1"

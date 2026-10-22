@@ -178,56 +178,7 @@ def paymera_trigger_view(request):
                 logger.warning("Rejected Paymera order callback with an unbound payment ID.")
                 return JsonResponse({"status": "error", "message": "Invalid payment reference"}, status=400)
 
-            # Direct check if payload indicates cancellation/failure
-            if payload_status in ("cancel", "c", "canceled", "cancelled", "failed", "f"):
-                if order.status == Order.Status.PENDING:
-                    order.status = Order.Status.CANCELLED
-                    order.admin_note = f"Paymera webhook reported cancellation/failure: {payload_status}"
-                    order.save(update_fields=["status", "admin_note", "updated_at"])
-                    OrderLog.objects.create(
-                        order=order,
-                        status=Order.Status.CANCELLED,
-                        note=f"تم استلام إشعار إلغاء/فشل الدفع من بوابة بيميرا ({payload_status}) دون إيداع رصيد بالمحفظة.",
-                        created_by=None,
-                    )
-                elif order.status in (Order.Status.PROCESSING, Order.Status.COMPLETED):
-                    # Gateway reversal on already paid order
-                    meta = dict(order.metadata or {})
-                    meta["paymera_refunded"] = True
-                    meta["paymera_refund_timestamp"] = timezone.now().isoformat()
-                    meta["paymera_refund_reason"] = f"إلغاء/استرداد مباشر من بوابة الدفع ({payload_status})"
-                    order.status = Order.Status.REFUNDED
-                    order.metadata = meta
-                    order.admin_note = (order.admin_note or "") + f"\n[بيميرا]: استرداد مباشر للبطاقة من بوابة الدفع ({payload_status})."
-                    
-                    # Reverse substore profit if any
-                    profit_amt_str = meta.get("substore_profit_amount")
-                    owner_wallet_id = meta.get("substore_owner_wallet_id")
-                    if profit_amt_str and owner_wallet_id:
-                        try:
-                            from apps.wallets.services import debit_wallet
-                            profit_amt = Decimal(profit_amt_str)
-                            if profit_amt > 0:
-                                debit_wallet(
-                                    wallet_id=owner_wallet_id,
-                                    amount=profit_amt,
-                                    reference=f"reversal_substore_profit:{order.id}",
-                                    description=f"خصم أرباح طلب مسترد #{order.number} (إلغاء مباشر من بوابة بيميرا)",
-                                    created_by=None,
-                                    source="gateway_reversal"
-                                )
-                        except Exception as w_exc:
-                            logger.error(f"Failed to reverse substore profit on gateway cancel: {w_exc}")
-
-                    order.save(update_fields=["status", "metadata", "admin_note", "updated_at"])
-                    OrderLog.objects.create(
-                        order=order,
-                        status=Order.Status.REFUNDED,
-                        note=f"تم استلام إشعار استرداد/إلغاء مباشر من بوابة بيميرا ({payload_status}) وتحديث الطلب لمسترد دون إيداع رصيد بالمحفظة (استرداد للبطاقة).",
-                        created_by=None,
-                    )
-                return JsonResponse({"status": "ok", "message": f"Order payment marked as {payload_status}"})
-
+            # Always verify payment status directly with Paymera's server before mutating order state
             try:
                 status_res = client.get_payment_status(active_payment_id)
                 payment_status = status_res.get("status")
@@ -316,13 +267,7 @@ def paymera_trigger_view(request):
             logger.warning("Rejected Paymera deposit callback with an unbound payment ID.")
             return JsonResponse({"status": "error", "message": "Invalid payment reference"}, status=400)
 
-        if payload_status in ("cancel", "c", "canceled", "cancelled", "failed", "f"):
-            if deposit.status == DepositRequest.Status.PENDING:
-                deposit.status = DepositRequest.Status.REJECTED
-                deposit.admin_note = f"Paymera transaction webhook reported: {payload_status}"
-                deposit.save(update_fields=["status", "admin_note", "updated_at"])
-            return JsonResponse({"status": "ok", "message": f"Payment {payload_status}"})
-
+        # Always verify payment status directly with Paymera's server before mutating deposit state
         try:
             status_res = client.get_payment_status(active_payment_id)
             payment_status = status_res.get("status")
@@ -394,6 +339,11 @@ def paymera_callback_view(request):
                 order.metadata.get("gateway_payment_id")
                 if isinstance(order.metadata, dict) else None
             ) or payment_id
+            is_order_owner = bool(
+                getattr(request, "user", None)
+                and request.user.is_authenticated
+                and request.user == order.customer
+            )
 
             # Prepare return redirect destination
             detail_path = f"{reverse('dashboard_order_detail', kwargs={'pk': order.id})}?new=1"
@@ -405,8 +355,8 @@ def paymera_callback_view(request):
                 order_dest_url = detail_path
                 order_list_url = reverse("dashboard_orders")
 
-            # Handle direct cancellation indicated in URL
-            if is_cancelled_url:
+            # Handle direct cancellation indicated in URL (only if authenticated order owner)
+            if is_cancelled_url and is_order_owner:
                 if order.status == Order.Status.PENDING:
                     order.status = Order.Status.CANCELLED
                     order.admin_note = f"Paymera payment cancelled by customer via URL (status={status_param or action_param or 'cancelled'})"
@@ -415,7 +365,7 @@ def paymera_callback_view(request):
                         order=order,
                         status=Order.Status.CANCELLED,
                         note="تم إلغاء عملية الدفع من قبل العميل وإلغاء الطلب.",
-                        created_by=request.user if request.user.is_authenticated else None,
+                        created_by=request.user,
                     )
                 messages.warning(request, "تم إلغاء عملية الدفع وإلغاء طلبك بنجاح.")
                 return redirect(order_list_url)
@@ -443,7 +393,7 @@ def paymera_callback_view(request):
                                 order=order,
                                 status=Order.Status.CANCELLED,
                                 note=f"تم إلغاء الطلب بناءً على رد بوابة الدفع بيميرا ({payment_status}).",
-                                created_by=request.user if request.user.is_authenticated else None,
+                                created_by=request.user if (getattr(request, "user", None) and request.user.is_authenticated) else None,
                             )
                         if payment_status == PaymeraClient.STATUS_CANCELED:
                             messages.warning(request, "تم إلغاء عملية الدفع من قبلك وإلغاء الطلب.")
@@ -453,7 +403,7 @@ def paymera_callback_view(request):
 
                     else:
                         # User returned without payment being completed (e.g. status "P" / uncompleted)
-                        if order.status == Order.Status.PENDING:
+                        if order.status == Order.Status.PENDING and is_order_owner:
                             order.status = Order.Status.CANCELLED
                             order.admin_note = f"Paymera payment not completed (status={payment_status}). Cancelled on return."
                             order.save(update_fields=["status", "admin_note", "updated_at"])
@@ -461,7 +411,7 @@ def paymera_callback_view(request):
                                 order=order,
                                 status=Order.Status.CANCELLED,
                                 note=f"تم إلغاء الطلب لعدم استكمال السداد عبر بيميرا ({payment_status or 'معلق'}).",
-                                created_by=request.user if request.user.is_authenticated else None,
+                                created_by=request.user,
                             )
                         messages.warning(request, "لم يتم استكمال عملية الدفع عبر بيميرا، وتم إلغاء الطلب المعلق.")
                         return redirect(order_list_url)
@@ -473,8 +423,8 @@ def paymera_callback_view(request):
                 messages.success(request, "تم تأكيد طلبك بنجاح.")
                 return redirect(order_dest_url)
 
-            # If order is still pending, cancel it on return
-            if order.status == Order.Status.PENDING:
+            # If order is still pending, cancel it on return only if authenticated order owner
+            if order.status == Order.Status.PENDING and is_order_owner:
                 order.status = Order.Status.CANCELLED
                 order.admin_note = "Paymera payment not confirmed on callback return. Cancelled."
                 order.save(update_fields=["status", "admin_note", "updated_at"])
@@ -482,9 +432,11 @@ def paymera_callback_view(request):
                     order=order,
                     status=Order.Status.CANCELLED,
                     note="تم إلغاء الطلب لعدم تأكيد عملية السداد عند العودة من بوابة بيميرا.",
-                    created_by=request.user if request.user.is_authenticated else None,
+                    created_by=request.user,
                 )
                 messages.warning(request, "لم يتم استكمال عملية الدفع عبر بيميرا وتم إلغاء الطلب.")
+                return redirect(order_list_url)
+            elif order.status == Order.Status.PENDING:
                 return redirect(order_list_url)
 
         # ── 2. Check for Wallet Deposit ──────────────────────────────────────────
@@ -498,8 +450,14 @@ def paymera_callback_view(request):
             messages.error(request, "لم يتم العثور على العملية المرتبطة ببوابة الدفع.")
             return redirect("dashboard_deposits")
 
-        # Handle direct cancellation indicated in URL for deposit
-        if is_cancelled_url:
+        is_deposit_owner = bool(
+            getattr(request, "user", None)
+            and request.user.is_authenticated
+            and request.user == deposit.user
+        )
+
+        # Handle direct cancellation indicated in URL for deposit (only if authenticated owner)
+        if is_cancelled_url and is_deposit_owner:
             if deposit.status == DepositRequest.Status.PENDING:
                 deposit.status = DepositRequest.Status.REJECTED
                 deposit.admin_note = f"Paymera deposit cancelled by user via URL (status={status_param or 'cancelled'})"

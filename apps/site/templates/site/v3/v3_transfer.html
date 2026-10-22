@@ -11,9 +11,14 @@
         --indigo-glow: rgba(99, 102, 241, 0.15);
     }
 
+    .container {
+        width: min(100% - 2rem, 1140px);
+        margin-inline: auto;
+    }
+
     .transfer-grid {
         display: grid;
-        grid-template-columns: 1.2fr 0.8fr;
+        grid-template-columns: repeat(auto-fit, minmax(270px, 1fr));
         gap: 2rem;
     }
 
@@ -214,7 +219,7 @@
                     <label class="block text-sm font-black text-slate-300 mb-2">البحث عن الحساب</label>
                     <div class="flex flex-col sm:flex-row gap-3">
                         <div class="relative flex-grow">
-                            <input type="text" id="search-input" class="premium-input" placeholder="أدخل الـ UID، البريد الإلكتروني، أو الهاتف..." autocomplete="off">
+                            <input type="text" id="search-input" class="premium-input" style="text-align: right;" placeholder="أدخل المعرف (UID)، البريد الإلكتروني، أو رقم الهاتف..." autocomplete="off">
                         </div>
                         <button type="button" id="search-btn" class="btn btn-primary px-6 rounded-2xl font-black text-sm whitespace-nowrap shadow-lg shadow-cyan/10">البحث عن حساب</button>
                     </div>

@@ -3,6 +3,23 @@ from django.core.exceptions import PermissionDenied
 from django.shortcuts import redirect
 from apps.accounts.models import User
 
+PLATFORM_ONLY_CONTROL_PREFIXES = (
+    "/control/backup",
+    "/control/compliance",
+    "/control/kyc",
+    "/control/gateways",
+    "/control/payment-gateways",
+    "/control/security",
+    "/control/audit",
+    "/control/staff",
+    "/control/shamcash",
+    "/control/saas",
+    "/control/stores",
+    "/control/plans",
+    "/control/system",
+    "/control/maintenance",
+)
+
 def role_required(allowed_roles):
     """
     Decorator for views that checks whether the user has one of the allowed roles.
@@ -13,22 +30,46 @@ def role_required(allowed_roles):
         def _wrapped_view(request, *args, **kwargs):
             if not request.user.is_authenticated:
                 return redirect('site_login')
-            
+
+            is_super = (
+                request.user.is_superuser
+                or getattr(request.user, "role", None) == User.Role.SUPER_ADMIN
+            )
+
+            # Superadmin-only views require platform superadmin regardless of store context
+            if list(allowed_roles) == [User.Role.SUPER_ADMIN]:
+                if is_super:
+                    return view_func(request, *args, **kwargs)
+                raise PermissionDenied
+
             # Subdomain store context
             active_store = getattr(request, 'store', None)
             if active_store:
+                is_platform_staff = (
+                    is_super
+                    or request.user.is_staff
+                    or getattr(request.user, "role", None) in [
+                        User.Role.SUPER_ADMIN,
+                        User.Role.ADMIN,
+                        User.Role.FINANCE,
+                        User.Role.SUPPORT,
+                        User.Role.MODERATOR,
+                    ]
+                )
+                if not is_platform_staff:
+                    if any(request.path.startswith(prefix) for prefix in PLATFORM_ONLY_CONTROL_PREFIXES):
+                        raise PermissionDenied
+
                 is_store_admin_or_staff = (
                     active_store.owner_id == request.user.pk or
                     request.user.store_employments.filter(store=active_store).exists() or
-                    request.user.is_superuser or
-                    request.user.is_staff or
-                    getattr(request.user, "role", None) in [User.Role.SUPER_ADMIN, User.Role.ADMIN]
+                    is_platform_staff
                 )
                 if is_store_admin_or_staff or request.user.role in allowed_roles:
                     return view_func(request, *args, **kwargs)
                 raise PermissionDenied
 
-            if request.user.is_superuser or getattr(request.user, "role", None) == User.Role.SUPER_ADMIN:
+            if is_super:
                 return view_func(request, *args, **kwargs)
             
             if request.user.role in allowed_roles:
@@ -51,7 +92,14 @@ def staff_required(view_func):
     return role_required([User.Role.SUPER_ADMIN, User.Role.ADMIN, User.Role.SUPPORT, User.Role.FINANCE, User.Role.MODERATOR])(view_func)
 
 def super_admin_required(view_func):
-    return role_required([User.Role.SUPER_ADMIN])(view_func)
+    @wraps(view_func)
+    def _wrapped_view(request, *args, **kwargs):
+        if not request.user.is_authenticated:
+            return redirect('site_login')
+        if request.user.is_superuser or getattr(request.user, "role", None) == User.Role.SUPER_ADMIN:
+            return view_func(request, *args, **kwargs)
+        raise PermissionDenied
+    return _wrapped_view
 
 def admin_required(view_func):
     return role_required([User.Role.SUPER_ADMIN, User.Role.ADMIN])(view_func)

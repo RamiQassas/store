@@ -1,16 +1,51 @@
 {% extends "site/base.html" %}
 {% load static site_tags %}
 
-{% block extra_head %}
+{% block control_base_head %}
+<link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+<script src="https://cdn.tailwindcss.com"></script>
+<script>
+    if (typeof tailwind !== 'undefined') {
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        cyan: {
+                            DEFAULT: '#06b6d4',
+                            50: '#ecfeff',
+                            100: '#cffafe',
+                            200: '#a5f3fc',
+                            300: '#67e8f9',
+                            400: '#22d3ee',
+                            500: '#06b6d4',
+                            600: '#0891b2',
+                            700: '#0e7490',
+                            800: '#155e75',
+                            900: '#164e63',
+                            950: '#083344',
+                        },
+                        gold: '#f59e0b',
+                    },
+                    fontFamily: {
+                        cairo: ['Cairo', 'IBM Plex Sans Arabic', 'sans-serif'],
+                        sans: ['Cairo', 'IBM Plex Sans Arabic', 'sans-serif'],
+                    }
+                }
+            }
+        };
+    }
+</script>
 <style>
     /* Premium Sham Cash Admin Redesign - Raqamiyat v4.0 Elite */
     :root {
         --admin-bg: #030712;
-        --admin-panel: rgba(17, 24, 39, 0.7);
-        --admin-border: rgba(255, 255, 255, 0.05);
+        --admin-panel: rgba(15, 23, 42, 0.78);
+        --admin-border: rgba(255, 255, 255, 0.07);
         --admin-sidebar-w: 280px;
         --sham-gold: #f59e0b;
         --sham-cyan: #06b6d4;
+        --cyan: #06b6d4;
     }
 
     html { 
@@ -21,15 +56,16 @@
     body { 
         background: var(--admin-bg) !important; 
         color: #f8fafc; 
-        font-family: 'Cairo', sans-serif; 
+        font-family: 'Cairo', 'IBM Plex Sans Arabic', sans-serif !important; 
         overflow-x: clip;
         touch-action: auto !important;
         -webkit-overflow-scrolling: touch;
+        padding-bottom: 0 !important;
     }
 
     .admin-layout {
         display: grid;
-        grid-template-columns: var(--admin-sidebar-w) 1fr;
+        grid-template-columns: var(--admin-sidebar-w) minmax(0, 1fr);
         min-height: 100vh;
         gap: 0;
         overflow-x: clip;
@@ -37,61 +73,116 @@
 
     /* Elite Sidebar */
     .admin-sidebar {
-        background: #090e1a;
+        background: linear-gradient(180deg, #070b14 0%, #090e1a 100%);
         border-left: 1px solid var(--admin-border);
         height: 100vh;
         position: sticky;
         top: 0;
         display: flex;
         flex-direction: column;
-        padding: 2.5rem 1.25rem;
+        padding: 2rem 1.25rem;
         z-index: 100;
         overflow-y: auto;
+        scrollbar-width: thin;
+        scrollbar-color: rgba(255, 255, 255, 0.1) transparent;
     }
 
     .admin-nav { display: flex; flex-direction: column; gap: 0.25rem; flex-grow: 1; }
     
-    .admin-nav-group { margin-top: 2rem; margin-bottom: 0.75rem; padding-right: 0.75rem; }
-    .admin-nav-group span { font-size: 10px; font-weight: 900; color: #334155; text-transform: uppercase; letter-spacing: 0.15em; }
+    .admin-nav-group { margin-top: 1.75rem; margin-bottom: 0.65rem; padding-right: 0.75rem; }
+    .admin-nav-group span { font-size: 10px; font-weight: 900; color: #475569; text-transform: uppercase; letter-spacing: 0.15em; }
 
     .admin-nav-link {
         display: flex;
         align-items: center;
         gap: 0.85rem;
-        padding: 0.85rem 1rem;
+        padding: 0.75rem 1rem;
         border-radius: 14px;
-        color: #64748b;
+        color: #94a3b8;
         font-weight: 700;
-        font-size: 0.85rem;
-        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        font-size: 0.84rem;
+        transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
         text-decoration: none !important;
     }
 
-    .admin-nav-link i { width: 20px; text-align: center; font-size: 1rem; opacity: 0.5; }
-    .admin-nav-link:hover { background: rgba(255, 255, 255, 0.02); color: #fff; }
+    .admin-nav-link i { width: 20px; text-align: center; font-size: 0.98rem; opacity: 0.7; transition: all 0.25s; }
+    .admin-nav-link:hover { background: rgba(255, 255, 255, 0.04); color: #fff; transform: translateX(-2px); }
     .admin-nav-link:hover i { opacity: 1; color: var(--sham-cyan); }
     
     .admin-nav-link.active { 
-        background: linear-gradient(135deg, rgba(6, 182, 212, 0.1), rgba(6, 182, 212, 0.02)); 
+        background: linear-gradient(135deg, rgba(6, 182, 212, 0.16), rgba(6, 182, 212, 0.04)); 
         color: #fff; 
-        border: 1px solid rgba(6, 182, 212, 0.1); 
-        box-shadow: 0 4px 20px -2px rgba(0,0,0,0.3);
+        border: 1px solid rgba(6, 182, 212, 0.25); 
+        box-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.35);
     }
     .admin-nav-link.active i { opacity: 1; color: var(--sham-cyan); text-shadow: 0 0 10px rgba(6, 182, 212, 0.5); }
 
     /* Main Content Area */
-    .admin-main { padding: 3rem 4rem; max-width: 100%; margin: 0; width: 100%; min-height: 100vh; display: flex; flex-direction: column; overflow-x: hidden; background: radial-gradient(circle at top right, rgba(6, 182, 212, 0.03), transparent 40%); }
+    .admin-main {
+        padding: 2.5rem 3rem;
+        max-width: 100%;
+        min-width: 0;
+        margin: 0;
+        width: 100%;
+        min-height: 100vh;
+        display: flex;
+        flex-direction: column;
+        overflow-x: hidden;
+        background: radial-gradient(circle at top right, rgba(6, 182, 212, 0.05), transparent 45%),
+                    radial-gradient(circle at bottom left, rgba(59, 130, 246, 0.04), transparent 45%);
+    }
     
     /* Branding */
-    .brand-elite { display: flex; flex-direction: column; align-items: flex-start; gap: 0.5rem; margin-bottom: 3rem; padding: 0 0.5rem; }
-    .brand-logo { width: 44px; height: 44px; background: linear-gradient(135deg, var(--sham-cyan), #0891b2); border-radius: 14px; display: flex; align-items: center; justify-content: center; color: #000; font-size: 1.5rem; box-shadow: 0 10px 25px -5px rgba(6, 182, 212, 0.4); }
+    .brand-elite { display: flex; flex-direction: column; align-items: flex-start; gap: 0.5rem; margin-bottom: 2.25rem; padding: 0 0.5rem; }
+    .brand-logo { width: 44px; height: 44px; background: linear-gradient(135deg, var(--sham-cyan), #0284c7); border-radius: 14px; display: flex; align-items: center; justify-content: center; color: #020617; font-size: 1.4rem; box-shadow: 0 10px 25px -5px rgba(6, 182, 212, 0.45); }
 
     /* UI Components */
-    .glass-panel { background: var(--admin-panel); border: 1px solid var(--admin-border); border-radius: 28px; backdrop-filter: blur(15px); }
+    .glass-panel, .management-card {
+        background: var(--admin-panel);
+        border: 1px solid var(--admin-border);
+        border-radius: 24px;
+        backdrop-filter: blur(16px);
+        -webkit-backdrop-filter: blur(16px);
+        box-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.5);
+    }
     
-    .page-head { margin-bottom: 3rem; }
-    .page-head h1 { font-size: 2.25rem; font-weight: 900; letter-spacing: -0.02em; color: #fff; }
-    .eyebrow { font-size: 11px; font-weight: 900; color: var(--sham-cyan); text-transform: uppercase; letter-spacing: 0.25em; display: block; margin-bottom: 0.75rem; }
+    .page-head { margin-bottom: 2.25rem; display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 1rem; }
+    .page-head h1 { font-size: clamp(1.5rem, 2.5vw, 2.15rem); font-weight: 900; letter-spacing: -0.02em; color: #fff; margin: 0; }
+    .eyebrow { font-size: 11px; font-weight: 900; color: var(--sham-cyan); text-transform: uppercase; letter-spacing: 0.2em; display: block; margin-bottom: 0.5rem; }
+
+    /* Responsive Tables & Containers */
+    .table-responsive, .overflow-x-auto {
+        overflow-x: auto !important;
+        -webkit-overflow-scrolling: touch;
+        max-width: 100%;
+        width: 100%;
+    }
+    .admin-table, .glass-panel table {
+        width: 100%;
+        border-collapse: collapse;
+        text-align: right;
+    }
+    .admin-table th, .glass-panel table th {
+        padding: 1rem 1.25rem;
+        font-size: 0.72rem;
+        font-weight: 900;
+        color: #94a3b8;
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+        background: rgba(2, 6, 23, 0.45);
+        border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+        white-space: nowrap;
+    }
+    .admin-table td, .glass-panel table td {
+        padding: 1rem 1.25rem;
+        font-size: 0.84rem;
+        color: #e2e8f0;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+        vertical-align: middle;
+    }
+    .admin-table tbody tr:hover, .glass-panel table tbody tr:hover {
+        background: rgba(255, 255, 255, 0.025);
+    }
 
     /* ═══════════════════════════════════════════════════════════════
        UNIFIED CONTROL PANEL DESIGN SYSTEM — Raqamiyat v4.0 Elite
@@ -143,13 +234,13 @@
 
     /* Primary: Solid High-Tech Cyan */
     .btn-primary {
-        background: #06b6d4 !important;
+        background: linear-gradient(135deg, #06b6d4, #0891b2) !important;
         color: #020617 !important;
         border: 1px solid #22d3ee !important;
         box-shadow: 0 4px 14px rgba(6, 182, 212, 0.25) !important;
     }
     .btn-primary:hover {
-        background: #22d3ee !important;
+        background: linear-gradient(135deg, #22d3ee, #06b6d4) !important;
         color: #000 !important;
         box-shadow: 0 6px 20px rgba(6, 182, 212, 0.4) !important;
         transform: translateY(-1px) !important;
@@ -160,7 +251,7 @@
 
     /* Emerald: Action & Unified */
     .btn-emerald {
-        background: #10b981 !important;
+        background: linear-gradient(135deg, #10b981, #059669) !important;
         color: #020617 !important;
         border: 1px solid #34d399 !important;
         box-shadow: 0 4px 14px rgba(16, 185, 129, 0.25) !important;
@@ -183,7 +274,7 @@
     }
     .btn-outline:hover {
         background: rgba(255, 255, 255, 0.09) !important;
-        border-color: rgba(255, 255, 255, 0.2) !important;
+        border-color: rgba(255, 255, 255, 0.22) !important;
         color: #ffffff !important;
         transform: translateY(-1px) !important;
     }
@@ -205,26 +296,92 @@
 
     /* Controls Panel Form Elements */
     .builder-input, select.builder-input, input.builder-input {
-        height: 36px !important;
+        min-height: 40px;
         background: #0f172a !important;
         border: 1px solid rgba(255, 255, 255, 0.12) !important;
-        border-radius: 10px !important;
+        border-radius: 12px !important;
         color: #fff !important;
-        padding: 0 0.85rem !important;
-        font-size: 0.78rem !important;
+        padding: 0.5rem 0.95rem !important;
+        font-size: 0.82rem !important;
         font-weight: 700 !important;
         outline: none !important;
-        transition: border-color 0.2s ease !important;
+        transition: border-color 0.2s ease, box-shadow 0.2s ease !important;
     }
     .builder-input:focus {
         border-color: #06b6d4 !important;
-        box-shadow: 0 0 0 2px rgba(6, 182, 212, 0.2) !important;
+        box-shadow: 0 0 0 3px rgba(6, 182, 212, 0.18) !important;
     }
 
-    .badge { padding: 6px 12px; border-radius: 10px; font-size: 10px; font-weight: 900; letter-spacing: 0.05em; text-transform: uppercase; border: 1px solid transparent; white-space: nowrap !important; }
-    .badge.primary { background: rgba(6, 182, 212, 0.1); color: var(--sham-cyan); border-color: rgba(6, 182, 212, 0.2); }
-    .badge.success { background: rgba(16, 185, 129, 0.1); color: #10b981; border-color: rgba(16, 185, 129, 0.2); }
-    .badge.danger { background: rgba(239, 68, 68, 0.1); color: #ef4444; border-color: rgba(239, 68, 68, 0.2); }
+    .badge {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.35rem;
+        padding: 5px 11px;
+        border-radius: 9px;
+        font-size: 10px;
+        font-weight: 900;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+        border: 1px solid transparent;
+        white-space: nowrap !important;
+    }
+    .badge.primary { background: rgba(6, 182, 212, 0.12); color: var(--sham-cyan); border-color: rgba(6, 182, 212, 0.25); }
+    .badge.success { background: rgba(16, 185, 129, 0.12); color: #10b981; border-color: rgba(16, 185, 129, 0.25); }
+    .badge.warning { background: rgba(245, 158, 11, 0.12); color: #f59e0b; border-color: rgba(245, 158, 11, 0.25); }
+    .badge.danger { background: rgba(239, 68, 68, 0.12); color: #ef4444; border-color: rgba(239, 68, 68, 0.25); }
+
+    /* Fallback Utility Classes (in case CDN is blocked or slow) */
+    .stack { display: flex; flex-direction: column; }
+    .grid { display: grid; }
+    .grid-cols-1 { grid-template-columns: repeat(1, minmax(0, 1fr)); }
+    .grid-cols-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .grid-cols-3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+    .grid-cols-4 { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+    .gap-2 { gap: 0.5rem; }
+    .gap-3 { gap: 0.75rem; }
+    .gap-4 { gap: 1rem; }
+    .gap-6 { gap: 1.5rem; }
+    .gap-8 { gap: 2rem; }
+    .p-3 { padding: 0.75rem; }
+    .p-4 { padding: 1rem; }
+    .p-5 { padding: 1.25rem; }
+    .p-6 { padding: 1.5rem; }
+    .p-8 { padding: 2rem; }
+    .mb-6 { margin-bottom: 1.5rem; }
+    .mb-8 { margin-bottom: 2rem; }
+    .mb-12 { margin-bottom: 3rem; }
+    .mt-8 { margin-top: 2rem; }
+    .mt-10 { margin-top: 2.5rem; }
+    .rounded-xl { border-radius: 0.75rem; }
+    .rounded-2xl { border-radius: 1rem; }
+    .rounded-3xl { border-radius: 1.5rem; }
+    .text-cyan { color: #06b6d4; }
+    .bg-slate-900 { background-color: #0f172a; }
+    .no-underline { text-decoration: none !important; }
+    .truncate { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+    @media (min-width: 640px) {
+        .sm\:grid-cols-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+        .sm\:flex-row { flex-direction: row; }
+    }
+    @media (min-width: 768px) {
+        .md\:grid-cols-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+        .md\:grid-cols-3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+        .md\:grid-cols-4 { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+        .md\:flex-row { flex-direction: row; }
+    }
+    @media (min-width: 1024px) {
+        .lg\:grid-cols-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+        .lg\:grid-cols-3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+        .lg\:grid-cols-4 { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+        .lg\:grid-cols-6 { grid-template-columns: repeat(6, minmax(0, 1fr)); }
+        .lg\:grid-cols-12 { grid-template-columns: repeat(12, minmax(0, 1fr)); }
+        .lg\:col-span-4 { grid-column: span 4 / span 4; }
+        .lg\:col-span-6 { grid-column: span 6 / span 6; }
+        .lg\:col-span-8 { grid-column: span 8 / span 8; }
+        .lg\:col-span-12 { grid-column: span 12 / span 12; }
+    }
 
     /* Mobile Header */
     .mobile-admin-header {
@@ -263,7 +420,7 @@
         display: none;
         position: fixed;
         inset: 0;
-        background: rgba(0, 0, 0, 0.6);
+        background: rgba(0, 0, 0, 0.65);
         backdrop-filter: blur(4px);
         z-index: 9998;
     }
@@ -278,14 +435,14 @@
         .admin-sidebar {
             position: fixed;
             top: 0;
-            right: -280px;
+            right: -290px;
             left: auto;
             width: var(--admin-sidebar-w);
             height: 100vh;
             transition: right 0.3s cubic-bezier(0.4, 0, 0.2, 1);
             z-index: 9999;
             display: flex;
-            box-shadow: -10px 0 30px rgba(0, 0, 0, 0.5);
+            box-shadow: -10px 0 30px rgba(0, 0, 0, 0.6);
         }
         
         .admin-sidebar.open {
@@ -296,9 +453,13 @@
             display: flex !important;
         }
         
-        .admin-main { padding: 2rem 1.5rem; }
+        .admin-main { padding: 1.5rem 1.15rem; }
     }
 </style>
+{% endblock %}
+
+{% block extra_head %}
+{{ block.super }}
 {% block control_head %}{% endblock %}
 {% endblock %}
 
@@ -357,7 +518,11 @@
 
             <div class="admin-nav-group"><span>العمليات والسيولة</span></div>
             <a href="{% url 'control_deposits' %}" class="admin-nav-link {% if 'deposits' in request.path %}active{% endif %}">
-                <i class="fas fa-circle-arrow-down"></i> طلبات الإيداع
+                <i class="fas fa-circle-arrow-down"></i>
+                <span>طلبات الإيداع</span>
+                {% if pending_deposits_count %}
+                <span class="mr-auto px-2 py-0.5 rounded-full bg-rose-500/20 text-rose-400 border border-rose-500/30 text-[10px] font-black">{{ pending_deposits_count }}</span>
+                {% endif %}
             </a>
             <a href="{% url 'control_withdrawals' %}" class="admin-nav-link {% if 'withdrawal' in request.path %}active{% endif %}">
                 <i class="fas fa-circle-arrow-up"></i> طلبات السحب
