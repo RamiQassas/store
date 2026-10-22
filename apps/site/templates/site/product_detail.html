@@ -330,10 +330,10 @@
             <div id="coupon-feedback" style="font-size: 0.72rem; margin-top: 0.35rem; display: none;"></div>
           </div>
 
-          <!-- 6. Payment Method Selector (Prominent Side-by-Side Direct Buttons) -->
+          <!-- 6. Payment Method Selector (Simple & Direct) -->
           <div style="margin-bottom: 1.5rem;">
             <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.65rem;">
-              <span style="font-size: 0.85rem; font-weight: 800; color: #e2e8f0;">طريقة الدفع والشراء:</span>
+              <span style="font-size: 0.85rem; font-weight: 800; color: #e2e8f0;">طريقة الشراء والدفع:</span>
               <span id="pdp-active-pm-badge" style="font-size: 0.72rem; font-weight: 800; color: #38bdf8; background: rgba(56, 189, 248, 0.12); padding: 0.15rem 0.55rem; border-radius: 6px; border: 1px solid rgba(56, 189, 248, 0.3);">
                 محفظة المتجر
               </span>
@@ -341,11 +341,11 @@
             
             <input type="hidden" name="payment_method" id="selected-payment-method" value="wallet">
 
-            <!-- Side-by-side Button Cards Grid -->
-            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(135px, 1fr)); gap: 0.5rem;" id="pdp-pm-buttons-grid">
+            <!-- Payment Methods Cards Grid -->
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 0.5rem;" id="pdp-pm-buttons-grid">
               
               <!-- 1. Store Wallet Button -->
-              <div class="pdp-pm-card active" id="pm-btn-wallet" onclick="selectPdpMethod('wallet', this)" style="display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 0.35rem; padding: 0.85rem 0.5rem; border-radius: var(--rq-radius-md); background: rgba(56, 189, 248, 0.08); border: 2px solid #38bdf8; cursor: pointer; transition: all 0.2s; text-align: center;">
+              <div class="pdp-pm-card active" id="pm-btn-wallet" onclick="selectPdpMethod('wallet', 'wallet', this)" style="display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 0.35rem; padding: 0.75rem 0.5rem; border-radius: var(--rq-radius-md); background: rgba(56, 189, 248, 0.08); border: 2px solid #38bdf8; cursor: pointer; transition: all 0.2s; text-align: center;">
                 <div style="display: flex; align-items: center; gap: 0.4rem;">
                   <i class="fas fa-wallet text-sky-400" style="font-size: 1rem;"></i>
                   <span style="font-size: 0.82rem; font-weight: 800; color: #fff;">رصيد المحفظة</span>
@@ -354,32 +354,31 @@
                   {% if user.is_authenticated and user.wallet %}
                   المتاح: {% format_price user.wallet.available_balance %}
                   {% else %}
-                  <span style="color: var(--rq-text-muted);">رصيد المتجر</span>
+                  <span style="color: var(--rq-text-muted);">رصيد الحساب</span>
                   {% endif %}
                 </div>
               </div>
 
-              <!-- 2. ShamCash Direct Purchase Button -->
-              <div class="pdp-pm-card" id="pm-btn-shamcash" onclick="selectPdpMethod('sham_cash', this)" style="display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 0.35rem; padding: 0.85rem 0.5rem; border-radius: var(--rq-radius-md); background: rgba(0, 0, 0, 0.3); border: 2px solid var(--rq-border); cursor: pointer; transition: all 0.2s; text-align: center;">
+              {% if gateway_methods %}
+              {% for gw in gateway_methods %}
+              <!-- Gateway Button: {{ gw.code }} -->
+              <div class="pdp-pm-card" id="pm-btn-{{ gw.code }}"
+                   onclick="selectPdpMethod('{{ gw.id }}', '{{ gw.code }}', this)"
+                   style="display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 0.35rem; padding: 0.75rem 0.5rem; border-radius: var(--rq-radius-md); background: rgba(0, 0, 0, 0.3); border: 2px solid var(--rq-border); cursor: pointer; transition: all 0.2s; text-align: center;">
                 <div style="display: flex; align-items: center; gap: 0.4rem;">
-                  <img src="/static/site/img/brands/shamcash.svg" alt="ShamCash" style="height: 18px; width: 18px; object-fit: contain;">
-                  <span style="font-size: 0.82rem; font-weight: 800; color: #fff;">شام كاش</span>
+                  {% if gw.logo %}
+                  <img src="{{ gw.logo }}" alt="{{ gw.name }}" style="height: 22px; width: 22px; object-fit: contain;">
+                  {% endif %}
+                  <span style="font-size: 0.82rem; font-weight: 800; color: #fff;">
+                    {% if gw.code == 'sham_cash' %}شام كاش{% elif gw.code == 'paymera' %}بيميرا{% else %}{{ gw.name }}{% endif %}
+                  </span>
                 </div>
-                <div style="font-size: 0.68rem; font-weight: 800; color: #00C9A7; background: rgba(0, 201, 167, 0.15); padding: 0.15rem 0.45rem; border-radius: 4px;">
-                  ⚡ شراء مباشر فوري
+                <div style="font-size: 0.68rem; font-weight: 800; {% if gw.code == 'sham_cash' %}color: #00C9A7; background: rgba(0, 201, 167, 0.15);{% elif gw.code == 'paymera' %}color: #a78bfa; background: rgba(139, 92, 246, 0.15);{% else %}color: #34d399; background: rgba(52, 211, 153, 0.15);{% endif %} padding: 0.15rem 0.45rem; border-radius: 4px;">
+                  {% if gw.code == 'sham_cash' %}⚡ شراء مباشر فوري{% elif gw.code == 'paymera' %}💳 بطاقة بنكية{% else %}دفع إلكتروني{% endif %}
                 </div>
               </div>
-
-              <!-- 3. Paymera Direct Purchase Button -->
-              <div class="pdp-pm-card" id="pm-btn-paymera" onclick="selectPdpMethod('paymera', this)" style="display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 0.35rem; padding: 0.85rem 0.5rem; border-radius: var(--rq-radius-md); background: rgba(0, 0, 0, 0.3); border: 2px solid var(--rq-border); cursor: pointer; transition: all 0.2s; text-align: center;">
-                <div style="display: flex; align-items: center; gap: 0.4rem;">
-                  <img src="/media/payment-methods/logos/paymera.png" alt="Paymera" style="height: 18px; object-fit: contain;">
-                  <span style="font-size: 0.82rem; font-weight: 800; color: #fff;">بيميرا</span>
-                </div>
-                <div style="font-size: 0.68rem; font-weight: 800; color: #a78bfa; background: rgba(139, 92, 246, 0.15); padding: 0.15rem 0.45rem; border-radius: 4px;">
-                  💳 بطاقة بنكية
-                </div>
-              </div>
+              {% endfor %}
+              {% endif %}
 
             </div>
 
@@ -387,7 +386,7 @@
             <div id="shamcash-currency-box" style="display: none; margin-top: 0.75rem; padding: 0.85rem; border-radius: var(--rq-radius-md); background: rgba(0, 201, 167, 0.08); border: 1.5px dashed rgba(0, 201, 167, 0.45);">
               <div style="font-size: 0.78rem; font-weight: 800; color: #00C9A7; margin-bottom: 0.5rem; display: flex; align-items: center; gap: 0.4rem;">
                 <i class="fas fa-coins"></i>
-                <span>اختر عملة الدفع والسداد عبر شام كاش:</span>
+                <span>عملة السداد في شام كاش:</span>
               </div>
               <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem;">
                 <label id="shamcash-curr-usd-label" style="display: flex; align-items: center; gap: 0.4rem; padding: 0.5rem 0.65rem; border-radius: 8px; background: rgba(0, 201, 167, 0.18); border: 1.5px solid #00C9A7; cursor: pointer;">
@@ -522,17 +521,28 @@ function applyCoupon() {
     });
 }
 
-function selectPdpMethod(code, cardEl) {
-  document.getElementById('selected-payment-method').value = code;
+function selectPdpMethod(arg1, arg2, arg3) {
+  let val, code, cardEl;
+  if (arg3 !== undefined) {
+    val = arg1;    // 'gateway:...' or 'wallet'
+    code = arg2;   // 'sham_cash', 'paymera', or 'wallet'
+    cardEl = arg3; // DOM element
+  } else {
+    val = arg1;
+    code = arg1;
+    cardEl = arg2;
+  }
 
-  // Update card styling
+  const hiddenInput = document.getElementById('selected-payment-method');
+  if (hiddenInput) hiddenInput.value = val;
+
   document.querySelectorAll('.pdp-pm-card').forEach(c => {
     c.style.borderColor = 'var(--rq-border)';
     c.style.background = 'rgba(0, 0, 0, 0.3)';
     c.classList.remove('active');
   });
 
-  if (cardEl) {
+  if (cardEl && cardEl.classList) {
     cardEl.classList.add('active');
   }
 
@@ -540,8 +550,8 @@ function selectPdpMethod(code, cardEl) {
   const shamBox = document.getElementById('shamcash-currency-box');
   const submitBtn = document.getElementById('pdp-submit-btn');
 
-  if (code === 'sham_cash') {
-    if (cardEl) {
+  if (code === 'sham_cash' || val.includes('sham')) {
+    if (cardEl && cardEl.style) {
       cardEl.style.borderColor = '#00C9A7';
       cardEl.style.background = 'rgba(0, 201, 167, 0.12)';
     }
@@ -549,7 +559,7 @@ function selectPdpMethod(code, cardEl) {
       badge.style.color = '#00C9A7';
       badge.style.background = 'rgba(0, 201, 167, 0.15)';
       badge.style.borderColor = 'rgba(0, 201, 167, 0.3)';
-      badge.innerText = 'شام كاش (شراء فوري)';
+      badge.innerText = 'شام كاش (شراء مباشر فوري)';
     }
     if (shamBox) shamBox.style.display = 'block';
     if (submitBtn) {
@@ -558,8 +568,8 @@ function selectPdpMethod(code, cardEl) {
       submitBtn.style.boxShadow = '0 4px 20px rgba(0, 201, 167, 0.4)';
     }
     updateShamCashDisplay();
-  } else if (code === 'paymera') {
-    if (cardEl) {
+  } else if (code === 'paymera' || val.includes('paymera')) {
+    if (cardEl && cardEl.style) {
       cardEl.style.borderColor = '#8b5cf6';
       cardEl.style.background = 'rgba(139, 92, 246, 0.12)';
     }
@@ -567,7 +577,7 @@ function selectPdpMethod(code, cardEl) {
       badge.style.color = '#a78bfa';
       badge.style.background = 'rgba(139, 92, 246, 0.15)';
       badge.style.borderColor = 'rgba(139, 92, 246, 0.3)';
-      badge.innerText = 'بيميرا (بطاقة مصرفية)';
+      badge.innerText = 'بيميرا (بطاقة بنكية)';
     }
     if (shamBox) shamBox.style.display = 'none';
     if (submitBtn) {
@@ -577,7 +587,7 @@ function selectPdpMethod(code, cardEl) {
     }
   } else {
     // Wallet
-    if (cardEl) {
+    if (cardEl && cardEl.style) {
       cardEl.style.borderColor = '#38bdf8';
       cardEl.style.background = 'rgba(56, 189, 248, 0.08)';
     }

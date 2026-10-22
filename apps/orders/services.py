@@ -967,11 +967,13 @@ def create_pending_gateway_order(
 
     # Fetch variant
     try:
-        variant = (
-            ProductVariant.objects
-            .select_related("product")
-            .get(id=variant_id, is_active=True, is_temporarily_disabled=False, product__is_active=True)
-        )
+        from apps.common.tenant_utils import bypass_tenant_filter
+        with bypass_tenant_filter():
+            variant = (
+                ProductVariant.all_objects
+                .select_related("product")
+                .get(id=variant_id, is_active=True, is_temporarily_disabled=False, product__is_active=True)
+            )
     except ProductVariant.DoesNotExist:
         raise ValueError("هذه الباقة أو المنتج غير متوفر حالياً.")
 

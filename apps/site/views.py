@@ -1338,8 +1338,20 @@ def deposits(request):
             methods = request.session.get("v3_auth_methods", [])
             return v3_redirect_to_verification(request, methods)
 
-    # Task 9: Show all methods, KYC check handled in template/POST
-    methods = PaymentMethod.objects.filter(is_active=True, can_deposit=True)
+    # Task 9: Show all methods, KYC check handled in template/POST (gateways first)
+    from apps.common.tenant_utils import bypass_tenant_filter
+    with bypass_tenant_filter():
+        methods_list = list(PaymentMethod.all_objects.filter(is_active=True, can_deposit=True).select_related('gateway'))
+        def _deposit_method_priority(m):
+            if not m.gateway or not m.gateway.is_active:
+                return 99
+            if m.gateway.provider == 'sham_cash':
+                return 0
+            if m.gateway.provider == 'paymera':
+                return 1
+            return 2
+        methods_list.sort(key=_deposit_method_priority)
+        methods = methods_list
 
     return render(request, "site/v3/v3_deposits.html", {
         "payment_methods": methods, 
@@ -2570,22 +2582,23 @@ def product_detail(request, pk):
                 messages.error(request, "جميع حقول الشحن والتوصيل مطلوبة للطلب المادي.")
                 return redirect("product_detail", pk=pk)
 
-        # Verification check
-        if not v3_init_verification(request, request.user, "purchase"):
-            request.session["v3_pending_purchase"] = {
-                "variant_id": str(variant.id),
-                "coupon_code": coupon_code,
-                "metadata": metadata,
-                "shipping_name": shipping_name,
-                "shipping_phone": shipping_phone,
-                "shipping_address": shipping_address,
-                "quantity": quantity,
-                "payment_method": payment_method,
-            }
-            last_verified = request.session.get("v3_action_verified_at")
-            if not last_verified or (timezone.now() - timezone.datetime.fromisoformat(last_verified)).total_seconds() > 300:
-                methods = request.session.get("v3_auth_methods", [])
-                return redirect("site_2fa_verify" if methods[0] == "APP" else "site_verify_otp")
+        # Verification check (only for internal wallet debit)
+        if not is_direct_gateway:
+            if not v3_init_verification(request, request.user, "purchase"):
+                request.session["v3_pending_purchase"] = {
+                    "variant_id": str(variant.id),
+                    "coupon_code": coupon_code,
+                    "metadata": metadata,
+                    "shipping_name": shipping_name,
+                    "shipping_phone": shipping_phone,
+                    "shipping_address": shipping_address,
+                    "quantity": quantity,
+                    "payment_method": payment_method,
+                }
+                last_verified = request.session.get("v3_action_verified_at")
+                if not last_verified or (timezone.now() - timezone.datetime.fromisoformat(last_verified)).total_seconds() > 300:
+                    methods = request.session.get("v3_auth_methods", [])
+                    return redirect("site_2fa_verify" if (methods and methods[0] == "APP") else "site_verify_otp")
 
         # Purchase Logic: Direct Gateway vs Wallet
         if is_direct_gateway:
@@ -2742,7 +2755,7 @@ def product_detail(request, pk):
                     gw_logo = gw.logo_url
                     if gw.provider == "sham_cash":
                         gw_name = "شام كاش (ShamCash)"
-                        gw_logo = "/static/site/img/brands/shamcash.svg"
+                        gw_logo = "/media/payment-methods/logos/shamcash.svg"
                     elif gw.provider == "paymera":
                         gw_name = "بيميرا (Paymera)"
                         gw_logo = "/media/payment-methods/logos/paymera.png"
@@ -2778,7 +2791,7 @@ def product_detail(request, pk):
                     gw_logo = pm.logo.url if pm.logo else pm.gateway.logo_url
                     if gw_code == "sham_cash":
                         gw_name = "شام كاش (ShamCash)"
-                        gw_logo = "/static/site/img/brands/shamcash.svg"
+                        gw_logo = "/media/payment-methods/logos/shamcash.svg"
                     elif gw_code == "paymera":
                         gw_name = "بيميرا (Paymera)"
                         gw_logo = "/media/payment-methods/logos/paymera.png"
