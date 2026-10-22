@@ -78,14 +78,28 @@
     </div>
 
     <div class="rq-wallet-quick-actions" style="margin-top: 1.25rem;">
+      {% if features.feature_deposits != False %}
       <a href="{% url 'dashboard_deposits' %}" class="rq-wallet-action-chip">
         <i class="fas fa-arrow-down text-emerald-400"></i>
         <span>إيداع رصيد</span>
       </a>
-      {% if not is_tenant %}
+      {% endif %}
+      {% if not is_tenant and features.feature_withdrawals %}
       <a href="{% url 'dashboard_withdrawals' %}" class="rq-wallet-action-chip">
         <i class="fas fa-arrow-up text-amber-400"></i>
         <span>طلب سحب</span>
+      </a>
+      {% endif %}
+      {% if features.feature_p2p_transfers %}
+      <a href="{% url 'dashboard_transfers' %}" class="rq-wallet-action-chip">
+        <i class="fas fa-paper-plane text-purple-400"></i>
+        <span>تحويل رصيد</span>
+      </a>
+      {% endif %}
+      {% if features.feature_recharge_cards %}
+      <a href="{% url 'dashboard_redeem_card' %}" class="rq-wallet-action-chip">
+        <i class="fas fa-ticket text-rose-400"></i>
+        <span>شحن بطاقة</span>
       </a>
       {% endif %}
       <a href="{% url 'dashboard_wallet' %}" class="rq-wallet-action-chip">

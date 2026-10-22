@@ -14,7 +14,14 @@ class Command(BaseCommand):
     def handle(self, *args, **options):
         self.stdout.write(self.style.NOTICE(">> Initializing Raqamiyat Flagship Storefront..."))
 
-        # 0. Ensure default brand media file physically exists on disk
+        # 0. Sync and seed authentic physical tech products
+        from django.core.management import call_command
+        try:
+            call_command("seed_tech_products")
+        except Exception as e:
+            self.stdout.write(self.style.WARNING(f"Notice: Seed tech products execution: {e}"))
+
+        # 0.1 Ensure default brand media file physically exists on disk
         try:
             target_dir = os.path.join(settings.MEDIA_ROOT, "products", "main")
             target_file = os.path.join(target_dir, "raqamiyat_official_brand_product.jpg")
@@ -62,5 +69,13 @@ class Command(BaseCommand):
                     p.save(update_fields=['is_sale'])
                     sale_count += 1
             self.stdout.write(f"Marked {sale_count} promotional products as is_sale=True.")
+
+        # Invalidate all storefront caches
+        from django.core.cache import cache
+        try:
+            cache.clear()
+            self.stdout.write("Invalidated and refreshed all storefront caches.")
+        except Exception:
+            pass
 
         self.stdout.write(self.style.SUCCESS(">> Raqamiyat Flagship Storefront setup completed successfully!"))

@@ -5081,10 +5081,17 @@ def control_products_list(request):
             apply_to = request.POST.get("apply_to", "all")  # "all", "category", "missing_only", or "selected"
             category_id = request.POST.get("category_id")
             product_ids = request.POST.getlist("selected_products")
-            uploaded_image = request.FILES.get("unified_image")
-            use_official_emblem = request.POST.get("use_official_emblem") == "1"
+            if len(product_ids) == 1 and "," in product_ids[0]:
+                product_ids = [x.strip() for x in product_ids[0].split(",") if x.strip()]
 
-            qs = Product.all_objects.filter(store=store)
+            uploaded_image = request.FILES.get("unified_image")
+            image_choice = request.POST.get("image_choice", "official")
+            use_official_emblem = (image_choice == "official") or (request.POST.get("use_official_emblem") == "1")
+
+            if store:
+                qs = Product.all_objects.filter(store=store)
+            else:
+                qs = Product.all_objects.filter(store__isnull=True)
             if apply_to == "category" and category_id:
                 qs = qs.filter(category_id=category_id)
             elif apply_to == "selected" and product_ids:
@@ -5125,8 +5132,13 @@ def control_products_list(request):
             else:
                 messages.error(request, "يرجى رفع صورة أو اختيار تطبيق هوية رقميات الموحدة.")
 
-            # Invalidate cached homepage & catalog
-            cache.delete(f"home_page_ctx_v2_{getattr(store, 'id', 'global')}")
+            # Invalidate all storefront caches
+            try:
+                cache.delete(f"home_page_ctx_v5_{getattr(store, 'id', 'global')}")
+                cache.delete(f"home_page_ctx_v2_{getattr(store, 'id', 'global')}")
+                cache.clear()
+            except Exception:
+                pass
             return redirect("control_products_list")
 
         elif action == "sync_alkasr_catalog":
