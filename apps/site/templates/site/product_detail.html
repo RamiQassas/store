@@ -250,26 +250,6 @@
               </div>
               {% endfor %}
 
-              <!-- ShamCash Dual Currency Selection -->
-              <div id="shamcash-currency-box" style="display: none; margin-top: 0.75rem; padding: 0.85rem; border-radius: var(--rq-radius-md); background: rgba(0, 201, 167, 0.08); border: 1px dashed rgba(0, 201, 167, 0.4);">
-                <div style="font-size: 0.8rem; font-weight: 800; color: #00C9A7; margin-bottom: 0.5rem; display: flex; align-items: center; gap: 0.4rem;">
-                  <i class="fas fa-coins"></i>
-                  <span>اختر عملة الدفع عبر شام كاش:</span>
-                </div>
-                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem;">
-                  <label style="display: flex; align-items: center; gap: 0.5rem; padding: 0.5rem 0.75rem; border-radius: 8px; background: rgba(0,0,0,0.4); border: 1px solid rgba(255,255,255,0.1); cursor: pointer;">
-                    <input type="radio" name="gateway_currency" value="USD" checked onchange="updateShamCashDisplay()">
-                    <span style="font-size: 0.8rem; font-weight: 700; color: #fff;">بالدولار (USD $)</span>
-                  </label>
-                  <label style="display: flex; align-items: center; gap: 0.5rem; padding: 0.5rem 0.75rem; border-radius: 8px; background: rgba(0,0,0,0.4); border: 1px solid rgba(255,255,255,0.1); cursor: pointer;">
-                    <input type="radio" name="gateway_currency" value="SYP" onchange="updateShamCashDisplay()">
-                    <span style="font-size: 0.8rem; font-weight: 700; color: #fff;">بالليرة السورية (SYP)</span>
-                  </label>
-                </div>
-                <div id="shamcash-conversion-hint" style="display: none; margin-top: 0.5rem; font-size: 0.75rem; color: #34d399; font-weight: 700;">
-                  المبلغ التقريبي بالليرة السورية: <span id="shamcash-syp-preview">0</span> ل.س
-                </div>
-              </div>
             </div>
           </div>
           {% endif %}
@@ -382,6 +362,27 @@
                 {% endif %}
               </label>
               {% endfor %}
+
+<!-- ShamCash Dual Currency Selection -->
+              <div id="shamcash-currency-box" style="display: none; margin-top: 0.75rem; padding: 0.85rem; border-radius: var(--rq-radius-md); background: rgba(0, 201, 167, 0.08); border: 1px dashed rgba(0, 201, 167, 0.4);">
+                <div style="font-size: 0.8rem; font-weight: 800; color: #00C9A7; margin-bottom: 0.5rem; display: flex; align-items: center; gap: 0.4rem;">
+                  <i class="fas fa-coins"></i>
+                  <span>اختر عملة الدفع عبر شام كاش:</span>
+                </div>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem;">
+                  <label style="display: flex; align-items: center; gap: 0.5rem; padding: 0.5rem 0.75rem; border-radius: 8px; background: rgba(0,0,0,0.4); border: 1px solid rgba(255,255,255,0.1); cursor: pointer;">
+                    <input type="radio" name="gateway_currency" value="USD" checked onchange="updateShamCashDisplay()">
+                    <span style="font-size: 0.8rem; font-weight: 700; color: #fff;">بالدولار (USD $)</span>
+                  </label>
+                  <label style="display: flex; align-items: center; gap: 0.5rem; padding: 0.5rem 0.75rem; border-radius: 8px; background: rgba(0,0,0,0.4); border: 1px solid rgba(255,255,255,0.1); cursor: pointer;">
+                    <input type="radio" name="gateway_currency" value="SYP" onchange="updateShamCashDisplay()">
+                    <span style="font-size: 0.8rem; font-weight: 700; color: #fff;">بالليرة السورية (SYP)</span>
+                  </label>
+                </div>
+                <div id="shamcash-conversion-hint" style="display: none; margin-top: 0.5rem; font-size: 0.75rem; color: #34d399; font-weight: 700;">
+                  المبلغ التقريبي بالليرة السورية: <span id="shamcash-syp-preview">0</span> ل.س
+                </div>
+              </div>
             </div>
           </div>
 
@@ -524,7 +525,7 @@ function updateShamCashDisplay() {
   if (hint && preview) {
     if (isSYP) {
       hint.style.display = 'block';
-      const sypRate = 15000;
+      const sypRate = {{ syp_rate|default:15000 }};
       const qtyInput = document.getElementById('pdp-quantity-input');
       const qty = parseInt(qtyInput ? qtyInput.value : 1) || 1;
       const subtotal = currentPrice * qty;

@@ -490,6 +490,11 @@ PAYMERA_TERMINAL_ID = env("PAYMERA_TERMINAL_ID", "")
 PAYMERA_API_KEY = env("PAYMERA_API_KEY", "")
 PAYMERA_BASE_URL = os.environ.get("PAYMERA_BASE_URL", "https://egate-t.paymera.cc")
 PAYMERA_MODE = os.environ.get("PAYMERA_MODE", "sandbox")
+# ShamCash E-Payment Gateway Configuration
+SHAM_CASH_AGENT_KEY = env("SHAM_CASH_AGENT_KEY", "LELCNDrzTrEgXtv00OUdVeECa1CEZZiC")
+SHAM_CASH_SECRET_KEY = env("SHAM_CASH_SECRET_KEY", "1ZogpKWJe6+dv0fey6JjkvigrdLdnq697b4Sl8XeBEg=")
+SHAM_CASH_BASE_URL = os.environ.get("SHAM_CASH_BASE_URL", "https://dev.shamlogix.tech/services")
+SHAM_CASH_MODE = os.environ.get("SHAM_CASH_MODE", "sandbox")
 
 # Deployment endpoints and background worker
 AUTO_DEPLOY_ENABLED = env_bool("AUTO_DEPLOY_ENABLED", True)

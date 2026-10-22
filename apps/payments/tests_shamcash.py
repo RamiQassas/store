@@ -23,7 +23,7 @@ from apps.catalog.models import Category, Product, ProductVariant, ProductKey
 from apps.common.models import Currency
 from apps.orders.models import Order, OrderItem
 from apps.payments.gateways import ShamCashGateway, gateway_for
-from apps.payments.models import DepositRequest, PaymentGatewayIntegration, PaymentMethod
+from apps.payments.models import DepositRequest, PaymentGatewayIntegration, PaymentMethod, ShamCashBillRecord
 from apps.payments.shamcash import ShamCashClient, ShamCashError
 from apps.payments.views_shamcash import shamcash_callback_view, shamcash_redirect_view
 from apps.wallets.models import Wallet
@@ -616,3 +616,95 @@ class ShamCashAuditAndPortalTestCase(TestCase):
         self.assertIsNotNone(created_user)
         self.assertEqual(created_user.role, "shamcash_auditor")
         self.assertTrue(created_user.check_password("NewSecretPass2026!"))
+
+    @patch("requests.post")
+    def test_direct_order_creation_with_zero_wallet_balance(self, mock_post):
+        """
+        Verify direct purchase flow from ShamCash without requiring wallet deposit.
+        Customer with 0.00 balance purchases directly, order is created in PENDING status,
+        ShamCash bill is generated, and on webhook payment confirmation the order is fulfilled
+        without touching user wallet.
+        """
+        from apps.orders.services import create_pending_gateway_order
+        from apps.payments.gateways import ShamCashGateway
+        from apps.wallets.services import get_or_create_wallet
+
+        customer = self.regular_user
+        wallet = get_or_create_wallet(customer)
+        wallet.available_balance = Decimal("0.00")
+        wallet.save(update_fields=["available_balance"])
+        self.assertEqual(wallet.available_balance, Decimal("0.00"))
+
+        # Setup product & variant
+        category = Category.objects.create(name="Digital Products Direct")
+        product = Product.objects.create(name="Sham Direct Gift Card", category=category, is_active=True)
+        variant = ProductVariant.objects.create(
+            product=product,
+            name="25 USD Card",
+            sku="SKU-SHAM-DIRECT-25",
+            price=Decimal("25.00"),
+            cost=Decimal("20.00"),
+            delivery_type="keys",
+            is_active=True,
+        )
+        ProductKey.objects.create(variant=variant, key_code="SHAM-DIRECT-CODE-12345", is_used=False)
+
+        # Create pending gateway order (bypasses wallet deduction)
+        order = create_pending_gateway_order(
+            customer=customer,
+            variant_id=variant.id,
+            quantity=1,
+            gateway_code="sham_cash",
+        )
+        self.assertEqual(order.status, Order.Status.PENDING)
+        wallet.refresh_from_db()
+        self.assertEqual(wallet.available_balance, Decimal("0.00"))  # Wallet untouched!
+
+        # Generate ShamCash Payment Bill
+        mock_response = MagicMock()
+        mock_response.status_code = 200
+        mock_response.json.return_value = {
+            "result": 2500,
+            "message": "Bill created successfully",
+            "data": {
+                "billNo": f"ORD-{order.number}-TEST",
+                "paymentUrl": "https://dev.shamlogix.tech/services/payment/ORD-TEST-123",
+            },
+        }
+        mock_post.return_value = mock_response
+
+        gw = ShamCashGateway(self.integration)
+        gw_res = gw.create_order_payment(order)
+
+        self.assertTrue(bool(gw_res.get("url")))
+        self.assertIn("payment/ORD-TEST-123", gw_res["url"])
+
+        # Check immutable bill record created
+        bill_record = ShamCashBillRecord.objects.filter(order=order).first()
+        self.assertIsNotNone(bill_record)
+        self.assertEqual(bill_record.bill_type, ShamCashBillRecord.BillType.ORDER)
+        self.assertEqual(bill_record.amount, Decimal("25.00"))
+        self.assertEqual(bill_record.currency_id, ShamCashClient.CURRENCY_USD)
+
+        # Simulate ShamCash Webhook (Customer pays bill via ShamCash)
+        client_helper = ShamCashClient.from_integration(self.integration)
+        payload = {
+            "billNo": bill_record.bill_no,
+            "tranId": 554433,
+            "statusId": ShamCashClient.STATUS_PAID,
+        }
+        token = client_helper.encrypt_payload(payload)
+
+        request = self.factory.post(
+            reverse("shamcash_callback"),
+            data=json.dumps({"encData": token}),
+            content_type="application/json",
+        )
+        response = shamcash_callback_view(request)
+        self.assertEqual(response.status_code, 200)
+
+        # Verify order is fulfilled and customer wallet remains untouched
+        order.refresh_from_db()
+        self.assertIn(order.status, (Order.Status.PROCESSING, Order.Status.COMPLETED))
+        wallet.refresh_from_db()
+        self.assertEqual(wallet.available_balance, Decimal("0.00"))  # Still 0.00!
