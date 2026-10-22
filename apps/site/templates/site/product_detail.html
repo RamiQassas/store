@@ -188,8 +188,9 @@
         <form method="post" id="pdp-purchase-form" action="{% url 'product_detail' product.id %}">
           {% csrf_token %}
 
-          <!-- Hidden Variant Input -->
+          <!-- Hidden Variant & Displayed Price Inputs -->
           <input type="hidden" name="variant_id" id="selected-variant-id" value="{% if active_variant %}{{ active_variant.id }}{% elif variants.0 %}{{ variants.0.id }}{% endif %}">
+          <input type="hidden" name="displayed_price" id="pdp-form-displayed-price" value="">
 
           <!-- 1. Variants Selection -->
           {% if variants %}
@@ -441,6 +442,7 @@ function adjustQty(delta) {
 }
 
 const CURRENCY_SYMBOL = "{{ current_currency.symbol|default:'$' }}";
+const CURRENCY_DECIMAL_PLACES = {{ current_currency.decimal_places|default:2 }};
 
 function recalculatePrice() {
   const qtyInput = document.getElementById('pdp-quantity-input');
@@ -452,8 +454,15 @@ function recalculatePrice() {
   const unitEl = document.getElementById('pdp-unit-price');
   const totalEl = document.getElementById('pdp-total-price');
 
-  if (unitEl) unitEl.innerText = currentPrice.toFixed(2) + ' ' + CURRENCY_SYMBOL;
-  if (totalEl) totalEl.innerText = total.toFixed(2) + ' ' + CURRENCY_SYMBOL;
+  const unitFormatted = CURRENCY_DECIMAL_PLACES === 0 ? Math.round(currentPrice) : currentPrice.toFixed(CURRENCY_DECIMAL_PLACES);
+  const totalFormatted = CURRENCY_DECIMAL_PLACES === 0 ? Math.round(total) : total.toFixed(CURRENCY_DECIMAL_PLACES);
+
+  if (unitEl) unitEl.innerText = unitFormatted + ' ' + CURRENCY_SYMBOL;
+  if (totalEl) totalEl.innerText = totalFormatted + ' ' + CURRENCY_SYMBOL;
+
+  const dispPriceInput = document.getElementById('pdp-form-displayed-price');
+  if (dispPriceInput) dispPriceInput.value = unitFormatted;
+
   if (typeof updateShamCashDisplay === 'function') updateShamCashDisplay();
 }
 
@@ -638,16 +647,18 @@ function updateShamCashDisplay() {
     }
   }
 
+  const displayTotal = CURRENCY_DECIMAL_PLACES === 0 ? Math.round(total) : total.toFixed(CURRENCY_DECIMAL_PLACES);
   const submitBtn = document.getElementById('pdp-submit-btn');
   const selectedMethodInput = document.getElementById('selected-payment-method');
   const isSham = selectedMethodInput && (selectedMethodInput.value.includes('sham') || (document.getElementById('pm-btn-sham_cash') && document.getElementById('pm-btn-sham_cash').classList.contains('active')));
   if (submitBtn && isSham) {
     if (isSYP) {
       const sypRate = {{ syp_rate|default:15000 }};
-      const totalSYP = Math.round(total * sypRate);
+      const rawTotal = CURRENCY_DECIMAL_PLACES === 0 ? Math.round(total) : total;
+      const totalSYP = Math.round(rawTotal * sypRate);
       submitBtn.innerHTML = `<i class="fas fa-bolt"></i> <span>تأكيد الشراء عبر شام كاش (${totalSYP.toLocaleString()} ل.س) ⚡</span>`;
     } else {
-      submitBtn.innerHTML = `<i class="fas fa-bolt"></i> <span>تأكيد الشراء عبر شام كاش ($${total.toFixed(2)}) ⚡</span>`;
+      submitBtn.innerHTML = `<i class="fas fa-bolt"></i> <span>تأكيد الشراء عبر شام كاش ($${displayTotal}) ⚡</span>`;
     }
     submitBtn.style.background = 'linear-gradient(135deg, #00C9A7 0%, #008080 100%)';
     submitBtn.style.boxShadow = '0 4px 20px rgba(0, 201, 167, 0.4)';

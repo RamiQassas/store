@@ -953,6 +953,7 @@ def create_pending_gateway_order(
     shipping_phone=None,
     shipping_address=None,
     gateway_code="paymera",
+    exact_unit_price=None,
 ):
     """
     Creates an Order in PENDING status for direct payment through an electronic gateway.
@@ -1047,10 +1048,54 @@ def create_pending_gateway_order(
 
     # For direct gateway checkout, ensure we charge the displayed retail variant price,
     # avoiding any unintended tier/cost price drop (e.g. 202 -> 161.57) unless an explicit coupon is applied.
-    if variant.price and variant.price > Decimal("0.00"):
+    from decimal import ROUND_HALF_UP
+    if exact_unit_price and Decimal(str(exact_unit_price)) > Decimal("0.00"):
+        price = Decimal(str(exact_unit_price))
+    elif variant.price and variant.price > Decimal("0.00"):
         price = Decimal(str(variant.price))
     else:
         price = variant.get_price_for_user(customer)
+
+    # If metadata specifies exact displayed price (verified against anti-tamper rounding), honor it
+    if metadata and "displayed_unit_price" in metadata:
+        try:
+            d_val = Decimal(str(metadata["displayed_unit_price"]))
+            if d_val > Decimal("0.00"):
+                rounded_int = price.quantize(Decimal("1"), rounding=ROUND_HALF_UP)
+                rounded_cents = price.quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
+                if d_val == rounded_int or d_val == rounded_cents or (abs(d_val - price) < Decimal("1.00") and d_val == round(price)):
+                    price = d_val
+        except (ValueError, TypeError):
+            pass
+
+    # Ensure price precision matches currency (if currency_places is 0, round to integer e.g. 201.96 -> 202.00)
+    currency_places = None
+    if metadata and "currency_places" in metadata:
+        try:
+            currency_places = int(metadata["currency_places"])
+        except (ValueError, TypeError):
+            pass
+
+    if currency_places is None:
+        from apps.common.models import Currency
+        curr = None
+        if order_store:
+            curr = Currency.all_objects.filter(store=order_store, is_active=True, is_default=True).first()
+            if not curr:
+                curr = Currency.all_objects.filter(store=order_store, is_active=True).first()
+        if not curr:
+            curr = Currency.all_objects.filter(store__isnull=True, is_active=True, is_default=True).first()
+            if not curr:
+                curr = Currency.all_objects.filter(store__isnull=True, code="USD", is_active=True).first()
+        if curr:
+            currency_places = getattr(curr, "decimal_places", 2)
+
+    if currency_places == 0:
+        price = price.quantize(Decimal("1"), rounding=ROUND_HALF_UP)
+    elif currency_places == 2:
+        price = price.quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
+    elif currency_places is not None and currency_places > 0:
+        price = price.quantize(Decimal("10") ** -currency_places, rounding=ROUND_HALF_UP)
 
     subtotal = price * Decimal(quantity)
 

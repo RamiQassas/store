@@ -444,6 +444,14 @@ class ShamCashGateway(BasePaymentGateway):
         if exact_amount <= Decimal("0.00"):
             exact_amount = Decimal("1.00")
 
+        curr_places = meta.get("currency_places")
+        if curr_places is not None:
+            try:
+                curr_places = int(curr_places)
+            except (ValueError, TypeError):
+                curr_places = None
+
+        from decimal import ROUND_HALF_UP
         if req_curr and str(req_curr).upper() in ("SYP", "2"):
             # Syrian Pounds
             store = getattr(order, "store", None)
@@ -464,7 +472,10 @@ class ShamCashGateway(BasePaymentGateway):
         else:
             # USD default
             currency_id = ShamCashClient.CURRENCY_USD
-            charge_amount = exact_amount.quantize(Decimal("0.01"))
+            if curr_places == 0:
+                charge_amount = exact_amount.quantize(Decimal("1"), rounding=ROUND_HALF_UP).quantize(Decimal("0.01"))
+            else:
+                charge_amount = exact_amount.quantize(Decimal("0.01"))
             currency_code = "USD"
 
         notes = f"سداد طلب رقم {order.number} للعميل {order.customer.email}"

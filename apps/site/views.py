@@ -2501,8 +2501,36 @@ def product_detail(request, pk):
             quantity = 1
 
         coupon_code = request.POST.get("coupon_code")
-        # Ensure subtotal calculation uses the displayed variant retail price
-        displayed_unit_price = Decimal(str(variant.price)) if (variant.price and variant.price > Decimal("0.00")) else variant.get_price_for_user(request.user)
+        from apps.site.context_processors import preferred_currency
+        curr_ctx = preferred_currency(request)
+        active_curr = curr_ctx.get("CURRENCY")
+        currency_places = getattr(active_curr, "decimal_places", 2)
+        if currency_places is None:
+            currency_places = 2
+
+        from decimal import Decimal, ROUND_HALF_UP
+        base_unit_price = Decimal(str(variant.price)) if (variant.price and variant.price > Decimal("0.00")) else variant.get_price_for_user(request.user)
+
+        client_disp = request.POST.get("displayed_price")
+        displayed_unit_price = None
+        if client_disp:
+            try:
+                c_val = Decimal(str(client_disp).strip())
+                if c_val == base_unit_price.quantize(Decimal("1"), rounding=ROUND_HALF_UP) or                    c_val == base_unit_price.quantize(Decimal("0.01"), rounding=ROUND_HALF_UP) or                    (abs(c_val - base_unit_price) < Decimal("1.00") and c_val == round(base_unit_price)):
+                    displayed_unit_price = c_val
+            except (ValueError, TypeError):
+                pass
+
+        if displayed_unit_price is None:
+            if currency_places == 0:
+                displayed_unit_price = base_unit_price.quantize(Decimal("1"), rounding=ROUND_HALF_UP)
+            elif currency_places == 2:
+                displayed_unit_price = base_unit_price.quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
+            elif currency_places > 0:
+                displayed_unit_price = base_unit_price.quantize(Decimal("10") ** -currency_places, rounding=ROUND_HALF_UP)
+            else:
+                displayed_unit_price = base_unit_price
+
         price = displayed_unit_price * Decimal(quantity)
         
         # Check Coupon for balance check
@@ -2625,6 +2653,8 @@ def product_detail(request, pk):
                 order_metadata = dict(metadata or {})
                 order_metadata["gateway_currency"] = gateway_curr
                 order_metadata["selected_currency"] = gateway_curr
+                order_metadata["currency_places"] = currency_places
+                order_metadata["displayed_unit_price"] = str(displayed_unit_price)
 
                 order = create_pending_gateway_order(
                     customer=request.user,
@@ -2637,6 +2667,7 @@ def product_detail(request, pk):
                     shipping_phone=shipping_phone,
                     shipping_address=shipping_address,
                     gateway_code=selected_gateway.provider,
+                    exact_unit_price=displayed_unit_price,
                 )
                 gw_instance = gateway_for(selected_gateway)
                 gw_res = gw_instance.create_order_payment(order, request=request)
