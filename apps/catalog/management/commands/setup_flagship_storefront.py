@@ -36,15 +36,16 @@ class Command(BaseCommand):
             prods_updated = Product.all_objects.filter(is_active=True).update(is_publicly_visible=True, compliance_status="compliant")
             self.stdout.write(f"Updated {prods_updated} products to publicly visible & compliant.")
 
-            # 3. Mark Flagship Featured Products across diverse categories (Digital + Physical Hardware)
+            # 3. Mark Flagship Featured Products across diverse categories (Physical Hardware Only)
             flagship_keywords = [
-                'HDMI', 'راوتر', 'سماعات', 'باور', 'شاحن', 'كابل', 'ذاكرة', 'بطارية',
-                'KODAK', 'ببجي', 'MTN', 'سيريتل', 'PUBG', 'PlayStation', 'Steam',
-                'iTunes', 'Router', 'Cabinet', 'ChatGPT', 'Windows', 'Netflix'
+                'iPhone 17 Pro Max', 'Samsung Galaxy S26 Ultra', 'Samsung Galaxy A57',
+                'Xiaomi Mi 15 Ultra', 'Xiaomi Redmi Note 17 Pro Max', 'Poco F9 Pro',
+                'Infinix GT 50 Pro', 'Honor Magic 8 Pro', 'Tecno Camon 50 Ultra',
+                'B315', 'Pad', 'شاحن'
             ]
             featured_count = 0
             for kw in flagship_keywords:
-                p = Product.all_objects.filter(name__icontains=kw, is_active=True).first()
+                p = Product.all_objects.filter(name__icontains=kw, is_active=True, product_type='physical').first()
                 if p:
                     p.is_featured = True
                     p.save(update_fields=['is_featured'])
@@ -52,10 +53,10 @@ class Command(BaseCommand):
             self.stdout.write(f"Marked {featured_count} flagship products as is_featured=True.")
 
             # 4. Mark top promotional sale products
-            sale_keywords = ['باور', 'HDMI', 'شاحن', 'سماعات', 'PUBG', 'Steam', 'Free Fire', 'Netflix']
+            sale_keywords = ['A07', 'Redmi A5', 'Poco C71', 'Smart 20', 'Spark Go', 'شاحن']
             sale_count = 0
             for kw in sale_keywords:
-                p = Product.all_objects.filter(name__icontains=kw, is_active=True).first()
+                p = Product.all_objects.filter(name__icontains=kw, is_active=True, product_type='physical').first()
                 if p:
                     p.is_sale = True
                     p.save(update_fields=['is_sale'])
