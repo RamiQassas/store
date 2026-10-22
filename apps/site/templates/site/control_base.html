@@ -514,6 +514,7 @@
             <div class="admin-nav-group"><span>الإعدادات والتقارير</span></div>
             <a href="{% url 'control_reports' %}" class="admin-nav-link {% if 'report' in request.path %}active{% endif %}">
                 <i class="fas fa-chart-line"></i> التقارير المالية
+            </a>
             <a href="{% url 'control_feature_flags' %}" class="admin-nav-link text-cyan font-bold {% if 'control/features' in request.path %}active{% endif %}">
                 <i class="fas fa-toggle-on text-emerald-400"></i> إخفاء وإظهار ميزات الموقع 🎛️
             </a>

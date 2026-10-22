@@ -27,6 +27,7 @@ def common_context(request):
 
     context = {
         "ALL_CURRENCIES": all_currencies,
+        "available_currencies": all_currencies,
         "PENDING_KYC_COUNT": KYCRequest.objects.filter(status=KYCRequest.Status.PENDING).count() if is_staff else 0,
         "active_announcement": SiteAnnouncement.all_objects.filter(store=active_store, is_active=True).first(),
         "FEATURES": features,

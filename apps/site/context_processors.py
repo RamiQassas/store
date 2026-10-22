@@ -65,6 +65,8 @@ def preferred_currency(request):
 
     return {
         "CURRENCY": pref_currency,
+        "current_currency": pref_currency,
+        "available_currencies": all_currencies,
         "ALL_CURRENCIES": all_currencies,
         "SYSTEM_CURRENCY": system_currency,
         "WITHDRAWAL_RATE": pref_currency.sell_rate if pref_currency else 1.0,

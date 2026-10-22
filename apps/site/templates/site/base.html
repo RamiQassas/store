@@ -181,8 +181,8 @@
             <span>العملة:</span>
           </label>
           <select id="sideCurrencySelect" class="rq-side-currency-select" onchange="location.href='{% url 'set_currency' %}?currency=' + this.value">
-            {% for curr in available_currencies %}
-            <option value="{{ curr.id }}" {% if current_currency.id == curr.id %}selected{% endif %}>{{ curr.symbol }} {{ curr.code }}</option>
+            {% for curr in available_currencies|default:ALL_CURRENCIES %}
+            <option value="{{ curr.id }}" {% if current_currency.id == curr.id or CURRENCY.id == curr.id %}selected{% endif %}>{{ curr.symbol }} {{ curr.code }}</option>
             {% endfor %}
           </select>
         </div>
@@ -255,6 +255,16 @@
         <!-- Top Right Actions -->
         <div class="rq-top-actions">
           
+          <!-- Quick Currency Switcher Pill -->
+          <div class="rq-top-currency-wrap" title="العملة الحالية / تغيير العملة">
+            <i class="fas fa-coins" style="color: #f59e0b; font-size: 0.78rem; margin-left: 0.25rem;"></i>
+            <select class="rq-top-currency-select" onchange="location.href='{% url 'set_currency' %}?currency=' + this.value" aria-label="تحديد العملة">
+              {% for curr in available_currencies|default:ALL_CURRENCIES %}
+              <option value="{{ curr.id }}" {% if current_currency.id == curr.id or CURRENCY.id == curr.id %}selected{% endif %}>{{ curr.symbol }} {{ curr.code }}</option>
+              {% endfor %}
+            </select>
+          </div>
+
           <!-- Slide-over Cart Trigger -->
           <button type="button" onclick="toggleCartDrawer()" class="rq-top-cart-btn" title="سلة المشتريات">
             <i class="fas fa-bag-shopping"></i>
