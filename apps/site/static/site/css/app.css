@@ -1983,3 +1983,44 @@ img {
     margin-inline-end: 0.25rem;
   }
 }
+
+
+/* Strict Logo Size Enforcement */
+.rq-top-logo,
+img.rq-top-logo {
+  width: 32px !important;
+  height: 32px !important;
+  max-width: 32px !important;
+  max-height: 32px !important;
+  min-width: 32px !important;
+  min-height: 32px !important;
+  border-radius: 8px !important;
+  object-fit: cover !important;
+  display: block !important;
+}
+
+.rq-sidebar-logo,
+img.rq-sidebar-logo {
+  width: 34px !important;
+  height: 34px !important;
+  max-width: 34px !important;
+  max-height: 34px !important;
+  min-width: 34px !important;
+  min-height: 34px !important;
+  border-radius: 9px !important;
+  object-fit: cover !important;
+  display: block !important;
+}
+
+.rq-footer-logo,
+img.rq-footer-logo {
+  width: 34px !important;
+  height: 34px !important;
+  max-width: 34px !important;
+  max-height: 34px !important;
+  min-width: 34px !important;
+  min-height: 34px !important;
+  border-radius: 8px !important;
+  object-fit: cover !important;
+  display: block !important;
+}

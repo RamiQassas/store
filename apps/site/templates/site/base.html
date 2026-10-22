@@ -17,7 +17,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
-  <link rel="stylesheet" href="{% static 'site/css/app.css' %}?v=20261022_techhardware_v4">
+  <link rel="stylesheet" href="{% static 'site/css/app.css' %}?v=20261022_logo_v7">
 
   {% if META_PIXEL_ID and not '/control/' in request.path and not '/admin/' in request.path %}
   <script>
@@ -57,17 +57,19 @@
       <div>
         <div class="rq-sidebar-brand-row">
           <div style="display: flex; align-items: center; justify-content: space-between; width: 100%; gap: 0.5rem;">
-            <a href="{% url 'home' %}" class="rq-sidebar-brand" title="رقميات - الرئيسية">
-              {% if is_tenant and tenant_logo %}
-              <img src="{{ tenant_logo }}" alt="{{ STORE_NAME }}" class="rq-sidebar-logo" id="mainSidebarLogo">
-              {% else %}
-              <img src="{% static 'site/img/raqamiyat_logo_square.jpg' %}" alt="شعار رقميات" class="rq-sidebar-logo" id="mainSidebarLogo">
-              {% endif %}
-              <div class="rq-sidebar-brand-text">
-                <span class="rq-sidebar-title">{% if is_tenant %}{{ STORE_NAME }}{% else %}رقميات{% endif %}</span>
-                <span class="rq-sidebar-badge">TECH HARDWARE</span>
-              </div>
-            </a>
+            <div style="display: flex; align-items: center; gap: 0.65rem;">
+              <a href="{% static 'site/img/raqamiyat_logo_square.jpg' %}" onclick="copyLogoUrl(event)" title="انقر لنسخ رابط صورة شعار رقميات" style="display: flex; align-items: center; text-decoration: none; flex-shrink: 0;">
+                {% if is_tenant and tenant_logo %}
+                <img src="{{ tenant_logo }}" alt="{{ STORE_NAME }}" class="rq-sidebar-logo" width="34" height="34" style="width: 34px !important; height: 34px !important; max-width: 34px !important; max-height: 34px !important; border-radius: 9px; object-fit: cover; display: block; border: 1px solid var(--rq-border-light);">
+                {% else %}
+                <img src="{% static 'site/img/raqamiyat_logo_square.jpg' %}" alt="شعار رقميات" class="rq-sidebar-logo" width="34" height="34" style="width: 34px !important; height: 34px !important; max-width: 34px !important; max-height: 34px !important; border-radius: 9px; object-fit: cover; display: block; border: 1px solid var(--rq-border-light);">
+                {% endif %}
+              </a>
+              <a href="{% url 'home' %}" style="display: flex; flex-direction: column; text-decoration: none;" title="الانتقال للرئيسية">
+                <span class="rq-sidebar-title" style="font-size: 1.1rem; font-weight: 900; color: #fff; line-height: 1.2;">{% if is_tenant %}{{ STORE_NAME }}{% else %}رقميات{% endif %}</span>
+                <span class="rq-sidebar-badge" style="font-size: 0.62rem; color: #8b949e; font-weight: 800;">TECH HARDWARE</span>
+              </a>
+            </div>
             <div style="display: flex; align-items: center; gap: 0.35rem;">
               <button type="button" onclick="copyLogoUrl(event)" class="rq-copy-logo-btn" title="نسخ رابط صورة شعار رقميات للمشاركة" aria-label="نسخ رابط الشعار">
                 <i class="fas fa-share-nodes"></i>
@@ -229,10 +231,12 @@
       <header class="rq-app-topbar">
 
         <!-- Top Brand Logo & Share -->
-        <div class="rq-top-brand-wrap">
-          <a href="{% url 'home' %}" class="rq-top-brand" title="رقميات - المتجر التقني">
-            <img src="{% static 'site/img/raqamiyat_logo_square.jpg' %}" alt="رقميات" class="rq-top-logo">
-            <span class="rq-top-title hide-mobile">رقميات</span>
+        <div class="rq-top-brand-wrap" style="display: flex; align-items: center; gap: 0.5rem; flex-shrink: 0;">
+          <a href="{% static 'site/img/raqamiyat_logo_square.jpg' %}" onclick="copyLogoUrl(event)" title="انقر لنسخ رابط صورة الشعار لمشاركته" style="display: flex; align-items: center; text-decoration: none; flex-shrink: 0;">
+            <img src="{% static 'site/img/raqamiyat_logo_square.jpg' %}" alt="شعار رقميات" class="rq-top-logo" width="32" height="32" style="width: 32px !important; height: 32px !important; max-width: 32px !important; max-height: 32px !important; border-radius: 8px; object-fit: cover; display: block; border: 1px solid var(--rq-border-light);">
+          </a>
+          <a href="{% url 'home' %}" class="rq-top-title hide-mobile" title="الرئيسية" style="text-decoration: none; font-size: 0.95rem; font-weight: 900; color: #fff;">
+            رقميات
           </a>
           <button type="button" onclick="copyLogoUrl(event)" class="rq-copy-logo-btn" title="نسخ رابط صورة الشعار لمشاركته" aria-label="نسخ رابط الشعار">
             <i class="fas fa-share-nodes"></i>
@@ -279,9 +283,20 @@
           <div class="rq-footer-grid">
             
             <div class="rq-footer-col">
-              <div style="display: flex; align-items: center; gap: 0.65rem; margin-bottom: 0.85rem;">
-                <img src="{% static 'site/img/raqamiyat_logo_square.jpg' %}" alt="رقميات" style="width: 32px; height: 32px; border-radius: 8px; border: 1px solid var(--rq-border);">
-                <span style="font-size: 1rem; font-weight: 900; color: #fff;">رقميات RAQAMIYAT</span>
+              <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.85rem; flex-wrap: wrap; gap: 0.5rem;">
+                <div style="display: flex; align-items: center; gap: 0.65rem;">
+                  <a href="{% static 'site/img/raqamiyat_logo_square.jpg' %}" onclick="copyLogoUrl(event)" title="انقر لنسخ رابط صورة الشعار لمشاركته" style="display: flex; align-items: center; text-decoration: none;">
+                    <img src="{% static 'site/img/raqamiyat_logo_square.jpg' %}" alt="شعار رقميات" class="rq-footer-logo" width="34" height="34" style="width: 34px !important; height: 34px !important; max-width: 34px !important; max-height: 34px !important; border-radius: 8px; border: 1px solid var(--rq-border); object-fit: cover; display: block;">
+                  </a>
+                  <a href="{% url 'home' %}" style="text-decoration: none;">
+                    <span style="font-size: 1rem; font-weight: 900; color: #fff; display: block; line-height: 1.2;">رقميات RAQAMIYAT</span>
+                    <span style="font-size: 0.65rem; color: #8b949e; font-weight: 800;">TECH HARDWARE STORE</span>
+                  </a>
+                </div>
+                <button type="button" onclick="copyLogoUrl(event)" class="rq-copy-logo-btn" title="نسخ رابط صورة الشعار لمشاركته" style="width: auto; padding: 0.35rem 0.75rem; gap: 0.4rem; font-size: 0.75rem;">
+                  <i class="fas fa-share-nodes"></i>
+                  <span>مشاركة الشعار</span>
+                </button>
               </div>
               <p style="font-size: 0.8rem; color: var(--rq-text-muted); line-height: 1.7; margin-bottom: 1rem;">
                 المتجر المعتمد لأحدث أجهزة التقنية، الهواتف الذكية، اللابتوبات، كاميرات التصوير والمراقبة، تجهيزات شبكات الإنترنت، والإكسسوارات الأصلية بضمان رسمي.
@@ -442,25 +457,36 @@
       e.preventDefault();
       e.stopPropagation();
     }
-    const logoUrl = "{{ request.scheme }}://{{ request.get_host }}{% static 'site/img/raqamiyat_logo_square.jpg' %}";
+    const logoPath = "{% static 'site/img/raqamiyat_logo_square.jpg' %}";
+    const absoluteLogoUrl = window.location.origin + logoPath;
+
+    function onCopied() {
+      showLogoToast("تم نسخ رابط صورة الشعار بنجاح! 📋\n" + absoluteLogoUrl);
+    }
+
     if (navigator.clipboard && navigator.clipboard.writeText) {
-      navigator.clipboard.writeText(logoUrl).then(() => {
-        showLogoToast("تم نسخ رابط صورة شعار رقميات بنجاح! 📋");
-      }).catch(() => fallbackCopy(logoUrl));
+      navigator.clipboard.writeText(absoluteLogoUrl)
+        .then(onCopied)
+        .catch(() => fallbackCopy(absoluteLogoUrl));
     } else {
-      fallbackCopy(logoUrl);
+      fallbackCopy(absoluteLogoUrl);
     }
   }
 
   function fallbackCopy(text) {
-    const inp = document.createElement('input');
+    const inp = document.createElement('textarea');
     inp.value = text;
+    inp.style.position = 'fixed';
+    inp.style.opacity = '0';
     document.body.appendChild(inp);
+    inp.focus();
     inp.select();
     try {
       document.execCommand('copy');
-      showLogoToast("تم نسخ رابط صورة شعار رقميات بنجاح! 📋");
-    } catch(err) {}
+      showLogoToast("تم نسخ رابط صورة الشعار بنجاح! 📋\n" + text);
+    } catch(err) {
+      showLogoToast("رابط الشعار: " + text);
+    }
     document.body.removeChild(inp);
   }
 
@@ -474,7 +500,7 @@
     }
     toast.innerText = msg;
     toast.classList.add('show');
-    setTimeout(() => toast.classList.remove('show'), 2600);
+    setTimeout(() => toast.classList.remove('show'), 3500);
   }
 
   function toggleAppSidebar() {
