@@ -25,7 +25,7 @@
           سجل الطلبات والمشتريات
         </h1>
         <p style="font-size: 0.85rem; color: var(--rq-text-muted); margin: 0;">
-          تتبع حالة طلباتك، استلام المفاتيح والرموز الرقمية، وطباعة فواتير المشتريات.
+          تتبع حالة وتجهيز طلباتك، بيانات الشحن والتوصيل، وطباعة فواتير المشتريات.
         </p>
       </div>
 
@@ -87,7 +87,7 @@
           <div>
             <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.2rem;">
               <h4 style="font-size: 0.95rem; font-weight: 800; color: #fff; margin: 0;">
-                {{ item.variant.product.name|default:'خدمة متجر' }}
+                {{ item.variant.product.name|default:'جهاز / منتج' }}
               </h4>
               {% if item.quantity and item.quantity > 1 %}
               <span style="font-size: 0.72rem; font-weight: 800; padding: 0.15rem 0.45rem; border-radius: 6px; background: rgba(37, 99, 235, 0.15); color: #60a5fa;">
@@ -132,7 +132,7 @@
           <div style="display: flex; align-items: center; gap: 0.45rem;">
             <a href="{% url 'dashboard_order_detail' ord.id %}" class="rq-btn-auth-register" style="padding: 0.5rem 1rem; font-size: 0.78rem;">
               <i class="fas fa-eye text-xs"></i>
-              <span>التفاصيل والأكواد</span>
+              <span>تفاصيل الطلب</span>
             </a>
             <a href="{% url 'dashboard_order_invoice' ord.id %}" target="_blank" class="rq-btn-auth-login" style="padding: 0.5rem 0.85rem; font-size: 0.78rem;" title="طباعة الفاتورة">
               <i class="fas fa-print text-xs"></i>
@@ -148,9 +148,9 @@
     <div style="background: var(--rq-surface-card); border: 1px dashed var(--rq-border); border-radius: var(--rq-radius-xl); padding: 4rem 1.5rem; text-align: center;">
       <i class="fas fa-shopping-cart text-4xl text-slate-600 mb-3 block"></i>
       <h3 style="font-size: 1.1rem; font-weight: 800; color: #fff; margin: 0 0 0.5rem;">لا توجد لديك أي طلبات سابقة</h3>
-      <p style="font-size: 0.85rem; color: var(--rq-text-muted); margin: 0 0 1.5rem;">ابدأ باستكشاف خدمات وبطاقات رقميات واستمتع بالتسليم الفوري.</p>
+      <p style="font-size: 0.85rem; color: var(--rq-text-muted); margin: 0 0 1.5rem;">ابدأ باستكشاف أجهزة ومنتجات رقميات واستمتع بأفضل الأسعار والضمان المعتمد.</p>
       <a href="{% url 'catalog' %}" class="rq-btn-auth-register" style="padding: 0.65rem 1.5rem; font-size: 0.85rem;">
-        تصفح كتالوج الخدمات
+        تصفح كتالوج الأجهزة والمنتجات
       </a>
     </div>
     {% endfor %}

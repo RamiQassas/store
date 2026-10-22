@@ -74,24 +74,83 @@
 
         <!-- Sidebar Navigation Menu -->
         <nav class="rq-sidebar-nav">
-          <div class="rq-nav-section-label">التنقل</div>
+          
+          <!-- Section 1: Main Storefront -->
+          <div class="rq-nav-section-label">التنقل العام</div>
           <a href="{% url 'home' %}" class="rq-sidebar-link {% if request.path == '/' %}active{% endif %}">
             <i class="fas fa-house"></i>
             <span>الرئيسية</span>
           </a>
-          <a href="{% url 'catalog' %}" class="rq-sidebar-link {% if '/catalog/' in request.path %}active{% endif %}">
+          <a href="{% url 'catalog' %}" class="rq-sidebar-link {% if '/catalog/' in request.path and not request.GET.q %}active{% endif %}">
             <i class="fas fa-layer-group"></i>
-            <span>الكتالوج والمنتجات</span>
+            <span>الكتالوج الشامل للأجهزة</span>
           </a>
           {% if not is_tenant %}
           <a href="{% url 'stores_directory' %}" class="rq-sidebar-link {% if '/stores/' in request.path %}active{% endif %}">
             <i class="fas fa-store"></i>
-            <span>دليل المتاجر</span>
+            <span>دليل الفروع والمتاجر</span>
           </a>
           {% endif %}
+
+          <!-- Section 2: Hardware & Electronics Categories -->
+          <div class="rq-nav-section-label">أقسام الأجهزة والتقنيات</div>
+          <a href="{% url 'catalog' %}?q=هاتف" class="rq-sidebar-link {% if 'q=هاتف' in request.get_full_path %}active{% endif %}">
+            <i class="fas fa-mobile-screen-button" style="color: #38bdf8;"></i>
+            <span>الهواتف والأجهزة الذكية</span>
+          </a>
+          <a href="{% url 'catalog' %}?q=لابتوب" class="rq-sidebar-link {% if 'q=لابتوب' in request.get_full_path %}active{% endif %}">
+            <i class="fas fa-laptop" style="color: #818cf8;"></i>
+            <span>أجهزة اللابتوب والكمبيوتر</span>
+          </a>
+          <a href="{% url 'catalog' %}?q=كاميرا" class="rq-sidebar-link {% if 'q=كاميرا' in request.get_full_path %}active{% endif %}">
+            <i class="fas fa-camera" style="color: #34d399;"></i>
+            <span>كاميرات المراقبة والتصوير</span>
+          </a>
+          <a href="{% url 'catalog' %}?q=راوتر" class="rq-sidebar-link {% if 'q=راوتر' in request.get_full_path %}active{% endif %}">
+            <i class="fas fa-wifi" style="color: #fbbf24;"></i>
+            <span>راوترات وتجهيزات الشبكات</span>
+          </a>
+          <a href="{% url 'catalog' %}?q=إكسسوار" class="rq-sidebar-link {% if 'q=إكسسوار' in request.get_full_path %}active{% endif %}">
+            <i class="fas fa-headphones" style="color: #f472b6;"></i>
+            <span>إكسسوارات وملحقات تقنية</span>
+          </a>
+
+          <!-- Section 3: Customer Account & Orders -->
+          <div class="rq-nav-section-label">حسابي وعملياتي</div>
+          <a href="{% url 'dashboard' %}" class="rq-sidebar-link {% if request.path == '/dashboard/' %}active{% endif %}">
+            <i class="fas fa-gauge-high"></i>
+            <span>لوحة التحكم الشخصية</span>
+          </a>
+          <a href="{% url 'dashboard_orders' %}" class="rq-sidebar-link {% if '/dashboard/orders' in request.path %}active{% endif %}">
+            <i class="fas fa-box-archive"></i>
+            <span>سجل طلباتي ومشترياتي</span>
+          </a>
+          <a href="{% url 'dashboard_wallet' %}" class="rq-sidebar-link {% if '/dashboard/wallet' in request.path %}active{% endif %}">
+            <i class="fas fa-wallet"></i>
+            <span>محفظتي والرصيد</span>
+          </a>
+          <a href="{% url 'dashboard_deposits' %}" class="rq-sidebar-link {% if '/dashboard/deposits' in request.path %}active{% endif %}">
+            <i class="fas fa-arrow-down-to-bracket" style="color: #34d399;"></i>
+            <span>إيداع وتعبئة رصيد</span>
+          </a>
+          <a href="{% url 'dashboard_recharge_wallet' %}" class="rq-sidebar-link {% if '/dashboard/recharge' in request.path %}active{% endif %}">
+            <i class="fas fa-credit-card" style="color: #60a5fa;"></i>
+            <span>شحن رصيد بكود كرت</span>
+          </a>
+
+          <!-- Section 4: Support & Policies -->
+          <div class="rq-nav-section-label">المساعدة والضمان</div>
           <a href="{% url 'contact' %}" class="rq-sidebar-link {% if '/contact/' in request.path %}active{% endif %}">
             <i class="fas fa-headset"></i>
-            <span>المساعدة والدعم</span>
+            <span>مركز الدعم الفني المباشر</span>
+          </a>
+          <a href="{% url 'refund_policy' %}" class="rq-sidebar-link {% if '/refund-policy' in request.path %}active{% endif %}">
+            <i class="fas fa-shield-check"></i>
+            <span>سياسة الفحص والضمان</span>
+          </a>
+          <a href="{% url 'terms_of_service' %}" class="rq-sidebar-link {% if '/terms' in request.path %}active{% endif %}">
+            <i class="fas fa-file-contract"></i>
+            <span>الشروط والأحكام الرسمية</span>
           </a>
 
           <!-- Staff / Management Direct Link -->
@@ -99,7 +158,7 @@
           <div class="rq-nav-section-label" style="color: #fbbf24;">الإدارة والتحكم</div>
           <a href="{% url 'control_dashboard' %}" class="rq-sidebar-link rq-sidebar-admin-link {% if '/control/' in request.path %}active{% endif %}">
             <i class="fas fa-sliders"></i>
-            <span>لوحة الإدارة</span>
+            <span>لوحة الإدارة والتحكم</span>
             <span class="rq-admin-tag">Staff</span>
           </a>
           {% endif %}
@@ -310,7 +369,7 @@
         <div style="text-align: center; padding: 4rem 1rem; color: var(--rq-text-muted);">
           <i class="fas fa-cart-arrow-down" style="font-size: 2.2rem; display: block; margin-bottom: 0.75rem; opacity: 0.25;"></i>
           <p style="font-size: 0.92rem; font-weight: 800; color: #fff; margin-bottom: 0.35rem;">سلة المشتريات فارغة</p>
-          <p style="font-size: 0.78rem; color: var(--rq-text-muted);">تصفح الكتالوج وأضف المنتجات والبطاقات لسلتك بسهولة.</p>
+          <p style="font-size: 0.78rem; color: var(--rq-text-muted);">تصفح الكتالوج وأضف الأجهزة والمنتجات لسلتك بسهولة.</p>
         </div>
         {% endif %}
       </div>
