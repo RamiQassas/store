@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 60" width="240" height="60" fill="none">
+  <defs>
+    <linearGradient id="sc-grad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#00C9A7" />
+      <stop offset="100%" stop-color="#0083B0" />
+    </linearGradient>
+    <linearGradient id="sc-gold" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#FFD166" />
+      <stop offset="100%" stop-color="#F78C6B" />
+    </linearGradient>
+  </defs>
+  <!-- Icon Symbol -->
+  <g transform="translate(10, 8)">
+    <rect width="44" height="44" rx="12" fill="url(#sc-grad)" />
+    <!-- Letter S / Cash Wave Symbol -->
+    <path d="M14 26 C14 18, 26 18, 28 22 C30 25, 18 27, 20 32 C22 36, 30 35, 30 29" stroke="#FFFFFF" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round" fill="none" />
+    <circle cx="27" cy="17" r="2.2" fill="url(#sc-gold)" />
+    <circle cx="17" cy="33" r="2.2" fill="url(#sc-gold)" />
+  </g>
+  <!-- Brand Text -->
+  <text x="64" y="32" font-family="'Segoe UI', Roboto, 'Noto Sans Arabic', sans-serif" font-weight="900" font-size="20" fill="#FFFFFF" letter-spacing="0.5">Sham<tspan fill="#00C9A7">Cash</tspan></text>
+  <text x="65" y="46" font-family="'Segoe UI', 'Noto Sans Arabic', sans-serif" font-weight="700" font-size="11" fill="#94A3B8" letter-spacing="1">شام كاش للدفع الإلكتروني</text>
+</svg>

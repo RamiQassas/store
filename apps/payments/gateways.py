@@ -1,6 +1,16 @@
+"""
+Payment Gateway Abstract and Concrete Implementations
+Supports Paymera eGate and ShamCash E-Payment
+"""
+
 from decimal import Decimal
+import logging
+import time
 
 from apps.payments.paymera import PaymeraClient, PaymeraError
+from apps.payments.shamcash import ShamCashClient, ShamCashError
+
+logger = logging.getLogger(__name__)
 
 
 class PaymentGatewayError(Exception):
@@ -21,21 +31,6 @@ class BasePaymentGateway:
 
     def verify_order_payment(self, order):
         raise NotImplementedError
-
-
-class ShamCashPlaceholderGateway(BasePaymentGateway):
-    code = "sham_cash"
-
-    def create_payment(self, deposit, request=None):
-        return {
-            "provider": self.code,
-            "status": "pending",
-            "message": "Sham Cash API placeholder is ready for bank credentials.",
-            "deposit_id": str(deposit.id),
-        }
-
-    def verify_payment(self, deposit):
-        return {"provider": self.code, "status": deposit.status}
 
 
 class PaymeraGateway(BasePaymentGateway):
@@ -89,7 +84,6 @@ class PaymeraGateway(BasePaymentGateway):
         trigger_url = f"{trigger_base}?deposit_id={deposit.id}"
 
         # Paymera operations are strictly in Syrian Liras (SYP)
-        # Calculate amount in SYP
         currency_code = deposit.currency.code if deposit.currency else "USD"
         if currency_code == "SYP":
             syp_amount = deposit.amount
@@ -131,7 +125,7 @@ class PaymeraGateway(BasePaymentGateway):
             deposit.metadata.get("paymera_payment_id") if isinstance(deposit.metadata, dict) else None
         )
         if not payment_id:
-            raise PaymentGatewayError("لا يوجد معرف دفعة بيميرا لهذا الطلب.")
+            raise PaymentGatewayError("لا يوجد معرف دفعة بيميرا مسجل.")
 
         client = self.get_client()
         try:
@@ -162,9 +156,6 @@ class PaymeraGateway(BasePaymentGateway):
         callback_url = f"{callback_base}?order_id={order.id}"
         trigger_url = f"{trigger_base}?order_id={order.id}"
 
-        # Paymera processes transactions exclusively in Syrian Pounds (SYP).
-        # Convert the order total amount from USD to SYP using the store's SYP exchange rate.
-        from apps.common.models import Currency
         store = getattr(order, "store", None)
         syp_currency = None
         if store:
@@ -172,7 +163,6 @@ class PaymeraGateway(BasePaymentGateway):
         if not syp_currency:
             syp_currency = Currency.all_objects.filter(code="SYP", is_active=True).first()
 
-        # Compute exact USD total (preserving fractional precision before 2-decimal truncation)
         exact_usd = Decimal("0.00")
         for item in order.items.all():
             exact_usd += Decimal(str(item.unit_price)) * item.quantity
@@ -215,7 +205,7 @@ class PaymeraGateway(BasePaymentGateway):
             else None
         )
         if not payment_id:
-            raise PaymentGatewayError("لا يوجد معرف دفعة بيميرا لهذا الطلب.")
+            raise PaymentGatewayError("لا يوجد معرف دفعة مسجل للطلب.")
 
         client = self.get_client()
         try:
@@ -224,12 +214,264 @@ class PaymeraGateway(BasePaymentGateway):
             raise PaymentGatewayError(str(err)) from err
 
 
+class ShamCashGateway(BasePaymentGateway):
+    """
+    ShamCash E-Payment Gateway implementation.
+    Supports:
+    - Wallet Deposits in USD (currencyId=1) and SYP (currencyId=2)
+    - Direct Product Checkouts in USD (currencyId=1) and SYP (currencyId=2)
+    - Direct JWE encryption and real-time status inquiry
+    """
+    code = "sham_cash"
+
+    def __init__(self, integration=None):
+        self.integration = integration
+
+    def get_client(self) -> ShamCashClient:
+        has_creds = (
+            self.integration
+            and getattr(self.integration, "api_key", None)
+            and getattr(self.integration, "api_secret", None)
+        )
+        if not has_creds:
+            from apps.payments.models import PaymentGatewayIntegration
+            self.integration = (
+                PaymentGatewayIntegration.all_objects.filter(
+                    provider=PaymentGatewayIntegration.Provider.SHAM_CASH,
+                    is_active=True
+                )
+                .exclude(api_key="")
+                .exclude(api_secret="")
+                .first()
+            )
+
+        if self.integration:
+            return ShamCashClient.from_integration(self.integration)
+
+        from django.conf import settings
+        return ShamCashClient(
+            agent_key=getattr(settings, "SHAM_CASH_AGENT_KEY", ""),
+            secret_key=getattr(settings, "SHAM_CASH_SECRET_KEY", ""),
+            base_url=getattr(settings, "SHAM_CASH_BASE_URL", None),
+            mode=getattr(settings, "SHAM_CASH_MODE", "sandbox"),
+        )
+
+    def create_payment(self, deposit, request=None):
+        """Create payment bill for wallet deposit."""
+        from django.urls import reverse
+        from django.conf import settings
+        client = self.get_client()
+
+        bill_no = f"DEP-{deposit.id}-{int(time.time())}"
+
+        site_url = getattr(settings, "SITE_URL", "").rstrip("/")
+        if site_url:
+            callback_base = f"{site_url}{reverse('shamcash_callback')}"
+            redirect_base = f"{site_url}{reverse('shamcash_redirect')}"
+        elif request:
+            callback_base = request.build_absolute_uri(reverse("shamcash_callback"))
+            redirect_base = request.build_absolute_uri(reverse("shamcash_redirect"))
+        else:
+            callback_base = reverse("shamcash_callback")
+            redirect_base = reverse("shamcash_redirect")
+
+        callback_url = f"{callback_base}?type=deposit&id={deposit.id}&bill_no={bill_no}"
+        redirect_url = f"{redirect_base}?type=deposit&id={deposit.id}&bill_no={bill_no}"
+
+        # Dual currency: USD (1) or SYP (2)
+        curr_code = deposit.currency.code if deposit.currency else "USD"
+        if curr_code == "SYP":
+            currency_id = ShamCashClient.CURRENCY_SYP
+            bill_amount = Decimal(str(deposit.amount)).quantize(Decimal("0.01"))
+        else:
+            currency_id = ShamCashClient.CURRENCY_USD
+            bill_amount = Decimal(str(deposit.amount)).quantize(Decimal("0.01"))
+
+        notes = f"Deposit {deposit.id} for {deposit.user.email}"
+        try:
+            res = client.create_bill(
+                bill_no=bill_no,
+                amount=bill_amount,
+                currency_id=currency_id,
+                callback_url=callback_url,
+                redirect_url=redirect_url,
+                note=notes,
+            )
+            deposit.gateway_payment_id = bill_no
+            if not isinstance(deposit.metadata, dict):
+                deposit.metadata = {}
+            deposit.metadata["shamcash_bill_no"] = bill_no
+            deposit.metadata["shamcash_url"] = res.get("paymentUrl")
+            deposit.metadata["shamcash_currency_id"] = currency_id
+            deposit.metadata["shamcash_charge_amount"] = str(bill_amount)
+            deposit.metadata["shamcash_created_date"] = res.get("createdDate")
+            deposit.metadata["payment_provider"] = self.code
+            deposit.save(update_fields=["gateway_payment_id", "metadata"])
+            return {
+                "url": res.get("paymentUrl"),
+                "payment_id": bill_no,
+                "bill_no": bill_no,
+                "provider": self.code,
+                "status": "pending",
+                "raw": res,
+            }
+        except ShamCashError as err:
+            raise PaymentGatewayError(str(err)) from err
+
+    def verify_payment(self, deposit):
+        bill_no = (
+            deposit.gateway_payment_id
+            or (deposit.metadata.get("shamcash_bill_no") if isinstance(deposit.metadata, dict) else None)
+        )
+        if not bill_no:
+            raise PaymentGatewayError("لا يوجد رقم فاتورة شام كاش مسجل لهذا الإيداع.")
+
+        client = self.get_client()
+        try:
+            return client.get_bill_info(bill_no)
+        except ShamCashError as err:
+            raise PaymentGatewayError(str(err)) from err
+
+    def create_order_payment(self, order, request=None):
+        """Create payment bill for direct order checkout."""
+        from django.urls import reverse
+        from django.conf import settings
+        from apps.common.models import Currency
+        client = self.get_client()
+
+        bill_no = f"ORD-{order.number}-{int(time.time())}"
+
+        site_url = getattr(settings, "SITE_URL", "").rstrip("/")
+        if site_url:
+            callback_base = f"{site_url}{reverse('shamcash_callback')}"
+            redirect_base = f"{site_url}{reverse('shamcash_redirect')}"
+        elif request:
+            callback_base = request.build_absolute_uri(reverse("shamcash_callback"))
+            redirect_base = request.build_absolute_uri(reverse("shamcash_redirect"))
+        else:
+            callback_base = reverse("shamcash_callback")
+            redirect_base = reverse("shamcash_redirect")
+
+        callback_url = f"{callback_base}?type=order&id={order.id}&bill_no={bill_no}"
+        redirect_url = f"{redirect_base}?type=order&id={order.id}&bill_no={bill_no}"
+
+        # Determine requested currency: USD (1) or SYP (2)
+        meta = order.metadata if isinstance(order.metadata, dict) else {}
+        req_curr = None
+        if request:
+            req_curr = request.POST.get("gateway_currency") or request.POST.get("currency")
+        if not req_curr:
+            req_curr = meta.get("gateway_currency") or meta.get("selected_currency")
+
+        exact_usd = Decimal("0.00")
+        for item in order.items.all():
+            exact_usd += Decimal(str(item.unit_price)) * item.quantity
+        if exact_usd <= 0:
+            exact_usd = Decimal(str(order.total_amount))
+
+        if req_curr and str(req_curr).upper() in ("SYP", "2"):
+            # Syrian Pounds
+            store = getattr(order, "store", None)
+            syp_currency = None
+            if store:
+                syp_currency = Currency.all_objects.filter(store=store, code="SYP", is_active=True).first()
+            if not syp_currency:
+                syp_currency = Currency.all_objects.filter(code="SYP", is_active=True).first()
+
+            if syp_currency:
+                syp_val = syp_currency.from_base(exact_usd, "deposit")
+                charge_amount = Decimal(str(syp_val)).quantize(Decimal("0.01"))
+            else:
+                charge_amount = exact_usd.quantize(Decimal("0.01"))
+
+            currency_id = ShamCashClient.CURRENCY_SYP
+            currency_code = "SYP"
+        else:
+            # USD default
+            currency_id = ShamCashClient.CURRENCY_USD
+            charge_amount = exact_usd.quantize(Decimal("0.01"))
+            currency_code = "USD"
+
+        notes = f"Order {order.number} for {order.customer.email}"
+        try:
+            res = client.create_bill(
+                bill_no=bill_no,
+                amount=charge_amount,
+                currency_id=currency_id,
+                callback_url=callback_url,
+                redirect_url=redirect_url,
+                note=notes,
+            )
+            if not isinstance(order.metadata, dict):
+                order.metadata = {}
+            order.metadata["gateway_payment_id"] = bill_no
+            order.metadata["shamcash_bill_no"] = bill_no
+            order.metadata["shamcash_url"] = res.get("paymentUrl")
+            order.metadata["gateway_charge_amount"] = str(charge_amount)
+            order.metadata["gateway_charge_currency"] = currency_code
+            order.metadata["payment_provider"] = self.code
+            order.save(update_fields=["metadata"])
+            return {
+                "url": res.get("paymentUrl"),
+                "payment_id": bill_no,
+                "bill_no": bill_no,
+                "provider": self.code,
+                "status": "pending",
+                "raw": res,
+            }
+        except ShamCashError as err:
+            raise PaymentGatewayError(str(err)) from err
+
+    def verify_order_payment(self, order):
+        bill_no = (
+            order.metadata.get("shamcash_bill_no")
+            or order.metadata.get("gateway_payment_id")
+            if isinstance(order.metadata, dict)
+            else None
+        )
+        if not bill_no:
+            raise PaymentGatewayError("لا يوجد رقم فاتورة شام كاش مسجل لهذا الطلب.")
+
+        client = self.get_client()
+        try:
+            return client.get_bill_info(bill_no)
+        except ShamCashError as err:
+            raise PaymentGatewayError(str(err)) from err
+
+    def refund_order_payment(self, order, reason=""):
+        """Refund a direct order paid via ShamCash."""
+        meta = order.metadata if isinstance(order.metadata, dict) else {}
+        bill_no = meta.get("shamcash_bill_no") or meta.get("gateway_payment_id")
+        if not bill_no:
+            raise PaymentGatewayError("لا يمكن استرداد طلب بدون رقم فاتورة شام كاش.")
+
+        charge_amt = meta.get("gateway_charge_amount") or order.total_amount
+        charge_curr = meta.get("gateway_charge_currency", "USD")
+        currency_id = ShamCashClient.CURRENCY_SYP if charge_curr == "SYP" else ShamCashClient.CURRENCY_USD
+
+        client = self.get_client()
+        try:
+            res = client.refund_bill(
+                bill_no=bill_no,
+                amount=charge_amt,
+                currency_id=currency_id,
+                reason=reason or f"Refund order {order.number}",
+            )
+            order.metadata["shamcash_refunded"] = True
+            order.metadata["shamcash_refund_data"] = res
+            order.save(update_fields=["metadata"])
+            return res
+        except ShamCashError as err:
+            raise PaymentGatewayError(str(err)) from err
+
 
 def gateway_for(provider_or_obj):
     if hasattr(provider_or_obj, "provider"):
         code = provider_or_obj.provider
         if code == "paymera":
             return PaymeraGateway(integration=provider_or_obj)
+        if code == "sham_cash":
+            return ShamCashGateway(integration=provider_or_obj)
     elif hasattr(provider_or_obj, "gateway") and provider_or_obj.gateway:
         return gateway_for(provider_or_obj.gateway)
     elif hasattr(provider_or_obj, "provider_type"):
@@ -240,5 +482,5 @@ def gateway_for(provider_or_obj):
     if code == "paymera":
         return PaymeraGateway()
     if code == "sham_cash":
-        return ShamCashPlaceholderGateway()
-    return ShamCashPlaceholderGateway()
+        return ShamCashGateway()
+    return ShamCashGateway()

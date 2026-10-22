@@ -1,6 +1,6 @@
 from django.urls import path
 from apps.site import views, api_views
-from apps.payments import views_paymera
+from apps.payments import views_paymera, views_shamcash
 from apps.stores import views_admin, views_saas
 
 urlpatterns = [
@@ -75,6 +75,10 @@ urlpatterns = [
     path("api/users/search/", api_views.api_user_search, name="api_user_search"),
     path("api/users/lookup/", api_views.api_lookup_user, name="api_lookup_user"),
     path("api/products/live-search/", api_views.api_live_product_search, name="api_live_product_search"),
+
+    # ShamCash Gateway Endpoints
+    path("payments/shamcash/callback/", views_shamcash.shamcash_callback_view, name="shamcash_callback"),
+    path("payments/shamcash/redirect/", views_shamcash.shamcash_redirect_view, name="shamcash_redirect"),
 
     # Paymera Gateway Endpoints
     path("payments/paymera/callback/", views_paymera.paymera_callback_view, name="paymera_callback"),

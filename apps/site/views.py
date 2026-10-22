@@ -2500,6 +2500,8 @@ def product_detail(request, pk):
                 if not selected_gateway:
                     if payment_method in ("paymera", "direct_paymera"):
                         selected_gateway = PaymentGatewayIntegration.all_objects.filter(provider=PaymentGatewayIntegration.Provider.PAYMERA, is_active=True).first()
+                    elif payment_method in ("sham_cash", "shamcash", "direct_sham_cash"):
+                        selected_gateway = PaymentGatewayIntegration.all_objects.filter(provider=PaymentGatewayIntegration.Provider.SHAM_CASH, is_active=True).first()
 
             if not selected_gateway:
                 err_msg = "بوابة الدفع الإلكتروني المحددة غير مفعلة حالياً."
@@ -2794,6 +2796,7 @@ def product_detail(request, pk):
         "missing_amount": missing_amount,
         "missing_currency": missing_currency,
         "gateway_methods": gateway_methods,
+        "syp_rate": float(Currency.all_objects.filter(code="SYP", is_active=True).first().buy_rate) if Currency.all_objects.filter(code="SYP", is_active=True).exists() else 15000.0,
         "prev_product": prev_product,
         "next_product": next_product,
         "product_index": product_index,

@@ -296,6 +296,14 @@ class PaymentMethod(TimeStampedModel):
             return default_currency.buy_rate
         return Decimal("1.000000")
 
+    @property
+    def currency(self):
+        first = self.supported_currencies.first()
+        if first:
+            return first
+        from apps.common.models import Currency
+        return Currency.all_objects.filter(is_default=True).first() or Currency.all_objects.filter(code="USD").first() or Currency.all_objects.first()
+
     def get_effective_withdrawal_rate(self):
         from apps.common.models import Currency
         if self.withdrawal_exchange_rate:
@@ -325,6 +333,7 @@ class PaymentMethodExchangeRateLog(TimeStampedModel):
 class PaymentGatewayIntegration(TimeStampedModel):
     class Provider(models.TextChoices):
         PAYMERA = "paymera", "Paymera (بيميرا)"
+        SHAM_CASH = "sham_cash", "شام كاش (ShamCash)"
         BANIYAS_CRYPTO = "baniyas_crypto", "Baniyas Crypto"
         CUSTOM = "custom", "Custom API"
 
@@ -375,6 +384,8 @@ class PaymentGatewayIntegration(TimeStampedModel):
                 pass
         if self.provider == "paymera" or "paymera" in (self.name or "").lower() or "بيميرا" in (self.name or ""):
             return "/media/payment-methods/logos/paymera.png"
+        if self.provider == "sham_cash" or "sham" in (self.name or "").lower() or "شام" in (self.name or ""):
+            return "/static/site/img/brands/shamcash.svg"
         return None
 
     class Meta:

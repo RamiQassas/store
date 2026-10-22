@@ -83,6 +83,7 @@
                data-max="{{ m.max_deposit }}"
                data-fee="{{ m.deposit_fee_percent }}"
                data-instructions="{{ m.instructions|default:''|escapejs }}"
+               data-currencies='[{% for c in m.supported_currencies.all %}{"id":"{{ c.id }}","code":"{{ c.code }}","symbol":"{{ c.symbol }}","name":"{{ c.name }}"}{% if not forloop.last %},{% endif %}{% endfor %}]'
                onclick="selectDepositMethod(this)">
             
             {% if m.logo %}
@@ -125,7 +126,16 @@
           <div id="method-instructions-text" style="font-size: 0.85rem; color: #cbd5e1; line-height: 1.7; white-space: pre-line;"></div>
         </div>
 
-        <!-- Amount Input -->
+                <!-- Currency Selector for Multi-Currency Methods (ShamCash etc.) -->
+        <div id="method-currency-selector-box" style="display: none; margin-bottom: 1.25rem; background: rgba(0, 201, 167, 0.08); border: 1px dashed rgba(0, 201, 167, 0.4); border-radius: var(--rq-radius-md); padding: 1rem;">
+          <label class="rq-label" style="margin-bottom: 0.65rem; display: flex; align-items: center; gap: 0.4rem; color: #00C9A7; font-weight: 800;">
+            <i class="fas fa-coins"></i>
+            <span>اختر عملة الإيداع:</span>
+          </label>
+          <div id="method-currency-options" style="display: flex; gap: 0.75rem; flex-wrap: wrap;"></div>
+        </div>
+
+<!-- Amount Input -->
         <div class="rq-form-group">
           <label class="rq-label">
             <span>المبلغ المراد إيداعه:</span>
@@ -270,6 +280,11 @@ function selectDepositMethod(el) {
   document.querySelectorAll('.rq-method-card').forEach(c => c.classList.remove('selected'));
   el.classList.add('selected');
 
+  let currencies = [];
+  try {
+    currencies = JSON.parse(el.getAttribute('data-currencies') || '[]');
+  } catch(e) {}
+
   activeMethodData = {
     id: el.getAttribute('data-method-id'),
     name: el.getAttribute('data-method-name'),
@@ -279,12 +294,62 @@ function selectDepositMethod(el) {
     min: parseFloat(el.getAttribute('data-min')) || 0,
     max: parseFloat(el.getAttribute('data-max')) || 0,
     fee: parseFloat(el.getAttribute('data-fee')) || 0,
-    instructions: el.getAttribute('data-instructions') || ''
+    instructions: el.getAttribute('data-instructions') || '',
+    currencies: currencies
   };
+
+  // If currencies exist and currencyId is empty, select the first
+  if (currencies.length > 0) {
+    const firstC = currencies[0];
+    activeMethodData.currencyId = firstC.id;
+    activeMethodData.currencyCode = firstC.code;
+    activeMethodData.currencySymbol = firstC.symbol;
+  }
 
   document.getElementById('selected-payment-method').value = activeMethodData.id;
   document.getElementById('selected-currency-id').value = activeMethodData.currencyId;
+  
+  // Render currency pills if method supports multiple currencies
+  renderCurrencySelector(currencies);
   updateMethodDetailsView();
+}
+
+function renderCurrencySelector(currencies) {
+  const box = document.getElementById('method-currency-selector-box');
+  const container = document.getElementById('method-currency-options');
+  if (!box || !container) return;
+
+  if (!currencies || currencies.length <= 1) {
+    box.style.display = 'none';
+    return;
+  }
+
+  box.style.display = 'block';
+  container.innerHTML = '';
+
+  currencies.forEach((c, idx) => {
+    const isSelected = (c.id === activeMethodData.currencyId) || (idx === 0 && !activeMethodData.currencyId);
+    const pill = document.createElement('div');
+    pill.className = 'rq-currency-pill ' + (isSelected ? 'active' : '');
+    pill.style.cssText = `
+      display: flex; align-items: center; gap: 0.5rem; padding: 0.6rem 1rem; border-radius: 10px;
+      cursor: pointer; font-size: 0.85rem; font-weight: 700; transition: all 0.2s ease;
+      background: ${isSelected ? 'rgba(0, 201, 167, 0.2)' : 'rgba(0, 0, 0, 0.35)'};
+      border: 1px solid ${isSelected ? '#00C9A7' : 'rgba(255, 255, 255, 0.1)'};
+      color: ${isSelected ? '#00C9A7' : '#e2e8f0'};
+    `;
+    pill.innerHTML = `<i class="fas fa-check-circle" style="display: ${isSelected ? 'inline-block' : 'none'};"></i><span>${c.code} (${c.symbol})</span>`;
+    pill.onclick = () => {
+      activeMethodData.currencyId = c.id;
+      activeMethodData.currencyCode = c.code;
+      activeMethodData.currencySymbol = c.symbol;
+      document.getElementById('selected-currency-id').value = c.id;
+      renderCurrencySelector(currencies);
+      updateMethodDetailsView();
+      if (typeof calculateDepositNet === 'function') calculateDepositNet();
+    };
+    container.appendChild(pill);
+  });
 }
 
 function updateMethodDetailsView() {
