@@ -300,7 +300,7 @@
        5. MOBILE SIDE NAVIGATION DRAWER (GENERAL LINKS & ACCOUNT CONTROLS)
        ==================================================================== -->
   <div class="rq-drawer-backdrop" id="rq-mobile-backdrop" onclick="toggleMobileMenu(false)"></div>
-  <aside class="rq-cart-drawer" id="rq-mobile-drawer" style="left: auto; right: 0; transform: translateX(100%); border-right: none; border-left: 1px solid var(--rq-border);" aria-label="القائمة الجانبية">
+  <aside class="rq-mobile-menu-drawer" id="rq-mobile-drawer" aria-label="القائمة الجانبية">
     
     <!-- Drawer Header -->
     <div style="padding: 1.15rem 1.25rem; border-bottom: 1px solid var(--rq-border); display: flex; align-items: center; justify-content: space-between; background: var(--rq-surface-card);">
@@ -671,9 +671,11 @@
       if (open) {
         drawer.classList.add('open');
         backdrop.classList.add('open');
+        document.body.style.overflow = 'hidden';
       } else {
         drawer.classList.remove('open');
         backdrop.classList.remove('open');
+        document.body.style.overflow = '';
       }
     }
 
@@ -682,11 +684,13 @@
       var backdrop = document.getElementById('rq-mobile-backdrop');
       if (!drawer || !backdrop) return;
       if (open) {
-        drawer.style.transform = 'translateX(0)';
+        drawer.classList.add('open');
         backdrop.classList.add('open');
+        document.body.style.overflow = 'hidden';
       } else {
-        drawer.style.transform = 'translateX(100%)';
+        drawer.classList.remove('open');
         backdrop.classList.remove('open');
+        document.body.style.overflow = '';
       }
     }
 

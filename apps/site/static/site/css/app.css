@@ -137,6 +137,9 @@ html {
   -webkit-text-size-adjust: 100%;
   background-color: var(--rq-bg-body);
   color: var(--rq-text-primary);
+  overflow-x: hidden;
+  max-width: 100vw;
+  width: 100%;
 }
 
 body {
@@ -147,6 +150,8 @@ body {
   color: var(--rq-text-primary);
   line-height: 1.6;
   overflow-x: hidden;
+  max-width: 100vw;
+  width: 100%;
   min-height: 100vh;
   display: flex;
   flex-direction: column;
@@ -1365,19 +1370,25 @@ button, input, select, textarea {
 }
 
 /* ==========================================================================
-   11. CART DRAWER &MOBILE NAVIGATION DRAWER
+   11. CART DRAWER & MOBILE NAVIGATION DRAWER
    ========================================================================== */
 .rq-drawer-backdrop {
   position: fixed;
   inset: 0;
-  background: rgba(2, 6, 23, 0.65);
-  backdrop-filter: blur(4px);
+  background: rgba(2, 6, 23, 0.72);
+  backdrop-filter: blur(6px);
   z-index: 200;
-  display: none;
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.28s ease, visibility 0.28s ease;
+  pointer-events: none;
 }
 
 .rq-drawer-backdrop.open {
   display: block;
+  opacity: 1;
+  visibility: visible;
+  pointer-events: auto;
 }
 
 .rq-cart-drawer {
@@ -1385,8 +1396,8 @@ button, input, select, textarea {
   top: 0;
   bottom: 0;
   left: 0;
-  width: 100%;
-  max-width: 410px;
+  width: 88vw;
+  max-width: 380px;
   background: var(--rq-bg-surface);
   border-right: 1px solid var(--rq-border);
   z-index: 210;
@@ -1394,11 +1405,43 @@ button, input, select, textarea {
   flex-direction: column;
   box-shadow: var(--rq-shadow-lg);
   transform: translateX(-100%);
-  transition: transform 0.26s cubic-bezier(0.4, 0, 0.2, 1);
+  visibility: hidden;
+  pointer-events: none;
+  transition: transform 0.28s cubic-bezier(0.4, 0, 0.2, 1), visibility 0.28s ease;
 }
 
 .rq-cart-drawer.open {
   transform: translateX(0);
+  visibility: visible;
+  pointer-events: auto;
+}
+
+/* Dedicated Mobile Menu Drawer (Slides from Right in RTL) */
+.rq-mobile-menu-drawer {
+  position: fixed;
+  top: 0;
+  bottom: 0;
+  right: 0;
+  left: auto;
+  width: 88vw;
+  max-width: 340px;
+  background: var(--rq-bg-surface);
+  border-left: 1px solid var(--rq-border);
+  border-right: none;
+  z-index: 215;
+  display: flex;
+  flex-direction: column;
+  box-shadow: -10px 0 35px rgba(0, 0, 0, 0.55);
+  transform: translateX(100%);
+  visibility: hidden;
+  pointer-events: none;
+  transition: transform 0.28s cubic-bezier(0.4, 0, 0.2, 1), visibility 0.28s ease;
+}
+
+.rq-mobile-menu-drawer.open {
+  transform: translateX(0);
+  visibility: visible;
+  pointer-events: auto;
 }
 
 /* Mobile Menu Link Items */
