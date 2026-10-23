@@ -11816,6 +11816,12 @@ def payment_status_view(request):
     target_type = request.GET.get("type", "deposit")
     obj_id = request.GET.get("id") or request.GET.get("deposit_id") or request.GET.get("order_id") or ""
     status_param = request.GET.get("status", "").lower()
+    req_action = (request.POST.get("action") or request.GET.get("action") or "").lower()
+    user_wants_cancel = (
+        req_action in ("cancel", "cancelled", "canceled", "user_cancel")
+        or status_param in ("cancel", "cancelled", "canceled", "user_cancel")
+        or request.GET.get("cancel") in ("1", "true", "yes")
+    )
     
     status = "pending"
     title = "حالة عملية الدفع"
@@ -11847,8 +11853,20 @@ def payment_status_view(request):
             with bypass_tenant_filter():
                 deposit = DepositRequest.all_objects.filter(pk=obj_id).first()
         if deposit:
+            # Handle user explicit cancellation
+            if user_wants_cancel:
+                is_deposit_owner = (
+                    (request.user.is_authenticated and deposit.user_id == request.user.id)
+                    or not deposit.user_id
+                )
+                if is_deposit_owner and deposit.status == DepositRequest.Status.PENDING:
+                    deposit.status = DepositRequest.Status.REJECTED
+                    deposit.admin_note = "تم إلغاء عملية الدفع من قبل المستخدم."
+                    deposit.save(update_fields=["status", "admin_note", "updated_at"])
+                    deposit.refresh_from_db()
+
             # Active realtime verification with ShamCash if still pending
-            if deposit.status == DepositRequest.Status.PENDING and deposit.payment_method and getattr(deposit.payment_method, "gateway", None):
+            if deposit.status == DepositRequest.Status.PENDING and not user_wants_cancel and deposit.payment_method and getattr(deposit.payment_method, "gateway", None):
                 gw = deposit.payment_method.gateway
                 if getattr(gw, "provider", "") == "sham_cash":
                     try:
@@ -11891,10 +11909,16 @@ def payment_status_view(request):
                 status = "success"
                 title = "تم شحن الرصيد بنجاح!"
                 message = f"تم تأكيد عملية الدفع بنجاح عبر {provider_title} وتم شحن رصيد محفظتك فورياً."
-            elif deposit.status == DepositRequest.Status.REJECTED or status_param in ("failed", "rejected", "cancel", "canceled", "cancelled"):
-                status = "cancelled" if status_param in ("cancel", "canceled", "cancelled") else "failed"
-                title = "تم إلغاء عملية الدفع" if status == "cancelled" else "فشلت عملية الدفع"
-                message = deposit.admin_note or "تعذر تأكيد عملية الدفع من قبل المزود."
+            elif deposit.status == DepositRequest.Status.REJECTED or status_param in ("failed", "rejected", "cancel", "canceled", "cancelled") or user_wants_cancel:
+                is_cancelled_by_user = user_wants_cancel or ("المستخدم" in (deposit.admin_note or "")) or status_param in ("cancel", "canceled", "cancelled")
+                if is_cancelled_by_user:
+                    status = "cancelled"
+                    title = "تم إلغاء عملية الدفع"
+                    message = "تم إلغاء عملية الدفع من قبل المستخدم، ولم يتم خصم أي رصيد من حسابك."
+                else:
+                    status = "failed"
+                    title = "فشلت عملية الدفع"
+                    message = deposit.admin_note or "تعذر تأكيد عملية الدفع من قبل المزود."
             else:
                 status = "pending"
                 title = "العملية قيد المراجعة والمعالجة"
@@ -11908,8 +11932,26 @@ def payment_status_view(request):
             with bypass_tenant_filter():
                 order = Order.all_objects.filter(pk=obj_id).first()
         if order:
+            # Handle user explicit cancellation
+            if user_wants_cancel:
+                is_order_owner = (
+                    (request.user.is_authenticated and order.customer_id == request.user.id)
+                    or not order.customer_id
+                )
+                if is_order_owner and order.status == Order.Status.PENDING:
+                    order.status = Order.Status.CANCELLED
+                    order.admin_note = "تم إلغاء عملية الدفع من قبل المستخدم."
+                    order.save(update_fields=["status", "admin_note", "updated_at"])
+                    OrderLog.objects.create(
+                        order=order,
+                        status=Order.Status.CANCELLED,
+                        note="تم إلغاء عملية الدفع من قبل المستخدم.",
+                        created_by=request.user if request.user.is_authenticated else None,
+                    )
+                    order.refresh_from_db()
+
             # Active realtime verification with ShamCash if still pending
-            if order.status == Order.Status.PENDING:
+            if order.status == Order.Status.PENDING and not user_wants_cancel:
                 active_bill = (order.metadata.get("gateway_payment_id") if order.metadata else "") or getattr(order, "order_number", "")
                 if active_bill:
                     try:
@@ -11948,10 +11990,16 @@ def payment_status_view(request):
                 status = "success"
                 title = "تم تأكيد طلبك وسداد قيمته بنجاح!"
                 message = "تم تأكيد عملية الدفع بنجاح وجارٍ تنفيذ وتجهيز طلبك فورياً."
-            elif order.status == Order.Status.CANCELLED or status_param in ("failed", "cancelled", "cancel"):
-                status = "cancelled" if status_param in ("cancel", "cancelled") else "failed"
-                title = "تم إلغاء الطلب" if status == "cancelled" else "فشل سداد الطلب"
-                message = order.admin_note or "لم تكتمل عملية السداد."
+            elif order.status == Order.Status.CANCELLED or status_param in ("failed", "cancelled", "cancel") or user_wants_cancel:
+                is_cancelled_by_user = user_wants_cancel or ("المستخدم" in (order.admin_note or "")) or status_param in ("cancel", "canceled", "cancelled")
+                if is_cancelled_by_user:
+                    status = "cancelled"
+                    title = "تم إلغاء الطلب"
+                    message = "تم إلغاء عملية الدفع والطلب من قبل المستخدم، ولم يتم خصم أي رصيد من حسابك."
+                else:
+                    status = "failed"
+                    title = "فشل سداد الطلب"
+                    message = order.admin_note or "لم تكتمل عملية السداد."
             else:
                 status = "pending"
                 title = "طلبك قيد المتابعة"

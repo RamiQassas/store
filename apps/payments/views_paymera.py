@@ -459,10 +459,9 @@ def paymera_callback_view(request):
         if is_cancelled_url and is_deposit_owner:
             if deposit.status == DepositRequest.Status.PENDING:
                 deposit.status = DepositRequest.Status.REJECTED
-                deposit.admin_note = f"Paymera deposit cancelled by user via URL (status={status_param or 'cancelled'})"
+                deposit.admin_note = "تم إلغاء عملية الدفع من قبل المستخدم."
                 deposit.save(update_fields=["status", "admin_note", "updated_at"])
-            messages.warning(request, "تم إلغاء عملية الإيداع.")
-            return redirect("dashboard_deposits")
+            return redirect(f"{reverse('payment_status')}?type=deposit&id={deposit.id}&status=cancelled")
 
         dep_integration = getattr(deposit.payment_method, "gateway", None) or integration
 
@@ -481,7 +480,7 @@ def paymera_callback_view(request):
                 elif payment_status in (PaymeraClient.STATUS_CANCELED, PaymeraClient.STATUS_FAILED):
                     if deposit.status == DepositRequest.Status.PENDING:
                         deposit.status = DepositRequest.Status.REJECTED
-                        deposit.admin_note = f"Paymera transaction status: {payment_status}"
+                        deposit.admin_note = "تم إلغاء عملية الدفع من قبل المستخدم." if payment_status == PaymeraClient.STATUS_CANCELED else f"Paymera transaction status: {payment_status}"
                         if not isinstance(deposit.metadata, dict):
                             deposit.metadata = {}
                         deposit.metadata["paymera_status_data"] = status_res

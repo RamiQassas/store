@@ -124,7 +124,7 @@
   <div class="receipt-card p-6 sm:p-10 text-center relative">
     
     <!-- Ambient Glow Effect -->
-    <div id="ambient-glow" style="position: absolute; top: -50px; left: 50%; transform: translateX(-50%); width: 280px; height: 180px; background: {% if status == 'success' %}radial-gradient(circle, rgba(16, 185, 129, 0.25) 0%, transparent 70%){% elif status == 'failed' or status == 'cancelled' %}radial-gradient(circle, rgba(239, 68, 68, 0.25) 0%, transparent 70%){% else %}radial-gradient(circle, rgba(6, 182, 212, 0.25) 0%, transparent 70%){% endif %}; pointer-events: none; transition: background 0.5s ease;"></div>
+    <div id="ambient-glow" style="position: absolute; top: -50px; left: 50%; transform: translateX(-50%); width: 280px; height: 180px; background: {% if status == 'success' %}radial-gradient(circle, rgba(16, 185, 129, 0.25) 0%, transparent 70%){% elif status == 'cancelled' %}radial-gradient(circle, rgba(245, 158, 11, 0.2) 0%, transparent 70%){% elif status == 'failed' %}radial-gradient(circle, rgba(239, 68, 68, 0.25) 0%, transparent 70%){% else %}radial-gradient(circle, rgba(6, 182, 212, 0.25) 0%, transparent 70%){% endif %}; pointer-events: none; transition: background 0.5s ease;"></div>
 
     <!-- Live Auto-Polling Radar Badge (Shown when pending) -->
     <div id="live-polling-badge" style="display: {% if status == 'pending' %}inline-flex{% else %}none{% endif %}; align-items: center; gap: 0.6rem; background: rgba(6, 182, 212, 0.12); border: 1.5px solid rgba(6, 182, 212, 0.35); border-radius: 9999px; padding: 0.4rem 1.15rem; margin-bottom: 1.25rem;">
@@ -143,7 +143,12 @@
           <circle class="circle-bg" cx="26" cy="26" r="23" fill="none"/>
           <path class="check-icon" fill="none" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round" d="M14.1 27.2l7.1 7.2 16.7-16.8"/>
         </svg>
-        {% elif status == 'failed' or status == 'cancelled' %}
+        {% elif status == 'cancelled' %}
+        <svg class="status-circle" style="stroke: #f59e0b; box-shadow: inset 0px 0px 0px 45px rgba(245, 158, 11, 0.15);" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 52 52">
+          <circle class="circle-bg" style="stroke: #f59e0b;" cx="26" cy="26" r="23" fill="none"/>
+          <path style="stroke: #f59e0b; stroke-dasharray: 48; stroke-dashoffset: 0; animation: none;" fill="none" stroke-width="3.5" stroke-linecap="round" d="M16 16 36 36 M36 16 16 36"/>
+        </svg>
+        {% elif status == 'failed' %}
         <svg class="status-circle failed" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 52 52">
           <circle class="circle-bg" cx="26" cy="26" r="23" fill="none"/>
           <path class="cross-icon" fill="none" stroke-width="3.5" stroke-linecap="round" d="M16 16 36 36 M36 16 16 36"/>
@@ -177,11 +182,21 @@
         {% elif status == 'failed' %}
           تعذر إتمام العملية من قبل مزود الخدمة. يرجى مراجعة بياناتك والمحاولة مجدداً.
         {% elif status == 'cancelled' %}
-          تم إلغاء العملية بناءً على طلبك. لم يتم خصم أي رصيد.
+          تم إلغاء عملية الدفع من قبل المستخدم، ولم يتم خصم أي رصيد من حسابك.
         {% else %}
           تم استلام إشعار الدفع وبانتظار اكتمال المعالجة البنكية، وسيتم تحديث رصيدك تلقائياً فور التأكيد.
         {% endif %}
       </p>
+
+      <!-- User Explicit Cancellation Action (Shown when pending) -->
+      {% if status == 'pending' %}
+      <div id="user-cancel-action-box" style="margin: -0.75rem auto 1.5rem; text-align: center;">
+        <button type="button" onclick="cancelPaymentByUser()" style="background: rgba(239, 68, 68, 0.1); border: 1.5px solid rgba(239, 68, 68, 0.35); color: #f87171; border-radius: 12px; padding: 0.55rem 1.25rem; font-size: 0.82rem; font-weight: 800; cursor: pointer; display: inline-flex; align-items: center; gap: 0.5rem; transition: all 0.2s ease;">
+          <i class="fas fa-times-circle"></i>
+          <span>إلغاء العملية من قبل المستخدم</span>
+        </button>
+      </div>
+      {% endif %}
 
       <!-- Amount Highlight Box -->
       {% if amount_display %}
@@ -240,8 +255,8 @@
             <i class="fas fa-times-circle ml-1"></i> عملية مرفوضة
           </span>
           {% elif status == 'cancelled' %}
-          <span id="status-badge" style="background: rgba(148, 163, 184, 0.15); color: #94a3b8; border: 1px solid rgba(148, 163, 184, 0.3); padding: 0.2rem 0.65rem; border-radius: 999px; font-size: 0.75rem; font-weight: 800; transition: all 0.3s ease;">
-            <i class="fas fa-ban ml-1"></i> ملغاة من العميل
+          <span id="status-badge" style="background: rgba(245, 158, 11, 0.15); color: #f59e0b; border: 1px solid rgba(245, 158, 11, 0.35); padding: 0.2rem 0.65rem; border-radius: 999px; font-size: 0.75rem; font-weight: 800; transition: all 0.3s ease;">
+            <i class="fas fa-ban ml-1"></i> تم إلغاء العملية من قبل المستخدم
           </span>
           {% else %}
           <span id="status-badge" style="background: rgba(6, 182, 212, 0.15); color: #06b6d4; border: 1px solid rgba(6, 182, 212, 0.3); padding: 0.2rem 0.65rem; border-radius: 999px; font-size: 0.75rem; font-weight: 800; transition: all 0.3s ease;">
@@ -417,7 +432,10 @@
         if (data.status === 'success') {
           clearInterval(pollInterval);
           applyLiveSuccess(data);
-        } else if (data.status === 'failed' || data.status === 'cancelled') {
+        } else if (data.status === 'cancelled') {
+          clearInterval(pollInterval);
+          applyLiveCancelled(data);
+        } else if (data.status === 'failed') {
           clearInterval(pollInterval);
           applyLiveFailed(data);
         }
@@ -425,6 +443,78 @@
         console.warn("Live status check error:", err);
       }
     }, 2200);
+  }
+
+  async function cancelPaymentByUser() {
+    if (!confirm('هل أنت متأكد من رغبتك في إلغاء عملية الدفع؟')) return;
+    const cancelUrl = window.location.href + (window.location.href.includes('?') ? '&' : '?') + 'action=cancel&status=cancelled&format=json';
+    try {
+      const resp = await fetch(cancelUrl, {
+        method: 'POST',
+        headers: {
+          'X-Requested-With': 'XMLHttpRequest',
+          'X-CSRFToken': '{{ csrf_token }}'
+        }
+      });
+      if (resp.ok) {
+        const data = await resp.json();
+        if (data.status === 'cancelled') {
+          if (typeof pollInterval !== 'undefined' && pollInterval) clearInterval(pollInterval);
+          applyLiveCancelled(data);
+          return;
+        }
+      }
+      window.location.href = window.location.href + (window.location.href.includes('?') ? '&' : '?') + 'action=cancel&status=cancelled';
+    } catch (e) {
+      window.location.href = window.location.href + (window.location.href.includes('?') ? '&' : '?') + 'action=cancel&status=cancelled';
+    }
+  }
+
+  function applyLiveCancelled(data) {
+    if (typeof pollInterval !== 'undefined' && pollInterval) clearInterval(pollInterval);
+
+    const badge = document.getElementById('live-polling-badge');
+    if (badge) badge.style.display = 'none';
+
+    const cancelActionBox = document.getElementById('user-cancel-action-box');
+    if (cancelActionBox) cancelActionBox.style.display = 'none';
+
+    const glow = document.getElementById('ambient-glow');
+    if (glow) glow.style.background = 'radial-gradient(circle, rgba(245, 158, 11, 0.2) 0%, transparent 70%)';
+
+    const iconWrap = document.getElementById('status-icon-container');
+    if (iconWrap) {
+      iconWrap.innerHTML = `
+        <svg class="status-circle" style="stroke: #f59e0b; box-shadow: inset 0px 0px 0px 45px rgba(245, 158, 11, 0.15);" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 52 52">
+          <circle class="circle-bg" style="stroke: #f59e0b;" cx="26" cy="26" r="23" fill="none"/>
+          <path style="stroke: #f59e0b; stroke-dasharray: 48; stroke-dashoffset: 0; animation: none;" fill="none" stroke-width="3.5" stroke-linecap="round" d="M16 16 36 36 M36 16 16 36"/>
+        </svg>
+      `;
+    }
+
+    const titleEl = document.getElementById('status-title');
+    if (titleEl) {
+      titleEl.innerText = data.title || 'تم إلغاء عملية الدفع';
+      titleEl.style.color = '#fff';
+    }
+    const descEl = document.getElementById('status-desc');
+    if (descEl) {
+      descEl.innerText = data.message || 'تم إلغاء عملية الدفع من قبل المستخدم، ولم يتم خصم أي رصيد من حسابك.';
+    }
+
+    const statusBadge = document.getElementById('status-badge');
+    if (statusBadge) {
+      statusBadge.style.background = 'rgba(245, 158, 11, 0.15)';
+      statusBadge.style.color = '#f59e0b';
+      statusBadge.style.borderColor = 'rgba(245, 158, 11, 0.35)';
+      statusBadge.innerHTML = '<i class="fas fa-ban ml-1"></i> تم إلغاء العملية من قبل المستخدم';
+    }
+
+    const actionBtn = document.getElementById('action-btn');
+    if (actionBtn) {
+      actionBtn.style.background = 'linear-gradient(135deg, #475569, #334155)';
+      actionBtn.innerHTML = '<i class="fas fa-wallet ml-1"></i><span>العودة إلى المحفظة</span>';
+    }
   }
 
   function applyLiveSuccess(data) {
