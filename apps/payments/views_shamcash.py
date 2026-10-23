@@ -405,12 +405,8 @@ def shamcash_redirect_view(request):
                         logger.warning(f"Could not actively verify ShamCash bill on return: {err}")
 
                 deposit.refresh_from_db()
-                if deposit.status == DepositRequest.Status.COMPLETED:
-                    messages.success(request, "تم شحن رصيد محفظتك بنجاح عبر شام كاش!")
-                elif deposit.status == DepositRequest.Status.REJECTED:
-                    messages.warning(request, "تم إلغاء أو انتهاء صلاحية عملية الدفع عبر شام كاش.")
-                else:
-                    messages.info(request, "عملية الإيداع قيد المراجعة، وسيتم إضافة الرصيد فور استلام إشعار السداد.")
+                st = "success" if deposit.status == DepositRequest.Status.COMPLETED else ("failed" if deposit.status == DepositRequest.Status.REJECTED else "pending")
+                return redirect(f"{reverse('payment_status')}?type=deposit&id={deposit.id}&status={st}")
 
         return redirect("dashboard_deposits")
 
@@ -447,14 +443,8 @@ def shamcash_redirect_view(request):
                         logger.warning(f"Could not actively verify ShamCash order on return: {err}")
 
                 order.refresh_from_db()
-                if order.status in (Order.Status.PROCESSING, Order.Status.COMPLETED):
-                    messages.success(request, "تم سداد قيمة الطلب بنجاح عبر شام كاش وجارٍ تنفيذه فوراً!")
-                elif order.status == Order.Status.CANCELLED:
-                    messages.warning(request, "تم إلغاء أو انتهاء مهلة الدفع عبر شام كاش.")
-                else:
-                    messages.info(request, "طلبك قيد المتابعة وسيتم تحديثه تلقائياً.")
-
-                return redirect(f"{reverse('dashboard_order_detail', kwargs={'pk': order.id})}?new=1")
+                st = "success" if order.status in (Order.Status.PROCESSING, Order.Status.COMPLETED) else ("failed" if order.status == Order.Status.CANCELLED else "pending")
+                return redirect(f"{reverse('payment_status')}?type=order&id={order.id}&status={st}")
 
     # Default fallback
     messages.info(request, "شكراً لاستخدامك خدمة شام كاش.")

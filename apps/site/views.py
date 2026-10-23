@@ -1433,9 +1433,19 @@ def deposits(request):
         methods_json = json.dumps(methods_data)
         has_manual = any(not (m.gateway and m.gateway.is_active) for m in methods)
 
+    from apps.accounts.models import KYCSettings
+    settings_obj = KYCSettings.get_settings()
+    quick_amounts_data = settings_obj.get_quick_amounts()
+    quick_amounts_json = json.dumps(quick_amounts_data)
+
+    syp_currency = Currency.objects.filter(code="SYP", is_active=True).first() or Currency.all_objects.filter(code="SYP", is_active=True).first()
+    syp_rate = float(syp_currency.buy_rate if syp_currency and syp_currency.buy_rate else 15000.0)
+
     return render(request, "site/v3/v3_deposits.html", {
         "payment_methods": methods, 
         "methods_json": methods_json,
+        "quick_amounts_json": quick_amounts_json,
+        "syp_rate": syp_rate,
         "has_manual_methods": has_manual,
         "requests": DepositRequest.objects.filter(user=request.user, is_verified=True).order_by('-created_at'),
         "daily_limit": request.user.daily_deposit_limit,
@@ -11702,3 +11712,189 @@ def cart_checkout_view(request):
     except Exception as e:
         messages.error(request, f"تعذر إتمام الطلب: {str(e)}")
         return redirect("cart_detail")
+
+
+@admin_required
+def control_quick_amounts(request):
+    """Admin view to manage (add/delete/reset) quick deposit chips per currency."""
+    from apps.accounts.models import KYCSettings
+    from apps.common.models import Currency
+    from django.http import JsonResponse
+    
+    settings_obj = KYCSettings.get_settings()
+    currencies = Currency.all_objects.filter(is_active=True).order_by("display_order", "code")
+    
+    if request.method == "POST":
+        action = request.POST.get("action", "")
+        currency_code = request.POST.get("currency_code", "").upper().strip()
+        current_data = dict(settings_obj.get_quick_amounts())
+        is_ajax = request.headers.get("x-requested-with") == "XMLHttpRequest" or request.POST.get("is_ajax") == "1"
+
+        if action == "add":
+            try:
+                amt = float(request.POST.get("amount", 0))
+                if amt <= 0:
+                    raise ValueError("المبلغ يجب أن يكون أكبر من 0")
+                amt_val = int(amt) if amt.is_integer() else amt
+                lst = list(current_data.get(currency_code, []))
+                if amt_val not in lst:
+                    lst.append(amt_val)
+                    lst.sort()
+                current_data[currency_code] = lst
+                settings_obj.quick_deposit_amounts = current_data
+                settings_obj.save(update_fields=["quick_deposit_amounts", "updated_at"])
+                if is_ajax:
+                    return JsonResponse({"status": "ok", "message": f"تمت إضافة الفئة {amt_val} {currency_code} بنجاح", "amounts": lst})
+                messages.success(request, f"تمت إضافة الفئة {amt_val} {currency_code} بنجاح.")
+            except Exception as e:
+                if is_ajax:
+                    return JsonResponse({"status": "error", "message": str(e)}, status=400)
+                messages.error(request, f"خطأ في إضافة الفئة: {e}")
+
+        elif action == "delete":
+            try:
+                amt = float(request.POST.get("amount", 0))
+                amt_val = int(amt) if amt.is_integer() else amt
+                lst = list(current_data.get(currency_code, []))
+                if amt_val in lst:
+                    lst.remove(amt_val)
+                current_data[currency_code] = lst
+                settings_obj.quick_deposit_amounts = current_data
+                settings_obj.save(update_fields=["quick_deposit_amounts", "updated_at"])
+                if is_ajax:
+                    return JsonResponse({"status": "ok", "message": f"تم حذف الفئة {amt_val} {currency_code}", "amounts": lst})
+                messages.success(request, f"تم حذف الفئة {amt_val} {currency_code} بنجاح.")
+            except Exception as e:
+                if is_ajax:
+                    return JsonResponse({"status": "error", "message": str(e)}, status=400)
+                messages.error(request, f"خطأ في حذف الفئة: {e}")
+
+        elif action == "reset":
+            current_data[currency_code] = list(KYCSettings.DEFAULT_QUICK_AMOUNTS.get(currency_code, [5, 10, 20, 50, 100, 250, 500]))
+            settings_obj.quick_deposit_amounts = current_data
+            settings_obj.save(update_fields=["quick_deposit_amounts", "updated_at"])
+            if is_ajax:
+                return JsonResponse({"status": "ok", "message": "تمت استعادة الفئات الافتراضية", "amounts": current_data[currency_code]})
+            messages.success(request, "تمت استعادة الفئات الافتراضية بنجاح.")
+
+        return redirect("control_quick_amounts")
+
+    quick_amounts = settings_obj.get_quick_amounts()
+    return render(request, "site/control_quick_amounts.html", {
+        "quick_amounts": quick_amounts,
+        "currencies": currencies,
+        "title": "إدارة فئات التعبئة السريعة"
+    })
+
+
+def payment_status_view(request):
+    """
+    Renders the interactive payment result/status page for deposits and orders.
+    Can be loaded directly or redirected to after payment gateway callbacks.
+    """
+    from apps.payments.models import DepositRequest
+    from apps.orders.models import Order
+    from apps.wallets.services import get_or_create_wallet
+    from django.urls import reverse
+
+    target_type = request.GET.get("type", "deposit")
+    obj_id = request.GET.get("id") or request.GET.get("deposit_id") or request.GET.get("order_id") or ""
+    status_param = request.GET.get("status", "").lower()
+    
+    status = "pending"
+    title = "حالة عملية الدفع"
+    message = ""
+    amount_display = ""
+    secondary_amount_display = ""
+    provider_title = "بوابة دفع إلكترونية"
+    provider_logo = None
+    reference = ""
+    tran_id = ""
+    redirect_url = reverse("dashboard_wallet")
+    wallet_balance = None
+
+    if request.user.is_authenticated:
+        try:
+            wallet = get_or_create_wallet(request.user)
+            wallet_balance = f"{wallet.available_balance:,.2f} {wallet.currency.code}"
+        except Exception:
+            pass
+
+    if target_type == "deposit":
+        redirect_url = reverse("dashboard_wallet")
+        deposit = None
+        if obj_id:
+            from apps.common.tenant_utils import bypass_tenant_filter
+            with bypass_tenant_filter():
+                deposit = DepositRequest.all_objects.filter(pk=obj_id).first()
+        if deposit:
+            reference = deposit.gateway_payment_id or str(deposit.id)[:8]
+            tran_id = deposit.transaction_id or ""
+            amount_display = f"{deposit.amount:,.2f} {deposit.currency.code}"
+            
+            if deposit.payment_method and deposit.payment_method.gateway:
+                gw = deposit.payment_method.gateway
+                provider_title = gw.get_provider_display() if hasattr(gw, 'get_provider_display') else gw.name
+                provider_logo = gw.logo_url
+            elif deposit.payment_method:
+                provider_title = deposit.payment_method.name
+                provider_logo = deposit.payment_method.logo_url
+
+            if deposit.currency and deposit.currency.code == "USD" and deposit.metadata and deposit.metadata.get("syp_amount"):
+                secondary_amount_display = f"{deposit.metadata['syp_amount']:,} SYP"
+
+            if deposit.status == DepositRequest.Status.COMPLETED or status_param in ("success", "completed", "paid"):
+                status = "success"
+                title = "تم شحن الرصيد بنجاح!"
+                message = f"تم تأكيد عملية الدفع بنجاح عبر {provider_title} وتم شحن رصيد محفظتك فورياً."
+            elif deposit.status == DepositRequest.Status.REJECTED or status_param in ("failed", "rejected", "cancel", "canceled", "cancelled"):
+                status = "cancelled" if status_param in ("cancel", "canceled", "cancelled") else "failed"
+                title = "تم إلغاء عملية الدفع" if status == "cancelled" else "فشلت عملية الدفع"
+                message = deposit.admin_note or "تعذر تأكيد عملية الدفع من قبل المزود."
+            else:
+                status = "pending"
+                title = "العملية قيد المراجعة والمعالجة"
+                message = "تم تسجيل طلبك وجارٍ معالجة وتأكيد إشعار السداد مع المزود."
+
+    elif target_type == "order":
+        from apps.orders.models import Order
+        order = None
+        if obj_id:
+            from apps.common.tenant_utils import bypass_tenant_filter
+            with bypass_tenant_filter():
+                order = Order.all_objects.filter(pk=obj_id).first()
+        if order:
+            redirect_url = reverse("dashboard_order_detail", kwargs={"pk": order.id})
+            reference = str(order.order_number or order.id)[:12]
+            amount_display = f"{order.total:,.2f} USD"
+            provider_title = "دفع إلكتروني مباشر"
+            if order.status in (Order.Status.PROCESSING, Order.Status.COMPLETED) or status_param in ("success", "paid"):
+                status = "success"
+                title = "تم تأكيد طلبك وسداد قيمته بنجاح!"
+                message = "تم تأكيد عملية الدفع بنجاح وجارٍ تنفيذ وتجهيز طلبك فورياً."
+            elif order.status == Order.Status.CANCELLED or status_param in ("failed", "cancelled", "cancel"):
+                status = "cancelled" if status_param in ("cancel", "cancelled") else "failed"
+                title = "تم إلغاء الطلب" if status == "cancelled" else "فشل سداد الطلب"
+                message = order.admin_note or "لم تكتمل عملية السداد."
+            else:
+                status = "pending"
+                title = "طلبك قيد المتابعة"
+                message = "تم تسجيل الطلب وبانتظار اكتمال التحقق من السداد."
+
+    ctx = {
+        "status": status,
+        "title": title,
+        "message": message,
+        "amount_display": amount_display,
+        "secondary_amount_display": secondary_amount_display,
+        "provider_title": provider_title,
+        "provider_logo": provider_logo,
+        "reference": reference,
+        "tran_id": tran_id,
+        "redirect_url": redirect_url,
+        "wallet_balance": wallet_balance,
+        "target_type": target_type,
+        "timestamp": timezone.now().strftime("%Y-%m-%d %H:%M"),
+        "auto_redirect": (status == "success"),
+    }
+    return render(request, "site/payment_status.html", ctx)

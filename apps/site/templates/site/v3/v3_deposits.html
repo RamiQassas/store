@@ -118,7 +118,15 @@
         <div style="margin-bottom: 0.95rem;">
           <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.45rem;">
             <span style="font-size: 0.78rem; color: var(--rq-text-muted); font-weight: 700;">فئات شحن سريعة:</span>
-            <span id="quick-chips-currency-hint" style="font-size: 0.72rem; color: var(--rq-primary-light); font-weight: 800;"></span>
+            <div style="display: flex; align-items: center; gap: 0.75rem;">
+              {% if user.is_staff or user.is_superuser or user.role == 'super_admin' or user.role == 'admin' %}
+              <a href="{% url 'control_quick_amounts' %}" target="_blank" style="font-size: 0.72rem; color: var(--rq-primary-light); text-decoration: none; display: inline-flex; align-items: center; gap: 0.25rem;">
+                <i class="fas fa-cog text-cyan"></i>
+                <span>تعديل الفئات</span>
+              </a>
+              {% endif %}
+              <span id="quick-chips-currency-hint" style="font-size: 0.72rem; color: var(--rq-primary-light); font-weight: 800;"></span>
+            </div>
           </div>
           <div id="quick-amount-chips-container" style="display: flex; align-items: center; gap: 0.45rem; flex-wrap: wrap;">
             <!-- Rendered dynamically by renderQuickAmountChips -->
@@ -134,6 +142,17 @@
           <div style="position: relative;">
             <input type="number" step="any" min="0.01" name="amount" id="deposit-amount-input" placeholder="0.00" class="rq-input" style="font-size: 1.3rem; font-weight: 900; font-family: monospace; padding-left: 5rem; height: 50px; border-radius: 12px;" required oninput="calculateDepositNet()">
             <span id="amount-currency-label" style="position: absolute; left: 1rem; top: 50%; transform: translateY(-50%); font-size: 0.9rem; font-weight: 800; color: var(--rq-primary-light); font-family: monospace;">USD</span>
+          </div>
+
+          <!-- Live Paymera SYP conversion reassurance notice -->
+          <div id="paymera-syp-notice" style="display: none; margin-top: 0.85rem; padding: 0.95rem 1.15rem; background: rgba(59, 130, 246, 0.08); border: 1.5px solid rgba(59, 130, 246, 0.28); border-radius: 14px;">
+            <div style="display: flex; align-items: center; gap: 0.5rem; font-weight: 800; color: #60a5fa; font-size: 0.86rem; margin-bottom: 0.35rem;">
+              <i class="fas fa-shield-alt" style="color: #38bdf8;"></i>
+              <span>تنبيه شفافية الدفع (بوابة بيميرا Paymera):</span>
+            </div>
+            <p style="margin: 0; font-size: 0.82rem; line-height: 1.6; color: #cbd5e1;">
+              بوابة بيميرا الإلكترونية تعمل بالليرة السورية فقط. عند المتابعة سيتم خصم ما يعادل <strong id="paymera-converted-syp" style="color: #38bdf8; font-weight: 900; font-size: 0.92rem;">0 ل.س</strong> من بطاقتك البنكية ثمناً لمبلغ <strong id="paymera-original-usd" style="color: #38bdf8; font-weight: 900; font-size: 0.92rem;">0 USD</strong> وفق سعر الصرف المعتمد، دون أي توتر أو رسوم إضافية.
+            </p>
           </div>
         </div>
 
@@ -278,11 +297,9 @@ try {
 
 let activeMethodData = {};
 
-// Fast dynamic denomination chips as explicitly requested by the user
-const QUICK_AMOUNTS = {
-  SYP: [100, 500, 1000, 2000, 5000, 10000],
-  USD: [1, 5, 10, 20, 25, 30, 50, 100, 200, 500, 1000]
-};
+// Fast dynamic denomination chips configurable from control panel
+const QUICK_AMOUNTS_CONFIG = JSON.parse('{{ quick_amounts_json|default:"{}"|escapejs }}');
+const LIVE_SYP_RATE = parseFloat('{{ syp_rate|default:"15000" }}') || 15000;
 
 function renderQuickAmountChips(currCode) {
   const container = document.getElementById('quick-amount-chips-container');
@@ -290,9 +307,9 @@ function renderQuickAmountChips(currCode) {
   if (!container) return;
 
   const code = (currCode || 'USD').toUpperCase();
-  const list = QUICK_AMOUNTS[code] || QUICK_AMOUNTS['USD'];
+  const list = QUICK_AMOUNTS_CONFIG[code] || (code === 'SYP' ? [100, 500, 1000, 2000, 5000, 10000] : [1, 5, 10, 20, 25, 30, 50, 100, 200, 500, 1000]);
   if (hint) {
-    hint.textContent = (code === 'SYP') ? 'فئات الليرة السورية' : 'فئات الدولار ($)';
+    hint.textContent = (code === 'SYP') ? 'فئات الليرة السورية' : (code === 'USD' ? 'فئات الدولار ($)' : `فئات ${code}`);
   }
 
   container.innerHTML = '';
@@ -301,7 +318,7 @@ function renderQuickAmountChips(currCode) {
     btn.type = 'button';
     btn.className = 'rq-quick-chip';
     btn.setAttribute('data-amount', val);
-    btn.textContent = val.toLocaleString('en-US');
+    btn.textContent = Number(val).toLocaleString('en-US');
     btn.onclick = () => {
       setQuickDepositAmount(val);
       document.querySelectorAll('#quick-amount-chips-container .rq-quick-chip').forEach(b => b.classList.remove('active'));
@@ -309,6 +326,25 @@ function renderQuickAmountChips(currCode) {
     };
     container.appendChild(btn);
   });
+}
+
+function updatePaymeraReassuranceNotice() {
+  const noticeEl = document.getElementById('paymera-syp-notice');
+  if (!noticeEl) return;
+  const isPaymera = activeMethodData && (activeMethodData.gatewayProvider === 'paymera' || (activeMethodData.name && activeMethodData.name.toLowerCase().includes('paymera')));
+  const isUsd = (selectedCurrencyCode === 'USD');
+  const amountVal = parseFloat(document.getElementById('deposit-amount-input')?.value || 0);
+
+  if (isPaymera && isUsd && amountVal > 0) {
+    const sypTotal = Math.round(amountVal * LIVE_SYP_RATE);
+    const sypSpan = document.getElementById('paymera-converted-syp');
+    const usdSpan = document.getElementById('paymera-original-usd');
+    if (sypSpan) sypSpan.textContent = sypTotal.toLocaleString('en-US') + ' ل.س';
+    if (usdSpan) usdSpan.textContent = amountVal.toLocaleString('en-US') + ' USD';
+    noticeEl.style.display = 'block';
+  } else {
+    noticeEl.style.display = 'none';
+  }
 }
 
 function setQuickDepositAmount(val) {
@@ -480,6 +516,7 @@ function calculateDepositNet() {
 
   if (feeEl) feeEl.innerText = `${feeAmount.toFixed(2)} ${activeMethodData.currencyCode || ''} (${feePercent}%)`;
   if (netEl) netEl.innerText = `${netAmount.toFixed(2)} ${activeMethodData.currencyCode || ''}`;
+  updatePaymeraReassuranceNotice();
 }
 
 function previewProofImage(input) {

@@ -454,6 +454,33 @@ class KYCSettings(TimeStampedModel):
     unverified_transfer_limit = models.DecimalField(max_digits=14, decimal_places=2, default=Decimal("50.00"), verbose_name="حد التحويل لغير الموثقين")
     verified_transfer_limit = models.DecimalField(max_digits=14, decimal_places=2, default=Decimal("1000.00"), verbose_name="حد التحويل للموثقين")
     transfer_fee_percent = models.DecimalField(max_digits=5, decimal_places=2, default=Decimal("0.00"), verbose_name="نسبة رسوم التحويل (%)")
+    
+    # Quick Deposit Amounts Configuration
+    quick_deposit_amounts = models.JSONField(
+        default=dict,
+        blank=True,
+        verbose_name="فئات الإيداع السريع",
+        help_text='{"USD": [1, 5, 10, ...], "SYP": [100, 500, ...]}'
+    )
+
+    DEFAULT_QUICK_AMOUNTS = {
+        "USD": [1, 5, 10, 20, 25, 30, 50, 100, 200, 500, 1000],
+        "SYP": [100, 500, 1000, 2000, 5000, 10000],
+    }
+
+    def get_quick_amounts(self, currency_code=None):
+        data = self.quick_deposit_amounts if isinstance(self.quick_deposit_amounts, dict) else {}
+        if currency_code:
+            code = str(currency_code).upper().strip()
+            val = data.get(code)
+            if val is not None and isinstance(val, list):
+                return val
+            return self.DEFAULT_QUICK_AMOUNTS.get(code, [5, 10, 20, 50, 100, 200])
+        res = dict(self.DEFAULT_QUICK_AMOUNTS)
+        for k, v in data.items():
+            if isinstance(v, list):
+                res[k] = v
+        return res
 
     class Meta:
         verbose_name = "إعدادات التوثيق والحدود"

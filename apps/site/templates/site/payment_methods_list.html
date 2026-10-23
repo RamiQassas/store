@@ -34,6 +34,9 @@
         <p class="text-muted text-xs">التحكم في بوابات الدفع الإلكترونية، الرسوم، وحدود الإيداع والسحب.</p>
     </div>
     <div class="flex items-center gap-3">
+        <a href="{% url 'control_quick_amounts' %}" class="btn btn-outline btn-sm">
+            <i class="fas fa-coins ml-1 text-cyan"></i> فئات التعبئة السريعة
+        </a>
         <a href="{% url 'payment_gateway_integrations_list' %}" class="btn btn-outline btn-sm">
             <i class="fas fa-plug ml-1 text-cyan"></i> بوابات الدفع API
         </a>

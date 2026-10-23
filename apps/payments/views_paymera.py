@@ -420,8 +420,7 @@ def paymera_callback_view(request):
                     logger.warning(f"Paymera callback status check for order failed: {exc}")
 
             if order.status in (Order.Status.COMPLETED, Order.Status.PROCESSING):
-                messages.success(request, "تم تأكيد طلبك بنجاح.")
-                return redirect(order_dest_url)
+                return redirect(f"{reverse('payment_status')}?type=order&id={order.id}&status=success")
 
             # If order is still pending, cancel it on return only if authenticated order owner
             if order.status == Order.Status.PENDING and is_order_owner:
@@ -477,8 +476,7 @@ def paymera_callback_view(request):
 
                 if payment_status == PaymeraClient.STATUS_ACCEPTED:
                     _complete_successful_deposit(deposit, status_res)
-                    messages.success(request, "تمت عملية الدفع بنجاح عبر بيميرا وتمت إضافة الرصيد إلى محفظتك!")
-                    return redirect("dashboard_wallet")
+                    return redirect(f"{reverse('payment_status')}?type=deposit&id={deposit.id}&status=success")
 
                 elif payment_status in (PaymeraClient.STATUS_CANCELED, PaymeraClient.STATUS_FAILED):
                     if deposit.status == DepositRequest.Status.PENDING:
@@ -488,11 +486,8 @@ def paymera_callback_view(request):
                             deposit.metadata = {}
                         deposit.metadata["paymera_status_data"] = status_res
                         deposit.save(update_fields=["status", "admin_note", "metadata", "updated_at"])
-                    if payment_status == PaymeraClient.STATUS_CANCELED:
-                        messages.warning(request, "تم إلغاء عملية الدفع من قبلك.")
-                    else:
-                        messages.error(request, "فشلت عملية الدفع عبر بيميرا. يرجى التأكد من بيانات البطاقة أو المحاولة مجدداً.")
-                    return redirect("dashboard_deposits")
+                    st = "cancelled" if payment_status == PaymeraClient.STATUS_CANCELED else "failed"
+                    return redirect(f"{reverse('payment_status')}?type=deposit&id={deposit.id}&status={st}")
 
                 else:
                     messages.info(request, "عملية الدفع لم تكتمل بعد. سيتم تحديث رصيدك تلقائياً عند اكتمالها وسدادها.")
@@ -502,12 +497,8 @@ def paymera_callback_view(request):
                 logger.warning(f"Paymera callback status check failed: {exc}")
 
         # Fallback status display
-        if deposit.status == DepositRequest.Status.COMPLETED:
-            messages.success(request, "تم تأكيد طلب الإيداع بنجاح.")
-            return redirect("dashboard_wallet")
-
-        messages.info(request, "تم استلام عودتك من بوابة الدفع. سيتم تحديث حالة طلبك قريباً.")
-        return redirect("dashboard_deposits")
+        st = "success" if deposit.status == DepositRequest.Status.COMPLETED else ("failed" if deposit.status == DepositRequest.Status.REJECTED else "pending")
+        return redirect(f"{reverse('payment_status')}?type=deposit&id={deposit.id}&status={st}")
 
 
 def paymera_refund_view(request):

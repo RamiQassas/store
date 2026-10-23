@@ -449,7 +449,7 @@ def credit_wallet(wallet_id, amount, reference="", description="", created_by=No
 
         # Auto-deduct debt if it's a deposit
         debt_paid = Decimal("0.00")
-        if source in ["admin_approval", "deposit", "admin_adjustment", "admin_cash", "recharge_card"] and wallet.debt_balance > 0:
+        if metadata and metadata.get("auto_deduct_debt") and wallet.debt_balance > 0:
             debt_paid = min(amount, wallet.debt_balance)
             wallet.debt_balance -= debt_paid
             amount -= debt_paid
