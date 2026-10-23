@@ -4,10 +4,10 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-  <meta name="theme-color" content="#08090c">
-  <title>{% filter tenant_title %}{% block title %}{% if is_tenant %}{{ STORE_NAME }}{% else %}رقميات | RAQAMIYAT — متجر التقنيات، الهواتف، اللابتوبات وتجهيزات الشبكات{% endif %}{% endblock %}{% endfilter %}</title>
+  <meta name="theme-color" content="#050811">
+  <title>{% filter tenant_title %}{% block title %}{% if is_tenant %}{{ STORE_NAME }}{% else %}رقميات | RAQAMIYAT — متجر الأجهزة والتقنيات والخدمات الرقمية{% endif %}{% endblock %}{% endfilter %}</title>
   
-  <meta name="description" content="متجر رقميات (Raqamiyat) - وجهتك المعتمدة لأحدث الهواتف الذكية، اللابتوبات، الكاميرات، راوترات وتجهيزات الشبكات والإنترنت، والإكسسوارات الأصلية.">
+  <meta name="description" content="متجر رقميات (Raqamiyat) - وجهتك المعتمدة لأحدث الهواتف الذكية، اللابتوبات، الكاميرات، راوترات وتجهيزات الشبكات، والبطاقات الرقمية.">
   <meta name="robots" content="index, follow">
 
   <link rel="manifest" href="{% static 'site/manifest.webmanifest' %}">
@@ -17,7 +17,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
-  <link rel="stylesheet" href="{% static 'site/css/app.css' %}?v=20261023_fintech_v8">
+  <link rel="stylesheet" href="{% static 'site/css/app.css' %}?v=20261023_spatial_v9">
 
   {% if META_PIXEL_ID and not '/control/' in request.path and not '/admin/' in request.path %}
   <script>
@@ -44,35 +44,32 @@
 </head>
 <body class="{% if '/control/' in request.path or '/admin/' in request.path %}admin-page{% else %}storefront-page{% endif %}">
 
-  <!-- Storefront Clean Tech App Layout -->
   <div class="rq-app-wrapper">
 
     {% if not '/control/' in request.path and not '/admin/' in request.path %}
-    <!-- 1. Off-Canvas Sidebar Backdrop (Mobile) -->
+    <!-- 1. Universal Off-Canvas Quick Drawer Backdrop -->
     <div class="rq-sidebar-overlay" id="sidebarOverlay" onclick="toggleAppSidebar()"></div>
 
-    <!-- 2. Clean Tech App Sidebar -->
-    <aside class="rq-app-sidebar" id="appSidebar" aria-label="شريط التنقل الرئيسي">
-      
-      <!-- Top Brand & Navigation Rail -->
+    <!-- 2. Universal Quick Navigation Drawer -->
+    <aside class="rq-app-sidebar" id="appSidebar" aria-label="القائمة السريعة">
       <div>
         <div class="rq-sidebar-brand-row">
           <div style="display: flex; align-items: center; justify-content: space-between; width: 100%; gap: 0.5rem;">
             <div style="display: flex; align-items: center; gap: 0.65rem;">
-              <a href="{% static 'site/img/raqamiyat_logo_square.jpg' %}" onclick="copyLogoUrl(event)" title="انقر لنسخ رابط صورة شعار رقميات" style="display: flex; align-items: center; text-decoration: none; flex-shrink: 0;">
+              <a href="{% static 'site/img/raqamiyat_logo_square.jpg' %}" onclick="copyLogoUrl(event)" title="انقر لنسخ رابط شعار رقميات" style="display: flex; align-items: center; text-decoration: none; flex-shrink: 0;">
                 {% if is_tenant and tenant_logo %}
-                <img src="{{ tenant_logo }}" alt="{{ STORE_NAME }}" class="rq-sidebar-logo" width="34" height="34" style="width: 34px !important; height: 34px !important; max-width: 34px !important; max-height: 34px !important; border-radius: 9px; object-fit: cover; display: block; border: 1px solid var(--rq-border-light);">
+                <img src="{{ tenant_logo }}" alt="{{ STORE_NAME }}" class="rq-sidebar-logo" width="34" height="34">
                 {% else %}
-                <img src="{% static 'site/img/raqamiyat_logo_square.jpg' %}" alt="شعار رقميات" class="rq-sidebar-logo" width="34" height="34" style="width: 34px !important; height: 34px !important; max-width: 34px !important; max-height: 34px !important; border-radius: 9px; object-fit: cover; display: block; border: 1px solid var(--rq-border-light);">
+                <img src="{% static 'site/img/raqamiyat_logo_square.jpg' %}" alt="شعار رقميات" class="rq-sidebar-logo" width="34" height="34">
                 {% endif %}
               </a>
-              <a href="{% url 'home' %}" style="display: flex; flex-direction: column; text-decoration: none;" title="الانتقال للرئيسية">
-                <span class="rq-sidebar-title" style="font-size: 1.1rem; font-weight: 900; color: #fff; line-height: 1.2;">{% if is_tenant %}{{ STORE_NAME }}{% else %}رقميات{% endif %}</span>
-                <span class="rq-sidebar-badge" style="font-size: 0.62rem; color: #8b949e; font-weight: 800;">TECH HARDWARE</span>
+              <a href="{% url 'home' %}" style="display: flex; flex-direction: column; text-decoration: none;">
+                <span class="rq-sidebar-title">{% if is_tenant %}{{ STORE_NAME }}{% else %}رقميات{% endif %}</span>
+                <span class="rq-sidebar-badge">RAQAMIYAT STORE</span>
               </a>
             </div>
             <div style="display: flex; align-items: center; gap: 0.35rem;">
-              <button type="button" onclick="copyLogoUrl(event)" class="rq-copy-logo-btn" title="نسخ رابط صورة شعار رقميات للمشاركة" aria-label="نسخ رابط الشعار">
+              <button type="button" onclick="copyLogoUrl(event)" class="rq-copy-logo-btn" title="مشاركة الشعار" aria-label="نسخ رابط الشعار">
                 <i class="fas fa-share-nodes"></i>
               </button>
               <button type="button" class="rq-sidebar-close-btn" onclick="toggleAppSidebar()" title="إغلاق">
@@ -82,100 +79,89 @@
           </div>
         </div>
 
-        <!-- Sidebar Navigation Menu -->
         <nav class="rq-sidebar-nav">
-          
-          <!-- Section 1: Main Storefront -->
-          <div class="rq-nav-section-label">التنقل العام</div>
+          <div class="rq-nav-section-label">التصفح السريع</div>
           <a href="{% url 'home' %}" class="rq-sidebar-link {% if request.path == '/' %}active{% endif %}">
-            <i class="fas fa-house"></i>
+            <i class="fas fa-compass"></i>
             <span>الرئيسية</span>
           </a>
           <a href="{% url 'catalog' %}" class="rq-sidebar-link {% if '/catalog/' in request.path and not request.GET.q %}active{% endif %}">
             <i class="fas fa-layer-group"></i>
-            <span>الكتالوج الشامل للأجهزة</span>
+            <span>جميع المنتجات</span>
           </a>
           {% if not is_tenant %}
           <a href="{% url 'stores_directory' %}" class="rq-sidebar-link {% if '/stores/' in request.path %}active{% endif %}">
             <i class="fas fa-store"></i>
-            <span>دليل الفروع والمتاجر</span>
+            <span>المتاجر الشريكة</span>
           </a>
           {% endif %}
 
-          <!-- Section 2: Hardware & Electronics Categories -->
-          <div class="rq-nav-section-label">أقسام الأجهزة والتقنيات</div>
-          <a href="{% url 'catalog' %}?q=هاتف" class="rq-sidebar-link {% if 'q=هاتف' in request.get_full_path %}active{% endif %}">
+          <div class="rq-nav-section-label">الأقسام</div>
+          <a href="{% url 'catalog' %}?q=هاتف" class="rq-sidebar-link">
             <i class="fas fa-mobile-screen-button" style="color: #38bdf8;"></i>
-            <span>الهواتف والأجهزة الذكية</span>
+            <span>هواتف ذكية</span>
           </a>
-          <a href="{% url 'catalog' %}?q=لابتوب" class="rq-sidebar-link {% if 'q=لابتوب' in request.get_full_path %}active{% endif %}">
+          <a href="{% url 'catalog' %}?q=لابتوب" class="rq-sidebar-link">
             <i class="fas fa-laptop" style="color: #818cf8;"></i>
-            <span>أجهزة اللابتوب والكمبيوتر</span>
+            <span>لابتوبات وكمبيوتر</span>
           </a>
-          <a href="{% url 'catalog' %}?q=كاميرا" class="rq-sidebar-link {% if 'q=كاميرا' in request.get_full_path %}active{% endif %}">
+          <a href="{% url 'catalog' %}?q=كاميرا" class="rq-sidebar-link">
             <i class="fas fa-camera" style="color: #34d399;"></i>
-            <span>كاميرات المراقبة والتصوير</span>
+            <span>كاميرات ومراقبة</span>
           </a>
-          <a href="{% url 'catalog' %}?q=راوتر" class="rq-sidebar-link {% if 'q=راوتر' in request.get_full_path %}active{% endif %}">
+          <a href="{% url 'catalog' %}?q=راوتر" class="rq-sidebar-link">
             <i class="fas fa-wifi" style="color: #fbbf24;"></i>
-            <span>راوترات وتجهيزات الشبكات</span>
+            <span>راوترات وشبكات</span>
           </a>
-          <a href="{% url 'catalog' %}?q=إكسسوار" class="rq-sidebar-link {% if 'q=إكسسوار' in request.get_full_path %}active{% endif %}">
+          <a href="{% url 'catalog' %}?q=إكسسوار" class="rq-sidebar-link">
             <i class="fas fa-headphones" style="color: #f472b6;"></i>
-            <span>إكسسوارات وملحقات تقنية</span>
+            <span>إكسسوارات</span>
           </a>
 
-          <!-- Section 3: Customer Account & Orders -->
-          <div class="rq-nav-section-label">حسابي وعملياتي</div>
+          <div class="rq-nav-section-label">حسابي</div>
           <a href="{% url 'dashboard' %}" class="rq-sidebar-link {% if request.path == '/dashboard/' %}active{% endif %}">
             <i class="fas fa-gauge-high"></i>
-            <span>لوحة التحكم الشخصية</span>
+            <span>لوحة حسابي</span>
           </a>
           <a href="{% url 'dashboard_orders' %}" class="rq-sidebar-link {% if '/dashboard/orders' in request.path %}active{% endif %}">
-            <i class="fas fa-box-archive"></i>
-            <span>سجل طلباتي ومشترياتي</span>
+            <i class="fas fa-box-open"></i>
+            <span>طلباتي</span>
           </a>
           <a href="{% url 'dashboard_wallet' %}" class="rq-sidebar-link {% if '/dashboard/wallet' in request.path %}active{% endif %}">
             <i class="fas fa-wallet"></i>
-            <span>محفظتي والرصيد</span>
+            <span>المحفظة</span>
           </a>
           <a href="{% url 'dashboard_deposits' %}" class="rq-sidebar-link {% if '/dashboard/deposits' in request.path %}active{% endif %}">
-            <i class="fas fa-arrow-down-to-bracket" style="color: #34d399;"></i>
-            <span>إيداع وتعبئة رصيد</span>
+            <i class="fas fa-bolt" style="color: #34d399;"></i>
+            <span>شحن رصيد</span>
           </a>
 
-
-          <!-- Section 4: Support & Policies -->
-          <div class="rq-nav-section-label">المساعدة والضمان</div>
+          <div class="rq-nav-section-label">الدعم والضمان</div>
           <a href="{% url 'contact' %}" class="rq-sidebar-link {% if '/contact/' in request.path %}active{% endif %}">
             <i class="fas fa-headset"></i>
-            <span>مركز الدعم الفني المباشر</span>
+            <span>الدعم الفني</span>
           </a>
           <a href="{% url 'refund_policy' %}" class="rq-sidebar-link {% if '/refund-policy' in request.path %}active{% endif %}">
             <i class="fas fa-shield-check"></i>
-            <span>سياسة الفحص والضمان</span>
+            <span>سياسة الضمان</span>
           </a>
           <a href="{% url 'terms_of_service' %}" class="rq-sidebar-link {% if '/terms' in request.path %}active{% endif %}">
             <i class="fas fa-file-contract"></i>
-            <span>الشروط والأحكام الرسمية</span>
+            <span>الشروط والأحكام</span>
           </a>
 
-          <!-- Staff / Management Direct Link -->
           {% if request.user.is_authenticated and request.user.is_platform_staff %}
-          <div class="rq-nav-section-label" style="color: #fbbf24;">الإدارة والتحكم</div>
+          <div class="rq-nav-section-label" style="color: #fbbf24;">الإدارة</div>
           <a href="{% url 'control_dashboard' %}" class="rq-sidebar-link rq-sidebar-admin-link {% if '/control/' in request.path %}active{% endif %}">
             <i class="fas fa-sliders"></i>
-            <span>لوحة الإدارة والتحكم</span>
+            <span>لوحة الإدارة</span>
             <span class="rq-admin-tag">Staff</span>
           </a>
           {% endif %}
         </nav>
       </div>
 
-      <!-- Bottom User & Utility Hub -->
       <div class="rq-sidebar-foot">
-        
-        <!-- Currency Selector -->
         <div class="rq-sidebar-currency">
           <label for="sideCurrencySelect" class="rq-side-label">
             <i class="fas fa-coins text-amber-400"></i>
@@ -188,7 +174,6 @@
           </select>
         </div>
 
-        <!-- User Authentication Card -->
         {% if request.user.is_authenticated %}
         <div class="rq-sidebar-user-card">
           <a href="{% url 'dashboard' %}" class="rq-user-avatar-row">
@@ -196,69 +181,125 @@
               <i class="fas fa-user"></i>
             </div>
             <div class="rq-user-details">
-              <span class="rq-user-email">{{ request.user.get_short_name|default:request.user.email|truncatechars:14 }}</span>
+              <span class="rq-user-email">{{ request.user.get_short_name|default:request.user.email|truncatechars:16 }}</span>
               <span class="rq-user-balance">{% currency_format request.user.wallet.available_balance|default:0 %}</span>
             </div>
           </a>
           <div class="rq-user-quick-links">
-            <a href="{% url 'dashboard' %}" class="rq-user-action-btn" title="لوحة التحكم"><i class="fas fa-gauge"></i></a>
-            <a href="{% url 'dashboard_orders' %}" class="rq-user-action-btn" title="طلباتي"><i class="fas fa-box-archive"></i></a>
-            <a href="{% url 'site_logout' %}" class="rq-user-action-btn" style="color: #f87171;" title="تسجيل الخروج"><i class="fas fa-arrow-right-from-bracket"></i></a>
+            <a href="{% url 'dashboard' %}" class="rq-user-action-btn" title="حسابي"><i class="fas fa-gauge"></i></a>
+            <a href="{% url 'dashboard_orders' %}" class="rq-user-action-btn" title="طلباتي"><i class="fas fa-box-open"></i></a>
+            <a href="{% url 'site_logout' %}" class="rq-user-action-btn" style="color: #f87171;" title="خروج"><i class="fas fa-arrow-right-from-bracket"></i></a>
           </div>
         </div>
         {% else %}
         <div class="rq-sidebar-auth-group">
           <a href="{% url 'site_login' %}?next={{ request.path }}" class="rq-btn-3d-secondary rq-btn-full">
             <i class="fas fa-arrow-right-to-bracket"></i>
-            <span>تسجيل الدخول</span>
+            <span>دخول</span>
           </a>
           <a href="{% url 'site_register' %}" class="rq-btn-3d-primary rq-btn-full">
             <i class="fas fa-user-plus"></i>
-            <span>إنشاء حساب</span>
+            <span>حساب جديد</span>
           </a>
         </div>
         {% endif %}
-
       </div>
-
     </aside>
     {% endif %}
 
-    <!-- 3. Main Stage Content Viewport -->
+    <!-- 3. Main Viewport -->
     <div class="rq-app-main">
 
       {% if not '/control/' in request.path and not '/admin/' in request.path %}
-      <!-- Minimal Top Bar -->
+      <!-- Spatial Glass Top Command Bar -->
       <header class="rq-app-topbar">
 
-        <!-- Top Brand Logo & Share -->
-        <div class="rq-top-brand-wrap" style="display: flex; align-items: center; gap: 0.5rem; flex-shrink: 0;">
-          <a href="{% static 'site/img/raqamiyat_logo_square.jpg' %}" onclick="copyLogoUrl(event)" title="انقر لنسخ رابط صورة الشعار لمشاركته" style="display: flex; align-items: center; text-decoration: none; flex-shrink: 0;">
-            <img src="{% static 'site/img/raqamiyat_logo_square.jpg' %}" alt="شعار رقميات" class="rq-top-logo" width="32" height="32" style="width: 32px !important; height: 32px !important; max-width: 32px !important; max-height: 32px !important; border-radius: 8px; object-fit: cover; display: block; border: 1px solid var(--rq-border-light);">
-          </a>
-          <a href="{% url 'home' %}" class="rq-top-title hide-mobile" title="الرئيسية" style="text-decoration: none; font-size: 0.95rem; font-weight: 900; color: #fff;">
-            رقميات
-          </a>
-          <button type="button" onclick="copyLogoUrl(event)" class="rq-copy-logo-btn" title="نسخ رابط صورة الشعار لمشاركته" aria-label="نسخ رابط الشعار">
-            <i class="fas fa-share-nodes"></i>
+        <!-- Brand & Menu Trigger -->
+        <div class="rq-top-brand-wrap" style="display: flex; align-items: center; gap: 0.55rem; flex-shrink: 0;">
+          <button type="button" class="rq-top-burger-btn" onclick="toggleAppSidebar()" title="القائمة والأقسام" aria-label="فتح القائمة">
+            <i class="fas fa-bars-staggered"></i>
           </button>
+          <a href="{% static 'site/img/raqamiyat_logo_square.jpg' %}" onclick="copyLogoUrl(event)" title="انقر لنسخ رابط الشعار" style="display: flex; align-items: center; text-decoration: none; flex-shrink: 0;">
+            {% if is_tenant and tenant_logo %}
+            <img src="{{ tenant_logo }}" alt="{{ STORE_NAME }}" class="rq-top-logo" width="32" height="32">
+            {% else %}
+            <img src="{% static 'site/img/raqamiyat_logo_square.jpg' %}" alt="شعار رقميات" class="rq-top-logo" width="32" height="32">
+            {% endif %}
+          </a>
+          <a href="{% url 'home' %}" class="rq-top-title" title="الرئيسية" style="text-decoration: none; font-size: 1.05rem; font-weight: 900; color: #fff;">
+            {% if is_tenant %}{{ STORE_NAME }}{% else %}رقميات{% endif %}
+          </a>
         </div>
-        
-        <!-- Search Trigger / Command Bar -->
-        <div class="rq-top-search-wrap">
+
+        <!-- Desktop Segmented Navigation Dock -->
+        <nav class="rq-top-nav-pills" aria-label="التنقل الرئيسي">
+          <a href="{% url 'home' %}" class="rq-top-nav-pill {% if request.path == '/' %}active{% endif %}">
+            <i class="fas fa-compass"></i>
+            <span>الرئيسية</span>
+          </a>
+          <a href="{% url 'catalog' %}" class="rq-top-nav-pill {% if '/catalog/' in request.path %}active{% endif %}">
+            <i class="fas fa-layer-group"></i>
+            <span>المنتجات</span>
+          </a>
+          {% if request.user.is_authenticated %}
+          <a href="{% url 'dashboard_orders' %}" class="rq-top-nav-pill {% if '/dashboard/orders' in request.path %}active{% endif %}">
+            <i class="fas fa-box-open"></i>
+            <span>طلباتي</span>
+          </a>
+          <a href="{% url 'dashboard_wallet' %}" class="rq-top-nav-pill {% if '/dashboard/wallet' in request.path %}active{% endif %}">
+            <i class="fas fa-wallet"></i>
+            <span>المحفظة</span>
+          </a>
+          <a href="{% url 'dashboard_deposits' %}" class="rq-top-nav-pill {% if '/dashboard/deposits' in request.path %}active{% endif %}">
+            <i class="fas fa-bolt" style="color: #34d399;"></i>
+            <span>شحن رصيد</span>
+          </a>
+          {% else %}
+          {% if not is_tenant %}
+          <a href="{% url 'stores_directory' %}" class="rq-top-nav-pill {% if '/stores/' in request.path %}active{% endif %}">
+            <i class="fas fa-store"></i>
+            <span>المتاجر</span>
+          </a>
+          {% endif %}
+          <a href="{% url 'contact' %}" class="rq-top-nav-pill {% if '/contact/' in request.path %}active{% endif %}">
+            <i class="fas fa-headset"></i>
+            <span>الدعم</span>
+          </a>
+          {% endif %}
+          {% if request.user.is_authenticated and request.user.is_platform_staff %}
+          <a href="{% url 'control_dashboard' %}" class="rq-top-nav-pill" style="color: #fbbf24;">
+            <i class="fas fa-sliders" style="color: #fbbf24;"></i>
+            <span>الإدارة</span>
+          </a>
+          {% endif %}
+        </nav>
+
+        <!-- Search Command Bar -->
+        <div class="rq-top-search-wrap hide-mobile">
           <form method="get" action="{% url 'catalog' %}" class="rq-top-search-form">
             <i class="fas fa-search rq-top-search-icon"></i>
-            <input type="text" name="q" placeholder="ابحث عن هاتف، لابتوب، كاميرا، راوتر، أو إكسسوار..." class="rq-top-search-input" value="{{ request.GET.q|default:'' }}" autocomplete="off" id="globalSearchInput">
-            <span class="rq-kbd-badge hide-mobile">Ctrl K</span>
+            <input type="text" name="q" placeholder="ابحث عن منتج أو خدمة..." class="rq-top-search-input" value="{{ request.GET.q|default:'' }}" autocomplete="off" id="globalSearchInput">
+            <span class="rq-kbd-badge">Ctrl K</span>
           </form>
         </div>
 
         <!-- Top Right Actions -->
         <div class="rq-top-actions">
-          
-          <!-- Quick Currency Switcher Pill -->
-          <div class="rq-top-currency-wrap" title="العملة الحالية / تغيير العملة">
-            <i class="fas fa-coins" style="color: #f59e0b; font-size: 0.78rem; margin-left: 0.25rem;"></i>
+
+          {% if request.user.is_authenticated %}
+          <a href="{% url 'dashboard_deposits' %}" class="rq-top-wallet-pill hide-mobile" title="رصيد المحفظة — اضغط لشحن الرصيد">
+            <span class="tabular-nums font-mono" style="color: #34d399;">{% currency_format request.user.wallet.available_balance|default:0 %}</span>
+            <span class="rq-top-wallet-plus"><i class="fas fa-plus"></i></span>
+          </a>
+          {% else %}
+          <a href="{% url 'site_login' %}?next={{ request.path }}" class="rq-btn-secondary rq-btn-sm hide-mobile" style="border-radius: 9999px;">
+            <i class="fas fa-user text-xs"></i>
+            <span>دخول</span>
+          </a>
+          {% endif %}
+
+          <div class="rq-top-currency-wrap" title="تغيير العملة">
+            <i class="fas fa-coins" style="color: #f59e0b; font-size: 0.75rem; margin-left: 0.2rem;"></i>
             <select class="rq-top-currency-select" onchange="location.href='{% url 'set_currency' %}?currency=' + this.value" aria-label="تحديد العملة">
               {% for curr in available_currencies|default:ALL_CURRENCIES %}
               <option value="{{ curr.id }}" {% if current_currency.id == curr.id or CURRENCY.id == curr.id %}selected{% endif %}>{{ curr.symbol }} {{ curr.code }}</option>
@@ -266,15 +307,9 @@
             </select>
           </div>
 
-          <!-- Slide-over Cart Trigger -->
           <button type="button" onclick="toggleCartDrawer()" class="rq-top-cart-btn" title="سلة المشتريات">
             <i class="fas fa-bag-shopping"></i>
             <span class="rq-top-cart-count" id="nav-cart-badge">{{ cart_items_count|default:0 }}</span>
-          </button>
-
-          <!-- Mobile Hamburger Menu Button -->
-          <button type="button" class="rq-top-burger-btn" onclick="toggleAppSidebar()" title="فتح القائمة">
-            <i class="fas fa-bars"></i>
           </button>
 
         </div>
@@ -282,13 +317,11 @@
       </header>
       {% endif %}
 
-      <!-- Main Content Block -->
       <main id="main-content" style="flex: 1; width: 100%;">
         {% block content %}{% endblock %}
       </main>
 
       {% if not '/control/' in request.path and not '/admin/' in request.path %}
-      <!-- Clean Minimal Footer -->
       <footer class="rq-footer">
         <div class="rq-container">
           <div class="rq-footer-grid">
@@ -296,23 +329,19 @@
             <div class="rq-footer-col">
               <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.85rem; flex-wrap: wrap; gap: 0.5rem;">
                 <div style="display: flex; align-items: center; gap: 0.65rem;">
-                  <a href="{% static 'site/img/raqamiyat_logo_square.jpg' %}" onclick="copyLogoUrl(event)" title="انقر لنسخ رابط صورة الشعار لمشاركته" style="display: flex; align-items: center; text-decoration: none;">
-                    <img src="{% static 'site/img/raqamiyat_logo_square.jpg' %}" alt="شعار رقميات" class="rq-footer-logo" width="34" height="34" style="width: 34px !important; height: 34px !important; max-width: 34px !important; max-height: 34px !important; border-radius: 8px; border: 1px solid var(--rq-border); object-fit: cover; display: block;">
+                  <a href="{% static 'site/img/raqamiyat_logo_square.jpg' %}" onclick="copyLogoUrl(event)" title="نسخ رابط الشعار" style="display: flex; align-items: center; text-decoration: none;">
+                    <img src="{% static 'site/img/raqamiyat_logo_square.jpg' %}" alt="شعار رقميات" class="rq-footer-logo" width="34" height="34">
                   </a>
                   <a href="{% url 'home' %}" style="text-decoration: none;">
                     <span style="font-size: 1rem; font-weight: 900; color: #fff; display: block; line-height: 1.2;">رقميات RAQAMIYAT</span>
-                    <span style="font-size: 0.65rem; color: #8b949e; font-weight: 800;">TECH HARDWARE STORE</span>
+                    <span style="font-size: 0.65rem; color: #60a5fa; font-weight: 800;">DIGITAL & TECH STORE</span>
                   </a>
                 </div>
-                <button type="button" onclick="copyLogoUrl(event)" class="rq-copy-logo-btn" title="نسخ رابط صورة الشعار لمشاركته" style="width: auto; padding: 0.35rem 0.75rem; gap: 0.4rem; font-size: 0.75rem;">
-                  <i class="fas fa-share-nodes"></i>
-                  <span>مشاركة الشعار</span>
-                </button>
               </div>
               <p style="font-size: 0.8rem; color: var(--rq-text-muted); line-height: 1.7; margin-bottom: 1rem;">
-                المتجر المعتمد لأحدث أجهزة التقنية، الهواتف الذكية، اللابتوبات، كاميرات التصوير والمراقبة، تجهيزات شبكات الإنترنت، والإكسسوارات الأصلية بضمان رسمي.
+                وجهتك المعتمدة لأحدث الأجهزة الذكية، اللابتوبات، الكاميرات، تجهيزات الشبكات، والخدمات الرقمية الفورية بضمان رسمي.
               </p>
-                            <div class="rq-pm-badges-row" style="display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap;">
+              <div class="rq-pm-badges-row" style="display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap;">
                 {% for gw in SITE_GATEWAYS %}
                 <span class="rq-pm-badge" style="display: inline-flex; align-items: center; gap: 0.4rem; padding: 0.35rem 0.65rem; border-radius: 8px;">
                   {% if gw.logo_url %}
@@ -330,34 +359,33 @@
             <div class="rq-footer-col">
               <h4>أقسام المتجر</h4>
               <ul class="rq-footer-links">
-                <li><a href="{% url 'catalog' %}">كافة الأجهزة والمنتجات</a></li>
-                <li><a href="{% url 'catalog' %}?q=هاتف">الهواتف الذكية وملحقاتها</a></li>
-                <li><a href="{% url 'catalog' %}?q=لابتوب">اللابتوبات والحواسيب المحمولة</a></li>
-                <li><a href="{% url 'catalog' %}?q=كاميرا">الكاميرات وتجهيزات التصوير</a></li>
-                <li><a href="{% url 'catalog' %}?q=انترنت">راوترات وشبكات الإنترنت</a></li>
-                <li><a href="{% url 'catalog' %}?q=اكسسوارات">الإكسسوارات والقطع الأصلية</a></li>
+                <li><a href="{% url 'catalog' %}">جميع المنتجات</a></li>
+                <li><a href="{% url 'catalog' %}?q=هاتف">الهواتف الذكية</a></li>
+                <li><a href="{% url 'catalog' %}?q=لابتوب">اللابتوبات والحواسيب</a></li>
+                <li><a href="{% url 'catalog' %}?q=كاميرا">الكاميرات والمراقبة</a></li>
+                <li><a href="{% url 'catalog' %}?q=راوتر">راوترات وشبكات</a></li>
               </ul>
             </div>
 
             <div class="rq-footer-col">
-              <h4>السياسات والشروط</h4>
+              <h4>السياسات</h4>
               <ul class="rq-footer-links">
                 <li><a href="{% url 'terms_of_service' %}">الشروط والأحكام</a></li>
                 <li><a href="{% url 'privacy_policy' %}">سياسة الخصوصية</a></li>
-                <li><a href="{% url 'refund_policy' %}">سياسة الاسترجاع والضمان</a></li>
+                <li><a href="{% url 'refund_policy' %}">سياسة الضمان والاسترجاع</a></li>
                 {% if not is_tenant %}
-                <li><a href="{% url 'stores_directory' %}">دليل المتاجر الشريكة</a></li>
+                <li><a href="{% url 'stores_directory' %}">المتاجر الشريكة</a></li>
                 {% endif %}
               </ul>
             </div>
 
             <div class="rq-footer-col">
-              <h4>المساعدة والدعم</h4>
+              <h4>حسابي والدعم</h4>
               <ul class="rq-footer-links">
-                <li><a href="{% url 'contact' %}">مركز الاتصال والدعم الفني</a></li>
-                <li><a href="{% url 'dashboard' %}">لوحة التحكم والمحفظة</a></li>
-                <li><a href="{% url 'dashboard_orders' %}">تتبع حالة الطلبات</a></li>
-                <li><a href="{% url 'dashboard_deposits' %}">إيداع وإضافة رصيد</a></li>
+                <li><a href="{% url 'dashboard' %}">لوحة الحساب</a></li>
+                <li><a href="{% url 'dashboard_orders' %}">تتبع الطلبات</a></li>
+                <li><a href="{% url 'dashboard_deposits' %}">شحن الرصيد</a></li>
+                <li><a href="{% url 'contact' %}">الدعم الفني</a></li>
               </ul>
             </div>
 
@@ -366,11 +394,11 @@
           <div class="rq-footer-bottom">
             <div style="font-weight: 700;">جميع الحقوق محفوظة &copy; {% now "Y" %} لمؤسسة رامي قصاص بن ماهر س ت حلب 98580</div>
             <div style="display: flex; gap: 1rem; align-items: center; flex-wrap: wrap;">
-              <span>🚚 فحص وشحن وتوصيل معتمد</span>
+              <span>⚡ تنفيذ وشحن سريع</span>
               <span>•</span>
-              <span>🛡️ ضمان رسمي معتمد</span>
+              <span>🛡️ ضمان معتمد</span>
               <span>•</span>
-              <span>🔒 دفع إلكتروني مشفر</span>
+              <span>🔒 دفع آمن</span>
             </div>
           </div>
         </div>
@@ -387,7 +415,7 @@
     <div class="rq-cart-drawer">
       <div class="rq-drawer-head">
         <div style="display: flex; align-items: center; gap: 0.5rem;">
-          <i class="fas fa-bag-shopping" style="color: #ffffff;"></i>
+          <i class="fas fa-bag-shopping" style="color: #60a5fa;"></i>
           <h3 style="font-size: 1rem; font-weight: 900; color: #fff; margin: 0;">سلة المشتريات</h3>
         </div>
         <button type="button" onclick="toggleCartDrawer()" style="background: none; border: none; color: #94a3b8; font-size: 1.1rem; cursor: pointer; padding: 0.25rem;">
@@ -399,7 +427,7 @@
         {% if cart_items %}
         <div style="display: flex; flex-direction: column; gap: 0.75rem;">
           {% for item in cart_items %}
-          <div style="display: flex; align-items: center; justify-content: space-between; gap: 0.75rem; padding: 0.75rem; border-radius: 10px; background: rgba(255, 255, 255, 0.03); border: 1px solid var(--rq-border);">
+          <div style="display: flex; align-items: center; justify-content: space-between; gap: 0.75rem; padding: 0.75rem; border-radius: 12px; background: rgba(255, 255, 255, 0.03); border: 1px solid var(--rq-border);">
             <div style="display: flex; align-items: center; gap: 0.75rem;">
               <img src="{{ item.product.image.url }}" alt="{{ item.product.name }}" style="width: 42px; height: 42px; border-radius: 8px; object-fit: contain; background: #08090d; padding: 3px; border: 1px solid var(--rq-border);" onerror="this.onerror=null; this.src='{% static 'site/img/raqamiyat_logo_square.jpg' %}';">
               <div>
@@ -408,23 +436,23 @@
               </div>
             </div>
             <div style="text-align: left;">
-              <span class="tabular-nums" style="font-size: 0.9rem; font-weight: 900; color: #ffffff;">{% currency_format item.total_price %}</span>
+              <span class="tabular-nums" style="font-size: 0.9rem; font-weight: 900; color: #fbbf24;">{% currency_format item.total_price %}</span>
             </div>
           </div>
           {% endfor %}
         </div>
         {% else %}
         <div style="text-align: center; padding: 4rem 1rem; color: var(--rq-text-muted);">
-          <i class="fas fa-cart-arrow-down" style="font-size: 2.2rem; display: block; margin-bottom: 0.75rem; opacity: 0.25;"></i>
-          <p style="font-size: 0.92rem; font-weight: 800; color: #fff; margin-bottom: 0.35rem;">سلة المشتريات فارغة</p>
-          <p style="font-size: 0.78rem; color: var(--rq-text-muted);">تصفح الكتالوج وأضف الأجهزة والمنتجات لسلتك بسهولة.</p>
+          <i class="fas fa-bag-shopping" style="font-size: 2.2rem; display: block; margin-bottom: 0.75rem; opacity: 0.25;"></i>
+          <p style="font-size: 0.92rem; font-weight: 800; color: #fff; margin-bottom: 0.35rem;">السلة فارغة</p>
+          <p style="font-size: 0.78rem; color: var(--rq-text-muted);">اختر منتجك من الكتالوج وأتمم الشراء فوراً.</p>
         </div>
         {% endif %}
       </div>
 
       <div class="rq-drawer-footer">
         <a href="{% url 'catalog' %}" class="rq-btn-3d-primary rq-btn-full" style="justify-content: center;">
-          <span>استعراض وإتمام الشراء</span>
+          <span>تصفح المنتجات</span>
           <i class="fas fa-arrow-left"></i>
         </a>
       </div>
@@ -434,34 +462,25 @@
   <!-- Mobile Floating Bottom Dock -->
   <nav class="rq-bottom-dock" aria-label="التنقل السريع">
     <a href="{% url 'home' %}" class="rq-dock-btn {% if request.path == '/' %}active{% endif %}">
-      <i class="fas fa-house"></i>
+      <i class="fas fa-compass"></i>
       <span class="rq-dock-text">الرئيسية</span>
     </a>
     <a href="{% url 'catalog' %}" class="rq-dock-btn {% if '/catalog/' in request.path %}active{% endif %}">
       <i class="fas fa-layer-group"></i>
-      <span class="rq-dock-text">الكتالوج</span>
+      <span class="rq-dock-text">المنتجات</span>
     </a>
-    <button type="button" onclick="focusHeaderSearch()" class="rq-dock-btn">
-      <i class="fas fa-search"></i>
-      <span class="rq-dock-text">البحث</span>
-    </button>
-    <button type="button" onclick="toggleCartDrawer()" class="rq-dock-btn" style="position: relative;">
-      <i class="fas fa-bag-shopping"></i>
-      <span class="rq-dock-text">السلة</span>
-      {% if cart_items_count %}
-      <span class="rq-dock-pill-badge">{{ cart_items_count }}</span>
-      {% endif %}
-    </button>
-    <a href="{% if request.user.is_authenticated %}{% url 'dashboard' %}{% else %}{% url 'site_login' %}{% endif %}" class="rq-dock-btn {% if '/dashboard/' in request.path or '/auth/' in request.path %}active{% endif %}">
+    <a href="{% url 'dashboard_orders' %}" class="rq-dock-btn {% if '/dashboard/orders' in request.path %}active{% endif %}">
+      <i class="fas fa-box-open"></i>
+      <span class="rq-dock-text">طلباتي</span>
+    </a>
+    <a href="{% url 'dashboard_deposits' %}" class="rq-dock-btn {% if '/dashboard/deposits' in request.path %}active{% endif %}">
+      <i class="fas fa-bolt"></i>
+      <span class="rq-dock-text">شحن</span>
+    </a>
+    <a href="{% if request.user.is_authenticated %}{% url 'dashboard' %}{% else %}{% url 'site_login' %}{% endif %}" class="rq-dock-btn {% if request.path == '/dashboard/' or '/auth/' in request.path %}active{% endif %}">
       <i class="fas fa-user"></i>
       <span class="rq-dock-text">{% if request.user.is_authenticated %}حسابي{% else %}دخول{% endif %}</span>
     </a>
-    {% if request.user.is_authenticated and request.user.is_platform_staff %}
-    <a href="{% url 'control_dashboard' %}" class="rq-dock-btn {% if '/control/' in request.path %}active{% endif %}" style="color: #fbbf24;">
-      <i class="fas fa-sliders"></i>
-      <span class="rq-dock-text">الإدارة</span>
-    </a>
-    {% endif %}
   </nav>
   {% endif %}
 
@@ -469,7 +488,6 @@
   <script src="{% static 'site/js/app.js' %}?v=3"></script>
   <script src="{% static 'site/js/push.js' %}?v=2"></script>
   <script>
-  
   function copyLogoUrl(e) {
     if (e) {
       e.preventDefault();
@@ -479,7 +497,7 @@
     const absoluteLogoUrl = window.location.origin + logoPath;
 
     function onCopied() {
-      showLogoToast("تم نسخ رابط صورة الشعار بنجاح! 📋\n" + absoluteLogoUrl);
+      showLogoToast("تم نسخ رابط الشعار بنجاح! 📋");
     }
 
     if (navigator.clipboard && navigator.clipboard.writeText) {
@@ -501,7 +519,7 @@
     inp.select();
     try {
       document.execCommand('copy');
-      showLogoToast("تم نسخ رابط صورة الشعار بنجاح! 📋\n" + text);
+      showLogoToast("تم نسخ رابط الشعار بنجاح! 📋");
     } catch(err) {
       showLogoToast("رابط الشعار: " + text);
     }
@@ -518,7 +536,7 @@
     }
     toast.innerText = msg;
     toast.classList.add('show');
-    setTimeout(() => toast.classList.remove('show'), 3500);
+    setTimeout(() => toast.classList.remove('show'), 3200);
   }
 
   function toggleAppSidebar() {
@@ -538,7 +556,7 @@
 
   function focusHeaderSearch() {
     var deskInp = document.getElementById('globalSearchInput');
-    if (deskInp) {
+    if (deskInp && deskInp.offsetParent !== null) {
       deskInp.focus();
       window.scrollTo({ top: 0, behavior: 'smooth' });
     } else {
@@ -546,7 +564,6 @@
     }
   }
 
-  // Ctrl/Cmd + K shortcut
   document.addEventListener('keydown', function(e) {
     if ((e.ctrlKey || e.metaKey) && (e.key === 'k' || e.key === 'K')) {
       e.preventDefault();
@@ -568,6 +585,15 @@
       }
     }
   });
+
+  // 60fps Spatial Cursor Spotlight on Interactive Cards
+  document.addEventListener('pointermove', function(e) {
+    const card = e.target.closest('.rq-card, .rq-product-card, .rq-bento-spotlight, .rq-cat-clean-card');
+    if (!card) return;
+    const rect = card.getBoundingClientRect();
+    card.style.setProperty('--mouse-x', (e.clientX - rect.left) + 'px');
+    card.style.setProperty('--mouse-y', (e.clientY - rect.top) + 'px');
+  }, { passive: true });
   </script>
 
   {% block extra_scripts %}{% endblock %}
