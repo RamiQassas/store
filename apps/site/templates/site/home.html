@@ -43,10 +43,13 @@
       <!-- Quick Category Access Cards (Real Categories from DB) -->
       <div class="rq-hero-feature-box">
         {% for hcat in categories|slice:":4" %}
-        <a href="{% url 'catalog' %}?category={{ hcat.id }}" class="rq-hero-mini-card">
-          <i class="{{ hcat.icon_name|default:'fas fa-layer-group' }}"></i>
+        {% category_display_image hcat as hcat_img %}
+        <a href="{% url 'catalog' %}?category={{ hcat.id }}&view=products" class="rq-hero-mini-card">
+          <div style="width: 36px; height: 36px; border-radius: 9px; overflow: hidden; margin: 0 auto 0.4rem; background: rgba(255,255,255,0.08); display: flex; align-items: center; justify-content: center;">
+            <img src="{{ hcat_img }}" alt="{{ hcat.name }}" style="width: 100%; height: 100%; object-fit: cover;" onerror="this.onerror=null; this.src='/media/categories/raqamiyat_category_brand.jpg';">
+          </div>
           <span>{{ hcat.name|truncatechars:18 }}</span>
-          <small style="font-size: 0.68rem; color: #93c5fd; display: block; margin-top: 0.15rem;">{{ hcat.active_products_count }} منتج</small>
+          <small style="font-size: 0.68rem; color: #93c5fd; display: block; margin-top: 0.15rem;">{{ hcat.product_count|default:hcat.active_products_count|default:1 }} منتج</small>
         </a>
         {% empty %}
         <a href="{% url 'catalog' %}" class="rq-hero-mini-card" style="grid-column: span 2;">
@@ -71,26 +74,22 @@
         </h2>
         <p class="rq-section-subtitle">اختر القسم المطلوب لاستعراض المنتجات المتوفرة بداخله</p>
       </div>
-      <a href="{% url 'catalog' %}" class="rq-section-link">
-        <span>عرض الكل</span>
+      <a href="{% url 'catalog' %}?view=categories" class="rq-section-link">
+        <span>عرض كل الأقسام</span>
         <i class="fas fa-arrow-left text-xs"></i>
       </a>
     </div>
 
     <div class="rq-categories-grid">
       {% for cat in categories|slice:":12" %}
-      <a href="{% url 'catalog' %}?category={{ cat.id }}" class="rq-category-card">
-        <div class="rq-category-icon-wrapper">
-          {% if cat.image_url %}
-          <img src="{{ cat.image_url }}" alt="{{ cat.name }}" loading="lazy">
-          {% else %}
-          <i class="{{ cat.icon_name|default:'fas fa-layer-group' }}"></i>
-          {% endif %}
+      {% category_display_image cat as cat_img %}
+      <a href="{% url 'catalog' %}?category={{ cat.id }}&view=products" class="rq-cat-clean-card">
+        <div class="rq-cat-thumb">
+          <img src="{{ cat_img }}" alt="{{ cat.name }}" loading="lazy" onerror="this.onerror=null; this.src='/media/categories/raqamiyat_category_brand.jpg';">
+          <span class="rq-cat-badge">{{ cat.product_count|default:cat.active_products_count|default:1 }} منتج</span>
         </div>
-        <h3 class="rq-category-name">{{ cat.name }}</h3>
-        {% if cat.active_products_count %}
-        <span class="rq-category-count">{{ cat.active_products_count }} منتج</span>
-        {% endif %}
+        <h3 class="rq-cat-clean-title">{{ cat.name }}</h3>
+        <span class="rq-cat-action">تصفح القسم <i class="fas fa-arrow-left text-[10px]"></i></span>
       </a>
       {% endfor %}
     </div>

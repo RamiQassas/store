@@ -539,10 +539,10 @@ def product_display_image(product):
 @register.simple_tag
 def category_display_image(category):
     """
-    Returns image URL for a category if available, else empty string.
+    Returns image URL for a category if available, else standard fallback.
     """
     if not category:
-        return ""
+        return "/media/categories/raqamiyat_category_brand.jpg"
     if hasattr(category, 'image') and category.image:
         try:
             return category.image.url
@@ -553,6 +553,6 @@ def category_display_image(category):
             return category.icon.url
         except Exception:
             pass
-    return ""
+    return "/media/categories/raqamiyat_category_brand.jpg"
 
 

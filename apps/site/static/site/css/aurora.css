@@ -40,7 +40,15 @@ body.is-customer {
     linear-gradient(135deg, #07090d 0%, #10141b 42%, #0b1011 100%) !important;
   background-size: 34px 34px, 34px 34px, auto !important;
   color: var(--aurora-ink) !important;
-  overflow-x: hidden;
+  overflow-x: hidden !important;
+  max-width: 100% !important;
+  width: 100% !important;
+}
+
+html {
+  overflow-x: hidden !important;
+  max-width: 100% !important;
+  width: 100% !important;
 }
 
 body.is-customer *,
