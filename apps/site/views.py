@@ -1385,8 +1385,53 @@ def deposits(request):
         deduped_methods.sort(key=_deposit_method_priority)
         methods = deduped_methods
 
+        import json
+        methods_data = {}
+        for m in methods:
+            is_gw = bool(m.gateway and m.gateway.is_active)
+            gw_provider = m.gateway.provider if m.gateway else ""
+            if gw_provider == "sham_cash":
+                display_name = "شام كاش (ShamCash)"
+            elif gw_provider == "paymera":
+                display_name = "بيميرا (Paymera)"
+            else:
+                display_name = m.name
+
+            currencies_list = []
+            for c in m.supported_currencies.all():
+                currencies_list.append({
+                    "id": str(c.id),
+                    "code": str(c.code).upper(),
+                    "symbol": str(c.symbol),
+                    "name": str(c.name)
+                })
+
+            first_c = currencies_list[0] if currencies_list else {
+                "id": "", "code": "USD", "symbol": "$", "name": "US Dollar"
+            }
+
+            methods_data[str(m.id)] = {
+                "id": str(m.id),
+                "name": display_name,
+                "isGateway": is_gw,
+                "gatewayProvider": gw_provider,
+                "currencyId": first_c["id"],
+                "currencyCode": first_c["code"],
+                "currencySymbol": first_c["symbol"],
+                "min": float(m.deposit_min_amount or 0),
+                "max": float(m.deposit_max_amount or 0),
+                "fee": 0,
+                "instructions": m.deposit_instructions or "",
+                "currencies": currencies_list,
+            }
+
+        methods_json = json.dumps(methods_data)
+        has_manual = any(not (m.gateway and m.gateway.is_active) for m in methods)
+
     return render(request, "site/v3/v3_deposits.html", {
         "payment_methods": methods, 
+        "methods_json": methods_json,
+        "has_manual_methods": has_manual,
         "requests": DepositRequest.objects.filter(user=request.user, is_verified=True).order_by('-created_at'),
         "daily_limit": request.user.daily_deposit_limit,
         "remaining_limit": request.user.remaining_deposit_limit,

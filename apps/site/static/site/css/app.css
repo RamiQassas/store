@@ -1652,6 +1652,13 @@ button, input, select, textarea {
   background: var(--rq-primary-soft);
 }
 
+.rq-quick-chip.active {
+  border-color: var(--rq-primary) !important;
+  color: #ffffff !important;
+  background: var(--rq-primary) !important;
+  box-shadow: 0 4px 14px var(--rq-primary-glow) !important;
+}
+
 /* Segmented Tabs & Step Bar */
 .rq-seg-tabs {
   display: inline-flex;

@@ -13,7 +13,7 @@
         شحن رصيد المحفظة
       </h1>
       <p style="font-size: 0.84rem; color: var(--rq-text-muted); margin: 0;">
-        اختر وسيلة الشحن وحدد المبلغ ليتم شحن محفظتك فوراً
+        اختر وسيلة الشحن وحدد المبلغ ليتم شحن محفظتك فوراً وبشكل تلقائي
       </p>
     </div>
 
@@ -114,20 +114,21 @@
           <div id="method-currency-options" style="display: flex; gap: 0.6rem; flex-wrap: wrap;"></div>
         </div>
 
-        <!-- Quick Tap Amount Chips -->
-        <div style="display: flex; align-items: center; gap: 0.45rem; flex-wrap: wrap; margin-bottom: 0.75rem;">
-          <span style="font-size: 0.76rem; color: var(--rq-text-muted); font-weight: 700;">مبلغ سريع:</span>
-          <button type="button" class="rq-quick-chip" onclick="setQuickDepositAmount(5)">5</button>
-          <button type="button" class="rq-quick-chip" onclick="setQuickDepositAmount(10)">10</button>
-          <button type="button" class="rq-quick-chip" onclick="setQuickDepositAmount(25)">25</button>
-          <button type="button" class="rq-quick-chip" onclick="setQuickDepositAmount(50)">50</button>
-          <button type="button" class="rq-quick-chip" onclick="setQuickDepositAmount(100)">100</button>
+        <!-- Dynamic Quick Tap Amount Chips (SYP vs USD) -->
+        <div style="margin-bottom: 0.95rem;">
+          <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.45rem;">
+            <span style="font-size: 0.78rem; color: var(--rq-text-muted); font-weight: 700;">فئات شحن سريعة:</span>
+            <span id="quick-chips-currency-hint" style="font-size: 0.72rem; color: var(--rq-primary-light); font-weight: 800;"></span>
+          </div>
+          <div id="quick-amount-chips-container" style="display: flex; align-items: center; gap: 0.45rem; flex-wrap: wrap;">
+            <!-- Rendered dynamically by renderQuickAmountChips -->
+          </div>
         </div>
 
         <!-- Amount Input -->
         <div class="rq-form-group" style="margin-bottom: 1rem;">
           <label class="rq-label" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.4rem;">
-            <span style="font-weight: 800; color: var(--rq-text-primary); font-size: 0.84rem;">المبلغ:</span>
+            <span style="font-weight: 800; color: var(--rq-text-primary); font-size: 0.84rem;">المبلغ المراد شحنه:</span>
             <span id="amount-limits-hint" style="font-size: 0.74rem; color: var(--rq-text-muted);"></span>
           </label>
           <div style="position: relative;">
@@ -139,7 +140,7 @@
         <!-- Live Net Summary -->
         <div style="background: var(--rq-bg-body); border-radius: 12px; border: 1px solid var(--rq-border); padding: 0.85rem 1.15rem;">
           <div style="display: flex; justify-content: space-between; font-size: 0.8rem; color: var(--rq-text-secondary); margin-bottom: 0.3rem;">
-            <span>الرسوم:</span>
+            <span>رسوم الإيداع:</span>
             <span id="deposit-fee-text" class="tabular-nums font-mono" style="color: var(--rq-text-primary); font-weight: 700;">0.00</span>
           </div>
           <div style="display: flex; justify-content: space-between; font-size: 0.95rem; font-weight: 900; color: var(--rq-text-primary); padding-top: 0.4rem; border-top: 1px solid var(--rq-border);">
@@ -157,7 +158,7 @@
             <span id="gateway-auto-title">شحن فوري مباشر عبر {% if payment_methods.0.gateway.provider == 'sham_cash' %}شام كاش (ShamCash){% elif payment_methods.0.gateway.provider == 'paymera' %}بيميرا (Paymera){% else %}{{ payment_methods.0.name }}{% endif %}</span>
           </div>
           <p id="gateway-auto-desc" style="font-size: 0.84rem; color: var(--rq-text-secondary); margin: 0; line-height: 1.6;">
-            يتم توجيهك فورياً إلى بوابة الدفع الرسمية، ويُضاف الرصيد تلقائياً وبشكل آمن إلى محفظتك بمجرد إتمام السداد دون الحاجة لرفع أي إشعار يدوي.
+            يتم توجيهك فورياً إلى بوابة الدفع الرسمية، ويُضاف الرصيد تلقائياً وبشكل آمن إلى محفظتك بمجرد إتمام السداد دون الحاجة لرفع أي إشعار أو مراجعة يدوية.
           </p>
         </div>
 
@@ -167,8 +168,9 @@
         </button>
       </div>
 
-      <!-- SECTION 3B: MANUAL TRANSFER -->
-      <div id="manual-transfer-section" style="display: {% if payment_methods.0.gateway and payment_methods.0.gateway.is_active %}none{% else %}block{% endif %}; border-top: 1px solid var(--rq-border); padding-top: 1.35rem;">
+      <!-- SECTION 3B: MANUAL TRANSFER (Only shown for non-gateway manual methods) -->
+      {% if has_manual_methods %}
+      <div id="manual-transfer-section" style="display: none; border-top: 1px solid var(--rq-border); padding-top: 1.35rem;">
         <div id="method-instructions-box" style="background: var(--rq-primary-soft); border: 1px solid rgba(37, 99, 235, 0.2); border-radius: 12px; padding: 1rem; margin-bottom: 1.15rem;">
           <div style="font-size: 0.8rem; font-weight: 800; color: var(--rq-primary-light); margin-bottom: 0.35rem;">تعليمات التحويل:</div>
           <div id="method-instructions-text" style="font-size: 0.84rem; color: var(--rq-text-secondary); line-height: 1.65; white-space: pre-line;"></div>
@@ -193,9 +195,10 @@
 
         <button type="submit" class="rq-pdp-buy-now">
           <i class="fas fa-check-circle"></i>
-          <span>تأكيد طلب الإيداع</span>
+          <span>تأكيد طلب الإيداع اليدوي</span>
         </button>
       </div>
+      {% endif %}
 
     </form>
   </div>
@@ -259,30 +262,9 @@
 
 </div>
 
-<!-- Embedded Methods Data Dictionary (Safe JSON) -->
+<!-- Embedded Methods Data Dictionary (Safe JSON from backend) -->
 <script type="application/json" id="rq-methods-data">
-{
-  {% for m in payment_methods %}
-  "{{ m.id }}": {
-    "id": "{{ m.id }}",
-    "name": "{% if m.gateway and m.gateway.provider == 'sham_cash' %}شام كاش (ShamCash){% elif m.gateway and m.gateway.provider == 'paymera' %}بيميرا (Paymera){% else %}{{ m.name|escapejs }}{% endif %}",
-    "isGateway": {% if m.gateway and m.gateway.is_active %}true{% else %}false{% endif %},
-    "gatewayProvider": "{% if m.gateway %}{{ m.gateway.provider }}{% endif %}",
-    "currencyId": "{{ m.supported_currencies.first.id|default:'' }}",
-    "currencyCode": "{{ m.supported_currencies.first.code|default:'USD' }}",
-    "currencySymbol": "{{ m.supported_currencies.first.symbol|default:'$' }}",
-    "min": {{ m.deposit_min_amount|default:0 }},
-    "max": {{ m.deposit_max_amount|default:0 }},
-    "fee": 0,
-    "instructions": "{{ m.deposit_instructions|default:''|escapejs }}",
-    "currencies": [
-      {% for c in m.supported_currencies.all %}
-      {"id": "{{ c.id }}", "code": "{{ c.code }}", "symbol": "{{ c.symbol }}", "name": "{{ c.name|escapejs }}"}{% if not forloop.last %},{% endif %}
-      {% endfor %}
-    ]
-  }{% if not forloop.last %},{% endif %}
-  {% endfor %}
-}
+{{ methods_json|safe }}
 </script>
 
 <script>
@@ -290,10 +272,44 @@ let METHODS_CACHE = {};
 try {
   METHODS_CACHE = JSON.parse(document.getElementById('rq-methods-data').textContent || '{}');
 } catch(e) {
+  console.error("Failed to parse methods data:", e);
   METHODS_CACHE = {};
 }
 
 let activeMethodData = {};
+
+// Fast dynamic denomination chips as explicitly requested by the user
+const QUICK_AMOUNTS = {
+  SYP: [100, 500, 1000, 2000, 5000, 10000],
+  USD: [1, 5, 10, 20, 25, 30, 50, 100, 200, 500, 1000]
+};
+
+function renderQuickAmountChips(currCode) {
+  const container = document.getElementById('quick-amount-chips-container');
+  const hint = document.getElementById('quick-chips-currency-hint');
+  if (!container) return;
+
+  const code = (currCode || 'USD').toUpperCase();
+  const list = QUICK_AMOUNTS[code] || QUICK_AMOUNTS['USD'];
+  if (hint) {
+    hint.textContent = (code === 'SYP') ? 'فئات الليرة السورية' : 'فئات الدولار ($)';
+  }
+
+  container.innerHTML = '';
+  list.forEach(val => {
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'rq-quick-chip';
+    btn.setAttribute('data-amount', val);
+    btn.textContent = val.toLocaleString('en-US');
+    btn.onclick = () => {
+      setQuickDepositAmount(val);
+      document.querySelectorAll('#quick-amount-chips-container .rq-quick-chip').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+    };
+    container.appendChild(btn);
+  });
+}
 
 function setQuickDepositAmount(val) {
   const inp = document.getElementById('deposit-amount-input');
@@ -320,10 +336,10 @@ function selectDepositMethod(methodId, cardEl) {
   activeMethodData = {
     id: methodId,
     name: raw.name || '',
-    isGateway: !!raw.isGateway,
+    isGateway: (raw.isGateway === true),
     gatewayProvider: raw.gatewayProvider || '',
     currencyId: raw.currencyId || '',
-    currencyCode: raw.currencyCode || 'USD',
+    currencyCode: (raw.currencyCode || 'USD').toUpperCase(),
     currencySymbol: raw.currencySymbol || '$',
     min: parseFloat(raw.min) || 0,
     max: parseFloat(raw.max) || 0,
@@ -335,7 +351,7 @@ function selectDepositMethod(methodId, cardEl) {
   if (activeMethodData.currencies.length > 0) {
     const firstC = activeMethodData.currencies[0];
     activeMethodData.currencyId = firstC.id;
-    activeMethodData.currencyCode = firstC.code;
+    activeMethodData.currencyCode = (firstC.code || 'USD').toUpperCase();
     activeMethodData.currencySymbol = firstC.symbol;
   }
 
@@ -345,6 +361,7 @@ function selectDepositMethod(methodId, cardEl) {
   if (hiddenCurrency) hiddenCurrency.value = activeMethodData.currencyId;
   
   renderCurrencySelector(activeMethodData.currencies);
+  renderQuickAmountChips(activeMethodData.currencyCode);
   updateMethodDetailsView();
 }
 
@@ -375,11 +392,12 @@ function renderCurrencySelector(currencies) {
     pill.innerHTML = `<i class="fas fa-check-circle" style="display: ${isSelected ? 'inline-block' : 'none'};"></i><span>${c.code} (${c.symbol})</span>`;
     pill.onclick = () => {
       activeMethodData.currencyId = c.id;
-      activeMethodData.currencyCode = c.code;
+      activeMethodData.currencyCode = (c.code || 'USD').toUpperCase();
       activeMethodData.currencySymbol = c.symbol;
       const hiddenCurr = document.getElementById('selected-currency-id');
       if (hiddenCurr) hiddenCurr.value = c.id;
       renderCurrencySelector(currencies);
+      renderQuickAmountChips(activeMethodData.currencyCode);
       updateMethodDetailsView();
       if (typeof calculateDepositNet === 'function') calculateDepositNet();
     };
@@ -405,7 +423,7 @@ function updateMethodDetailsView() {
 
     if (isSham) {
       if (gwTitle) gwTitle.innerText = `شحن فوري مباشر عبر شام كاش (ShamCash)`;
-      if (gwDesc) gwDesc.innerText = `يتم توجيهك فورياً إلى شام كاش للدفع، ويُضاف الرصيد تلقائياً إلى محفظتك فور إتمام السداد.`;
+      if (gwDesc) gwDesc.innerText = `يتم توجيهك فورياً إلى شام كاش للدفع، ويُضاف الرصيد تلقائياً وبأمان إلى محفظتك فور إتمام السداد دون الحاجة لرفع إشعار.`;
       if (gwBtnText) gwBtnText.innerText = `متابعة الدفع والشحن الفوري عبر شام كاش ⚡`;
       if (gwBtn) {
         gwBtn.style.background = 'linear-gradient(135deg, #0d9488, #059669)';
@@ -413,7 +431,7 @@ function updateMethodDetailsView() {
       }
     } else if (isPaymera) {
       if (gwTitle) gwTitle.innerText = `شحن فوري بالبطاقة عبر بيميرا (Paymera)`;
-      if (gwDesc) gwDesc.innerText = `يُضاف الرصيد فوراً إلى محفظتك بعد الدفع بالبطاقة عبر بيميرا.`;
+      if (gwDesc) gwDesc.innerText = `يُضاف الرصيد فوراً إلى محفظتك بعد الدفع بالبطاقة عبر بيميرا دون الحاجة لرفع إشعار.`;
       if (gwBtnText) gwBtnText.innerText = `متابعة الدفع بالبطاقة عبر بيميرا 💳`;
       if (gwBtn) {
         gwBtn.style.background = 'linear-gradient(135deg, #4f46e5, #4338ca)';
@@ -480,6 +498,8 @@ document.addEventListener('DOMContentLoaded', () => {
   if (firstCard) {
     const mId = firstCard.getAttribute('data-method-id');
     selectDepositMethod(mId, firstCard);
+  } else {
+    renderQuickAmountChips('USD');
   }
 });
 </script>
