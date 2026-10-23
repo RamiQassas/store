@@ -447,9 +447,12 @@
 
   async function cancelPaymentByUser() {
     if (!confirm('هل أنت متأكد من رغبتك في إلغاء عملية الدفع؟')) return;
-    const cancelUrl = window.location.href + (window.location.href.includes('?') ? '&' : '?') + 'action=cancel&status=cancelled&format=json';
+    const url = new URL(window.location.href);
+    url.searchParams.set('action', 'cancel');
+    url.searchParams.set('status', 'cancelled');
+    url.searchParams.set('format', 'json');
     try {
-      const resp = await fetch(cancelUrl, {
+      const resp = await fetch(url.toString(), {
         method: 'POST',
         headers: {
           'X-Requested-With': 'XMLHttpRequest',
@@ -464,9 +467,11 @@
           return;
         }
       }
-      window.location.href = window.location.href + (window.location.href.includes('?') ? '&' : '?') + 'action=cancel&status=cancelled';
+      url.searchParams.delete('format');
+      window.location.href = url.toString();
     } catch (e) {
-      window.location.href = window.location.href + (window.location.href.includes('?') ? '&' : '?') + 'action=cancel&status=cancelled';
+      url.searchParams.delete('format');
+      window.location.href = url.toString();
     }
   }
 
