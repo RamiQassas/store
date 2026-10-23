@@ -1,92 +1,161 @@
 {% extends "site/base.html" %}
 {% load static site_tags %}
 
-{% block title %}مركز الدعم الفني والتواصل | {% if is_tenant %}{{ STORE_NAME }}{% else %}رقميات RAQAMIYAT{% endif %}{% endblock %}
+{% block title %}مركز خدمة العملاء والدعم الفني | {% if is_tenant %}{{ STORE_NAME }}{% else %}رقميات RAQAMIYAT{% endif %}{% endblock %}
 
 {% block content %}
-<div class="rq-dash-container" style="max-width: 980px;">
+<div class="rq-dash-container" style="max-width: 1060px;">
 
-  <!-- ── Breadcrumbs & Header ── -->
-  <div style="margin-bottom: 2rem; border-bottom: 1px solid var(--rq-border); padding-bottom: 1.5rem; text-align: center;">
-    <span style="font-size: 0.75rem; font-weight: 800; color: var(--rq-primary-light); text-transform: uppercase; letter-spacing: 1px;">
-      Engineering Support & Help Desk
-    </span>
-    <h1 style="font-size: clamp(1.6rem, 3.5vw, 2.4rem); font-weight: 900; color: #fff; margin: 0.35rem 0 0.5rem;">
-      تواصل مع فريق الدعم الفني
-    </h1>
-    <p style="font-size: 0.9rem; color: var(--rq-text-muted); max-width: 580px; margin: 0 auto;">
-      نحن هنا لخدمتك على مدار الساعة لضمان تجربة شراء سلسة، تفعيل فوري لكافة الخدمات، وحل أي استفسار.
-    </p>
+  <!-- 1. Hero Support Banner -->
+  <div style="background: var(--rq-hero-bg); border: 1px solid var(--rq-hero-border); border-radius: var(--rq-radius-2xl); padding: 2.5rem 2rem; color: #ffffff; margin-bottom: 2rem; position: relative; overflow: hidden; box-shadow: var(--rq-shadow-md);">
+    <div style="display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 1.5rem;">
+      <div style="max-width: 620px;">
+        <div style="display: inline-flex; align-items: center; gap: 0.5rem; padding: 0.35rem 0.9rem; border-radius: 9999px; background: rgba(16, 185, 129, 0.2); border: 1px solid rgba(52, 211, 153, 0.4); color: #6ee7b7; font-size: 0.76rem; font-weight: 800; margin-bottom: 0.85rem;">
+          <span style="width: 8px; height: 8px; border-radius: 50%; background: #34d399; box-shadow: 0 0 8px #34d399;"></span>
+          <span>فريق الدعم الفني متصل الآن • استجابة سريعة</span>
+        </div>
+        <h1 style="font-size: clamp(1.5rem, 3.2vw, 2.25rem); font-weight: 900; color: #ffffff; margin: 0 0 0.55rem; line-height: 1.3;">
+          مركز خدمة العملاء والدعم الفني
+        </h1>
+        <p style="font-size: 0.92rem; color: #cbd5e1; margin: 0; line-height: 1.7;">
+          نحن هنا لمساعدتك في جميع استفساراتك حول المنتجات، الطلبات، شحن المحفظة، وطرق الدفع الإلكتروني على مدار الساعة.
+        </p>
+      </div>
+
+      <div style="display: flex; flex-direction: column; gap: 0.65rem; min-width: 220px;">
+        <a href="{% url 'chat_list' %}" class="rq-btn-solid-white" style="justify-content: center;">
+          <i class="fas fa-comments" style="color: #2563eb;"></i>
+          <span>بدء محادثة مباشرة الآن</span>
+        </a>
+        {% if user.is_authenticated %}
+        <a href="{% url 'dashboard_orders' %}" class="rq-btn-secondary" style="justify-content: center; background: rgba(255,255,255,0.1); border-color: rgba(255,255,255,0.22); color: #ffffff;">
+          <i class="fas fa-box-open"></i>
+          <span>متابعة طلباتي الحالية</span>
+        </a>
+        {% endif %}
+      </div>
+    </div>
   </div>
 
-  <!-- ── 3 Support Channels Grid ── -->
-  <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 1.25rem; margin-bottom: 2.5rem;">
+  <!-- 2. Direct Support Channels Grid -->
+  <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 1.15rem; margin-bottom: 2.25rem;">
     
-    <!-- Channel 1: Live Chat -->
-    <div style="background: var(--rq-surface-card); border: 1px solid var(--rq-border); border-radius: var(--rq-radius-xl); padding: 1.75rem; text-align: center; display: flex; flex-direction: column; align-items: center; justify-content: space-between; gap: 1.25rem; transition: all 0.2s;" onmouseover="this.style.borderColor='var(--rq-primary-light)'" onmouseout="this.style.borderColor='var(--rq-border)'">
+    <!-- Channel 1: Live Support Chat -->
+    <div style="background: var(--rq-surface-card); border: 1px solid var(--rq-border); border-radius: var(--rq-radius-xl); padding: 1.5rem; display: flex; flex-direction: column; justify-content: space-between; gap: 1.15rem; box-shadow: var(--rq-shadow-xs); transition: all 0.22s;" onmouseover="this.style.borderColor='var(--rq-primary)'; this.style.transform='translateY(-3px)';" onmouseout="this.style.borderColor='var(--rq-border)'; this.style.transform='none';">
       <div>
-        <div style="width: 56px; height: 56px; border-radius: 16px; background: rgba(37, 99, 235, 0.15); color: #3b82f6; display: flex; align-items: center; justify-content: center; font-size: 1.5rem; margin-bottom: 1rem;">
-          <i class="fas fa-comments"></i>
+        <div style="width: 50px; height: 50px; border-radius: 14px; background: var(--rq-primary-soft); color: var(--rq-primary-light); display: flex; align-items: center; justify-content: center; font-size: 1.35rem; margin-bottom: 0.9rem;">
+          <i class="fas fa-comment-dots"></i>
         </div>
-        <h3 style="font-size: 1.1rem; font-weight: 800; color: #fff; margin: 0 0 0.35rem;">المحادثة المباشرة</h3>
-        <p style="font-size: 0.8rem; color: var(--rq-text-muted); margin: 0;">تحدث فورياً مع ممثل خدمة العملاء في المنصة مباشرة دون الحاجة لتسجيل مسبق.</p>
+        <h3 style="font-size: 1.02rem; font-weight: 900; color: var(--rq-navy); margin: 0 0 0.35rem;">المحادثة الفورية المباشرة</h3>
+        <p style="font-size: 0.82rem; color: var(--rq-text-secondary); margin: 0; line-height: 1.6;">
+          تحدث مباشرة مع فريق خدمة العملاء داخل المنصة لحل أي مشكلة في الطلبات أو شحن الرصيد فوراً.
+        </p>
       </div>
-
-      <a href="{% url 'chat_list' %}" class="rq-btn-auth-register" style="width: 100%; justify-content: center; padding: 0.65rem; font-size: 0.85rem;">
-        <i class="fas fa-comment-dots"></i>
-        <span>بدء محادثة مباشرة</span>
+      <a href="{% url 'chat_list' %}" class="rq-btn-auth-register" style="width: 100%; justify-content: center;">
+        <i class="fas fa-headset"></i>
+        <span>فتح نافذة المحادثة</span>
       </a>
     </div>
 
-    <!-- Channel 2: WhatsApp / Telegram -->
-    <div style="background: var(--rq-surface-card); border: 1px solid var(--rq-border); border-radius: var(--rq-radius-xl); padding: 1.75rem; text-align: center; display: flex; flex-direction: column; align-items: center; justify-content: space-between; gap: 1.25rem; transition: all 0.2s;" onmouseover="this.style.borderColor='var(--rq-primary-light)'" onmouseout="this.style.borderColor='var(--rq-border)'">
+    <!-- Channel 2: Official Email Support -->
+    <div style="background: var(--rq-surface-card); border: 1px solid var(--rq-border); border-radius: var(--rq-radius-xl); padding: 1.5rem; display: flex; flex-direction: column; justify-content: space-between; gap: 1.15rem; box-shadow: var(--rq-shadow-xs); transition: all 0.22s;" onmouseover="this.style.borderColor='var(--rq-primary)'; this.style.transform='translateY(-3px)';" onmouseout="this.style.borderColor='var(--rq-border)'; this.style.transform='none';">
       <div>
-        <div style="width: 56px; height: 56px; border-radius: 16px; background: rgba(16, 185, 129, 0.15); color: #10b981; display: flex; align-items: center; justify-content: center; font-size: 1.5rem; margin-bottom: 1rem;">
-          <i class="fab fa-whatsapp"></i>
+        <div style="width: 50px; height: 50px; border-radius: 14px; background: var(--rq-accent-soft); color: var(--rq-accent); display: flex; align-items: center; justify-content: center; font-size: 1.35rem; margin-bottom: 0.9rem;">
+          <i class="fas fa-envelope-open-text"></i>
         </div>
-        <h3 style="font-size: 1.1rem; font-weight: 800; color: #fff; margin: 0 0 0.35rem;">واتساب & تيليجرام</h3>
-        <p style="font-size: 0.8rem; color: var(--rq-text-muted); margin: 0;">تواصل مع فريق الدعم المباشر للاستفسار عن الأجهزة، الأسعار، ومتابعة الشحن والتوصيل.</p>
+        <h3 style="font-size: 1.02rem; font-weight: 900; color: var(--rq-navy); margin: 0 0 0.35rem;">البريد الرسمي للدعم</h3>
+        <p style="font-size: 0.82rem; color: var(--rq-text-secondary); margin: 0; line-height: 1.6;">
+          للاستفسارات التفصيلية، الشراكات التجارية، وطلبات المتاجر والتجار المعتمدين.
+        </p>
       </div>
-
-      <a href="{% url 'chat_list' %}" target="_blank" class="rq-btn-auth-login" style="width: 100%; justify-content: center; padding: 0.65rem; font-size: 0.85rem; color: #34d399; border-color: rgba(16, 185, 129, 0.3);">
-        <i class="fab fa-whatsapp"></i>
-        <span>بدء محادثة الدعم</span>
-      </a>
-    </div>
-
-    <!-- Channel 3: Email Support -->
-    <div style="background: var(--rq-surface-card); border: 1px solid var(--rq-border); border-radius: var(--rq-radius-xl); padding: 1.75rem; text-align: center; display: flex; flex-direction: column; align-items: center; justify-content: space-between; gap: 1.25rem; transition: all 0.2s;" onmouseover="this.style.borderColor='var(--rq-primary-light)'" onmouseout="this.style.borderColor='var(--rq-border)'">
-      <div>
-        <div style="width: 56px; height: 56px; border-radius: 16px; background: rgba(245, 158, 11, 0.15); color: #fbbf24; display: flex; align-items: center; justify-content: center; font-size: 1.5rem; margin-bottom: 1rem;">
-          <i class="fas fa-envelope"></i>
-        </div>
-        <h3 style="font-size: 1.1rem; font-weight: 800; color: #fff; margin: 0 0 0.35rem;">البريد الرسمي</h3>
-        <p style="font-size: 0.8rem; color: var(--rq-text-muted); margin: 0;">للاستفسارات التجارية، شراكات المتاجر، واقتراحات الخدمات الجديدة.</p>
-      </div>
-
-      <a href="mailto:support@raqamiyatapp.com" class="rq-btn-auth-login" style="width: 100%; justify-content: center; padding: 0.65rem; font-size: 0.85rem;">
-        <i class="fas fa-paper-plane"></i>
+      <a href="mailto:support@raqamiyatapp.com" class="rq-btn-secondary" style="width: 100%; justify-content: center; font-family: monospace;">
+        <i class="fas fa-paper-plane" style="color: var(--rq-accent);"></i>
         <span>support@raqamiyatapp.com</span>
       </a>
     </div>
 
+    <!-- Channel 3: Product / Service Request -->
+    <div style="background: var(--rq-surface-card); border: 1px solid var(--rq-border); border-radius: var(--rq-radius-xl); padding: 1.5rem; display: flex; flex-direction: column; justify-content: space-between; gap: 1.15rem; box-shadow: var(--rq-shadow-xs); transition: all 0.22s;" onmouseover="this.style.borderColor='var(--rq-primary)'; this.style.transform='translateY(-3px)';" onmouseout="this.style.borderColor='var(--rq-border)'; this.style.transform='none';">
+      <div>
+        <div style="width: 50px; height: 50px; border-radius: 14px; background: var(--rq-gold-soft); color: var(--rq-gold); display: flex; align-items: center; justify-content: center; font-size: 1.35rem; margin-bottom: 0.9rem;">
+          <i class="fas fa-lightbulb"></i>
+        </div>
+        <h3 style="font-size: 1.02rem; font-weight: 900; color: var(--rq-navy); margin: 0 0 0.35rem;">اقتراح منتج أو خدمة</h3>
+        <p style="font-size: 0.82rem; color: var(--rq-text-secondary); margin: 0; line-height: 1.6;">
+          هل تبحث عن جهاز أو بطاقة رقمية غير موجودة في المتجر؟ أرسل طلبك وسنقوم بتوفيره لك.
+        </p>
+      </div>
+      <a href="{% url 'site_product_suggestion' %}" class="rq-btn-secondary" style="width: 100%; justify-content: center;">
+        <i class="fas fa-plus-circle" style="color: var(--rq-gold);"></i>
+        <span>تقديم اقتراح أو طلب توفير</span>
+      </a>
+    </div>
+
   </div>
 
-  <!-- ── Trust Banner ── -->
-  <div style="background: linear-gradient(135deg, rgba(37, 99, 235, 0.08) 0%, rgba(13, 19, 34, 0.95) 100%); border: 1px solid var(--rq-border); border-radius: var(--rq-radius-xl); padding: 1.75rem; display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 1.5rem;">
-    <div style="display: flex; align-items: center; gap: 1rem;">
-      <div style="width: 48px; height: 48px; border-radius: 12px; background: rgba(37, 99, 235, 0.2); color: #3b82f6; display: flex; align-items: center; justify-content: center; font-size: 1.35rem;">
-        <i class="fas fa-shield-alt"></i>
-      </div>
+  <!-- 3. Official Social Media Channels (From Database) -->
+  {% if SOCIAL_LINKS %}
+  <div style="background: var(--rq-surface-card); border: 1px solid var(--rq-border); border-radius: var(--rq-radius-xl); padding: 1.5rem; margin-bottom: 2.25rem; box-shadow: var(--rq-shadow-xs);">
+    <div style="display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 1rem;">
       <div>
-        <h4 style="font-size: 0.95rem; font-weight: 800; color: #fff; margin: 0 0 0.25rem;">حماية المشتري وضمان الاسترداد</h4>
-        <p style="font-size: 0.8rem; color: var(--rq-text-muted); margin: 0;">كافة طلباتك في رقميات محمية بضمان استلام رسمي 100%.</p>
+        <h3 style="font-size: 1rem; font-weight: 900; color: var(--rq-navy); margin: 0 0 0.25rem;">قنوات التواصل الاجتماعي الرسمية</h3>
+        <p style="font-size: 0.82rem; color: var(--rq-text-muted); margin: 0;">تابع أحدث العروض والمنتجات وتواصل معنا عبر منصاتنا الرسمية المعتمدة</p>
+      </div>
+      <div style="display: flex; align-items: center; flex-wrap: wrap; gap: 0.65rem;">
+        {% for link in SOCIAL_LINKS %}
+        <a href="{{ link.url }}" target="_blank" rel="noopener noreferrer" class="rq-btn-secondary rq-btn-sm" style="height: 40px; padding: 0 1rem; border-radius: 11px;">
+          {% if link.icon_image %}
+          <img src="{{ link.icon_image.url }}" alt="{{ link.name }}" style="width: 18px; height: 18px; object-fit: contain;">
+          {% elif link.icon_class %}
+          <i class="{{ link.icon_class }}" style="color: var(--rq-primary-light); font-size: 0.95rem;"></i>
+          {% else %}
+          <i class="fas fa-share-nodes" style="color: var(--rq-primary-light);"></i>
+          {% endif %}
+          <span>{{ link.name }}</span>
+        </a>
+        {% endfor %}
       </div>
     </div>
-    <div style="display: flex; align-items: center; gap: 0.65rem;">
-      <a href="{% url 'refund_policy' %}" class="rq-section-link" style="font-size: 0.8rem;">سياسة الاسترجاع</a>
-      <span style="color: var(--rq-border);">•</span>
-      <a href="{% url 'terms_of_service' %}" class="rq-section-link" style="font-size: 0.8rem;">شروط الخدمة</a>
+  </div>
+  {% endif %}
+
+  <!-- 4. Interactive FAQ Section -->
+  <div style="background: var(--rq-surface-card); border: 1px solid var(--rq-border); border-radius: var(--rq-radius-xl); padding: 1.75rem; margin-bottom: 2rem; box-shadow: var(--rq-shadow-xs);">
+    <h2 style="font-size: 1.15rem; font-weight: 900; color: var(--rq-navy); margin: 0 0 1.25rem; display: flex; align-items: center; gap: 0.55rem;">
+      <i class="fas fa-circle-question" style="color: var(--rq-primary-light);"></i>
+      <span>الأسئلة الشائعة والمساعدة السريعة</span>
+    </h2>
+
+    <div style="display: flex; flex-direction: column; gap: 0.75rem;">
+      <details style="background: var(--rq-bg-surface); border: 1px solid var(--rq-border); border-radius: 12px; padding: 1rem 1.15rem;">
+        <summary style="font-size: 0.9rem; font-weight: 800; color: var(--rq-navy); cursor: pointer; list-style: none; display: flex; align-items: center; justify-content: space-between;">
+          <span>كيف أشتري منتجاً أو أستلم الكود الرقمي بعد الدفع؟</span>
+          <i class="fas fa-chevron-down" style="font-size: 0.75rem; color: var(--rq-text-muted);"></i>
+        </summary>
+        <p style="font-size: 0.84rem; color: var(--rq-text-secondary); margin: 0.75rem 0 0; line-height: 1.7;">
+          يمكنك إضافة المنتجات إلى سلة التسوق أو الضغط على «شراء فوري» من صفحة المنتج، واختيار الدفع من المحفظة أو عبر شام كاش أو بيميرا. فور إتمام السداد، يظهر الكود أو حالة التنفيذ مباشرة في صفحة «طلباتي».
+        </p>
+      </details>
+
+      <details style="background: var(--rq-bg-surface); border: 1px solid var(--rq-border); border-radius: 12px; padding: 1rem 1.15rem;">
+        <summary style="font-size: 0.9rem; font-weight: 800; color: var(--rq-navy); cursor: pointer; list-style: none; display: flex; align-items: center; justify-content: space-between;">
+          <span>كيف أشحن رصيد محفظتي عبر شام كاش أو بيميرا؟</span>
+          <i class="fas fa-chevron-down" style="font-size: 0.75rem; color: var(--rq-text-muted);"></i>
+        </summary>
+        <p style="font-size: 0.84rem; color: var(--rq-text-secondary); margin: 0.75rem 0 0; line-height: 1.7;">
+          من قائمة «المحفظة الرقمية» اضغط على «شحن الرصيد»، اختر بوابة الدفع الفوري (شام كاش بالدولار أو الليرة السورية، أو بيميرا بالبطاقة البنكية)، أدخل المبلغ وسيُضاف الرصيد إلى محفظتك تلقائياً فور تأكيد العملية.
+        </p>
+      </details>
+
+      <details style="background: var(--rq-bg-surface); border: 1px solid var(--rq-border); border-radius: 12px; padding: 1rem 1.15rem;">
+        <summary style="font-size: 0.9rem; font-weight: 800; color: var(--rq-navy); cursor: pointer; list-style: none; display: flex; align-items: center; justify-content: space-between;">
+          <span>ماذا يحدث إذا تعذر تنفيذ طلبي؟</span>
+          <i class="fas fa-chevron-down" style="font-size: 0.75rem; color: var(--rq-text-muted);"></i>
+        </summary>
+        <p style="font-size: 0.84rem; color: var(--rq-text-secondary); margin: 0.75rem 0 0; line-height: 1.7;">
+          جميع الطلبات في منصة رقميات محمية بالكامل؛ في حال تعذر تنفيذ أي طلب لأي سبب تقني، يعود المبلغ كاملاً إلى رصيد محفظتك تلقائياً مع إشعار فوري في حسابك.
+        </p>
+      </details>
     </div>
   </div>
 

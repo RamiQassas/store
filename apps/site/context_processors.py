@@ -1,4 +1,5 @@
 from decimal import Decimal
+from django.db.models import Count, Q
 from apps.common.models import Currency, SocialMediaLink, MetaPixelConfiguration
 from apps.common.security import sanitize_custom_css
 from apps.payments.models import PaymentMethod
@@ -98,11 +99,39 @@ def _build_cart_context(request, pref_currency=None):
         return {"cart_items": [], "cart_items_count": 0, "cart_total": Decimal("0.00")}
 
 
+def _build_nav_categories(store=None):
+    """
+    Returns actual active categories from the database that exist in the store.
+    """
+    try:
+        from apps.catalog.models import Category
+        store_q = Q(store=store) if store else Q(store__isnull=True)
+        cats = list(
+            Category.all_objects.filter(store_q, is_active=True)
+            .annotate(
+                active_products_count=Count(
+                    "products",
+                    filter=Q(products__is_active=True, products__is_publicly_visible=True),
+                )
+            )
+            .filter(active_products_count__gt=0)
+            .order_by("sort_order", "name")[:14]
+        )
+        if not cats:
+            cats = list(
+                Category.all_objects.filter(store_q, is_active=True)
+                .order_by("sort_order", "name")[:14]
+            )
+        return cats
+    except Exception:
+        return []
+
+
 def preferred_currency(request):
     """
     Determines the preferred currency for the current user or guest session.
     Returns:
-        Currency object, active currencies, payment methods, and live cart context.
+        Currency object, active currencies, payment methods, actual nav_categories, social_links, and live cart context.
     """
     store = getattr(request, "store", None)
     if store and not Currency.all_objects.filter(store=store).exists():
@@ -157,6 +186,8 @@ def preferred_currency(request):
     system_currency = next((c for c in all_currencies if c.code == "USD"), None) or (all_currencies[0] if all_currencies else None)
 
     payment_methods = PaymentMethod.objects.filter(is_active=True).order_by('display_order')
+    social_links = list(SocialMediaLink.objects.filter(is_active=True).order_by("display_order"))
+    nav_categories = _build_nav_categories(store=store)
     cart_ctx = _build_cart_context(request, pref_currency)
 
     return {
@@ -166,7 +197,10 @@ def preferred_currency(request):
         "ALL_CURRENCIES": all_currencies,
         "SYSTEM_CURRENCY": system_currency,
         "WITHDRAWAL_RATE": pref_currency.sell_rate if pref_currency else 1.0,
-        "SOCIAL_LINKS": SocialMediaLink.objects.filter(is_active=True).order_by("display_order"),
+        "SOCIAL_LINKS": social_links,
+        "social_links": social_links,
+        "NAV_CATEGORIES": nav_categories,
+        "nav_categories": nav_categories,
         "PAYMENT_METHODS": payment_methods,
         "payment_methods": payment_methods,
         **cart_ctx,
@@ -221,11 +255,11 @@ def tenant_context(request):
             "STORE_LOGO": store.logo if store.logo else None,
             "STORE_BANNER": store.banner if store.banner else None,
             "STORE_DESCRIPTION": store.description or store.name,
-            "STORE_PRIMARY": store.primary_color or "#2563eb",
-            "STORE_SECONDARY": store.secondary_color or "#1d4ed8",
+            "STORE_PRIMARY": store.primary_color or "#3b82f6",
+            "STORE_SECONDARY": store.secondary_color or "#2563eb",
             "STORE_BUTTON_COLOR": store.button_color or store.primary_color or "#2563eb",
-            "STORE_BG": store.background_color or "#f8fafc",
-            "STORE_TEXT": store.text_color or "#0f172a",
+            "STORE_BG": store.background_color or "#070b14",
+            "STORE_TEXT": store.text_color or "#f8fafc",
             "STORE_FONT": store.theme_font or "Cairo",
             "STORE_CARD_STYLE": store.card_style or "flat",
             "STORE_HEADER_STYLE": store.header_style or "classic",
@@ -257,11 +291,11 @@ def tenant_context(request):
             "STORE_LOGO": None,
             "STORE_BANNER": None,
             "STORE_DESCRIPTION": "رقميات | متجر الإلكترونيات والتقنية والخدمات الرقمية",
-            "STORE_PRIMARY": "#2563eb",
-            "STORE_SECONDARY": "#1d4ed8",
+            "STORE_PRIMARY": "#3b82f6",
+            "STORE_SECONDARY": "#2563eb",
             "STORE_BUTTON_COLOR": "#2563eb",
-            "STORE_BG": "#f8fafc",
-            "STORE_TEXT": "#0f172a",
+            "STORE_BG": "#070b14",
+            "STORE_TEXT": "#f8fafc",
             "STORE_FONT": "Cairo",
             "STORE_CARD_STYLE": "flat",
             "STORE_HEADER_STYLE": "classic",

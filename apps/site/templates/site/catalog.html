@@ -71,7 +71,7 @@
 
       <!-- Desktop Filter Sidebar -->
       <aside class="rq-catalog-sidebar">
-        <div style="background: #ffffff; border: 1px solid var(--rq-border); border-radius: var(--rq-radius-xl); padding: 1.35rem; display: flex; flex-direction: column; gap: 1.35rem; box-shadow: var(--rq-shadow-xs);">
+        <div style="background: var(--rq-surface-card); border: 1px solid var(--rq-border); border-radius: var(--rq-radius-xl); padding: 1.35rem; display: flex; flex-direction: column; gap: 1.35rem; box-shadow: var(--rq-shadow-xs);">
           
           <!-- 1. Categories Filter -->
           <div>
@@ -86,7 +86,7 @@
             <div style="display: flex; flex-direction: column; gap: 0.25rem; max-height: 320px; overflow-y: auto;">
               <a href="{% url 'catalog' %}{% if query %}?q={{ query }}{% endif %}" style="display: flex; align-items: center; justify-content: space-between; padding: 0.55rem 0.75rem; border-radius: var(--rq-radius-md); font-size: 0.82rem; font-weight: 700; background: {% if not active_category %}var(--rq-primary-soft){% else %}transparent{% endif %}; color: {% if not active_category %}var(--rq-primary){% else %}var(--rq-text-secondary){% endif %}; border: 1px solid {% if not active_category %}#bfdbfe{% else %}transparent{% endif %};">
                 <span>جميع المنتجات</span>
-                <span class="tabular-nums" style="font-size: 0.72rem; font-weight: 800; color: var(--rq-accent); background: #ffffff; padding: 0.1rem 0.45rem; border-radius: var(--rq-radius-full); border: 1px solid var(--rq-border);">{{ all_products_count }}</span>
+                <span class="tabular-nums" style="font-size: 0.72rem; font-weight: 800; color: var(--rq-accent); background: var(--rq-surface-card); padding: 0.1rem 0.45rem; border-radius: var(--rq-radius-full); border: 1px solid var(--rq-border);">{{ all_products_count }}</span>
               </a>
 
               {% for cat in categories %}
@@ -162,7 +162,7 @@
       <div style="min-width: 0;">
 
         <!-- Controls Toolbar -->
-        <div style="background: #ffffff; border: 1px solid var(--rq-border); border-radius: var(--rq-radius-lg); padding: 0.75rem 1.15rem; margin-bottom: 1.25rem; display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 0.85rem; box-shadow: var(--rq-shadow-xs);">
+        <div style="background: var(--rq-surface-card); border: 1px solid var(--rq-border); border-radius: var(--rq-radius-lg); padding: 0.75rem 1.15rem; margin-bottom: 1.25rem; display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 0.85rem; box-shadow: var(--rq-shadow-xs);">
           
           <div style="display: inline-flex; align-items: center; gap: 0.25rem; background: var(--rq-bg-elevated); padding: 0.25rem; border-radius: 10px; border: 1px solid var(--rq-border);">
             <button type="button" id="tab-products-btn" onclick="switchCatalogView('products')" style="padding: 0.4rem 0.9rem; border-radius: 7px; border: none; font-size: 0.78rem; font-weight: 800; cursor: pointer; display: inline-flex; align-items: center; gap: 0.38rem; font-family: inherit; {% if view_type != 'categories' %}background: var(--rq-accent); color: #ffffff;{% else %}background: transparent; color: var(--rq-text-secondary);{% endif %}">
@@ -237,7 +237,7 @@
               </div>
             </article>
             {% empty %}
-            <div style="grid-column: 1 / -1; padding: 3.5rem 1.5rem; text-align: center; background: #ffffff; border: 1px solid var(--rq-border); border-radius: var(--rq-radius-lg);">
+            <div style="grid-column: 1 / -1; padding: 3.5rem 1.5rem; text-align: center; background: var(--rq-surface-card); border: 1px solid var(--rq-border); border-radius: var(--rq-radius-lg);">
               <i class="fas fa-magnifying-glass text-3xl mb-3 block" style="color: var(--rq-text-dim);"></i>
               <h3 style="font-size: 1.1rem; font-weight: 900; color: var(--rq-navy); margin: 0 0 0.4rem;">لم يتم العثور على نتائج مطابقة</h3>
               <p style="font-size: 0.85rem; color: var(--rq-text-secondary); margin: 0 0 1.25rem;">جرب تغيير كلمات البحث أو إعادة ضبط الفلاتر لاستعراض كافة المنتجات.</p>
@@ -250,7 +250,7 @@
 
           <!-- Pagination Bar -->
           {% if total_products_count > 0 %}
-          <div style="display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 1rem; background: #ffffff; border: 1px solid var(--rq-border); border-radius: var(--rq-radius-lg); padding: 0.85rem 1.25rem; box-shadow: var(--rq-shadow-xs);">
+          <div style="display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 1rem; background: var(--rq-surface-card); border: 1px solid var(--rq-border); border-radius: var(--rq-radius-lg); padding: 0.85rem 1.25rem; box-shadow: var(--rq-shadow-xs);">
             {% if page_obj.has_previous %}
             <a href="?start={{ prev_start }}{% if query %}&q={{ query }}{% endif %}{% if active_category %}&category={{ active_category }}{% endif %}{% if sort %}&sort={{ sort }}{% endif %}{% if product_type_filter %}&type={{ product_type_filter }}{% endif %}&view=products" class="rq-btn-secondary rq-btn-sm">
               <i class="fas fa-chevron-right text-xs"></i>
@@ -314,7 +314,7 @@
 
 <!-- ── Product Suggestion Modal ── -->
 <div id="suggestion-modal" style="display: none; position: fixed; inset: 0; background: rgba(15, 23, 42, 0.5); backdrop-filter: blur(4px); z-index: 10000; align-items: center; justify-content: center; padding: 1.25rem;">
-  <div style="background: #ffffff; border: 1px solid var(--rq-border); border-radius: var(--rq-radius-xl); padding: 1.75rem; max-width: 460px; width: 100%; position: relative; box-shadow: var(--rq-shadow-lg);">
+  <div style="background: var(--rq-surface-card); border: 1px solid var(--rq-border); border-radius: var(--rq-radius-xl); padding: 1.75rem; max-width: 460px; width: 100%; position: relative; box-shadow: var(--rq-shadow-lg);">
     <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.15rem; border-bottom: 1px solid var(--rq-border); padding-bottom: 0.75rem;">
       <h3 style="font-size: 1rem; font-weight: 900; color: var(--rq-navy); margin: 0; display: flex; align-items: center; gap: 0.45rem;">
         <i class="fas fa-lightbulb" style="color: var(--rq-accent);"></i>

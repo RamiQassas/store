@@ -118,7 +118,7 @@
     </div>
     <div style="display: flex; flex-direction: column; gap: 0.5rem;">
       {% for res in responses %}
-      <div style="background: #ffffff; border: 1px solid var(--rq-border); border-radius: 10px; padding: 0.75rem 1rem; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 0.5rem;">
+      <div style="background: var(--rq-surface-card); border: 1px solid var(--rq-border); border-radius: 10px; padding: 0.75rem 1rem; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 0.5rem;">
         <div style="font-size: 0.82rem; color: var(--rq-navy);">
           {% if res.account_name %}<div><strong>الحساب:</strong> {{ res.account_name }}</div>{% endif %}
           {% if res.package_info %}<div style="color: var(--rq-text-secondary);">{{ res.package_info }}</div>{% endif %}
@@ -149,7 +149,7 @@
           {% product_display_image item.variant.product as p_img %}
           <div style="display: flex; align-items: center; justify-content: space-between; padding: 0.85rem 1rem; background: var(--rq-bg-body); border-radius: 12px; border: 1px solid var(--rq-border); flex-wrap: wrap; gap: 0.85rem;">
             <div style="display: flex; align-items: center; gap: 0.85rem;">
-              <div style="width: 48px; height: 48px; border-radius: 10px; background: #ffffff; border: 1px solid var(--rq-border); display: flex; align-items: center; justify-content: center; overflow: hidden; padding: 0.3rem;">
+              <div style="width: 48px; height: 48px; border-radius: 10px; background: var(--rq-surface-card); border: 1px solid var(--rq-border); display: flex; align-items: center; justify-content: center; overflow: hidden; padding: 0.3rem;">
                 {% if p_img %}
                 <img src="{{ p_img }}" alt="{{ item.variant.product.name }}" style="max-height: 100%; max-width: 100%; object-fit: contain;">
                 {% else %}

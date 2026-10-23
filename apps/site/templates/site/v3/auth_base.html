@@ -1,250 +1,170 @@
 {% load static site_tags %}
 <!DOCTYPE html>
-<html lang="ar" dir="rtl">
+<html lang="ar" dir="rtl" data-theme="dark">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{% filter tenant_title %}{% block title %}{% if is_tenant %}{{ STORE_NAME }}{% else %}المصادقة | رقميات{% endif %}{% endblock %}{% endfilter %}</title>
-    
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
-    <link rel="stylesheet" href="{% static 'site/css/app.css' %}?v=20261023_retail_v10">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title>{% block title %}بوابة الحساب | {% if is_tenant %}{{ STORE_NAME }}{% else %}رقميات Raqamiyat{% endif %}{% endblock %}</title>
 
-    <style>
-        body {
-            background-color: var(--rq-bg-body);
-            color: var(--rq-text-primary);
-            font-family: var(--rq-font-body);
-            min-height: 100vh;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            padding: 2rem 1rem;
-            position: relative;
-            overflow-x: hidden;
-        }
-
-        .auth-card-wrapper {
-            width: 100%;
-            max-width: 480px;
-            position: relative;
-            z-index: 10;
-        }
-
-        .auth-brand-logo {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            text-decoration: none;
-            margin-bottom: 1.75rem;
-            text-align: center;
-        }
-
-        .auth-panel {
-            background: #ffffff;
-            border: 1px solid var(--rq-border);
-            border-radius: var(--rq-radius-xl);
-            padding: 2rem;
-            box-shadow: var(--rq-shadow-md);
-        }
-
-        .auth-input-group {
-            display: flex;
-            flex-direction: column;
-            gap: 0.4rem;
-            margin-bottom: 1.15rem;
-        }
-
-        .auth-label {
-            font-size: 0.82rem;
-            font-weight: 800;
-            color: var(--rq-navy);
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-        }
-
-        .auth-input-wrapper {
-            position: relative;
-            display: flex;
-            align-items: center;
-        }
-
-        .auth-input-wrapper i.field-icon {
-            position: absolute;
-            right: 1rem;
-            color: var(--rq-text-muted);
-            font-size: 0.9rem;
-            pointer-events: none;
-        }
-
-        .auth-input-wrapper input,
-        .auth-input {
-            width: 100%;
-            padding: 0.78rem 2.75rem 0.78rem 1rem;
-            border-radius: var(--rq-radius-md);
-            background: #ffffff;
-            border: 1.5px solid var(--rq-border-light);
-            color: var(--rq-navy);
-            font-family: inherit;
-            font-size: 0.9rem;
-            font-weight: 600;
-            outline: none;
-            transition: border-color 0.18s ease, box-shadow 0.18s ease;
-        }
-
-        .auth-input-wrapper input:focus,
-        .auth-input:focus {
-            border-color: var(--rq-accent);
-            box-shadow: 0 0 0 3px var(--rq-primary-glow);
-        }
-
-        .auth-toggle-pwd {
-            position: absolute;
-            left: 0.9rem;
-            background: none;
-            border: none;
-            color: var(--rq-text-muted);
-            cursor: pointer;
-            font-size: 0.9rem;
-            padding: 0.25rem;
-        }
-
-        .auth-toggle-pwd:hover {
-            color: var(--rq-navy);
-        }
-
-        .auth-btn-primary,
-        .btn-premium {
-            width: 100%;
-            padding: 0.85rem 1.5rem;
-            border-radius: var(--rq-radius-md);
-            background: var(--rq-accent);
-            border: 1px solid var(--rq-accent);
-            color: #ffffff;
-            font-size: 0.94rem;
-            font-weight: 800;
-            font-family: inherit;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 0.55rem;
-            box-shadow: 0 3px 10px rgba(37, 99, 235, 0.22);
-            transition: all 0.18s ease;
-            margin-top: 0.5rem;
-        }
-
-        .auth-btn-primary:hover,
-        .btn-premium:hover {
-            background: var(--rq-primary-hover);
-            transform: translateY(-1px);
-            box-shadow: 0 6px 16px rgba(29, 78, 216, 0.28);
-        }
-
-        .auth-footer-links {
-            margin-top: 1.5rem;
-            display: flex;
-            flex-wrap: wrap;
-            justify-content: center;
-            gap: 1.25rem;
-            font-size: 0.8rem;
-            color: var(--rq-text-muted);
-        }
-
-        .auth-footer-links a {
-            color: var(--rq-text-secondary);
-            font-weight: 700;
-            text-decoration: none;
-        }
-
-        .auth-footer-links a:hover {
-            color: var(--rq-accent);
-        }
-    </style>
-    {% block extra_head %}{% endblock %}
-</head>
-<body>
-
-    <div class="auth-card-wrapper">
-
-        <!-- Brand Header -->
-        <a href="{% url 'home' %}" class="auth-brand-logo">
-            <div style="display: flex; align-items: center; gap: 0.65rem;">
-                <img src="{% static 'site/img/raqamiyat_logo_square.jpg' %}" alt="رقميات" style="width: 44px; height: 44px; border-radius: 12px; object-fit: cover; border: 1px solid var(--rq-border);">
-                <div style="text-align: right;">
-                    <div style="font-family: var(--rq-font-heading); font-size: 1.4rem; font-weight: 900; color: var(--rq-navy); line-height: 1.1;">
-                        {% if is_tenant %}{{ STORE_NAME }}{% else %}رقميات{% endif %}
-                    </div>
-                    <span style="font-size: 0.7rem; color: var(--rq-text-muted); font-weight: 800; letter-spacing: 0.04em;">RAQAMIYAT STORE</span>
-                </div>
-            </div>
-        </a>
-
-        <!-- Alert Messages -->
-        {% if messages %}
-        <div style="margin-bottom: 1.15rem; display: flex; flex-direction: column; gap: 0.5rem;">
-            {% for message in messages %}
-            <div style="padding: 0.8rem 1.1rem; border-radius: var(--rq-radius-md); font-size: 0.82rem; font-weight: 700; display: flex; align-items: center; gap: 0.5rem; {% if message.tags == 'success' %}background: #ecfdf5; border: 1px solid #a7f3d0; color: #047857;{% else %}background: #fef2f2; border: 1px solid #fecaca; color: #b91c1c;{% endif %}">
-                <i class="fas {% if message.tags == 'success' %}fa-check-circle{% else %}fa-exclamation-triangle{% endif %}"></i>
-                <span>{{ message }}</span>
-            </div>
-            {% endfor %}
-        </div>
-        {% endif %}
-
-        <!-- Content Block -->
-        <div class="auth-panel">
-            {% block auth_content %}{% endblock %}
-        </div>
-        
-        <!-- Footer Links -->
-        <div class="auth-footer-links">
-            <a href="{% url 'home' %}">الرئيسية</a>
-            <a href="{% url 'privacy_policy' %}">سياسة الخصوصية</a>
-            <a href="{% url 'terms_of_service' %}">الشروط والأحكام</a>
-            <a href="{% url 'contact' %}">الدعم الفني</a>
-        </div>
-    </div>
-
-    <script>
+  <script>
     (function() {
-        function getCookie(name) {
-            let cookieValue = null;
-            if (document.cookie && document.cookie !== '') {
-                const cookies = document.cookie.split(';');
-                for (let i = 0; i < cookies.length; i++) {
-                    const cookie = cookies[i].trim();
-                    if (cookie.substring(0, name.length + 1) === (name + '=')) {
-                        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
-                        break;
-                    }
-                }
-            }
-            return cookieValue;
-        }
-
-        function syncCsrfTokens() {
-            const token = getCookie('csrftoken');
-            if (token) {
-                document.querySelectorAll('input[name="csrfmiddlewaretoken"]').forEach(function(el) {
-                    el.value = token;
-                });
-            }
-        }
-
-        document.addEventListener('DOMContentLoaded', syncCsrfTokens);
-        window.addEventListener('pageshow', syncCsrfTokens);
-        document.addEventListener('submit', function(e) {
-            if (e.target && e.target.tagName === 'FORM') {
-                syncCsrfTokens();
-            }
-        }, true);
+      try {
+        var saved = localStorage.getItem('rq_theme') || 'dark';
+        if (saved !== 'light' && saved !== 'dark') saved = 'dark';
+        document.documentElement.setAttribute('data-theme', saved);
+      } catch (e) {
+        document.documentElement.setAttribute('data-theme', 'dark');
+      }
     })();
-    </script>
+  </script>
 
-    {% block extra_js %}{% endblock %}
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@500;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+  <link rel="stylesheet" href="{% static 'site/css/app.css' %}?v=20261023_dual_v11">
+
+  <style>
+    .rq-auth-page {
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      background: radial-gradient(circle at 80% 10%, rgba(37, 99, 235, 0.14) 0%, transparent 40%),
+                  radial-gradient(circle at 20% 90%, rgba(16, 185, 129, 0.08) 0%, transparent 40%),
+                  var(--rq-bg-body);
+    }
+    .rq-auth-topbar {
+      padding: 1rem 1.5rem;
+      background: var(--rq-header-bg);
+      backdrop-filter: blur(14px);
+      border-bottom: 1px solid var(--rq-border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .rq-auth-main {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 2rem 1rem;
+    }
+    .rq-auth-card {
+      width: 100%;
+      max-width: 470px;
+      background: var(--rq-surface-card);
+      border: 1px solid var(--rq-border);
+      border-radius: 22px;
+      padding: 2.25rem 2rem;
+      box-shadow: var(--rq-shadow-lg);
+      position: relative;
+    }
+    .rq-auth-input-wrap {
+      position: relative;
+      display: flex;
+      align-items: center;
+    }
+    .rq-auth-input-icon {
+      position: absolute;
+      right: 0.95rem;
+      color: var(--rq-text-muted);
+      font-size: 0.9rem;
+      pointer-events: none;
+    }
+    .rq-auth-input-wrap .rq-input {
+      padding-right: 2.6rem;
+    }
+    .rq-auth-pass-toggle {
+      position: absolute;
+      left: 0.75rem;
+      background: none;
+      border: none;
+      color: var(--rq-text-muted);
+      cursor: pointer;
+      padding: 0.35rem;
+      font-size: 0.88rem;
+    }
+    .rq-auth-pass-toggle:hover {
+      color: var(--rq-primary-light);
+    }
+  </style>
+  {% block extra_head %}{% endblock %}
+</head>
+<body class="rq-auth-page">
+
+  <header class="rq-auth-topbar">
+    <a href="{% url 'home' %}" class="rq-brand">
+      <div class="rq-brand-logo-box" style="width: 38px; height: 38px; font-size: 1rem;">
+        {% if is_tenant and STORE_LOGO %}
+        <img src="{{ STORE_LOGO.url }}" alt="{{ STORE_NAME }}">
+        {% else %}
+        <i class="fas fa-microchip"></i>
+        {% endif %}
+      </div>
+      <div>
+        <span class="rq-brand-title" style="font-size: 1.1rem;">{% if is_tenant %}{{ STORE_NAME }}{% else %}رقميات{% endif %}</span>
+        <span class="rq-brand-subtitle">بوابة الحساب الآمنة</span>
+      </div>
+    </a>
+
+    <div style="display: flex; align-items: center; gap: 0.55rem;">
+      <button type="button" class="rq-theme-toggle-btn" onclick="toggleAuthTheme()" title="تبديل المظهر">
+        <i class="fas fa-sun" id="rq-auth-theme-icon"></i>
+      </button>
+      <a href="{% url 'home' %}" class="rq-btn-secondary rq-btn-sm">
+        <i class="fas fa-store"></i>
+        <span>العودة للمتجر</span>
+      </a>
+    </div>
+  </header>
+
+  <main class="rq-auth-main">
+    <div class="rq-auth-card">
+      {% if messages %}
+      <div style="margin-bottom: 1.25rem;">
+        {% for message in messages %}
+        <div style="padding: 0.75rem 1rem; border-radius: 11px; font-size: 0.82rem; font-weight: 700; margin-bottom: 0.5rem; background: {% if 'error' in message.tags or 'danger' in message.tags %}var(--rq-danger-soft){% elif 'success' in message.tags %}var(--rq-accent-soft){% else %}var(--rq-primary-soft){% endif %}; color: {% if 'error' in message.tags or 'danger' in message.tags %}var(--rq-danger){% elif 'success' in message.tags %}var(--rq-accent){% else %}var(--rq-primary-light){% endif %}; border: 1px solid var(--rq-border);">
+          {{ message }}
+        </div>
+        {% endfor %}
+      </div>
+      {% endif %}
+
+      {% block content %}{% endblock %}
+    </div>
+  </main>
+
+  <footer style="padding: 1.25rem; text-align: center; font-size: 0.78rem; color: var(--rq-text-muted); border-top: 1px solid var(--rq-border); background: var(--rq-bg-surface);">
+    جميع الحقوق محفوظة &copy; {% now "Y" %} — <strong style="color: var(--rq-navy);">مؤسسة رامي قصاص بن ماهر</strong> • منصة رقميات للتجارة الإلكترونية
+  </footer>
+
+  <script>
+    function syncAuthThemeIcon() {
+      var cur = document.documentElement.getAttribute('data-theme') || 'dark';
+      var ic = document.getElementById('rq-auth-theme-icon');
+      if (ic) ic.className = cur === 'dark' ? 'fas fa-sun' : 'fas fa-moon';
+    }
+    function toggleAuthTheme() {
+      var cur = document.documentElement.getAttribute('data-theme') || 'dark';
+      var next = cur === 'dark' ? 'light' : 'dark';
+      document.documentElement.setAttribute('data-theme', next);
+      try { localStorage.setItem('rq_theme', next); } catch(e) {}
+      syncAuthThemeIcon();
+    }
+    function togglePassVis(inputId, btn) {
+      var inp = document.getElementById(inputId);
+      if (!inp) return;
+      var icon = btn.querySelector('i');
+      if (inp.type === 'password') {
+        inp.type = 'text';
+        if (icon) icon.className = 'fas fa-eye-slash';
+      } else {
+        inp.type = 'password';
+        if (icon) icon.className = 'fas fa-eye';
+      }
+    }
+    document.addEventListener('DOMContentLoaded', syncAuthThemeIcon);
+  </script>
+  {% block extra_js %}{% endblock %}
 </body>
 </html>

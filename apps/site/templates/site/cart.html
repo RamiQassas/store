@@ -1,187 +1,174 @@
 {% extends "site/base.html" %}
 {% load static site_tags %}
 
-{% block title %}سلة المشتريات وإتمام الطلب | {% if is_tenant %}{{ STORE_NAME }}{% else %}رقميات RAQAMIYAT{% endif %}{% endblock %}
+{% block title %}سلة التسوق وإتمام الشراء | {% if is_tenant %}{{ STORE_NAME }}{% else %}رقميات Raqamiyat{% endif %}{% endblock %}
 
 {% block content %}
-<div class="rq-container" style="padding: 2rem 0 4.5rem;">
+<div class="rq-container" style="padding-top: 1.75rem;">
 
-  <!-- Breadcrumbs -->
-  <nav style="display: flex; align-items: center; gap: 0.5rem; font-size: 0.82rem; color: var(--rq-text-muted); margin-bottom: 1.5rem;" aria-label="مسار التصفح">
-    <a href="{% url 'home' %}" style="color: var(--rq-text-muted);">الرئيسية</a>
-    <i class="fas fa-chevron-left text-xs"></i>
-    <a href="{% url 'catalog' %}" style="color: var(--rq-text-muted);">المنتجات</a>
-    <i class="fas fa-chevron-left text-xs"></i>
-    <span style="color: var(--rq-navy); font-weight: 800;">سلة المشتريات</span>
-  </nav>
-
-  <div style="display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 1rem; margin-bottom: 1.75rem;">
+  <!-- Page Header -->
+  <div style="display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 1rem; margin-bottom: 1.5rem; padding-bottom: 1rem; border-bottom: 1px solid var(--rq-border);">
     <div>
-      <h1 style="font-size: clamp(1.5rem, 3vw, 2rem); font-weight: 900; color: var(--rq-navy); margin: 0 0 0.25rem;">سلة المشتريات</h1>
-      <p style="font-size: 0.88rem; color: var(--rq-text-secondary); margin: 0;">راجع المنتجات المضافة، عدّل الكميات، وأكمل طلبك بأمان.</p>
+      <h1 style="font-size: clamp(1.35rem, 2.6vw, 1.85rem); font-weight: 900; color: var(--rq-navy); margin: 0 0 0.2rem;">
+        سلة التسوق وإتمام الطلب
+      </h1>
+      <p style="font-size: 0.85rem; color: var(--rq-text-muted); margin: 0;">
+        راجع المنتجات المختارة وعدّل الكميات قبل تأكيد الشراء
+      </p>
     </div>
-    {% if cart_items %}
-    <form method="post" action="{% url 'cart_remove' %}">
-      {% csrf_token %}
-      <input type="hidden" name="variant_id" value="all">
-      <button type="submit" class="rq-btn-secondary rq-btn-sm" style="color: var(--rq-rose); border-color: #fecaca;">
-        <i class="fas fa-trash-can text-xs"></i>
-        <span>إفراغ السلة</span>
-      </button>
-    </form>
-    {% endif %}
+
+    <a href="{% url 'catalog' %}" class="rq-btn-secondary">
+      <i class="fas fa-arrow-right"></i>
+      <span>متابعة التسوق</span>
+    </a>
   </div>
 
   {% if cart_items %}
   <div style="display: grid; grid-template-columns: 1fr; gap: 1.75rem;" class="lg:grid-cols-[1fr_340px]">
 
     <!-- Cart Items List -->
-    <div style="display: flex; flex-direction: column; gap: 0.9rem;">
+    <div style="display: flex; flex-direction: column; gap: 0.85rem;">
       {% for item in cart_items %}
-      <div style="background: #ffffff; border: 1px solid var(--rq-border); border-radius: var(--rq-radius-lg); padding: 1.15rem; display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 1rem; box-shadow: var(--rq-shadow-xs);">
+      <div style="background: var(--rq-surface-card); border: 1px solid var(--rq-border); border-radius: 16px; padding: 1rem 1.25rem; display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 1rem; box-shadow: var(--rq-shadow-xs);">
         
-        <div style="display: flex; align-items: center; gap: 1rem; flex: 1; min-width: 220px;">
-          <a href="{% url 'product_detail' item.product_id %}" style="width: 72px; height: 72px; border-radius: 12px; border: 1px solid var(--rq-border); background: var(--rq-bg-body); padding: 0.45rem; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
-            <img src="{{ item.image }}" alt="{{ item.name }}" style="max-width: 100%; max-height: 100%; object-fit: contain;" onerror="this.onerror=null; this.src='{% static 'site/img/raqamiyat_logo_square.jpg' %}';">
-          </a>
-          <div style="min-width: 0;">
-            {% if item.category_name %}
-            <span style="font-size: 0.72rem; font-weight: 700; color: var(--rq-text-muted); display: block;">{{ item.category_name }}</span>
+        <div style="display: flex; align-items: center; gap: 1rem; min-width: 0; flex: 1;">
+          <a href="{% url 'product_detail' item.product_id %}" style="width: 72px; height: 72px; border-radius: 12px; background: var(--rq-card-img-bg); border: 1px solid var(--rq-border); display: flex; align-items: center; justify-content: center; flex-shrink: 0; padding: 0.35rem;">
+            {% if item.image %}
+            <img src="{{ item.image }}" alt="{{ item.name }}" style="max-height: 100%; max-width: 100%; object-fit: contain;">
+            {% else %}
+            <i class="fas fa-box" style="font-size: 1.5rem; color: var(--rq-text-muted);"></i>
             {% endif %}
+          </a>
+
+          <div style="min-width: 0;">
+            <span style="font-size: 0.72rem; font-weight: 700; color: var(--rq-text-muted); display: block;">{{ item.category_name|default:"منتج" }}</span>
             <a href="{% url 'product_detail' item.product_id %}" style="font-size: 0.96rem; font-weight: 800; color: var(--rq-navy); display: block; margin-bottom: 0.2rem;">{{ item.name }}</a>
             {% if item.variant_name %}
-            <span style="font-size: 0.78rem; color: var(--rq-accent); font-weight: 700; background: var(--rq-primary-soft); padding: 0.12rem 0.55rem; border-radius: 6px; display: inline-block;">{{ item.variant_name }}</span>
+            <span style="font-size: 0.78rem; color: var(--rq-text-secondary); display: block;">الباقة: {{ item.variant_name }}</span>
             {% endif %}
-            <div style="font-size: 0.78rem; color: var(--rq-text-muted); margin-top: 0.35rem;">
-              سعر الوحدة: <strong class="tabular-nums" style="color: var(--rq-text-secondary);">{% format_price item.unit_price %}</strong>
-            </div>
+            <span class="font-mono tabular-nums" style="font-size: 0.82rem; color: var(--rq-text-muted);">سعر الوحدة: {% format_price item.unit_price %}</span>
           </div>
         </div>
 
-        <!-- Quantity Controls & Item Subtotal -->
+        <!-- Quantity Controls & Line Total -->
         <div style="display: flex; align-items: center; gap: 1.25rem; flex-wrap: wrap;">
-          <div class="rq-qty-stepper">
-            <form method="post" action="{% url 'cart_update' %}" style="display: inline;">
+          <div style="display: inline-flex; align-items: center; border: 1px solid var(--rq-border-strong); border-radius: 10px; overflow: hidden; background: var(--rq-input-bg);">
+            <form action="{% url 'cart_update' %}" method="post" style="margin: 0;">
               {% csrf_token %}
               <input type="hidden" name="variant_id" value="{{ item.variant_id }}">
               <input type="hidden" name="action" value="dec">
-              <button type="submit" class="rq-qty-btn" title="إنقاص الكمية">-</button>
+              <button type="submit" style="width: 34px; height: 34px; border: none; background: var(--rq-bg-elevated); color: var(--rq-navy); font-weight: 900; cursor: pointer;">-</button>
             </form>
-            <span class="rq-qty-num">{{ item.quantity }}</span>
-            <form method="post" action="{% url 'cart_update' %}" style="display: inline;">
+            <span class="font-mono tabular-nums" style="width: 38px; text-align: center; font-size: 0.88rem; font-weight: 800; color: var(--rq-navy);">{{ item.quantity }}</span>
+            <form action="{% url 'cart_update' %}" method="post" style="margin: 0;">
               {% csrf_token %}
               <input type="hidden" name="variant_id" value="{{ item.variant_id }}">
               <input type="hidden" name="action" value="inc">
-              <button type="submit" class="rq-qty-btn" title="زيادة الكمية">+</button>
+              <button type="submit" style="width: 34px; height: 34px; border: none; background: var(--rq-bg-elevated); color: var(--rq-navy); font-weight: 900; cursor: pointer;">+</button>
             </form>
           </div>
 
-          <div style="text-align: left; min-width: 95px;">
-            <span style="font-size: 0.7rem; color: var(--rq-text-muted); display: block;">الإجمالي الفرعي</span>
-            <span class="tabular-nums" style="font-size: 1.05rem; font-weight: 900; color: var(--rq-navy);">{% format_price item.total_price %}</span>
+          <div style="text-align: left; min-width: 90px;">
+            <span style="font-size: 0.7rem; color: var(--rq-text-muted); display: block;">المجموع</span>
+            <span class="font-mono tabular-nums" style="font-size: 1.05rem; font-weight: 900; color: var(--rq-navy);">{% format_price item.total_price %}</span>
           </div>
 
-          <div style="display: flex; align-items: center; gap: 0.45rem;">
-            <a href="{% url 'product_detail' item.product_id %}" class="rq-btn-secondary rq-btn-sm" title="شراء مباشر ببوابات الدفع">
-              <span>خيارات الدفع</span>
-            </a>
-            <form method="post" action="{% url 'cart_remove' %}">
-              {% csrf_token %}
-              <input type="hidden" name="variant_id" value="{{ item.variant_id }}">
-              <button type="submit" style="width: 34px; height: 34px; border-radius: 8px; border: 1px solid #fecaca; background: var(--rq-rose-soft); color: var(--rq-rose); cursor: pointer;" title="حذف من السلة">
-                <i class="fas fa-trash-can text-xs"></i>
-              </button>
-            </form>
-          </div>
+          <form action="{% url 'cart_remove' %}" method="post" style="margin: 0;">
+            {% csrf_token %}
+            <input type="hidden" name="variant_id" value="{{ item.variant_id }}">
+            <button type="submit" style="width: 36px; height: 36px; border-radius: 8px; border: 1px solid rgba(239,68,68,0.25); background: var(--rq-danger-soft); color: var(--rq-danger); cursor: pointer;" title="حذف من السلة">
+              <i class="fas fa-trash-alt"></i>
+            </button>
+          </form>
         </div>
 
       </div>
       {% endfor %}
     </div>
 
-    <!-- Order Summary & Checkout Card -->
-    <aside>
-      <div style="background: #ffffff; border: 1px solid var(--rq-border); border-radius: var(--rq-radius-xl); padding: 1.5rem; box-shadow: var(--rq-shadow-md); position: sticky; top: 90px;">
-        <h3 style="font-size: 1.05rem; font-weight: 900; color: var(--rq-navy); margin: 0 0 1.15rem; padding-bottom: 0.75rem; border-bottom: 1px solid var(--rq-border);">
+    <!-- Order Summary & Checkout Box -->
+    <div>
+      <div style="background: var(--rq-surface-card); border: 1px solid var(--rq-border); border-radius: 18px; padding: 1.5rem; box-shadow: var(--rq-shadow-sm); position: sticky; top: 96px;">
+        <h3 style="font-size: 1.05rem; font-weight: 900; color: var(--rq-navy); margin: 0 0 1rem; padding-bottom: 0.75rem; border-bottom: 1px solid var(--rq-border);">
           ملخص الطلب والدفع
         </h3>
 
-        <div style="display: flex; flex-direction: column; gap: 0.65rem; margin-bottom: 1.15rem; font-size: 0.86rem;">
-          <div style="display: flex; align-items: center; justify-content: space-between; color: var(--rq-text-secondary);">
+        <div style="display: flex; flex-direction: column; gap: 0.65rem; font-size: 0.86rem; margin-bottom: 1.25rem;">
+          <div style="display: flex; justify-content: space-between; color: var(--rq-text-secondary);">
             <span>عدد العناصر:</span>
-            <strong class="tabular-nums" style="color: var(--rq-navy);">{{ cart_items_count }}</strong>
+            <strong class="font-mono">{{ cart_items_count }}</strong>
           </div>
-          <div style="display: flex; align-items: center; justify-content: space-between; padding-top: 0.65rem; border-top: 1px solid var(--rq-border); font-size: 1rem; font-weight: 900; color: var(--rq-navy);">
-            <span>الإجمالي الكلي:</span>
-            <span class="tabular-nums" style="font-size: 1.25rem; color: var(--rq-accent);">{% format_price cart_total %}</span>
+          <div style="display: flex; justify-content: space-between; padding-top: 0.75rem; border-top: 1px solid var(--rq-border); font-size: 1.05rem; font-weight: 900; color: var(--rq-navy);">
+            <span>الإجمالي النهائي:</span>
+            <span class="font-mono tabular-nums" style="color: var(--rq-primary-light); font-size: 1.25rem;">{% format_price cart_total %}</span>
           </div>
         </div>
 
-        {% if request.user.is_authenticated %}
-        <form method="post" action="{% url 'cart_checkout' %}" onsubmit="const b=this.querySelector('button[type=submit]'); if(b){b.disabled=true; b.innerHTML='<i class=\'fas fa-spinner fa-spin\'></i> جاري معالجة الطلب...';}">
+        {% if user.is_authenticated %}
+        <form action="{% url 'cart_checkout' %}" method="post" id="cart-checkout-form">
           {% csrf_token %}
 
-          <div style="background: var(--rq-bg-body); border: 1px solid var(--rq-border); border-radius: 12px; padding: 0.9rem; margin-bottom: 1rem;">
-            <div style="font-size: 0.78rem; font-weight: 800; color: var(--rq-navy); margin-bottom: 0.5rem;">
-              <i class="fas fa-truck" style="color: var(--rq-accent);"></i>
-              <span>بيانات التوصيل (للمنتجات المادية)</span>
-            </div>
-            <div style="display: flex; flex-direction: column; gap: 0.5rem;">
-              <input type="text" name="shipping_name" class="rq-input" placeholder="اسم المستلم" value="{{ request.user.get_full_name|default:'' }}">
-              <input type="tel" name="shipping_phone" class="rq-input" placeholder="رقم الهاتف للتواصل" value="{{ request.user.phone_number|default:'' }}">
-              <textarea name="shipping_address" rows="2" class="rq-textarea" placeholder="المدينة والحي وتفاصيل العنوان"></textarea>
-            </div>
+          <div class="rq-form-group">
+            <label class="rq-label" style="font-size: 0.78rem;">اسم المستلم (للأجهزة والشحن):</label>
+            <input type="text" name="shipping_name" class="rq-input" value="{{ user.display_name|default:'' }}" placeholder="الاسم الكامل">
+          </div>
+          <div class="rq-form-group">
+            <label class="rq-label" style="font-size: 0.78rem;">رقم الهاتف للتواصل:</label>
+            <input type="tel" name="shipping_phone" class="rq-input" value="{{ user.phone_number|default:'' }}" placeholder="09xxxxxxxx">
+          </div>
+          <div class="rq-form-group">
+            <label class="rq-label" style="font-size: 0.78rem;">عنوان التوصيل (اختياري للمنتجات الرقمية):</label>
+            <input type="text" name="shipping_address" class="rq-input" placeholder="المحافظة - المنطقة - العنوان">
           </div>
 
-          <div style="background: var(--rq-emerald-soft); border: 1px solid #a7f3d0; border-radius: 10px; padding: 0.75rem; margin-bottom: 1rem; display: flex; align-items: center; justify-content: space-between; font-size: 0.8rem;">
-            <span style="font-weight: 700; color: #065f46;">رصيد محفظتك المتاح:</span>
-            <strong class="tabular-nums" style="color: #047857;">{% currency_format request.user.wallet.available_balance|default:0 %}</strong>
+          <div style="background: var(--rq-bg-elevated); border: 1px solid var(--rq-border); border-radius: 10px; padding: 0.75rem; margin-bottom: 1rem; font-size: 0.8rem; display: flex; align-items: center; justify-content: space-between;">
+            <span style="color: var(--rq-text-secondary); font-weight: 700;">رصيد محفظتك المتاح:</span>
+            <strong class="font-mono tabular-nums" style="color: var(--rq-accent);">{% format_price user.wallet.available_balance %}</strong>
           </div>
 
-          <button type="submit" class="rq-pdp-buy-now">
+          <button type="submit" class="rq-pdp-buy-now" id="cart-checkout-btn">
             <i class="fas fa-check-circle"></i>
-            <span>تأكيد الطلب والدفع من المحفظة</span>
+            <span>تأكيد وإتمام الشراء الآن</span>
           </button>
         </form>
-
-        {% if cart_items|length == 1 %}
-        <div style="margin-top: 0.75rem; text-align: center;">
-          <a href="{% url 'product_detail' cart_items.0.product_id %}" class="rq-btn-secondary rq-btn-full" style="font-size: 0.8rem;">
-            <i class="fas fa-bolt" style="color: var(--rq-accent);"></i>
-            <span>أو الدفع المباشر عبر شام كاش / بيميرا</span>
-          </a>
-        </div>
-        {% endif %}
-
         {% else %}
-        <div style="background: var(--rq-primary-soft); border: 1px solid #bfdbfe; border-radius: 12px; padding: 1rem; text-align: center;">
-          <p style="font-size: 0.84rem; font-weight: 700; color: var(--rq-primary); margin: 0 0 0.75rem;">يرجى تسجيل الدخول لإتمام عملية الشراء وحفظ الفاتورة في حسابك.</p>
-          <a href="{% url 'site_login' %}?next={% url 'cart_detail' %}" class="rq-btn-primary rq-btn-full">
-            <i class="fas fa-arrow-right-to-bracket"></i>
+        <div style="background: var(--rq-primary-soft); border: 1px solid rgba(59, 130, 246, 0.25); border-radius: 12px; padding: 1rem; text-align: center;">
+          <p style="font-size: 0.82rem; color: var(--rq-text-secondary); margin: 0 0 0.85rem; font-weight: 700;">
+            يرجى تسجيل الدخول لإتمام شراء عناصر السلة وحفظ الطلبات في حسابك.
+          </p>
+          <a href="{% url 'site_login' %}?next={% url 'cart_detail' %}" class="rq-pdp-buy-now">
+            <i class="fas fa-sign-in-alt"></i>
             <span>تسجيل الدخول لإتمام الشراء</span>
           </a>
         </div>
         {% endif %}
       </div>
-    </aside>
+    </div>
 
   </div>
   {% else %}
-  <!-- Empty Cart State -->
-  <div style="background: #ffffff; border: 1px solid var(--rq-border); border-radius: var(--rq-radius-xl); padding: 4rem 1.5rem; text-align: center; box-shadow: var(--rq-shadow-xs);">
-    <div style="width: 68px; height: 68px; border-radius: 50%; background: var(--rq-primary-soft); color: var(--rq-accent); display: flex; align-items: center; justify-content: center; font-size: 1.75rem; margin: 0 auto 1rem;">
-      <i class="fas fa-cart-shopping"></i>
+  <div style="background: var(--rq-surface-card); border: 1px dashed var(--rq-border-strong); border-radius: 20px; padding: 4rem 1.5rem; text-align: center; max-width: 560px; margin: 2rem auto;">
+    <div style="width: 72px; height: 72px; border-radius: 50%; background: var(--rq-primary-soft); color: var(--rq-primary-light); display: flex; align-items: center; justify-content: center; font-size: 1.75rem; margin: 0 auto 1.25rem;">
+      <i class="fas fa-shopping-bag"></i>
     </div>
-    <h2 style="font-size: 1.25rem; font-weight: 900; color: var(--rq-navy); margin: 0 0 0.45rem;">سلة المشتريات فارغة حالياً</h2>
-    <p style="font-size: 0.9rem; color: var(--rq-text-secondary); max-width: 440px; margin: 0 auto 1.5rem;">
-      استكشف الهواتف الذكية، اللابتوبات، الكاميرات، أجهزة الشبكات، والمنتجات التقنية في الكتالوج وأضفها إلى سلتك.
-    </p>
-    <a href="{% url 'catalog' %}" class="rq-btn-primary rq-btn-lg">
-      <span>تصفح جميع المنتجات</span>
-      <i class="fas fa-arrow-left text-xs"></i>
+    <h2 style="font-size: 1.25rem; font-weight: 900; color: var(--rq-navy); margin: 0 0 0.5rem;">سلة التسوق فارغة حالياً</h2>
+    <p style="font-size: 0.88rem; color: var(--rq-text-muted); margin: 0 0 1.5rem;">لم تقم بإضافة أي منتجات إلى سلة التسوق بعد. استكشف أقسام المتجر وأضف ما يناسبك.</p>
+    <a href="{% url 'catalog' %}" class="rq-btn-auth-register" style="height: 46px; padding: 0 1.75rem;">
+      <i class="fas fa-th-large"></i>
+      <span>تصفح المنتجات</span>
     </a>
   </div>
   {% endif %}
 
 </div>
+
+<script>
+  document.getElementById('cart-checkout-form')?.addEventListener('submit', function() {
+    var btn = document.getElementById('cart-checkout-btn');
+    if (btn) {
+      btn.disabled = true;
+      btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> <span>جاري تنفيذ الطلب...</span>';
+    }
+  });
+</script>
 {% endblock %}

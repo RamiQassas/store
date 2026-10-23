@@ -1,220 +1,94 @@
 {% extends "site/v3/auth_base.html" %}
-{% load socialaccount %}
+{% load static %}
 
-{% block title %}إنشاء حساب جديد | {% if is_tenant %}{{ STORE_NAME }}{% else %}رقميات{% endif %}{% endblock %}
+{% block title %}إنشاء حساب جديد | {% if is_tenant %}{{ STORE_NAME }}{% else %}رقميات Raqamiyat{% endif %}{% endblock %}
 
-{% block extra_head %}
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/intl-tel-input@23.0.10/build/css/intlTelInput.css">
-<style>
-    .iti { width: 100%; }
-    .iti__country-list {
-        background: #ffffff;
-        border: 1px solid var(--rq-border);
-        color: var(--rq-navy);
-        box-shadow: var(--rq-shadow-md);
-    }
-    .iti__flag.iti__sy {
-        background-image: url("data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA2MDAgNDAwIj48cmVjdCB3aWR0aD0iNjAwIiBoZWlnaHQ9IjEzMy4zIiBmaWxsPSIjMDA3YTNkIi8+PHJlY3QgeT0iMTMzLjMiIHdpZHRoPSI2MDAiIGhlaWdodD0iMTMzLjMiIGZpbGw9IiNmZmYiLz48cmVjdCB5PSIyNjYuNiIgd2lkdGg9IjYwMCIgaGVpZ2h0PSIxMzMuMyIgZmlsbD0iIzAwMCIvPjxnIGZpbGw9IiNjZTExMjYiPjxwYXRoIGQ9Ik0xNTAgMTYwbDYuMiAxOWgyMGwtMTYuMiAxMS43IDYuMiAxOS0xNi4yLTExLjgtMTYuMiAxMS44IDYuMi0xOS0xNi4yLTExLjdoMjB6Ii8+PHBhdGggZD0iTTMwMCAxNjBsNi4yIDE5aDIwbC0xNi4yIDExLjcgNi4yIDE5LTE2LjItMTEuOC0xNi4yIDExLjggNi4yLTE5LTE2LjItMTEuN2gyMHoiLz48cGF0aCBkPSJNNDUwIDE2MGw2LjIgMTloMjBsLTE2LjIgMTEuNyA2LjIgMTktMTYuMi0xMS44LTE2LjIgMTEuOCA2LjItMTktMTYuMi0xMS43aDIweiIvPjwvZz48L3N2Zz4=") !important;
-        background-size: contain !important;
-        background-position: center !important;
-        background-repeat: no-repeat !important;
-    }
-</style>
-{% endblock %}
-
-{% block auth_content %}
+{% block content %}
 <div>
-    <div style="margin-bottom: 1.5rem;">
-        <h1 style="font-size: 1.4rem; font-weight: 900; color: var(--rq-navy); margin: 0 0 0.3rem;">إنشاء حساب في {% if is_tenant %}{{ STORE_NAME }}{% else %}رقميات{% endif %}</h1>
-        <p style="font-size: 0.84rem; color: var(--rq-text-secondary); margin: 0;">أدخل بياناتك لإنشاء حسابك والتسوق بأمان.</p>
+  <div style="text-align: center; margin-bottom: 1.5rem;">
+    <div style="width: 56px; height: 56px; border-radius: 16px; background: var(--rq-accent-soft); border: 1px solid rgba(16,185,129,0.3); color: var(--rq-accent); display: flex; align-items: center; justify-content: center; font-size: 1.45rem; margin: 0 auto 0.85rem;">
+      <i class="fas fa-user-plus"></i>
+    </div>
+    <h1 style="font-size: 1.4rem; font-weight: 900; color: var(--rq-navy); margin: 0 0 0.25rem;">إنشاء حساب عميل جديد</h1>
+    <p style="font-size: 0.84rem; color: var(--rq-text-muted); margin: 0;">انضم إلى منصة رقميات وتمتع بتجربة شراء فورية ومحفظة رقمية متكاملة</p>
+  </div>
+
+  <form method="post" action="{% url 'site_register' %}">
+    {% csrf_token %}
+
+    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem;">
+      <div class="rq-form-group">
+        <label class="rq-label" for="id_first_name">الاسم الأول</label>
+        <div class="rq-auth-input-wrap">
+          <i class="fas fa-user rq-auth-input-icon"></i>
+          <input type="text" name="first_name" id="id_first_name" value="{{ form_data.first_name|default:'' }}" class="rq-input" placeholder="الاسم الأول" required>
+        </div>
+      </div>
+      <div class="rq-form-group">
+        <label class="rq-label" for="id_last_name">الاسم الأخير</label>
+        <div class="rq-auth-input-wrap">
+          <i class="fas fa-user-tag rq-auth-input-icon"></i>
+          <input type="text" name="last_name" id="id_last_name" value="{{ form_data.last_name|default:'' }}" class="rq-input" placeholder="الكنية" required>
+        </div>
+      </div>
     </div>
 
-    <form method="post" id="register-form">
-        {% csrf_token %}
-        
-        {% if form.non_field_errors %}
-        <div style="padding: 0.75rem 1rem; border-radius: var(--rq-radius-md); background: #fef2f2; border: 1px solid #fecaca; color: #b91c1c; font-size: 0.8rem; font-weight: 700; margin-bottom: 1.15rem;">
-            {{ form.non_field_errors }}
-        </div>
-        {% endif %}
-        
-        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem;">
-            <div class="auth-input-group">
-                <label class="auth-label" for="id_first_name">الاسم الأول</label>
-                <div class="auth-input-wrapper">
-                    <i class="fas fa-user field-icon"></i>
-                    <input type="text" name="first_name" id="id_first_name" required placeholder="الاسم" value="{{ request.POST.first_name|default:'' }}">
-                </div>
-                {% for error in form.first_name.errors %}<span style="font-size: 0.72rem; color: var(--rq-rose);">{{ error }}</span>{% endfor %}
-            </div>
-            <div class="auth-input-group">
-                <label class="auth-label" for="id_last_name">الكنية</label>
-                <div class="auth-input-wrapper">
-                    <i class="fas fa-user field-icon"></i>
-                    <input type="text" name="last_name" id="id_last_name" required placeholder="الكنية" value="{{ request.POST.last_name|default:'' }}">
-                </div>
-                {% for error in form.last_name.errors %}<span style="font-size: 0.72rem; color: var(--rq-rose);">{{ error }}</span>{% endfor %}
-            </div>
-        </div>
-
-        <div class="auth-input-group">
-            <label class="auth-label" for="id_reg_email">البريد الإلكتروني</label>
-            <div class="auth-input-wrapper">
-                <i class="fas fa-envelope field-icon"></i>
-                <input type="email" name="email" id="id_reg_email" required placeholder="example@mail.com" value="{{ request.POST.email|default:'' }}" dir="ltr" style="text-align: right;">
-            </div>
-            {% for error in form.email.errors %}<span style="font-size: 0.72rem; color: var(--rq-rose);">{{ error }}</span>{% endfor %}
-        </div>
-
-        <div class="auth-input-group">
-            <label class="auth-label" for="phone">رقم الهاتف</label>
-            <div>
-                <input type="tel" name="phone_input" id="phone" class="auth-input" value="{{ request.POST.phone_input|default:'' }}" required>
-                <input type="hidden" name="phone" id="full_phone" value="{{ request.POST.phone|default:'' }}">
-            </div>
-            {% for error in form.phone.errors %}<span style="font-size: 0.72rem; color: var(--rq-rose);">{{ error }}</span>{% endfor %}
-        </div>
-
-        <div class="auth-input-group">
-            <label class="auth-label" for="id_password">كلمة المرور (10 خانات على الأقل)</label>
-            <div class="auth-input-wrapper">
-                <i class="fas fa-lock field-icon"></i>
-                <input type="password" name="password" required placeholder="••••••••••" id="id_password">
-                <button type="button" class="toggle-password auth-toggle-pwd" data-target="id_password">
-                    <i class="fas fa-eye"></i>
-                </button>
-            </div>
-            {% for error in form.password.errors %}<span style="font-size: 0.72rem; color: var(--rq-rose);">{{ error }}</span>{% endfor %}
-            <p id="pass-client-error" class="hidden" style="font-size: 0.72rem; color: var(--rq-rose); margin-top: 0.25rem;"></p>
-        </div>
-
-        <div class="auth-input-group">
-            <label class="auth-label" for="id_confirm_password">تأكيد كلمة المرور</label>
-            <div class="auth-input-wrapper">
-                <i class="fas fa-shield-halved field-icon"></i>
-                <input type="password" name="confirm_password" required placeholder="••••••••••" id="id_confirm_password">
-                <button type="button" class="toggle-password auth-toggle-pwd" data-target="id_confirm_password">
-                    <i class="fas fa-eye"></i>
-                </button>
-            </div>
-            {% for error in form.confirm_password.errors %}<span style="font-size: 0.72rem; color: var(--rq-rose);">{{ error }}</span>{% endfor %}
-            <p id="confirm-pass-client-error" class="hidden" style="font-size: 0.72rem; color: var(--rq-rose); margin-top: 0.25rem;"></p>
-        </div>
-
-        <div style="padding: 0.75rem; background: var(--rq-bg-body); border: 1px solid var(--rq-border); border-radius: 10px; margin-bottom: 1rem;">
-            <p style="font-size: 0.75rem; color: var(--rq-text-secondary); text-align: center; margin: 0;">
-                بالنقر على "إنشاء الحساب"، فإنك توافق على 
-                <a href="{% url 'terms_of_service' %}" style="color: var(--rq-accent); font-weight: 700;">شروط الاستخدام</a> و 
-                <a href="{% url 'privacy_policy' %}" style="color: var(--rq-accent); font-weight: 700;">سياسة الخصوصية</a>.
-            </p>
-        </div>
-
-        <button type="submit" class="auth-btn-primary">
-            <span>إنشاء الحساب</span>
-            <i class="fas fa-user-plus text-xs"></i>
-        </button>
-    </form>
-
-    {% get_providers as socialaccount_providers %}
-    {% if socialaccount_providers %}
-    <div style="display: flex; align-items: center; gap: 1rem; margin: 1.5rem 0;">
-        <div style="flex: 1; height: 1px; background: var(--rq-border);"></div>
-        <span style="font-size: 0.74rem; font-weight: 800; color: var(--rq-text-muted);">أو عبر</span>
-        <div style="flex: 1; height: 1px; background: var(--rq-border);"></div>
+    <div class="rq-form-group">
+      <label class="rq-label" for="id_reg_email">البريد الإلكتروني</label>
+      <div class="rq-auth-input-wrap">
+        <i class="fas fa-envelope rq-auth-input-icon"></i>
+        <input type="email" name="email" id="id_reg_email" value="{{ form_data.email|default:'' }}" class="rq-input" placeholder="name@example.com" dir="ltr" style="text-align: right;" required>
+      </div>
     </div>
-    <div>
-        {% regroup socialaccount_providers by id as provider_list %}
-        {% for provider_group in provider_list %}
-            {% if provider_group.grouper == 'google' %}
-            <a href="{% if is_tenant %}{{ SSO_GOOGLE_LOGIN_URL }}{% else %}{% provider_login_url 'google' %}{% endif %}" style="display: flex; align-items: center; justify-content: center; gap: 0.65rem; padding: 0.75rem 1rem; border-radius: var(--rq-radius-md); background: var(--rq-bg-body); border: 1px solid var(--rq-border-light); color: var(--rq-navy); font-size: 0.85rem; font-weight: 800; text-decoration: none;">
-                <i class="fab fa-google" style="color: #dc2626;"></i>
-                <span>التسجيل بواسطة Google</span>
-            </a>
-            {% endif %}
+
+    <div class="rq-form-group">
+      <label class="rq-label" for="id_phone">رقم الهاتف</label>
+      <div class="rq-auth-input-wrap">
+        <i class="fas fa-phone rq-auth-input-icon"></i>
+        <input type="tel" name="phone_number" id="id_phone" value="{{ form_data.phone_number|default:'' }}" class="rq-input" placeholder="+9639xxxxxxxx" dir="ltr" style="text-align: right;" required>
+      </div>
+    </div>
+
+    {% if currencies %}
+    <div class="rq-form-group">
+      <label class="rq-label" for="id_currency">عملة المحفظة المفضلة</label>
+      <select name="preferred_currency" id="id_currency" class="rq-select">
+        {% for c in currencies %}
+        <option value="{{ c.id }}" {% if c.code == 'USD' %}selected{% endif %}>{{ c.name }} ({{ c.code }} - {{ c.symbol }})</option>
         {% endfor %}
+      </select>
     </div>
     {% endif %}
 
-    <div style="margin-top: 1.5rem; padding-top: 1.15rem; border-top: 1px solid var(--rq-border); text-align: center; font-size: 0.84rem; color: var(--rq-text-secondary);">
-        <span>لديك حساب بالفعل؟</span>
-        <a href="{% url 'site_login' %}" style="color: var(--rq-accent); font-weight: 800; text-decoration: none; margin-right: 0.35rem;">تسجيل الدخول</a>
+    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; margin-bottom: 1.25rem;">
+      <div>
+        <label class="rq-label" for="id_pass1">كلمة المرور</label>
+        <div class="rq-auth-input-wrap">
+          <i class="fas fa-lock rq-auth-input-icon"></i>
+          <input type="password" name="password" id="id_pass1" class="rq-input" placeholder="••••••••" style="padding-left: 2.2rem;" required>
+          <button type="button" class="rq-auth-pass-toggle" onclick="togglePassVis('id_pass1', this)">
+            <i class="fas fa-eye"></i>
+          </button>
+        </div>
+      </div>
+      <div>
+        <label class="rq-label" for="id_pass2">تأكيد كلمة المرور</label>
+        <div class="rq-auth-input-wrap">
+          <i class="fas fa-shield-halved rq-auth-input-icon"></i>
+          <input type="password" name="password_confirm" id="id_pass2" class="rq-input" placeholder="••••••••" style="padding-left: 2.2rem;" required>
+        </div>
+      </div>
     </div>
+
+    <button type="submit" class="rq-pdp-buy-now" style="height: 48px; margin-bottom: 1rem;">
+      <i class="fas fa-check-circle"></i>
+      <span>إنشاء الحساب الآن</span>
+    </button>
+  </form>
+
+  <div style="text-align: center; padding-top: 1rem; border-top: 1px solid var(--rq-border); font-size: 0.85rem; color: var(--rq-text-secondary);">
+    لديك حساب بالفعل؟
+    <a href="{% url 'site_login' %}" style="font-weight: 900; color: var(--rq-primary-light); margin-right: 0.25rem;">تسجيل الدخول</a>
+  </div>
 </div>
-{% endblock %}
-
-{% block extra_js %}
-<script src="https://cdn.jsdelivr.net/npm/intl-tel-input@23.0.10/build/js/intlTelInput.min.js"></script>
-<script>
-    const phoneInput = document.querySelector("#phone");
-    const fullPhoneInput = document.querySelector("#full_phone");
-    
-    const iti = window.intlTelInput(phoneInput, {
-        initialCountry: "sy",
-        preferredCountries: ["sy", "tr", "ae", "sa", "eg"],
-        utilsScript: "https://cdn.jsdelivr.net/npm/intl-tel-input@23.0.10/build/js/utils.js",
-    });
-
-    const passInput = document.querySelector('input[name="password"]');
-    const confirmInput = document.querySelector('input[name="confirm_password"]');
-    const passErr = document.querySelector("#pass-client-error");
-    const confirmErr = document.querySelector("#confirm-pass-client-error");
-
-    function validatePasswords(isSubmit = false) {
-        let valid = true;
-        const p1 = passInput ? passInput.value : "";
-        const p2 = confirmInput ? confirmInput.value : "";
-
-        if (p1 && p1.length < 10) {
-            passErr.textContent = "كلمة المرور قصيرة جداً، يجب ألا تقل عن 10 خانات.";
-            passErr.classList.remove("hidden");
-            valid = false;
-        } else if (!p1 && isSubmit) {
-            passErr.textContent = "يرجى إدخال كلمة المرور (10 خانات على الأقل).";
-            passErr.classList.remove("hidden");
-            valid = false;
-        } else {
-            passErr.textContent = "";
-            passErr.classList.add("hidden");
-        }
-
-        if (p1 && p2 && p1 !== p2) {
-            confirmErr.textContent = "كلمات المرور غير متطابقة.";
-            confirmErr.classList.remove("hidden");
-            valid = false;
-        } else if (p1 && !p2 && isSubmit) {
-            confirmErr.textContent = "يرجى تأكيد كلمة المرور.";
-            confirmErr.classList.remove("hidden");
-            valid = false;
-        } else {
-            confirmErr.textContent = "";
-            confirmErr.classList.add("hidden");
-        }
-        return valid;
-    }
-
-    if (passInput) passInput.addEventListener("input", () => validatePasswords(false));
-    if (confirmInput) confirmInput.addEventListener("input", () => validatePasswords(false));
-
-    document.querySelector("#register-form").addEventListener("submit", function(e) {
-        if (!validatePasswords(true)) {
-            e.preventDefault();
-            return;
-        }
-        if (iti && typeof iti.isValidNumber === 'function' && iti.getNumber()) {
-            fullPhoneInput.value = iti.getNumber();
-        } else if (phoneInput) {
-            fullPhoneInput.value = phoneInput.value;
-        }
-    });
-
-    document.querySelectorAll('.toggle-password').forEach(button => {
-        button.addEventListener('click', function() {
-            const input = document.getElementById(this.getAttribute('data-target'));
-            const icon = this.querySelector('i');
-            input.type = input.type === 'password' ? 'text' : 'password';
-            icon.classList.toggle('fa-eye');
-            icon.classList.toggle('fa-eye-slash');
-        });
-    });
-</script>
 {% endblock %}

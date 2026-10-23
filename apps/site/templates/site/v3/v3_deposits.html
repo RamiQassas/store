@@ -72,7 +72,7 @@
                data-instructions="{{ m.deposit_instructions|default:''|escapejs }}"
                data-currencies='[{% for c in m.supported_currencies.all %}{"id":"{{ c.id }}","code":"{{ c.code }}","symbol":"{{ c.symbol }}","name":"{{ c.name }}"}{% if not forloop.last %},{% endif %}{% endfor %}]'
                onclick="selectDepositMethod(this)"
-               style="cursor: pointer; padding: 1rem; border-radius: 14px; border: 1.5px solid {% if forloop.first %}var(--rq-primary){% else %}var(--rq-border){% endif %}; background: {% if forloop.first %}var(--rq-primary-soft){% else %}#ffffff{% endif %}; display: flex; flex-direction: row; align-items: center; gap: 0.85rem; text-align: right; transition: all 0.2s ease;">
+               style="cursor: pointer; padding: 1rem; border-radius: 14px; border: 1.5px solid {% if forloop.first %}var(--rq-primary){% else %}var(--rq-border){% endif %}; background: {% if forloop.first %}var(--rq-primary-soft){% else %}var(--rq-bg-surface){% endif %}; display: flex; flex-direction: row; align-items: center; gap: 0.85rem; text-align: right; transition: all 0.2s ease;">
             
             {% if m.logo %}
             <img src="{{ m.logo.url }}" alt="{{ m.name }}" class="rq-method-logo" style="height: 38px; width: 38px; object-fit: contain; flex-shrink: 0;">
@@ -286,7 +286,7 @@ function selectDepositMethod(el) {
   document.querySelectorAll('.rq-method-card').forEach(c => {
     c.classList.remove('selected');
     c.style.borderColor = 'var(--rq-border)';
-    c.style.background = '#ffffff';
+    c.style.background = 'var(--rq-bg-surface)';
   });
 
   el.classList.add('selected');
@@ -347,9 +347,9 @@ function renderCurrencySelector(currencies) {
     pill.style.cssText = `
       display: flex; align-items: center; gap: 0.45rem; padding: 0.45rem 0.95rem; border-radius: 8px;
       cursor: pointer; font-size: 0.82rem; font-weight: 800; transition: all 0.2s ease;
-      background: ${isSelected ? '#ecfdf5' : '#ffffff'};
-      border: 1.5px solid ${isSelected ? '#059669' : '#cbd5e1'};
-      color: ${isSelected ? '#059669' : '#334155'};
+      background: ${isSelected ? 'var(--rq-accent-soft)' : 'var(--rq-bg-surface)'};
+      border: 1.5px solid ${isSelected ? 'var(--rq-accent)' : 'var(--rq-border-strong)'};
+      color: ${isSelected ? 'var(--rq-accent)' : 'var(--rq-text-secondary)'};
     `;
     pill.innerHTML = `<i class="fas fa-check-circle" style="display: ${isSelected ? 'inline-block' : 'none'};"></i><span>${c.code} (${c.symbol})</span>`;
     pill.onclick = () => {

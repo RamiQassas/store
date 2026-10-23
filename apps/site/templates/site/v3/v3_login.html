@@ -1,102 +1,68 @@
 {% extends "site/v3/auth_base.html" %}
-{% load socialaccount %}
+{% load static %}
 
-{% block title %}تسجيل الدخول | {% if is_tenant %}{{ STORE_NAME }}{% else %}رقميات RAQAMIYAT{% endif %}{% endblock %}
+{% block title %}تسجيل الدخول | {% if is_tenant %}{{ STORE_NAME }}{% else %}رقميات Raqamiyat{% endif %}{% endblock %}
 
-{% block auth_content %}
+{% block content %}
 <div>
-    <div style="margin-bottom: 1.5rem;">
-        <h1 style="font-size: 1.4rem; font-weight: 900; color: var(--rq-navy); margin: 0 0 0.3rem;">مرحباً بعودتك</h1>
-        <p style="font-size: 0.84rem; color: var(--rq-text-secondary); margin: 0;">سجّل الدخول إلى حسابك لمتابعة طلباتك وإدارة محفظتك.</p>
+  <div style="text-align: center; margin-bottom: 1.75rem;">
+    <div style="width: 56px; height: 56px; border-radius: 16px; background: var(--rq-primary-soft); border: 1px solid rgba(59,130,246,0.3); color: var(--rq-primary-light); display: flex; align-items: center; justify-content: center; font-size: 1.45rem; margin: 0 auto 0.9rem; box-shadow: 0 6px 18px var(--rq-primary-glow);">
+      <i class="fas fa-user-shield"></i>
     </div>
+    <h1 style="font-size: 1.45rem; font-weight: 900; color: var(--rq-navy); margin: 0 0 0.3rem;">تسجيل الدخول إلى حسابك</h1>
+    <p style="font-size: 0.85rem; color: var(--rq-text-muted); margin: 0;">أدخل بياناتك لمتابعة طلباتك وإدارة محفظتك الرقمية</p>
+  </div>
 
-    <form method="post" id="login-form">
-        {% csrf_token %}
-        
-        {% if form.non_field_errors %}
-        <div style="padding: 0.75rem 1rem; border-radius: var(--rq-radius-md); background: #fef2f2; border: 1px solid #fecaca; color: #b91c1c; font-size: 0.8rem; font-weight: 700; margin-bottom: 1.15rem;">
-            {{ form.non_field_errors }}
-        </div>
-        {% endif %}
-
-        <div class="auth-input-group">
-            <label class="auth-label" for="id_email">البريد الإلكتروني</label>
-            <div class="auth-input-wrapper">
-                <i class="fas fa-envelope field-icon"></i>
-                <input type="email" name="email" required placeholder="name@domain.com" id="id_email" autocomplete="email" dir="ltr" style="text-align: right;">
-            </div>
-            {% for error in form.email.errors %}
-            <span style="font-size: 0.74rem; color: var(--rq-rose); font-weight: 700;">{{ error }}</span>
-            {% endfor %}
-        </div>
-
-        <div class="auth-input-group">
-            <div class="auth-label">
-                <label for="id_password">كلمة المرور</label>
-                <a href="{% url 'site_forgot_password' %}" style="font-size: 0.76rem; color: var(--rq-accent); text-decoration: none; font-weight: 700;">نسيت كلمة المرور؟</a>
-            </div>
-            <div class="auth-input-wrapper">
-                <i class="fas fa-lock field-icon"></i>
-                <input type="password" name="password" required placeholder="••••••••" id="id_password" autocomplete="current-password">
-                <button type="button" class="auth-toggle-pwd" onclick="togglePasswordVisibility('id_password', this)" aria-label="إظهار أو إخفاء كلمة المرور">
-                    <i class="fas fa-eye"></i>
-                </button>
-            </div>
-            {% for error in form.password.errors %}
-            <span style="font-size: 0.74rem; color: var(--rq-rose); font-weight: 700;">{{ error }}</span>
-            {% endfor %}
-        </div>
-
-        <button type="submit" class="auth-btn-primary">
-            <span>تسجيل الدخول</span>
-            <i class="fas fa-arrow-left text-xs"></i>
-        </button>
-    </form>
-
-    {% get_providers as socialaccount_providers %}
-    {% if socialaccount_providers %}
-    <div style="display: flex; align-items: center; gap: 1rem; margin: 1.5rem 0;">
-        <div style="flex: 1; height: 1px; background: var(--rq-border);"></div>
-        <span style="font-size: 0.74rem; font-weight: 800; color: var(--rq-text-muted);">أو تسجيل الدخول عبر</span>
-        <div style="flex: 1; height: 1px; background: var(--rq-border);"></div>
-    </div>
-
-    <div style="display: flex; flex-direction: column; gap: 0.6rem;">
-        {% for provider in socialaccount_providers %}
-        <a href="{% provider_login_url provider.id process='login' %}" style="display: flex; align-items: center; justify-content: center; gap: 0.65rem; padding: 0.75rem 1rem; border-radius: var(--rq-radius-md); background: var(--rq-bg-body); border: 1px solid var(--rq-border-light); color: var(--rq-navy); font-size: 0.85rem; font-weight: 800; text-decoration: none;">
-            {% if provider.id == 'google' %}
-            <i class="fab fa-google" style="color: #dc2626;"></i>
-            <span>المتابعة باستخدام Google</span>
-            {% else %}
-            <i class="fas fa-sign-in-alt"></i>
-            <span>{{ provider.name }}</span>
-            {% endif %}
-        </a>
-        {% endfor %}
-    </div>
+  <form method="post" action="{% url 'site_login' %}">
+    {% csrf_token %}
+    {% if request.GET.next %}
+    <input type="hidden" name="next" value="{{ request.GET.next }}">
     {% endif %}
 
-    <div style="margin-top: 1.5rem; padding-top: 1.15rem; border-top: 1px solid var(--rq-border); text-align: center; font-size: 0.84rem; color: var(--rq-text-secondary);">
-        <span>ليس لديك حساب بعد؟</span>
-        <a href="{% url 'site_register' %}" style="color: var(--rq-accent); font-weight: 800; text-decoration: none; margin-right: 0.35rem;">
-            إنشاء حساب جديد
-        </a>
+    <div class="rq-form-group">
+      <label class="rq-label" for="id_email">البريد الإلكتروني أو رقم الهاتف</label>
+      <div class="rq-auth-input-wrap">
+        <i class="fas fa-envelope rq-auth-input-icon"></i>
+        <input type="text" name="email" id="id_email" class="rq-input" placeholder="example@domain.com أو رقم الهاتف" dir="auto" style="text-align: right; height: 48px;" required autofocus>
+      </div>
     </div>
-</div>
 
-<script>
-function togglePasswordVisibility(fieldId, btn) {
-    const input = document.getElementById(fieldId);
-    const icon = btn.querySelector('i');
-    if (input.type === 'password') {
-        input.type = 'text';
-        icon.classList.remove('fa-eye');
-        icon.classList.add('fa-eye-slash');
-    } else {
-        input.type = 'password';
-        icon.classList.remove('fa-eye-slash');
-        icon.classList.add('fa-eye');
-    }
-}
-</script>
+    <div class="rq-form-group" style="margin-bottom: 1.35rem;">
+      <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.4rem;">
+        <label class="rq-label" for="id_password" style="margin: 0;">كلمة المرور</label>
+        <a href="{% url 'site_forgot_password' %}" style="font-size: 0.78rem; font-weight: 800; color: var(--rq-primary-light);">نسيت كلمة المرور؟</a>
+      </div>
+      <div class="rq-auth-input-wrap">
+        <i class="fas fa-lock rq-auth-input-icon"></i>
+        <input type="password" name="password" id="id_password" class="rq-input" placeholder="••••••••" style="padding-left: 2.6rem; height: 48px;" required>
+        <button type="button" class="rq-auth-pass-toggle" onclick="togglePassVis('id_password', this)" aria-label="إظهار كلمة المرور">
+          <i class="fas fa-eye"></i>
+        </button>
+      </div>
+    </div>
+
+    <button type="submit" class="rq-pdp-buy-now" style="height: 48px; margin-bottom: 1rem;">
+      <i class="fas fa-sign-in-alt"></i>
+      <span>تسجيل الدخول</span>
+    </button>
+  </form>
+
+  {% if SSO_GOOGLE_LOGIN_URL %}
+  <div style="display: flex; align-items: center; gap: 0.75rem; margin: 1.15rem 0;">
+    <div style="flex: 1; height: 1px; background: var(--rq-border);"></div>
+    <span style="font-size: 0.75rem; color: var(--rq-text-muted); font-weight: 700;">أو المتابعة السريعة عبر</span>
+    <div style="flex: 1; height: 1px; background: var(--rq-border);"></div>
+  </div>
+
+  <a href="{{ SSO_GOOGLE_LOGIN_URL }}" class="rq-btn-secondary" style="width: 100%; justify-content: center; height: 46px; margin-bottom: 1.25rem;">
+    <i class="fab fa-google" style="color: #ea4335; font-size: 1rem;"></i>
+    <span>تسجيل الدخول بواسطة Google</span>
+  </a>
+  {% endif %}
+
+  <div style="text-align: center; padding-top: 1rem; border-top: 1px solid var(--rq-border); font-size: 0.85rem; color: var(--rq-text-secondary);">
+    ليس لديك حساب في المتجر؟
+    <a href="{% url 'site_register' %}" style="font-weight: 900; color: var(--rq-primary-light); margin-right: 0.25rem;">إنشاء حساب جديد مجاناً</a>
+  </div>
+</div>
 {% endblock %}
