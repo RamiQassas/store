@@ -62,22 +62,35 @@
       </div>
     </div>
 
-    <div class="rq-wallet-balance-row">
+    <div class="rq-wallet-balance-row" style="display: flex; flex-wrap: wrap; gap: 1.25rem; align-items: center; justify-content: space-between;">
       <div>
-        <span style="font-size: 0.82rem; color: #cbd5e1; display: block; margin-bottom: 0.35rem;">الرصيد المتاح القابل للاستخدام الفوري:</span>
-        <div class="rq-wallet-num tabular-nums">
+        <span style="font-size: 0.82rem; color: #cbd5e1; display: block; margin-bottom: 0.35rem;">الرصيد النقدي المتاح (للاستخدام الفوري):</span>
+        <div class="rq-wallet-num tabular-nums" style="color: #34d399 !important; font-weight: 900;">
           {% format_price wallet.available_balance %}
         </div>
       </div>
 
-      {% if wallet.held_balance and wallet.held_balance > 0 %}
-      <div style="background: rgba(255, 255, 255, 0.1); border: 1px solid rgba(255, 255, 255, 0.22); border-radius: 12px; padding: 0.8rem 1.25rem;">
-        <span style="font-size: 0.75rem; color: #e2e8f0; display: block;">رصيد معلق قيد المعالجة:</span>
-        <span class="tabular-nums font-mono" style="font-size: 1.2rem; font-weight: 900; color: #fcd34d;">
-          {% format_price wallet.held_balance %}
-        </span>
+      <div style="display: flex; gap: 0.75rem; flex-wrap: wrap;">
+        {% if wallet.debt_balance and wallet.debt_balance > 0 %}
+        <div style="background: rgba(239, 68, 68, 0.14); border: 1.5px solid rgba(239, 68, 68, 0.4); border-radius: 14px; padding: 0.75rem 1.25rem;">
+          <span style="font-size: 0.76rem; color: #fca5a5; display: block; font-weight: 800; margin-bottom: 0.2rem;">
+            <i class="fas fa-exclamation-circle ml-1" style="color: #ef4444;"></i> رصيد الدين المستحق:
+          </span>
+          <span class="tabular-nums font-mono" style="font-size: 1.25rem; font-weight: 900; color: #ef4444;">
+            -{% format_price wallet.debt_balance %}
+          </span>
+        </div>
+        {% endif %}
+
+        {% if wallet.held_balance and wallet.held_balance > 0 %}
+        <div style="background: rgba(255, 255, 255, 0.08); border: 1px solid rgba(255, 255, 255, 0.22); border-radius: 14px; padding: 0.75rem 1.25rem;">
+          <span style="font-size: 0.76rem; color: #e2e8f0; display: block; margin-bottom: 0.2rem;">رصيد معلق قيد المعالجة:</span>
+          <span class="tabular-nums font-mono" style="font-size: 1.2rem; font-weight: 900; color: #fcd34d;">
+            {% format_price wallet.held_balance %}
+          </span>
+        </div>
+        {% endif %}
       </div>
-      {% endif %}
     </div>
 
     <div class="rq-wallet-quick-actions">

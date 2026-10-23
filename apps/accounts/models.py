@@ -454,6 +454,11 @@ class KYCSettings(TimeStampedModel):
     unverified_transfer_limit = models.DecimalField(max_digits=14, decimal_places=2, default=Decimal("50.00"), verbose_name="حد التحويل لغير الموثقين")
     verified_transfer_limit = models.DecimalField(max_digits=14, decimal_places=2, default=Decimal("1000.00"), verbose_name="حد التحويل للموثقين")
     transfer_fee_percent = models.DecimalField(max_digits=5, decimal_places=2, default=Decimal("0.00"), verbose_name="نسبة رسوم التحويل (%)")
+    auto_deduct_debt_on_deposit = models.BooleanField(
+        default=True,
+        verbose_name="خصم الدين تلقائياً عند الإيداع",
+        help_text="عند التفعيل: أي عملية إيداع تسدد رصيد الدين أولاً وينقص مبلغ الدين. عند التعطيل: يبقى رصيد الدين كما هو ويُضاف المبلغ المودع كرصيد نقدي فوقه."
+    )
     
     # Quick Deposit Amounts Configuration
     quick_deposit_amounts = models.JSONField(

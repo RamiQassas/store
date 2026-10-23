@@ -447,9 +447,20 @@ def credit_wallet(wallet_id, amount, reference="", description="", created_by=No
             pending_amount = Decimal(metadata.get("pending_amount", amount)).quantize(Decimal("0.01"))
             wallet.pending_balance = max(Decimal("0.00"), wallet.pending_balance - pending_amount)
 
-        # Auto-deduct debt if it's a deposit
+        # Auto-deduct debt based on system setting or metadata:
+        # If enabled: deposit pays off debt first (debt_balance decreases), and any remainder increases available_balance.
+        # If disabled: debt_balance remains as is, and the deposit is added directly to available_balance.
         debt_paid = Decimal("0.00")
-        if metadata and metadata.get("auto_deduct_debt") and wallet.debt_balance > 0:
+        from apps.accounts.models import KYCSettings
+        try:
+            settings_obj = KYCSettings.get_settings()
+            global_auto_deduct = getattr(settings_obj, "auto_deduct_debt_on_deposit", True)
+        except Exception:
+            global_auto_deduct = True
+
+        auto_deduct = metadata.get("auto_deduct_debt") if (metadata and "auto_deduct_debt" in metadata) else global_auto_deduct
+
+        if auto_deduct and source in ["admin_approval", "deposit", "admin_adjustment", "admin_cash", "recharge_card"] and wallet.debt_balance > 0:
             debt_paid = min(amount, wallet.debt_balance)
             wallet.debt_balance -= debt_paid
             amount -= debt_paid

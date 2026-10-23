@@ -242,9 +242,18 @@
 
         {% if wallet_balance is not None %}
         <div class="receipt-row">
-          <span style="color: #94a3b8;">رصيد محفظتك الحالي</span>
+          <span style="color: #94a3b8;">الرصيد النقدي المتاح</span>
           <strong style="color: #34d399; font-size: 0.95rem; font-family: monospace;">
             {{ wallet_balance }}
+          </strong>
+        </div>
+        {% endif %}
+
+        {% if debt_balance %}
+        <div class="receipt-row">
+          <span style="color: #f87171;">رصيد الدين المستحق</span>
+          <strong style="color: #ef4444; font-size: 0.95rem; font-family: monospace;">
+            {{ debt_balance }}
           </strong>
         </div>
         {% endif %}

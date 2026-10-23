@@ -17,11 +17,27 @@
       </p>
     </div>
 
-    <div style="display: flex; align-items: center; gap: 0.45rem;">
-      <span style="font-size: 0.78rem; color: var(--rq-text-muted); font-weight: 700;">الحد المتاح اليوم:</span>
-      <span class="tabular-nums font-mono" style="font-size: 0.82rem; font-weight: 800; color: #10b981; background: var(--rq-accent-soft); padding: 0.25rem 0.65rem; border-radius: 9999px; border: 1px solid rgba(16, 185, 129, 0.3);">
-        ${{ remaining_limit|default:'غير محدود' }}
-      </span>
+    <div style="display: flex; align-items: center; gap: 0.75rem; flex-wrap: wrap;">
+      <div style="display: flex; align-items: center; gap: 0.35rem;">
+        <span style="font-size: 0.78rem; color: var(--rq-text-muted); font-weight: 700;">الرصيد النقدي:</span>
+        <span class="tabular-nums font-mono" style="font-size: 0.82rem; font-weight: 800; color: #10b981; background: var(--rq-accent-soft); padding: 0.25rem 0.65rem; border-radius: 9999px; border: 1px solid rgba(16, 185, 129, 0.3);">
+          {% format_price user.wallet.available_balance %}
+        </span>
+      </div>
+      {% if user.wallet.debt_balance > 0 %}
+      <div style="display: flex; align-items: center; gap: 0.35rem;">
+        <span style="font-size: 0.78rem; color: #f87171; font-weight: 700;">دين مستحق:</span>
+        <span class="tabular-nums font-mono" style="font-size: 0.82rem; font-weight: 800; color: #ef4444; background: rgba(239, 68, 68, 0.15); padding: 0.25rem 0.65rem; border-radius: 9999px; border: 1px solid rgba(239, 68, 68, 0.35);" title="سيتم خصم الإيداع من هذا الدين">
+          -{% format_price user.wallet.debt_balance %}
+        </span>
+      </div>
+      {% endif %}
+      <div style="display: flex; align-items: center; gap: 0.35rem;">
+        <span style="font-size: 0.78rem; color: var(--rq-text-muted); font-weight: 700;">حد اليوم:</span>
+        <span class="tabular-nums font-mono" style="font-size: 0.82rem; font-weight: 800; color: #38bdf8; background: rgba(56, 189, 248, 0.1); padding: 0.25rem 0.65rem; border-radius: 9999px; border: 1px solid rgba(56, 189, 248, 0.25);">
+          ${{ remaining_limit|default:'غير محدود' }}
+        </span>
+      </div>
     </div>
   </div>
 
@@ -154,6 +170,22 @@
               بوابة بيميرا الإلكترونية تعمل بالليرة السورية فقط. عند المتابعة سيتم خصم ما يعادل <strong id="paymera-converted-syp" style="color: #38bdf8; font-weight: 900; font-size: 0.92rem;">0 ل.س</strong> من بطاقتك البنكية ثمناً لمبلغ <strong id="paymera-original-usd" style="color: #38bdf8; font-weight: 900; font-size: 0.92rem;">0 USD</strong> وفق سعر الصرف المعتمد، دون أي توتر أو رسوم إضافية.
             </p>
           </div>
+
+          {% if user.wallet.debt_balance > 0 %}
+          <div style="margin-top: 0.85rem; padding: 0.85rem 1.15rem; background: rgba(239, 68, 68, 0.08); border: 1.5px solid rgba(239, 68, 68, 0.28); border-radius: 14px;">
+            <div style="display: flex; align-items: center; gap: 0.5rem; font-weight: 800; color: #f87171; font-size: 0.84rem; margin-bottom: 0.25rem;">
+              <i class="fas fa-info-circle" style="color: #ef4444;"></i>
+              <span>تنبيه بشأن رصيد الدين المستحق:</span>
+            </div>
+            <p style="margin: 0; font-size: 0.8rem; line-height: 1.6; color: #cbd5e1;">
+              {% if auto_deduct_debt_on_deposit %}
+              عليك دين مستحق بقيمة <strong style="color: #ef4444; font-weight: 800;">-{% format_price user.wallet.debt_balance %}</strong>. عند الإيداع، سينقص مبلغ الدين أولاً حتى يتم سداده، وأي مبلغ فائض فوق الدين سيُضاف فورياً لرصيدك النقدي الأخضر.
+              {% else %}
+              عليك دين مسجل بقيمة <strong style="color: #ef4444; font-weight: 800;">-{% format_price user.wallet.debt_balance %}</strong>. سيُضاف كامل المبلغ المودع إلى رصيدك النقدي الأخضر ويبقى رصيد الدين كما هو.
+              {% endif %}
+            </p>
+          </div>
+          {% endif %}
         </div>
 
         <!-- Live Net Summary -->

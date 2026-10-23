@@ -1446,6 +1446,7 @@ def deposits(request):
         "methods_json": methods_json,
         "quick_amounts_json": quick_amounts_json,
         "syp_rate": syp_rate,
+        "auto_deduct_debt_on_deposit": getattr(settings_obj, "auto_deduct_debt_on_deposit", True),
         "has_manual_methods": has_manual,
         "requests": DepositRequest.objects.filter(user=request.user, is_verified=True).order_by('-created_at'),
         "daily_limit": request.user.daily_deposit_limit,
@@ -7690,13 +7691,21 @@ def control_debts(request):
         users = users.filter(Q(email__icontains=q) | Q(phone__icontains=q))
     
     if request.method == "POST":
+        action = request.POST.get("action")
+        if action == "toggle_auto_deduct_debt":
+            from apps.accounts.models import KYCSettings
+            settings_obj = KYCSettings.get_settings()
+            settings_obj.auto_deduct_debt_on_deposit = not settings_obj.auto_deduct_debt_on_deposit
+            settings_obj.save(update_fields=["auto_deduct_debt_on_deposit", "updated_at"])
+            messages.success(request, f"تم {'تفعيل' if settings_obj.auto_deduct_debt_on_deposit else 'تعطيل'} خيار خصم الدين تلقائياً عند الإيداع بنجاح.")
+            return redirect(f"{request.path}?q={q}")
+
         if store:
             target = get_object_or_404(User, id=request.POST.get("user_id"), store=store)
         else:
             target = get_object_or_404(User, id=request.POST.get("user_id"), store__isnull=True)
             
         amt = Decimal(request.POST.get("amount", "0"))
-        action = request.POST.get("action")
         reason = request.POST.get("reason", "")
         
         if action == "add_debt":
@@ -7759,12 +7768,15 @@ def control_debts(request):
             entry_type__in=[LedgerEntry.EntryType.DEBT_ADD, LedgerEntry.EntryType.DEBT_PAYMENT]
         ).select_related('wallet__user').order_by('-created_at')[:10]
     
+    from apps.accounts.models import KYCSettings
+    settings_obj = KYCSettings.get_settings()
     ctx = {
         "users": users, 
         "query": q,
         "total_debt_balance": total_debt,
         "today_debt_payments": today_payments,
-        "recent_debt_logs": recent_logs
+        "recent_debt_logs": recent_logs,
+        "auto_deduct_debt_on_deposit": getattr(settings_obj, "auto_deduct_debt_on_deposit", True),
     }
     return render(request, "site/control_debts.html", ctx)
 
@@ -11812,11 +11824,14 @@ def payment_status_view(request):
     tran_id = ""
     redirect_url = reverse("dashboard_wallet")
     wallet_balance = None
+    debt_balance = None
 
     if request.user.is_authenticated:
         try:
             wallet = get_or_create_wallet(request.user)
             wallet_balance = f"{wallet.available_balance:,.2f} {wallet.currency.code}"
+            if wallet.debt_balance > 0:
+                debt_balance = f"-{wallet.debt_balance:,.2f} {wallet.currency.code}"
         except Exception:
             pass
 
@@ -11893,6 +11908,7 @@ def payment_status_view(request):
         "tran_id": tran_id,
         "redirect_url": redirect_url,
         "wallet_balance": wallet_balance,
+        "debt_balance": debt_balance,
         "target_type": target_type,
         "timestamp": timezone.now().strftime("%Y-%m-%d %H:%M"),
         "auto_redirect": (status == "success"),

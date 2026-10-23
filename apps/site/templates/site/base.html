@@ -111,9 +111,14 @@
 
           {% if user.is_authenticated %}
             {% if user.wallet %}
-            <a href="{% url 'dashboard_wallet' %}" class="rq-wallet-pill rq-hide-mobile" title="رصيد المحفظة">
-              <i class="fas fa-wallet"></i>
-              <span class="tabular-nums font-mono">{% format_price user.wallet.available_balance %}</span>
+            <a href="{% url 'dashboard_wallet' %}" class="rq-wallet-pill rq-hide-mobile" title="رصيد المحفظة" style="display: inline-flex; align-items: center; gap: 0.45rem;">
+              <i class="fas fa-wallet" style="color: #34d399;"></i>
+              <span class="tabular-nums font-mono" style="color: #34d399; font-weight: 800;">{% format_price user.wallet.available_balance %}</span>
+              {% if user.wallet.debt_balance > 0 %}
+              <span class="tabular-nums font-mono" style="color: #ef4444; background: rgba(239, 68, 68, 0.15); border: 1px solid rgba(239, 68, 68, 0.35); border-radius: 999px; padding: 0.05rem 0.45rem; font-size: 0.72rem; font-weight: 800;" title="الدين المستحق">
+                دين: -{% format_price user.wallet.debt_balance %}
+              </span>
+              {% endif %}
             </a>
             {% endif %}
 
@@ -329,9 +334,15 @@
         </div>
         {% if user.wallet %}
         <div style="display: flex; align-items: center; justify-content: space-between; padding-top: 0.6rem; border-top: 1px solid rgba(255,255,255,0.14); font-size: 0.8rem;">
-          <span style="color: #cbd5e1;">رصيد المحفظة:</span>
-          <strong class="font-mono tabular-nums" style="color: #34d399; font-size: 0.95rem;">{% format_price user.wallet.available_balance %}</strong>
+          <span style="color: #cbd5e1;">الرصيد النقدي:</span>
+          <strong class="font-mono tabular-nums" style="color: #34d399; font-size: 0.95rem; font-weight: 800;">{% format_price user.wallet.available_balance %}</strong>
         </div>
+        {% if user.wallet.debt_balance > 0 %}
+        <div style="display: flex; align-items: center; justify-content: space-between; padding-top: 0.4rem; font-size: 0.8rem;">
+          <span style="color: #f87171;">رصيد الدين المستحق:</span>
+          <strong class="font-mono tabular-nums" style="color: #ef4444; font-size: 0.95rem; font-weight: 800;">-{% format_price user.wallet.debt_balance %}</strong>
+        </div>
+        {% endif %}
         {% endif %}
       </div>
       {% else %}

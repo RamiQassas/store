@@ -51,16 +51,16 @@
                             </td>
                             <td class="p-5 text-center">
                                 <div class="flex items-center justify-center gap-2">
-                                    <span class="font-mono text-xs font-black text-cyan">{{ u.wallet.available_balance|floatformat:2 }}</span>
-                                    <span class="text-[8px] text-slate-600 font-bold">USD</span>
+                                    <span class="font-mono text-xs font-black text-emerald-400">{{ u.wallet.available_balance|floatformat:2 }}</span>
+                                    <span class="text-[8px] text-slate-500 font-bold">USD</span>
                                 </div>
                             </td>
                             <td class="p-5 text-center">
                                 <div class="flex items-center justify-center gap-2">
-                                    <span class="font-mono text-xs font-black {% if u.wallet.debt_balance > 0 %}text-rose-500{% else %}text-slate-600{% endif %}">
-                                        {{ u.wallet.debt_balance|floatformat:2 }}
+                                    <span class="font-mono text-xs font-black {% if u.wallet.debt_balance > 0 %}text-rose-500 bg-rose-500/10 border border-rose-500/20 px-2 py-0.5 rounded-lg{% else %}text-slate-600{% endif %}">
+                                        {% if u.wallet.debt_balance > 0 %}-{% endif %}{{ u.wallet.debt_balance|floatformat:2 }}
                                     </span>
-                                    <span class="text-[8px] text-slate-600 font-bold">USD</span>
+                                    <span class="text-[8px] text-slate-500 font-bold">USD</span>
                                 </div>
                             </td>
                             <td class="p-5 text-left">
@@ -127,10 +127,31 @@
                 </div>
             </div>
             
-            <div class="mt-8 p-4 bg-white/[0.02] rounded-2xl border border-white/5">
-                <p class="text-[10px] text-slate-500 leading-relaxed italic text-center font-medium">
-                    <i class="fas fa-info-circle text-cyan ml-1"></i> يتم خصم الديون تلقائياً من أول عملية إيداع يقوم بها المستخدم بعد تسجيل المديونية.
+            <div class="mt-6 p-5 bg-slate-900/80 rounded-2xl border border-white/10 text-right">
+                <div class="flex items-center justify-between gap-3 mb-3">
+                    <div class="flex items-center gap-2">
+                        <i class="fas fa-sliders-h text-cyan text-xs"></i>
+                        <h4 class="text-xs font-bold text-white">خصم الدين عند الإيداع</h4>
+                    </div>
+                    <span class="badge {% if auto_deduct_debt_on_deposit %}success{% else %}warning{% endif %} text-[9px] px-2 py-0.5 rounded-full font-bold">
+                        {% if auto_deduct_debt_on_deposit %}مفعل (خصم فوري){% else %}معطل (إبقاء الدين){% endif %}
+                    </span>
+                </div>
+                <p class="text-[11px] text-slate-400 leading-relaxed mb-4">
+                    {% if auto_deduct_debt_on_deposit %}
+                    <span class="text-emerald-400 font-bold">الحالة النشطة:</span> عند إيداع العميل، يُسدد الدين أولاً وينقص مبلغ الدين، وأي رصيد فائض يُضاف كرصيد نقدي متاح.
+                    {% else %}
+                    <span class="text-amber-400 font-bold">الحالة النشطة:</span> يبقى رصيد الدين كما هو دون إنقاص، ويُضاف كامل مبلغ الإيداع كرصيد نقدي متاح فوقه.
+                    {% endif %}
                 </p>
+                <form method="post" action="">
+                    {% csrf_token %}
+                    <input type="hidden" name="action" value="toggle_auto_deduct_debt">
+                    <button type="submit" class="btn {% if auto_deduct_debt_on_deposit %}btn-outline border-rose-500/30 text-rose-400 hover:bg-rose-500/10{% else %}btn-primary bg-emerald-600 border-emerald-500 text-white hover:bg-emerald-500{% endif %} w-full py-2.5 text-xs font-bold rounded-xl flex items-center justify-center gap-2">
+                        <i class="fas {% if auto_deduct_debt_on_deposit %}fa-toggle-on text-emerald-400{% else %}fa-toggle-off text-slate-400{% endif %}"></i>
+                        <span>{% if auto_deduct_debt_on_deposit %}تعطيل الخصم التلقائي (إبقاء الدين){% else %}تفعيل خصم الدين تلقائياً عند الإيداع{% endif %}</span>
+                    </button>
+                </form>
             </div>
         </div>
         
