@@ -27,15 +27,20 @@
 {% endblock %}
 
 {% block control_content %}
-<div class="page-head">
+<div class="page-head flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
     <div>
         <span class="eyebrow">Financial Management</span>
-        <h1>وسائل الدفع والسحب</h1>
-        <p class="text-muted">التحكم في بوابات الدفع، الرسوم، وحدود الإيداع والسحب.</p>
+        <h1 class="text-xl font-bold">وسائل الدفع والسحب</h1>
+        <p class="text-muted text-xs">التحكم في بوابات الدفع الإلكترونية، الرسوم، وحدود الإيداع والسحب.</p>
     </div>
-    <a href="{% url 'payment_method_create' %}" class="btn btn-primary btn-sm">
-        <i class="fas fa-plus ml-2"></i> إضافة وسيلة جديدة
-    </a>
+    <div class="flex items-center gap-3">
+        <a href="{% url 'payment_gateway_integrations_list' %}" class="btn btn-outline btn-sm">
+            <i class="fas fa-plug ml-1 text-cyan"></i> بوابات الدفع API
+        </a>
+        <a href="{% url 'payment_method_create' %}" class="btn btn-primary btn-sm">
+            <i class="fas fa-plus ml-1"></i> إضافة وسيلة مخصصة
+        </a>
+    </div>
 </div>
 
 <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -44,15 +49,26 @@
         <div class="p-6 flex-grow">
             <div class="flex justify-between items-start mb-6">
                 <div class="method-logo-container">
-                    {% if method.logo %}
-                    <img src="{{ method.logo.url }}" class="method-logo-img">
+                    {% if method.logo_url %}
+                    <img src="{{ method.logo_url }}" class="method-logo-img" alt="{{ method.name }}">
+                    {% elif method.logo %}
+                    <img src="{{ method.logo.url }}" class="method-logo-img" alt="{{ method.name }}">
                     {% else %}
                     <i class="fas {{ method.icon|default:'fa-wallet' }} text-cyan text-xl"></i>
                     {% endif %}
                 </div>
                 <div class="flex flex-col items-end gap-1">
-                    <span class="badge {% if method.is_active %}success{% else %}muted{% endif %} text-[8px]">{% if method.is_active %}نشطة{% else %}معطلة{% endif %}</span>
-                    {% if method.is_maintenance_mode %}<span class="badge warning text-[8px]">وضع الصيانة</span>{% endif %}
+                    {% if method.gateway %}
+                    <span class="badge info text-[9px] bg-cyan/15 text-cyan border border-cyan/30 px-2 py-0.5 rounded-full font-semibold">
+                        <i class="fas fa-bolt ml-1"></i> بوابة دفع API (فوري)
+                    </span>
+                    {% else %}
+                    <span class="badge muted text-[9px] px-2 py-0.5 rounded-full">تحويل يدوي</span>
+                    {% endif %}
+                    <div class="flex items-center gap-1 mt-1">
+                        <span class="badge {% if method.is_active %}success{% else %}muted{% endif %} text-[8px]">{% if method.is_active %}نشطة{% else %}معطلة{% endif %}</span>
+                        {% if method.is_maintenance_mode %}<span class="badge warning text-[8px]">وضع الصيانة</span>{% endif %}
+                    </div>
                 </div>
             </div>
             
@@ -94,9 +110,14 @@
         </div>
         
         <div class="p-4 bg-white/[0.02] border-t border-white/5 flex gap-2">
-            <a href="{% url 'payment_method_edit' method.id %}" class="btn btn-outline btn-sm w-full text-[10px]">
-                <i class="fas fa-edit ml-1"></i> تعديل البناء المخصص
+            <a href="{% url 'payment_method_edit' method.id %}" class="btn btn-outline btn-sm flex-1 text-[11px] text-center">
+                <i class="fas fa-sliders-h ml-1"></i> الخصائص والرسوم
             </a>
+            {% if method.gateway %}
+            <a href="{% url 'payment_gateway_integration_edit' method.gateway.id %}" class="btn btn-outline btn-sm flex-1 text-[11px] text-cyan border-cyan/30 hover:bg-cyan/10 text-center" title="تعديل مفاتيح وإعدادات بوابة الدفع">
+                <i class="fas fa-key ml-1"></i> إعدادات API
+            </a>
+            {% endif %}
         </div>
     </div>
     {% empty %}

@@ -416,6 +416,103 @@ class PaymentGatewayIntegration(TimeStampedModel):
     def __str__(self):
         return f"{self.name} - {self.get_provider_display()}"
 
+    def sync_payment_method(self):
+        """
+        Ensures a corresponding PaymentMethod exists for this gateway integration,
+        so it automatically appears in the payment methods list, deposit page, and checkout.
+        """
+        from apps.common.models import Currency
+
+        if self.provider == self.Provider.SHAM_CASH or "sham" in (self.name or "").lower():
+            target_name = "شام كاش (ShamCash)"
+            method_type = "بوابة دفع إلكترونية"
+            description = "إيداع ودفع فوري مباشر عبر شام كاش"
+        elif self.provider == self.Provider.PAYMERA or "paymera" in (self.name or "").lower():
+            target_name = "بيميرا (Paymera)"
+            method_type = "بوابة دفع إلكترونية"
+            description = "إيداع ودفع فوري عبر بوابة بيميرا الإلكترونية"
+        elif self.provider == self.Provider.BANIYAS_CRYPTO:
+            target_name = "Baniyas Crypto"
+            method_type = "بوابة عملات رقمية"
+            description = "دفع فوري بالعملات الرقمية عبر بنياس كريبتو"
+        else:
+            target_name = self.name or "بوابة دفع إلكترونية"
+            method_type = "بوابة دفع إلكترونية"
+            description = "دفع فوري عبر بوابة الدفع الإلكترونية"
+
+        existing_methods = list(PaymentMethod.all_objects.filter(gateway=self))
+        if len(existing_methods) > 1:
+            # Prefer the method with existing deposits/activity
+            existing_methods.sort(key=lambda m: (m.deposits.count(), m.created_at), reverse=True)
+            for extra in existing_methods[1:]:
+                if not extra.deposits.exists():
+                    extra.delete()
+                else:
+                    extra.is_active = False
+                    extra.save(update_fields=["is_active"])
+            pm = existing_methods[0]
+        elif existing_methods:
+            pm = existing_methods[0]
+        else:
+            pm = PaymentMethod.all_objects.filter(store=self.store, name__icontains=target_name[:6]).first()
+
+        if pm:
+            pm.gateway = self
+            pm.store = self.store
+            pm.name = target_name
+            pm.method_type = method_type
+            if not pm.description:
+                pm.description = description
+            pm.is_active = self.is_active
+            pm.can_deposit = self.can_deposit
+            pm.can_withdraw = self.can_withdraw
+            pm.save()
+        else:
+            pm = PaymentMethod.all_objects.create(
+                gateway=self,
+                store=self.store,
+                name=target_name,
+                method_type=method_type,
+                description=description,
+                is_active=self.is_active,
+                can_deposit=self.can_deposit,
+                can_withdraw=self.can_withdraw,
+                deposit_min_amount=Decimal("1.00"),
+                deposit_max_amount=Decimal("10000.00"),
+            )
+
+        currencies = Currency.objects.filter(is_active=True)
+        if self.provider == self.Provider.SHAM_CASH:
+            syp = currencies.filter(code="SYP").first()
+            usd = currencies.filter(code="USD").first()
+            to_add = [c for c in (syp, usd) if c]
+            if to_add:
+                pm.supported_currencies.add(*to_add)
+        else:
+            usd = currencies.filter(code="USD").first()
+            syp = currencies.filter(code="SYP").first()
+            to_add = [c for c in (usd, syp) if c]
+            if to_add:
+                pm.supported_currencies.add(*to_add)
+
+        return pm
+
+    @classmethod
+    def sync_all_active_gateways(cls):
+        """Syncs all active payment gateways to ensure their PaymentMethod records exist and match."""
+        for gw in cls.all_objects.filter(is_active=True):
+            try:
+                gw.sync_payment_method()
+            except Exception:
+                pass
+
+    def save(self, *args, **kwargs):
+        super().save(*args, **kwargs)
+        try:
+            self.sync_payment_method()
+        except Exception:
+            pass
+
 
 class DepositRequest(TimeStampedModel):
     class Status(models.TextChoices):

@@ -1350,6 +1350,11 @@ def deposits(request):
     # Task 9: Show active deposit methods (gateways first, deduplicated, current store + platform)
     from apps.common.tenant_utils import bypass_tenant_filter
     with bypass_tenant_filter():
+        try:
+            from apps.payments.models import PaymentGatewayIntegration
+            PaymentGatewayIntegration.sync_all_active_gateways()
+        except Exception:
+            pass
         current_store = getattr(request, 'store', None)
         # Filter out disabled / test payment methods
         filter_kwargs = {'is_active': True, 'can_deposit': True}
@@ -9079,10 +9084,15 @@ def set_currency(request):
 @admin_required
 def payment_methods_list(request):
     store = getattr(request, "store", None)
+    try:
+        from apps.payments.models import PaymentGatewayIntegration
+        PaymentGatewayIntegration.sync_all_active_gateways()
+    except Exception:
+        pass
     if store:
-        methods = PaymentMethod.objects.filter(store=store).order_by("display_order")
+        methods = PaymentMethod.all_objects.filter(store=store).select_related('gateway').order_by("display_order", "id")
     else:
-        methods = PaymentMethod.objects.filter(store__isnull=True).order_by("display_order")
+        methods = PaymentMethod.all_objects.filter(store__isnull=True).select_related('gateway').order_by("display_order", "id")
     return render(request, "site/payment_methods_list.html", {"methods": methods, "is_tenant": bool(store)})
 
 @admin_required
@@ -9145,7 +9155,11 @@ def payment_gateway_integration_create(request):
         gateway = form.save(commit=False)
         gateway.store = store
         gateway.save()
-        messages.success(request, "تم حفظ بوابة دفع API بنجاح.")
+        try:
+            gateway.sync_payment_method()
+        except Exception:
+            pass
+        messages.success(request, "تم حفظ بوابة دفع API ومزامنتها مع وسائل الدفع بنجاح.")
         return redirect("payment_gateway_integrations_list")
     return render(request, "site/payment_gateway_integration_form.html", {"form": form, "title": "إضافة بوابة دفع API"})
 
@@ -9158,8 +9172,12 @@ def payment_gateway_integration_edit(request, pk):
     gateway = get_object_or_404(qs, pk=pk)
     form = PaymentGatewayIntegrationForm(request.POST or None, request.FILES or None, instance=gateway)
     if request.method == "POST" and form.is_valid():
-        form.save()
-        messages.success(request, "تم تحديث بوابة دفع API بنجاح.")
+        gateway = form.save()
+        try:
+            gateway.sync_payment_method()
+        except Exception:
+            pass
+        messages.success(request, "تم تحديث بوابة دفع API ومزامنة وسيلة الدفع بنجاح.")
         return redirect("payment_gateway_integrations_list")
     return render(request, "site/payment_gateway_integration_form.html", {"form": form, "gateway": gateway, "title": "تعديل بوابة دفع API"})
 
@@ -9169,6 +9187,14 @@ def payment_gateway_integration_delete(request, pk):
     store = getattr(request, "store", None)
     qs = PaymentGatewayIntegration.objects.filter(store=store) if store else PaymentGatewayIntegration.objects.all()
     gateway = get_object_or_404(qs, pk=pk)
+    # Deactivate or clean up associated payment methods
+    for pm in PaymentMethod.all_objects.filter(gateway=gateway):
+        if pm.deposits.exists():
+            pm.is_active = False
+            pm.gateway = None
+            pm.save(update_fields=["is_active", "gateway"])
+        else:
+            pm.delete()
     gateway.delete()
     messages.success(request, "تم حذف بوابة دفع API.")
     return redirect("payment_gateway_integrations_list")
