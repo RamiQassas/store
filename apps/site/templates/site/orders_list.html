@@ -9,24 +9,24 @@
   <!-- 1. Compact Header -->
   <div style="display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 1rem; margin-bottom: 1.5rem;">
     <div>
-      <h1 style="font-size: clamp(1.35rem, 2.5vw, 1.85rem); font-weight: 900; color: #fff; margin: 0 0 0.25rem;">
+      <h1 style="font-size: clamp(1.35rem, 2.5vw, 1.8rem); font-weight: 900; color: var(--rq-navy); margin: 0 0 0.2rem;">
         طلباتي
       </h1>
-      <p style="font-size: 0.82rem; color: var(--rq-text-muted); margin: 0;">
+      <p style="font-size: 0.84rem; color: var(--rq-text-muted); margin: 0;">
         تتبع حالة طلباتك واستلم أكوادك وفواتيرك فوراً
       </p>
     </div>
 
-    <a href="{% url 'catalog' %}" class="rq-btn-auth-register" style="height: 40px; padding: 0 1.25rem; font-size: 0.82rem; border-radius: 9999px;">
+    <a href="{% url 'catalog' %}" class="rq-btn-auth-register" style="height: 40px; padding: 0 1.25rem; font-size: 0.82rem;">
       <i class="fas fa-plus"></i>
       <span>طلب جديد</span>
     </a>
   </div>
 
   <!-- 2. Segmented Status Filter & Search Bar -->
-  <div style="background: var(--rq-surface-card); border: 1px solid var(--rq-border); border-radius: 16px; padding: 0.75rem 1rem; margin-bottom: 1.35rem; display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 0.85rem;">
+  <div style="background: var(--rq-surface-card); border: 1px solid var(--rq-border); border-radius: 14px; padding: 0.75rem 1rem; margin-bottom: 1.25rem; display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 0.85rem; box-shadow: var(--rq-shadow-xs);">
     
-    <div class="rq-seg-tabs" style="background: rgba(0, 0, 0, 0.35);">
+    <div class="rq-seg-tabs">
       <button type="button" onclick="filterOrders('all', this)" class="rq-seg-btn rq-order-filter-pill active">
         الكل ({{ orders|length }})
       </button>
@@ -43,8 +43,8 @@
 
     <div style="width: 100%; max-width: 260px;">
       <div style="position: relative;">
-        <i class="fas fa-search" style="position: absolute; right: 0.85rem; top: 50%; transform: translateY(-50%); font-size: 0.75rem; color: var(--rq-text-muted);"></i>
-        <input type="text" id="order-search-input" placeholder="رقم الطلب أو اسم المنتج..." onkeyup="searchOrders()" class="rq-input" style="height: 36px; border-radius: 9999px; padding: 0 2.2rem 0 0.85rem; font-size: 0.78rem;">
+        <i class="fas fa-search" style="position: absolute; right: 0.85rem; top: 50%; transform: translateY(-50%); font-size: 0.78rem; color: var(--rq-text-muted);"></i>
+        <input type="text" id="order-search-input" placeholder="رقم الطلب أو اسم المنتج..." onkeyup="searchOrders()" class="rq-input" style="height: 38px; padding: 0 2.2rem 0 0.85rem; font-size: 0.8rem;">
       </div>
     </div>
   </div>
@@ -54,38 +54,38 @@
     {% for ord in orders %}
     {% with ord.items.first as item %}
     {% product_display_image item.variant.product as ord_img %}
-    <div class="rq-order-card order-item-row" data-status="{{ ord.status }}" data-number="{{ ord.number }}" data-name="{{ item.variant.product.name|default:'' }}" style="border-radius: 16px; padding: 1rem 1.25rem;">
+    <div class="rq-order-card order-item-row" data-status="{{ ord.status }}" data-number="{{ ord.number }}" data-name="{{ item.variant.product.name|default:'' }}" style="border-radius: 14px; padding: 1rem 1.25rem;">
       <div style="display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 1rem;">
         
         <!-- Product & Order Number -->
         <div style="display: flex; align-items: center; gap: 0.9rem;">
-          <div style="width: 52px; height: 52px; border-radius: 12px; background: #070b15; border: 1px solid var(--rq-border); display: flex; align-items: center; justify-content: center; overflow: hidden; flex-shrink: 0; padding: 0.3rem;">
+          <div style="width: 54px; height: 54px; border-radius: 10px; background: var(--rq-bg-body); border: 1px solid var(--rq-border); display: flex; align-items: center; justify-content: center; overflow: hidden; flex-shrink: 0; padding: 0.3rem;">
             {% if ord_img %}
             <img src="{{ ord_img }}" alt="{{ item.variant.product.name }}" style="max-height: 100%; max-width: 100%; object-fit: contain;">
             {% else %}
-            <i class="fas fa-cube text-slate-500 text-lg"></i>
+            <i class="fas fa-box" style="color: var(--rq-text-muted); font-size: 1.1rem;"></i>
             {% endif %}
           </div>
 
           <div>
             <div style="display: flex; align-items: center; gap: 0.45rem; margin-bottom: 0.2rem;">
-              <h4 style="font-size: 0.92rem; font-weight: 800; color: #fff; margin: 0;">
+              <h4 style="font-size: 0.94rem; font-weight: 800; color: var(--rq-navy); margin: 0;">
                 {{ item.variant.product.name|default:'منتج' }}
               </h4>
               {% if item.quantity and item.quantity > 1 %}
-              <span style="font-size: 0.7rem; font-weight: 800; padding: 0.1rem 0.45rem; border-radius: 6px; background: rgba(59, 130, 246, 0.15); color: #60a5fa;">
+              <span style="font-size: 0.72rem; font-weight: 800; padding: 0.1rem 0.45rem; border-radius: 6px; background: var(--rq-primary-soft); color: var(--rq-primary);">
                 ×{{ item.quantity }}
               </span>
               {% endif %}
             </div>
 
-            <div style="display: flex; align-items: center; gap: 0.6rem; font-size: 0.74rem; color: var(--rq-text-muted); flex-wrap: wrap;">
-              <span style="font-family: monospace; color: var(--rq-primary-light); font-weight: 800;">#{{ ord.number }}</span>
+            <div style="display: flex; align-items: center; gap: 0.6rem; font-size: 0.76rem; color: var(--rq-text-muted); flex-wrap: wrap;">
+              <span style="font-family: monospace; color: var(--rq-primary); font-weight: 800;">#{{ ord.number }}</span>
               <span>•</span>
               <span>{{ ord.created_at|date:"Y-m-d H:i" }}</span>
               {% if item.variant.name and item.variant.name != item.variant.product.name %}
               <span>•</span>
-              <span style="color: #cbd5e1;">{{ item.variant.name }}</span>
+              <span style="color: var(--rq-text-secondary); font-weight: 600;">{{ item.variant.name }}</span>
               {% endif %}
             </div>
           </div>
@@ -94,7 +94,7 @@
         <!-- Price, Status & Actions -->
         <div style="display: flex; flex-wrap: wrap; align-items: center; gap: 0.9rem;">
           <div style="text-align: left;">
-            <span class="tabular-nums font-mono" style="font-size: 1.08rem; font-weight: 900; color: #fbbf24; display: block;">
+            <span class="tabular-nums font-mono" style="font-size: 1.05rem; font-weight: 900; color: var(--rq-navy); display: block;">
               {% format_price ord.total_price %}
             </span>
             <div style="margin-top: 0.15rem;">
@@ -117,7 +117,7 @@
               <span>التفاصيل</span>
               <i class="fas fa-arrow-left text-[9px]"></i>
             </a>
-            <a href="{% url 'dashboard_order_invoice' ord.id %}" target="_blank" class="rq-btn-secondary rq-btn-sm" style="border-radius: 9999px;" title="الفاتورة">
+            <a href="{% url 'dashboard_order_invoice' ord.id %}" target="_blank" class="rq-btn-secondary rq-btn-sm" title="الفاتورة">
               <i class="fas fa-print text-xs"></i>
             </a>
           </div>
@@ -127,11 +127,11 @@
     </div>
     {% endwith %}
     {% empty %}
-    <div style="background: var(--rq-surface-card); border: 1px dashed var(--rq-border); border-radius: 20px; padding: 3.5rem 1.5rem; text-align: center;">
-      <i class="fas fa-box-open text-3xl text-slate-500 mb-3 block"></i>
-      <h3 style="font-size: 1.05rem; font-weight: 800; color: #fff; margin: 0 0 0.4rem;">لا توجد طلبات حتى الآن</h3>
-      <p style="font-size: 0.82rem; color: var(--rq-text-muted); margin: 0 0 1.25rem;">اختر منتجك المفضل من المتجر وسيظهر هنا فوراً.</p>
-      <a href="{% url 'catalog' %}" class="rq-btn-auth-register" style="border-radius: 9999px;">
+    <div style="background: var(--rq-surface-card); border: 1px dashed var(--rq-border-strong); border-radius: 16px; padding: 3.5rem 1.5rem; text-align: center;">
+      <i class="fas fa-box-open" style="font-size: 2.25rem; color: var(--rq-text-muted); margin-bottom: 0.75rem; display: block;"></i>
+      <h3 style="font-size: 1.05rem; font-weight: 800; color: var(--rq-navy); margin: 0 0 0.4rem;">لا توجد طلبات حتى الآن</h3>
+      <p style="font-size: 0.84rem; color: var(--rq-text-muted); margin: 0 0 1.25rem;">اختر منتجك المفضل من المتجر وسيظهر هنا فوراً.</p>
+      <a href="{% url 'catalog' %}" class="rq-btn-auth-register">
         تصفح المنتجات
       </a>
     </div>

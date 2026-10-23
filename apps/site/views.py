@@ -1819,7 +1819,7 @@ def home(request):
     from django.core.cache import cache
 
     store = getattr(request, 'store', None)
-    cache_key = f"home_page_ctx_v5_{getattr(store, 'id', 'global')}"
+    cache_key = f"home_page_ctx_v6_{getattr(store, 'id', 'global')}"
     ctx = cache.get(cache_key)
 
     if ctx is None:
@@ -1865,14 +1865,26 @@ def home(request):
         else:
             sale_products = sale_qs
 
-        # Separate physical hardware products from digital services
+        featured_ids = [p.id for p in featured_products]
+
+        # Separate physical hardware products from digital services (avoiding duplicates with featured when possible)
         physical_products = list(Product.objects.filter(
             is_active=True,
             is_publicly_visible=True,
             product_type="physical",
             variants__is_active=True,
             variants__price__gt=0,
-        ).select_related("category").prefetch_related("variants").distinct()[:8])
+        ).exclude(id__in=featured_ids).select_related("category").prefetch_related("variants").distinct()[:8])
+        if len(physical_products) < 4:
+            physical_products = list(Product.objects.filter(
+                is_active=True,
+                is_publicly_visible=True,
+                product_type="physical",
+                variants__is_active=True,
+                variants__price__gt=0,
+            ).select_related("category").prefetch_related("variants").distinct()[:8])
+
+        used_ids = set(featured_ids) | {p.id for p in physical_products}
 
         digital_products = list(Product.objects.filter(
             is_active=True,
@@ -1880,16 +1892,26 @@ def home(request):
             product_type="digital",
             variants__is_active=True,
             variants__price__gt=0,
-        ).select_related("category").prefetch_related("variants").distinct()[:8])
+        ).exclude(id__in=used_ids).select_related("category").prefetch_related("variants").distinct()[:8])
+
+        used_ids |= {p.id for p in digital_products}
+
+        new_products = list(Product.objects.filter(
+            is_active=True,
+            is_publicly_visible=True,
+            variants__is_active=True,
+            variants__price__gt=0,
+        ).exclude(id__in=used_ids).select_related("category").prefetch_related("variants").order_by("-created_at").distinct()[:8])
 
         # Top 8 most populated categories for clean, uncluttered homepage
         top_categories = sorted(active_categories, key=lambda c: getattr(c, 'product_count', 0), reverse=True)[:8]
 
         ctx = {
-            "featured_products": featured_products,
+            "featured_products": featured_products[:8],
             "sale_products": sale_products,
             "physical_products": physical_products,
             "digital_products": digital_products,
+            "new_products": new_products,
             "categories": active_categories,
             "top_categories": top_categories,
             "total_categories_count": len(active_categories),
@@ -2072,10 +2094,40 @@ def catalog(request):
             products = products.filter(q_filter).distinct()
             view_type = "products"
 
+    product_type_filter = request.GET.get("type", "").strip()
+    in_stock_filter = request.GET.get("in_stock", "").strip()
+    min_price_str = request.GET.get("min_price", "").strip()
+    max_price_str = request.GET.get("max_price", "").strip()
+
+    if product_type_filter in ("physical", "digital"):
+        products = products.filter(product_type=product_type_filter)
+        view_type = "products"
+
+    if in_stock_filter == "1":
+        products = products.filter(is_out_of_stock=False)
+
+    if min_price_str:
+        try:
+            min_p = Decimal(min_price_str)
+            if min_p >= 0:
+                products = products.filter(variants__price__gte=min_p).distinct()
+        except Exception:
+            pass
+
+    if max_price_str:
+        try:
+            max_p = Decimal(max_price_str)
+            if max_p > 0:
+                products = products.filter(variants__price__lte=max_p).distinct()
+        except Exception:
+            pass
+
     if sort == "price_low":
-        products = products.order_by("variants__price")
+        products = products.order_by("variants__price", "id")
     elif sort == "price_high":
-        products = products.order_by("-variants__price")
+        products = products.order_by("-variants__price", "id")
+    elif sort == "newest":
+        products = products.order_by("-created_at", "sort_order", "name")
     elif sort == "random":
         products = products.order_by("?")
     else:
@@ -2182,6 +2234,10 @@ def catalog(request):
         "sort": sort,
         "view_type": view_type,
         "cols": cols,
+        "product_type_filter": product_type_filter,
+        "in_stock_filter": in_stock_filter,
+        "min_price": min_price_str,
+        "max_price": max_price_str,
         "suggestion_form": ProductSuggestionForm(),
     }
     return render(request, "site/catalog.html", ctx)
@@ -2653,6 +2709,19 @@ def product_detail(request, pk):
                     methods = request.session.get("v3_auth_methods", [])
                     return redirect("site_2fa_verify" if (methods and methods[0] == "APP") else "site_verify_otp")
 
+        # Duplicate submission protection (3-second window)
+        import time as _time
+        attempt_sig = f"{variant.id}:{quantity}:{payment_method}:{price}"
+        last_attempt = request.session.get("last_order_attempt")
+        now_ts = _time.time()
+        if isinstance(last_attempt, dict) and last_attempt.get("sig") == attempt_sig and (now_ts - float(last_attempt.get("ts", 0))) < 3.0:
+            dup_msg = "تم إرسال طلبك بالفعل، يرجى الانتظار قليلاً لعدم تكرار الطلب."
+            if request.headers.get('x-requested-with') == 'XMLHttpRequest' or request.POST.get('ajax') == '1':
+                return JsonResponse({"success": False, "error": dup_msg}, status=429)
+            messages.warning(request, dup_msg)
+            return redirect("dashboard_orders")
+        request.session["last_order_attempt"] = {"sig": attempt_sig, "ts": now_ts}
+
         # Purchase Logic: Direct Gateway vs Wallet
         if is_direct_gateway:
             from apps.orders.services import create_pending_gateway_order
@@ -2773,7 +2842,8 @@ def product_detail(request, pk):
             product.save(update_fields=["is_out_of_stock"])
         is_inactive_product = False
         active_variant = active_variants[0]
-    related_products = Product.objects.filter(category=product.category, is_active=True).exclude(pk=product.pk)[:3]
+    related_products = list(Product.objects.filter(category=product.category, is_active=True, is_publicly_visible=True).exclude(pk=product.pk).select_related("category").prefetch_related("variants")[:4])
+    gallery_images = list(product.gallery.all())
     
     missing_amount = request.session.pop('missing_amount', None)
     missing_currency = request.session.pop('missing_currency', None)
@@ -2893,6 +2963,7 @@ def product_detail(request, pk):
         "variants": variants, 
         "active_variant": active_variant,
         "related_products": related_products,
+        "gallery_images": gallery_images,
         "missing_amount": missing_amount,
         "missing_currency": missing_currency,
         "gateway_methods": gateway_methods,
@@ -11304,4 +11375,253 @@ def control_compliance_dashboard(request):
     })
 
 
+# ==========================================
+# --- SESSION CART & CHECKOUT VIEWS ---
+# ==========================================
 
+def cart_view(request):
+    """Render the dedicated shopping cart & checkout summary page."""
+    from apps.site.context_processors import _build_cart_context
+    cart_ctx = _build_cart_context(request)
+    return render(request, "site/cart.html", cart_ctx)
+
+
+def cart_add_view(request):
+    """Add a product/variant to the session cart with server-side stock & price validation."""
+    if request.method != "POST":
+        return redirect("cart_detail")
+
+    product_id = (request.POST.get("product_id") or "").strip()
+    variant_id = (request.POST.get("variant_id") or "").strip()
+    qty_str = (request.POST.get("quantity") or "1").strip()
+    is_ajax = request.headers.get("x-requested-with") == "XMLHttpRequest" or request.POST.get("ajax") == "1"
+
+    try:
+        qty = int(qty_str)
+        if qty < 1:
+            qty = 1
+    except (ValueError, TypeError):
+        qty = 1
+
+    variant = None
+    product = None
+
+    if variant_id and variant_id != "default":
+        variant = ProductVariant.all_objects.filter(
+            pk=variant_id,
+            is_active=True,
+            product__is_active=True,
+            product__is_publicly_visible=True,
+        ).select_related("product").first()
+        if variant:
+            product = variant.product
+
+    if not variant and product_id:
+        product = Product.all_objects.filter(
+            pk=product_id,
+            is_active=True,
+            is_publicly_visible=True,
+        ).prefetch_related("variants").first()
+        if product:
+            variant = product.variants.filter(is_active=True, is_temporarily_disabled=False).order_by("sort_order", "price").first()
+
+    if not product or not variant or product.is_out_of_stock or variant.is_temporarily_disabled:
+        err = "هذا المنتج غير متوفر للإضافة إلى السلة حالياً."
+        if is_ajax:
+            return JsonResponse({"success": False, "error": err}, status=400)
+        messages.error(request, err)
+        return redirect(request.META.get("HTTP_REFERER") or "catalog")
+
+    raw_cart = request.session.get("rq_cart")
+    if not isinstance(raw_cart, dict):
+        raw_cart = {}
+
+    v_key = str(variant.id)
+    existing_qty = int(raw_cart.get(v_key, {}).get("quantity", 0))
+    new_qty = existing_qty + qty
+
+    if product.track_inventory and product.quantity > 0 and new_qty > product.quantity:
+        new_qty = product.quantity
+        if existing_qty >= product.quantity:
+            err = f"الحد الأقصى المتوفر في المخزون لهذا المنتج هو {product.quantity}."
+            if is_ajax:
+                return JsonResponse({"success": False, "error": err}, status=400)
+            messages.warning(request, err)
+            return redirect("cart_detail")
+
+    metadata = dict(raw_cart.get(v_key, {}).get("metadata", {}))
+    for k in request.POST:
+        if k.startswith("custom_"):
+            metadata[k.replace("custom_", "")] = request.POST.get(k)
+
+    raw_cart[v_key] = {
+        "product_id": str(product.id),
+        "variant_id": v_key,
+        "quantity": new_qty,
+        "metadata": metadata,
+    }
+    request.session["rq_cart"] = raw_cart
+    request.session.modified = True
+
+    from apps.site.context_processors import _build_cart_context
+    cart_ctx = _build_cart_context(request)
+
+    msg = f"تمت إضافة «{product.name}» إلى السلة بنجاح."
+    if is_ajax:
+        return JsonResponse({
+            "success": True,
+            "message": msg,
+            "cart_items_count": cart_ctx["cart_items_count"],
+            "cart_total": str(cart_ctx["cart_total"]),
+        })
+    messages.success(request, msg)
+    next_url = request.POST.get("next") or ""
+    if next_url and _is_safe_redirect(next_url, request):
+        return redirect(next_url)
+    return redirect("cart_detail")
+
+
+def cart_update_view(request):
+    """Update item quantity in session cart with stock validation."""
+    if request.method != "POST":
+        return redirect("cart_detail")
+
+    variant_id = (request.POST.get("variant_id") or "").strip()
+    action = (request.POST.get("action") or "").strip()
+    qty_str = (request.POST.get("quantity") or "").strip()
+    is_ajax = request.headers.get("x-requested-with") == "XMLHttpRequest" or request.POST.get("ajax") == "1"
+
+    raw_cart = request.session.get("rq_cart")
+    if not isinstance(raw_cart, dict) or variant_id not in raw_cart:
+        if is_ajax:
+            return JsonResponse({"success": False, "error": "العنصر غير موجود في السلة."}, status=404)
+        return redirect("cart_detail")
+
+    current_qty = int(raw_cart[variant_id].get("quantity", 1))
+    if action == "inc":
+        new_qty = current_qty + 1
+    elif action == "dec":
+        new_qty = current_qty - 1
+    else:
+        try:
+            new_qty = int(qty_str)
+        except (ValueError, TypeError):
+            new_qty = current_qty
+
+    if new_qty <= 0:
+        raw_cart.pop(variant_id, None)
+    else:
+        variant = ProductVariant.all_objects.filter(pk=variant_id).select_related("product").first()
+        if variant and variant.product and variant.product.track_inventory and variant.product.quantity > 0:
+            new_qty = min(new_qty, variant.product.quantity)
+        raw_cart[variant_id]["quantity"] = max(1, min(new_qty, 99))
+
+    request.session["rq_cart"] = raw_cart
+    request.session.modified = True
+
+    from apps.site.context_processors import _build_cart_context
+    cart_ctx = _build_cart_context(request)
+
+    if is_ajax:
+        return JsonResponse({
+            "success": True,
+            "cart_items_count": cart_ctx["cart_items_count"],
+            "cart_total": str(cart_ctx["cart_total"]),
+        })
+    return redirect("cart_detail")
+
+
+def cart_remove_view(request):
+    """Remove an item (or clear all items) from the session cart."""
+    if request.method != "POST":
+        return redirect("cart_detail")
+
+    variant_id = (request.POST.get("variant_id") or "").strip()
+    is_ajax = request.headers.get("x-requested-with") == "XMLHttpRequest" or request.POST.get("ajax") == "1"
+
+    raw_cart = request.session.get("rq_cart")
+    if isinstance(raw_cart, dict):
+        if variant_id == "all":
+            raw_cart.clear()
+        else:
+            raw_cart.pop(variant_id, None)
+        request.session["rq_cart"] = raw_cart
+        request.session.modified = True
+
+    from apps.site.context_processors import _build_cart_context
+    cart_ctx = _build_cart_context(request)
+
+    if is_ajax:
+        return JsonResponse({
+            "success": True,
+            "cart_items_count": cart_ctx["cart_items_count"],
+            "cart_total": str(cart_ctx["cart_total"]),
+        })
+    messages.info(request, "تم تحديث سلة المشتريات.")
+    return redirect("cart_detail")
+
+
+@login_required
+def cart_checkout_view(request):
+    """Process checkout for items in the session cart with balance & duplicate-click protection."""
+    if request.method != "POST":
+        return redirect("cart_detail")
+
+    from apps.site.context_processors import _build_cart_context
+    from apps.orders.services import create_order
+    import time as _time
+
+    cart_ctx = _build_cart_context(request)
+    cart_items = cart_ctx["cart_items"]
+    cart_total = cart_ctx["cart_total"]
+
+    if not cart_items:
+        messages.error(request, "سلة المشتريات فارغة.")
+        return redirect("catalog")
+
+    # Duplicate click protection (4-second cooldown)
+    now_ts = _time.time()
+    last_checkout_ts = float(request.session.get("last_cart_checkout_ts", 0))
+    if (now_ts - last_checkout_ts) < 4.0:
+        messages.warning(request, "جاري معالجة طلبك بالفعل، يرجى عدم الضغط المتكرر.")
+        return redirect("dashboard_orders")
+
+    shipping_name = (request.POST.get("shipping_name") or "").strip()
+    shipping_phone = (request.POST.get("shipping_phone") or "").strip()
+    shipping_address = (request.POST.get("shipping_address") or "").strip()
+
+    needs_shipping = any(item["product_type"] == "physical" for item in cart_items)
+    if needs_shipping and not (shipping_name and shipping_phone and shipping_address):
+        messages.error(request, "يرجى إدخال الاسم ورقم الهاتف وعنوان التوصيل للمنتجات المادية في السلة.")
+        return redirect("cart_detail")
+
+    wallet = getattr(request.user, "wallet", None)
+    if not wallet or wallet.available_balance < cart_total:
+        missing = cart_total - (wallet.available_balance if wallet else Decimal("0.00"))
+        messages.error(request, f"رصيد المحفظة غير كافٍ لإتمام شراء السلة. المبلغ المتبقي المطلوب: {missing:,.2f} $.")
+        return redirect("cart_detail")
+
+    request.session["last_cart_checkout_ts"] = now_ts
+    created_orders = []
+    try:
+        for item in cart_items:
+            order = create_order(
+                customer=request.user,
+                variant_id=item["variant_id"],
+                quantity=item["quantity"],
+                metadata=item.get("metadata") or {},
+                shipping_name=shipping_name,
+                shipping_phone=shipping_phone,
+                shipping_address=shipping_address,
+            )
+            created_orders.append(order)
+
+        request.session["rq_cart"] = {}
+        request.session.modified = True
+        messages.success(request, f"تم تأكيد وإنشاء {len(created_orders)} طلب بنجاح!")
+        if len(created_orders) == 1:
+            return redirect(f"{reverse('dashboard_order_detail', kwargs={'pk': created_orders[0].id})}?new=1")
+        return redirect("dashboard_orders")
+    except Exception as e:
+        messages.error(request, f"تعذر إتمام الطلب: {str(e)}")
+        return redirect("cart_detail")

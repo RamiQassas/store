@@ -58,6 +58,11 @@ urlpatterns = [
     path("control/saas/settings/", views_saas.saas_settings, name="control_saas_settings"),
     path("catalog/", views.catalog, name="catalog"),
     path("catalog/<str:pk>/", views.product_detail, name="product_detail"),
+    path("cart/", views.cart_view, name="cart_detail"),
+    path("cart/add/", views.cart_add_view, name="cart_add"),
+    path("cart/update/", views.cart_update_view, name="cart_update"),
+    path("cart/remove/", views.cart_remove_view, name="cart_remove"),
+    path("cart/checkout/", views.cart_checkout_view, name="cart_checkout"),
     
     # API Endpoints
     path("api/deposits/<uuid:pk>/approve/", api_views.api_deposit_approve, name="api_deposit_approve"),

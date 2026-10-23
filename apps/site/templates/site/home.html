@@ -1,111 +1,99 @@
 {% extends "site/base.html" %}
 {% load static site_tags %}
 
-{% block title %}رقميات | متجر الأجهزة والتقنيات والخدمات الرقمية{% endblock %}
+{% block title %}رقميات | متجر الإلكترونيات والتقنية والخدمات الرقمية{% endblock %}
 
 {% block content %}
-<div style="padding-bottom: 4rem; width: 100%; max-width: 100%; overflow-x: hidden;">
+<div style="padding-bottom: 3.5rem; width: 100%; max-width: 100%; overflow-x: hidden;">
 
   <!-- ══════════════════════════════════════════════════════════════════════
-       1. SPATIAL BENTO HERO STAGE
+       ج. القسم الرئيسي (HERO SECTION — CLEAN RETAIL SHOWCASE)
        ══════════════════════════════════════════════════════════════════════ -->
-  <section class="rq-hero-stage" style="padding: 2.75rem 0 3.25rem; margin-bottom: 2.75rem;">
+  <section class="rq-hero-stage">
     <div class="rq-container">
       <div class="rq-hero-grid">
 
-        <!-- Right Column (RTL): Brand Pitch, Command Search & Quick Filter Pills -->
+        <!-- Right Column (RTL): Clear Store Proposition, Search & Primary/Secondary CTAs -->
         <div>
           <div class="rq-hero-tag">
-            <span style="width: 8px; height: 8px; border-radius: 50%; background: #00c9a7; box-shadow: 0 0 10px #00c9a7; display: inline-block;"></span>
-            <span>متجر رقميات المعتمد • دفع مباشر وتنفيذ فوري</span>
+            <i class="fas fa-shield-halved"></i>
+            <span>متجر رقميات المعتمد للإلكترونيات والتقنية</span>
           </div>
 
-          <h1 class="rq-hero-headline" style="margin-bottom: 0.9rem;">
-            أحدث الأجهزة والخدمات الرقمية <span style="background: linear-gradient(135deg, #60a5fa 0%, #00c9a7 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">بلمسة واحدة</span>
+          <h1 class="rq-hero-headline">
+            وجهتك الموثوقة لأحدث <span style="color: var(--rq-accent);">الأجهزة الإلكترونية والمنتجات التقنية</span>
           </h1>
 
-          <p class="rq-hero-subtitle" style="margin-bottom: 1.5rem; font-size: 0.96rem;">
-            تصفح الهواتف الذكية، اللابتوبات، كاميرات المراقبة، تجهيزات الشبكات، والبطاقات الرقمية الأصلية مع شراء فوري عبر المحفظة أو شام كاش أو بيميرا.
+          <p class="rq-hero-subtitle">
+            تسوق الهواتف الذكية، الحواسيب واللابتوبات، الكاميرات وأنظمة المراقبة، أجهزة الشبكات والإنترنت، والإكسسوارات والخدمات الرقمية بضمان رسمي معتمد وطرق دفع آمنة ومباشرة.
           </p>
 
-          <!-- Interactive Command Search Bar -->
-          <form method="get" action="{% url 'catalog' %}" style="position: relative; max-width: 540px; margin-bottom: 1.1rem;">
-            <i class="fas fa-search" style="position: absolute; right: 1.25rem; top: 50%; transform: translateY(-50%); color: #60a5fa; font-size: 0.95rem; pointer-events: none;"></i>
-            <input type="text" name="q" placeholder="ابحث عن جهاز، خدمة، أو بطاقة..." style="width: 100%; height: 52px; background: rgba(11, 17, 32, 0.92); border: 1.5px solid rgba(59, 130, 246, 0.4); border-radius: 9999px; padding-left: 6.8rem; padding-right: 2.9rem; color: #ffffff; font-size: 0.92rem; outline: none; box-shadow: 0 10px 30px rgba(0, 0, 0, 0.45); box-sizing: border-box;">
-            <button type="submit" class="rq-card-buy-btn" style="position: absolute; left: 0.4rem; top: 50%; transform: translateY(-50%); height: 40px; padding: 0 1.25rem; font-size: 0.84rem; width: auto !important;">
+          <!-- Clean Functional Search Bar -->
+          <form method="get" action="{% url 'catalog' %}" style="position: relative; max-width: 540px; margin-bottom: 1.35rem;">
+            <i class="fas fa-search" style="position: absolute; right: 1.15rem; top: 50%; transform: translateY(-50%); color: var(--rq-text-muted); font-size: 0.95rem; pointer-events: none;"></i>
+            <input type="text" name="q" placeholder="ابحث عن هاتف، لابتوب، كاميرا مراقبة، راوتر، أو إكسسوار..." style="width: 100%; height: 50px; background: var(--rq-bg-body); border: 1.5px solid var(--rq-border-light); border-radius: 12px; padding-left: 6.5rem; padding-right: 2.85rem; color: var(--rq-navy); font-size: 0.9rem; font-weight: 600; outline: none; box-sizing: border-box;">
+            <button type="submit" class="rq-btn-primary" style="position: absolute; left: 0.35rem; top: 50%; transform: translateY(-50%); height: 40px; padding: 0 1.2rem; font-size: 0.82rem; border-radius: 9px;">
               <span>بحث</span>
-              <i class="fas fa-arrow-left text-xs"></i>
             </button>
           </form>
 
-          <!-- Quick Filter Chips -->
-          <div style="display: flex; flex-wrap: wrap; gap: 0.45rem; align-items: center; margin-bottom: 1.75rem;">
-            <a href="{% url 'catalog' %}?q=هاتف" class="rq-quick-chip" style="text-decoration: none; font-family: var(--rq-font-body);">📱 هواتف</a>
-            <a href="{% url 'catalog' %}?q=لابتوب" class="rq-quick-chip" style="text-decoration: none; font-family: var(--rq-font-body);">💻 لابتوبات</a>
-            <a href="{% url 'catalog' %}?q=كاميرا" class="rq-quick-chip" style="text-decoration: none; font-family: var(--rq-font-body);">📷 كاميرات</a>
-            <a href="{% url 'catalog' %}?q=راوتر" class="rq-quick-chip" style="text-decoration: none; font-family: var(--rq-font-body);">📡 راوترات</a>
-            <a href="{% url 'catalog' %}?q=إكسسوار" class="rq-quick-chip" style="text-decoration: none; font-family: var(--rq-font-body);">🎧 إكسسوارات</a>
-          </div>
-
-          <!-- Primary CTA Row -->
-          <div style="display: flex; flex-wrap: wrap; gap: 0.85rem; align-items: center;">
-            <a href="{% url 'catalog' %}" class="rq-btn-3d-primary" style="height: 46px; padding: 0 1.6rem; border-radius: 9999px;">
-              <i class="fas fa-layer-group"></i>
-              <span>استعراض جميع المنتجات</span>
+          <!-- Primary & Secondary CTAs -->
+          <div style="display: flex; flex-wrap: wrap; gap: 0.75rem; align-items: center;">
+            <a href="{% url 'catalog' %}" class="rq-btn-primary rq-btn-lg">
+              <i class="fas fa-table-cells-large"></i>
+              <span>استكشاف المنتجات</span>
               <i class="fas fa-arrow-left text-xs"></i>
             </a>
-            {% if request.user.is_authenticated %}
-            <a href="{% url 'dashboard_deposits' %}" class="rq-btn-3d-secondary" style="height: 46px; padding: 0 1.35rem; border-radius: 9999px;">
-              <i class="fas fa-bolt text-emerald-400"></i>
-              <span>شحن الرصيد الفوري</span>
+            <a href="#categories-section" class="rq-btn-secondary rq-btn-lg">
+              <i class="fas fa-layer-group"></i>
+              <span>التصنيفات والعروض</span>
             </a>
-            {% else %}
-            <a href="{% url 'site_register' %}" class="rq-btn-3d-secondary" style="height: 46px; padding: 0 1.35rem; border-radius: 9999px;">
-              <i class="fas fa-user-plus text-sky-400"></i>
-              <span>إنشاء حساب مجاني</span>
-            </a>
-            {% endif %}
           </div>
         </div>
 
-        <!-- Left Column (RTL): 3D Spotlight Product Showcase -->
+        <!-- Left Column (RTL): Clean Visual Product Showcase -->
         <div>
           {% with spotlight_product|default:featured_products.0 as spot %}
           {% if spot %}
           {% product_display_image spot as spot_img %}
-          <div class="rq-bento-spotlight" style="padding: 1.5rem; position: relative;">
-            <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.9rem;">
-              <span style="font-size: 0.76rem; font-weight: 800; color: #60a5fa; display: inline-flex; align-items: center; gap: 0.4rem; background: rgba(59, 130, 246, 0.12); padding: 0.25rem 0.7rem; border-radius: 9999px; border: 1px solid rgba(59, 130, 246, 0.28);">
-                <i class="fas fa-fire text-amber-400"></i> الأكثر طلباً
+          <div class="rq-bento-spotlight">
+            <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.85rem;">
+              <span style="font-size: 0.75rem; font-weight: 800; color: var(--rq-primary); background: var(--rq-primary-soft); padding: 0.25rem 0.7rem; border-radius: 9999px; border: 1px solid #bfdbfe;">
+                <i class="fas fa-star" style="color: var(--rq-accent);"></i> مختارات المتجر
               </span>
               {% if spot.product_type == 'physical' %}
               <span class="rq-badge-delivery-physical" style="position: static !important;">
-                <i class="fas fa-truck text-[9px]"></i> شحن سريع
+                <i class="fas fa-truck"></i> متوفر للشحن
               </span>
               {% else %}
               <span class="rq-badge-delivery-instant" style="position: static !important;">
-                <i class="fas fa-bolt text-[9px]"></i> تسليم فوري
+                <i class="fas fa-bolt"></i> تسليم فوري
               </span>
               {% endif %}
             </div>
 
             <a href="{% url 'product_detail' spot.id %}" style="display: block; text-decoration: none;">
-              <div style="width: 100%; height: 185px; border-radius: 16px; background: radial-gradient(circle at center, rgba(37, 99, 235, 0.12), #060913 75%); display: flex; align-items: center; justify-content: center; margin-bottom: 1rem; overflow: hidden; border: 1px solid var(--rq-border); padding: 0.85rem;">
-                <img src="{{ spot_img }}" alt="{{ spot.name }}" style="max-height: 92%; max-width: 92%; object-fit: contain; transition: transform 0.35s cubic-bezier(0.22, 1, 0.36, 1);" onmouseover="this.style.transform='scale(1.08)'" onmouseout="this.style.transform='scale(1)'" onerror="this.onerror=null; this.src='{% static 'site/img/raqamiyat_logo_square.jpg' %}';">
+              <div style="width: 100%; height: 200px; border-radius: 14px; background: #ffffff; display: flex; align-items: center; justify-content: center; margin-bottom: 1rem; overflow: hidden; border: 1px solid var(--rq-border); padding: 1rem;">
+                <img src="{{ spot_img }}" alt="{{ spot.name }}" style="max-height: 92%; max-width: 92%; object-fit: contain;" onerror="this.onerror=null; this.src='{% static 'site/img/raqamiyat_logo_square.jpg' %}';">
               </div>
-              <span style="font-size: 0.72rem; font-weight: 800; color: #60a5fa; display: block; margin-bottom: 0.2rem;">{{ spot.category.name|default:'منتج معتمد' }}</span>
-              <h3 style="font-size: 1.08rem; font-weight: 900; color: #fff; margin: 0 0 0.85rem; line-height: 1.35;">{{ spot.name }}</h3>
+              <span style="font-size: 0.74rem; font-weight: 700; color: var(--rq-text-muted); display: block; margin-bottom: 0.2rem;">{{ spot.category.name|default:'منتج تقني معتمد' }}</span>
+              <h2 style="font-size: 1.05rem; font-weight: 900; color: var(--rq-navy); margin: 0 0 0.9rem; line-height: 1.38;">{{ spot.name }}</h2>
             </a>
 
-            <div style="display: flex; align-items: center; justify-content: space-between; padding-top: 0.9rem; border-top: 1px solid var(--rq-border);">
+            <div style="display: flex; align-items: center; justify-content: space-between; gap: 0.75rem; padding-top: 0.9rem; border-top: 1px solid var(--rq-border);">
               <div>
-                <span style="display: block; font-size: 0.68rem; color: #94a3b8; font-weight: 700;">السعر</span>
-                <span class="tabular-nums rq-price-val" style="font-size: 1.2rem;">{% product_starting_price spot %}</span>
+                <span style="display: block; font-size: 0.7rem; color: var(--rq-text-muted); font-weight: 700;">السعر</span>
+                <span class="tabular-nums rq-price-val" style="font-size: 1.2rem; color: var(--rq-accent);">{% product_starting_price spot %}</span>
               </div>
-              <a href="{% url 'product_detail' spot.id %}" class="rq-card-buy-btn" style="height: 40px; padding: 0 1.35rem; font-size: 0.84rem;">
-                <span>شراء الآن</span>
-                <i class="fas fa-bolt text-xs"></i>
-              </a>
+              <div style="display: flex; align-items: center; gap: 0.45rem;">
+                <button type="button" onclick="addToCartAjax('{{ spot.id }}', '', 1)" class="rq-card-cart-btn" title="إضافة إلى السلة" aria-label="إضافة إلى السلة">
+                  <i class="fas fa-cart-plus"></i>
+                </button>
+                <a href="{% url 'product_detail' spot.id %}" class="rq-card-buy-btn" style="height: 38px; padding: 0 1.15rem;">
+                  <span>تفاصيل وشراء</span>
+                  <i class="fas fa-arrow-left text-xs"></i>
+                </a>
+              </div>
             </div>
           </div>
           {% endif %}
@@ -117,16 +105,16 @@
   </section>
 
   <!-- ══════════════════════════════════════════════════════════════════════
-       2. VISUAL CATEGORY DOCK
+       د. التصنيفات الأساسية (CATEGORIES SECTION)
        ══════════════════════════════════════════════════════════════════════ -->
-  <section class="rq-container" style="margin-bottom: 3.25rem;">
-    <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.25rem;">
-      <div style="display: flex; align-items: center; gap: 0.6rem;">
-        <span style="width: 10px; height: 22px; border-radius: 4px; background: linear-gradient(180deg, #3b82f6, #00c9a7); display: inline-block;"></span>
-        <h2 style="font-size: 1.25rem; font-weight: 900; color: #fff; margin: 0;">تصفح حسب القسم</h2>
+  <section id="categories-section" class="rq-container" style="margin-bottom: 3rem;">
+    <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.15rem;">
+      <div>
+        <h2 style="font-size: 1.3rem; font-weight: 900; color: var(--rq-navy); margin: 0;">تصفح حسب التصنيف</h2>
+        <p style="font-size: 0.82rem; color: var(--rq-text-muted); margin: 0.15rem 0 0;">اختر القسم للوصول المباشر إلى الأجهزة والمنتجات المتوفرة</p>
       </div>
       <a href="{% url 'catalog' %}?view=categories" class="rq-section-link">
-        <span>كل الأقسام ({{ total_categories_count|default:categories|length }})</span>
+        <span>جميع التصنيفات ({{ total_categories_count|default:categories|length }})</span>
         <i class="fas fa-arrow-left text-xs"></i>
       </a>
     </div>
@@ -138,68 +126,48 @@
           {% if cat.image %}
           <img src="{{ cat.image.url }}" alt="{{ cat.name }}" loading="lazy" onerror="this.onerror=null; this.src='{% static 'site/img/raqamiyat_logo_square.jpg' %}';">
           {% else %}
-          <i class="fas fa-layer-group text-xl" style="color: #60a5fa;"></i>
+          <i class="fas fa-microchip text-xl" style="color: var(--rq-accent);"></i>
           {% endif %}
         </div>
         <h3 class="rq-cat-clean-title">{{ cat.name }}</h3>
-        <span class="rq-cat-clean-count">{{ cat.product_count|default:'متاح' }} منتج</span>
+        <span class="rq-cat-clean-count">{{ cat.product_count }} منتج</span>
       </a>
       {% endfor %}
     </div>
   </section>
 
   <!-- ══════════════════════════════════════════════════════════════════════
-       3. UNIFIED INTERACTIVE PRODUCT SHOWCASE (INSTANT TAB SWITCHING)
+       هـ.1 قسم المنتجات المميزة (FEATURED PRODUCTS)
        ══════════════════════════════════════════════════════════════════════ -->
-  <section class="rq-container" style="margin-bottom: 3.5rem;">
-    <div style="display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 1rem; margin-bottom: 1.5rem;">
-      <div style="display: flex; align-items: center; gap: 0.6rem;">
-        <span style="width: 10px; height: 22px; border-radius: 4px; background: linear-gradient(180deg, #00c9a7, #3b82f6); display: inline-block;"></span>
-        <h2 style="font-size: 1.3rem; font-weight: 900; color: #fff; margin: 0;">أحدث المنتجات والعروض</h2>
+  {% if featured_products %}
+  <section class="rq-container" style="margin-bottom: 3rem;">
+    <div style="display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 1rem; margin-bottom: 1.25rem;">
+      <div>
+        <h2 style="font-size: 1.3rem; font-weight: 900; color: var(--rq-navy); margin: 0;">المنتجات المميزة</h2>
+        <p style="font-size: 0.82rem; color: var(--rq-text-muted); margin: 0.15rem 0 0;">أبرز الأجهزة والمنتجات المختارة في متجر رقميات</p>
       </div>
-
-      <!-- Interactive Segmented Filter Tabs -->
-      <div class="rq-seg-tabs" role="tablist">
-        <button type="button" class="rq-seg-btn active" onclick="switchHomeShelf('featured', this)">
-          <i class="fas fa-sparkles"></i>
-          <span>المختارات</span>
-        </button>
-        {% if physical_products %}
-        <button type="button" class="rq-seg-btn" onclick="switchHomeShelf('physical', this)">
-          <i class="fas fa-microchip"></i>
-          <span>أجهزة وعتاد</span>
-        </button>
-        {% endif %}
-        {% if digital_products %}
-        <button type="button" class="rq-seg-btn" onclick="switchHomeShelf('digital', this)">
-          <i class="fas fa-bolt"></i>
-          <span>خدمات ورقميات</span>
-        </button>
-        {% endif %}
-        <a href="{% url 'catalog' %}" class="rq-seg-btn" style="text-decoration: none; color: #60a5fa;">
-          <span>الكل</span>
-          <i class="fas fa-arrow-left text-xs"></i>
-        </a>
-      </div>
+      <a href="{% url 'catalog' %}" class="rq-section-link">
+        <span>عرض جميع المنتجات</span>
+        <i class="fas fa-arrow-left text-xs"></i>
+      </a>
     </div>
 
-    <!-- Tab 1: Featured Products -->
-    <div id="home-shelf-featured" class="rq-product-grid" style="margin-bottom: 0;">
-      {% for product in featured_products|slice:":12" %}
+    <div class="rq-product-grid" style="margin-bottom: 0;">
+      {% for product in featured_products|slice:":8" %}
       {% product_display_image product as p_img %}
-      <div class="rq-card">
+      <article class="rq-card">
         <div>
           <a href="{% url 'product_detail' product.id %}" class="rq-card-media">
             <img src="{{ p_img }}" alt="{{ product.name }}" loading="lazy" onerror="this.onerror=null; this.src='{% static 'site/img/raqamiyat_logo_square.jpg' %}';">
             {% if product.product_type == 'physical' %}
-            <span class="rq-badge-delivery-physical"><i class="fas fa-truck text-[9px]"></i> شحن سريع</span>
+            <span class="rq-badge-delivery-physical"><i class="fas fa-truck"></i> شحن سريع</span>
             {% else %}
-            <span class="rq-badge-delivery-instant"><i class="fas fa-bolt text-[9px]"></i> تسليم فوري</span>
+            <span class="rq-badge-delivery-instant"><i class="fas fa-bolt"></i> تسليم فوري</span>
             {% endif %}
           </a>
           <span class="rq-card-category">{{ product.category.name|default:'منتج معتمد' }}</span>
           <h3 class="rq-card-title">
-            <a href="{% url 'product_detail' product.id %}" style="color: inherit; text-decoration: none;">{{ product.name }}</a>
+            <a href="{% url 'product_detail' product.id %}">{{ product.name }}</a>
           </h3>
         </div>
         <div class="rq-card-footer">
@@ -207,29 +175,50 @@
             <span class="rq-card-price-label">السعر</span>
             <span class="tabular-nums rq-price-val">{% product_starting_price product %}</span>
           </div>
-          <a href="{% url 'product_detail' product.id %}" class="rq-card-buy-btn">
-            <span>شراء</span>
-            <i class="fas fa-arrow-left text-[9px]"></i>
-          </a>
+          <div style="display: flex; align-items: center; gap: 0.4rem;">
+            <button type="button" onclick="addToCartAjax('{{ product.id }}', '', 1)" class="rq-card-cart-btn" title="إضافة إلى السلة" aria-label="إضافة إلى السلة">
+              <i class="fas fa-cart-plus text-xs"></i>
+            </button>
+            <a href="{% url 'product_detail' product.id %}" class="rq-card-buy-btn">
+              <span>شراء</span>
+              <i class="fas fa-arrow-left text-xs"></i>
+            </a>
+          </div>
         </div>
-      </div>
+      </article>
       {% endfor %}
     </div>
+  </section>
+  {% endif %}
 
-    <!-- Tab 2: Physical Hardware Products -->
-    {% if physical_products %}
-    <div id="home-shelf-physical" class="rq-product-grid" style="display: none; margin-bottom: 0;">
-      {% for product in physical_products|slice:":12" %}
+  <!-- ══════════════════════════════════════════════════════════════════════
+       هـ.2 قسم الأجهزة والعتاد التقني (PHYSICAL HARDWARE & ELECTRONICS)
+       ══════════════════════════════════════════════════════════════════════ -->
+  {% if physical_products %}
+  <section class="rq-container" style="margin-bottom: 3rem;">
+    <div style="display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 1rem; margin-bottom: 1.25rem;">
+      <div>
+        <h2 style="font-size: 1.3rem; font-weight: 900; color: var(--rq-navy); margin: 0;">الأجهزة والعتاد التقني</h2>
+        <p style="font-size: 0.82rem; color: var(--rq-text-muted); margin: 0.15rem 0 0;">هواتف، حواسيب، كاميرات مراقبة، وتجهيزات شبكات أصلية مع شحن وتوصيل</p>
+      </div>
+      <a href="{% url 'catalog' %}?type=physical" class="rq-section-link">
+        <span>كل الأجهزة المادية</span>
+        <i class="fas fa-arrow-left text-xs"></i>
+      </a>
+    </div>
+
+    <div class="rq-product-grid" style="margin-bottom: 0;">
+      {% for product in physical_products|slice:":8" %}
       {% product_display_image product as h_img %}
-      <div class="rq-card">
+      <article class="rq-card">
         <div>
           <a href="{% url 'product_detail' product.id %}" class="rq-card-media">
             <img src="{{ h_img }}" alt="{{ product.name }}" loading="lazy" onerror="this.onerror=null; this.src='{% static 'site/img/raqamiyat_logo_square.jpg' %}';">
-            <span class="rq-badge-delivery-physical"><i class="fas fa-truck text-[9px]"></i> شحن سريع</span>
+            <span class="rq-badge-delivery-physical"><i class="fas fa-truck"></i> شحن وتوصيل</span>
           </a>
-          <span class="rq-card-category">{{ product.category.name|default:'عتاد وملحقات' }}</span>
+          <span class="rq-card-category">{{ product.category.name|default:'أجهزة وتقنيات' }}</span>
           <h3 class="rq-card-title">
-            <a href="{% url 'product_detail' product.id %}" style="color: inherit; text-decoration: none;">{{ product.name }}</a>
+            <a href="{% url 'product_detail' product.id %}">{{ product.name }}</a>
           </h3>
         </div>
         <div class="rq-card-footer">
@@ -237,107 +226,148 @@
             <span class="rq-card-price-label">السعر</span>
             <span class="tabular-nums rq-price-val">{% product_starting_price product %}</span>
           </div>
-          <a href="{% url 'product_detail' product.id %}" class="rq-card-buy-btn">
-            <span>شراء</span>
-            <i class="fas fa-arrow-left text-[9px]"></i>
-          </a>
-        </div>
-      </div>
-      {% endfor %}
-    </div>
-    {% endif %}
-
-    <!-- Tab 3: Digital Products -->
-    {% if digital_products %}
-    <div id="home-shelf-digital" class="rq-product-grid" style="display: none; margin-bottom: 0;">
-      {% for product in digital_products|slice:":12" %}
-      {% product_display_image product as d_img %}
-      <div class="rq-card">
-        <div>
-          <a href="{% url 'product_detail' product.id %}" class="rq-card-media">
-            <img src="{{ d_img }}" alt="{{ product.name }}" loading="lazy" onerror="this.onerror=null; this.src='{% static 'site/img/raqamiyat_logo_square.jpg' %}';">
-            <span class="rq-badge-delivery-instant"><i class="fas fa-bolt text-[9px]"></i> تسليم فوري</span>
-          </a>
-          <span class="rq-card-category">{{ product.category.name|default:'خدمات رقمية' }}</span>
-          <h3 class="rq-card-title">
-            <a href="{% url 'product_detail' product.id %}" style="color: inherit; text-decoration: none;">{{ product.name }}</a>
-          </h3>
-        </div>
-        <div class="rq-card-footer">
-          <div>
-            <span class="rq-card-price-label">السعر</span>
-            <span class="tabular-nums rq-price-val">{% product_starting_price product %}</span>
+          <div style="display: flex; align-items: center; gap: 0.4rem;">
+            <button type="button" onclick="addToCartAjax('{{ product.id }}', '', 1)" class="rq-card-cart-btn" title="إضافة إلى السلة" aria-label="إضافة إلى السلة">
+              <i class="fas fa-cart-plus text-xs"></i>
+            </button>
+            <a href="{% url 'product_detail' product.id %}" class="rq-card-buy-btn">
+              <span>شراء</span>
+              <i class="fas fa-arrow-left text-xs"></i>
+            </a>
           </div>
-          <a href="{% url 'product_detail' product.id %}" class="rq-card-buy-btn">
-            <span>شراء</span>
-            <i class="fas fa-arrow-left text-[9px]"></i>
-          </a>
         </div>
-      </div>
+      </article>
       {% endfor %}
     </div>
-    {% endif %}
   </section>
+  {% endif %}
 
   <!-- ══════════════════════════════════════════════════════════════════════
-       4. COMPACT 3-PILL GUARANTEE & PARTNER STORES
+       هـ.3 قسم وصل حديثاً / الخدمات والمنتجات الإضافية (NEW ARRIVALS)
        ══════════════════════════════════════════════════════════════════════ -->
+  {% with new_products|default:digital_products as latest_list %}
+  {% if latest_list %}
   <section class="rq-container" style="margin-bottom: 3rem;">
-    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 1rem;">
-      <div class="rq-trust-real-card" style="padding: 1.15rem 1.35rem;">
-        <div class="rq-trust-real-icon" style="background: rgba(0, 201, 167, 0.12); color: #00c9a7; border: 1px solid rgba(0, 201, 167, 0.3);">
-          <i class="fas fa-bolt"></i>
+    <div style="display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 1rem; margin-bottom: 1.25rem;">
+      <div>
+        <h2 style="font-size: 1.3rem; font-weight: 900; color: var(--rq-navy); margin: 0;">وصل حديثاً</h2>
+        <p style="font-size: 0.82rem; color: var(--rq-text-muted); margin: 0.15rem 0 0;">أحدث المنتجات والخدمات المضافة إلى الكتالوج</p>
+      </div>
+      <a href="{% url 'catalog' %}?sort=newest" class="rq-section-link">
+        <span>استعراض الأحدث</span>
+        <i class="fas fa-arrow-left text-xs"></i>
+      </a>
+    </div>
+
+    <div class="rq-product-grid" style="margin-bottom: 0;">
+      {% for product in latest_list|slice:":8" %}
+      {% product_display_image product as n_img %}
+      <article class="rq-card">
+        <div>
+          <a href="{% url 'product_detail' product.id %}" class="rq-card-media">
+            <img src="{{ n_img }}" alt="{{ product.name }}" loading="lazy" onerror="this.onerror=null; this.src='{% static 'site/img/raqamiyat_logo_square.jpg' %}';">
+            {% if product.product_type == 'physical' %}
+            <span class="rq-badge-delivery-physical"><i class="fas fa-truck"></i> شحن سريع</span>
+            {% else %}
+            <span class="rq-badge-delivery-instant"><i class="fas fa-bolt"></i> تسليم فوري</span>
+            {% endif %}
+          </a>
+          <span class="rq-card-category">{{ product.category.name|default:'منتج معتمد' }}</span>
+          <h3 class="rq-card-title">
+            <a href="{% url 'product_detail' product.id %}">{{ product.name }}</a>
+          </h3>
+        </div>
+        <div class="rq-card-footer">
+          <div>
+            <span class="rq-card-price-label">السعر</span>
+            <span class="tabular-nums rq-price-val">{% product_starting_price product %}</span>
+          </div>
+          <div style="display: flex; align-items: center; gap: 0.4rem;">
+            <button type="button" onclick="addToCartAjax('{{ product.id }}', '', 1)" class="rq-card-cart-btn" title="إضافة إلى السلة" aria-label="إضافة إلى السلة">
+              <i class="fas fa-cart-plus text-xs"></i>
+            </button>
+            <a href="{% url 'product_detail' product.id %}" class="rq-card-buy-btn">
+              <span>شراء</span>
+              <i class="fas fa-arrow-left text-xs"></i>
+            </a>
+          </div>
+        </div>
+      </article>
+      {% endfor %}
+    </div>
+  </section>
+  {% endif %}
+  {% endwith %}
+
+  <!-- ══════════════════════════════════════════════════════════════════════
+       و. عناصر الثقة وسياسات المتجر الحقيقية (REAL STORE POLICIES)
+       ══════════════════════════════════════════════════════════════════════ -->
+  <section class="rq-container" style="margin-bottom: 2.5rem;">
+    <div class="rq-trust-real-grid" style="margin-bottom: 0;">
+      <div class="rq-trust-real-card">
+        <div class="rq-trust-real-icon">
+          <i class="fas fa-truck-fast"></i>
         </div>
         <div>
-          <h4 class="rq-trust-real-title" style="margin-bottom: 0.2rem;">شراء ودفع مباشر فوري</h4>
-          <p class="rq-trust-real-desc" style="margin: 0; font-size: 0.78rem;">دفع إلكتروني مباشر عبر المحفظة، شام كاش، أو بيميرا.</p>
+          <h3 class="rq-trust-real-title">شحن وتوصيل موثوق</h3>
+          <p class="rq-trust-real-desc">تجهيز وشحن الأجهزة المادية إلى عنوانك بدقة، وتنفيذ فوري للمنتجات الرقمية.</p>
         </div>
       </div>
 
-      <div class="rq-trust-real-card" style="padding: 1.15rem 1.35rem;">
-        <div class="rq-trust-real-icon" style="background: rgba(59, 130, 246, 0.12); color: #60a5fa; border: 1px solid rgba(59, 130, 246, 0.3);">
+      <div class="rq-trust-real-card">
+        <div class="rq-trust-real-icon">
           <i class="fas fa-shield-halved"></i>
         </div>
         <div>
-          <h4 class="rq-trust-real-title" style="margin-bottom: 0.2rem;">ضمان رسمي معتمد</h4>
-          <p class="rq-trust-real-desc" style="margin: 0; font-size: 0.78rem;">جميع الأجهزة والمنتجات مفحوصة ومكفولة رسمياً.</p>
+          <h3 class="rq-trust-real-title">ضمان وسياسة استبدال واضحة</h3>
+          <p class="rq-trust-real-desc">منتجات أصلية خاضعة لسياسة الضمان والاستبدال المعتمدة في متجر رقميات.</p>
         </div>
       </div>
 
-      <div class="rq-trust-real-card" style="padding: 1.15rem 1.35rem;">
-        <div class="rq-trust-real-icon" style="background: rgba(245, 158, 11, 0.12); color: #fbbf24; border: 1px solid rgba(245, 158, 11, 0.3);">
+      <div class="rq-trust-real-card">
+        <div class="rq-trust-real-icon">
+          <i class="fas fa-credit-card"></i>
+        </div>
+        <div>
+          <h3 class="rq-trust-real-title">طرق دفع إلكترونية معتمدة</h3>
+          <p class="rq-trust-real-desc">ادفع مباشرة عبر المحفظة، شام كاش (بالدولار أو الليرة السورية)، أو بيميرا.</p>
+        </div>
+      </div>
+
+      <div class="rq-trust-real-card">
+        <div class="rq-trust-real-icon">
           <i class="fas fa-headset"></i>
         </div>
         <div>
-          <h4 class="rq-trust-real-title" style="margin-bottom: 0.2rem;">تتبع ودعم متواصل</h4>
-          <p class="rq-trust-real-desc" style="margin: 0; font-size: 0.78rem;">متابعة فورية لحالة طلبك وفاتورتك من لوحة حسابك.</p>
+          <h3 class="rq-trust-real-title">دعم فني ومتابعة للطلبات</h3>
+          <p class="rq-trust-real-desc">تتبع حالة طلبك وفاتورتك لحظة بلحظة من حسابك مع فريق دعم جاهز لخدمتك.</p>
         </div>
       </div>
     </div>
   </section>
 
   {% if platform_stores %}
-  <section class="rq-container" style="margin-bottom: 3rem;">
-    <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.25rem;">
-      <h2 style="font-size: 1.2rem; font-weight: 900; color: #fff; margin: 0;">المتاجر الشريكة</h2>
+  <section class="rq-container" style="margin-bottom: 2rem;">
+    <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.15rem;">
+      <h2 style="font-size: 1.2rem; font-weight: 900; color: var(--rq-navy); margin: 0;">المتاجر الشريكة على المنصة</h2>
       <a href="{% url 'stores_directory' %}" class="rq-section-link">
-        <span>عرض الكل</span>
+        <span>عرض دليل المتاجر</span>
         <i class="fas fa-arrow-left text-xs"></i>
       </a>
     </div>
-    <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(210px, 1fr)); gap: 1rem;">
+    <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(210px, 1fr)); gap: 0.9rem;">
       {% for st in platform_stores|slice:":6" %}
-      <a href="{% url 'visit_store' st.subdomain %}" class="rq-cat-clean-card" style="flex-direction: row; text-align: right; padding: 1rem;">
+      <a href="{% url 'visit_store' st.subdomain %}" class="rq-cat-clean-card" style="flex-direction: row; text-align: right; padding: 0.9rem 1rem;">
         {% if st.logo %}
-        <img src="{{ st.logo.url }}" alt="{{ st.name }}" style="width: 44px; height: 44px; border-radius: 12px; object-fit: cover; flex-shrink: 0;">
+        <img src="{{ st.logo.url }}" alt="{{ st.name }}" style="width: 42px; height: 42px; border-radius: 10px; object-fit: cover; flex-shrink: 0;">
         {% else %}
-        <div style="width: 44px; height: 44px; border-radius: 12px; background: rgba(59, 130, 246, 0.14); color: #60a5fa; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+        <div style="width: 42px; height: 42px; border-radius: 10px; background: var(--rq-primary-soft); color: var(--rq-accent); display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
           <i class="fas fa-store"></i>
         </div>
         {% endif %}
         <div>
-          <h4 style="font-size: 0.88rem; font-weight: 800; color: #fff; margin: 0 0 0.15rem;">{{ st.name }}</h4>
-          <span style="font-size: 0.72rem; color: #94a3b8;">تصفح المتجر</span>
+          <h3 style="font-size: 0.88rem; font-weight: 800; color: var(--rq-navy); margin: 0 0 0.1rem;">{{ st.name }}</h3>
+          <span style="font-size: 0.72rem; color: var(--rq-text-muted);">زيارة المتجر</span>
         </div>
       </a>
       {% endfor %}
@@ -346,18 +376,4 @@
   {% endif %}
 
 </div>
-
-<script>
-function switchHomeShelf(shelfKey, btnEl) {
-  document.querySelectorAll('.rq-seg-tabs .rq-seg-btn').forEach(b => b.classList.remove('active'));
-  if (btnEl) btnEl.classList.add('active');
-
-  ['featured', 'physical', 'digital'].forEach(key => {
-    const el = document.getElementById('home-shelf-' + key);
-    if (el) {
-      el.style.display = (key === shelfKey) ? 'grid' : 'none';
-    }
-  });
-}
-</script>
 {% endblock %}

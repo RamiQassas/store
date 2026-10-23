@@ -4,265 +4,208 @@
 
 {% block extra_head %}
 <style>
-    /* CSS variables and design system */
-    :root {
-        --cyan-glow: rgba(6, 182, 212, 0.15);
-        --emerald-glow: rgba(16, 185, 129, 0.15);
-        --indigo-glow: rgba(99, 102, 241, 0.15);
-    }
-
-    .container {
-        width: min(100% - 2rem, 1140px);
-        margin-inline: auto;
-    }
-
+  .transfer-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 1.75rem;
+  }
+  @media (max-width: 991px) {
     .transfer-grid {
-        display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(270px, 1fr));
-        gap: 2rem;
+      grid-template-columns: 1fr;
     }
-
-    @media (max-width: 991px) {
-        .transfer-grid {
-            grid-template-columns: 1fr;
-            gap: 1.5rem;
-        }
-    }
-
-    /* Glassmorphism Panel */
-    .glass-card {
-        background: rgba(15, 23, 42, 0.6);
-        backdrop-filter: blur(24px);
-        -webkit-backdrop-filter: blur(24px);
-        border: 1px solid rgba(255, 255, 255, 0.05);
-        border-radius: 24px;
-        padding: 2rem;
-        transition: border-color 0.3s, box-shadow 0.3s;
-    }
-
-    .glass-card:hover {
-        border-color: rgba(255, 255, 255, 0.08);
-    }
-
-    /* Limit info badge */
-    .limit-badge {
-        background: rgba(255, 255, 255, 0.02);
-        border: 1px solid rgba(255, 255, 255, 0.05);
-        border-radius: 16px;
-        padding: 1rem 1.25rem;
-    }
-
-    /* Premium inputs */
-    .premium-input {
-        width: 100%;
-        padding: 1rem 1.25rem;
-        background: rgba(0, 0, 0, 0.25);
-        border: 1px solid rgba(255, 255, 255, 0.08);
-        border-radius: 16px;
-        color: #fff;
-        font-weight: 700;
-        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-    }
-
-    .premium-input:focus {
-        border-color: var(--cyan);
-        background: rgba(0, 0, 0, 0.4);
-        outline: none;
-        box-shadow: 0 0 0 4px rgba(6, 182, 212, 0.15);
-    }
-
-    .premium-input:disabled {
-        opacity: 0.5;
-        cursor: not-allowed;
-    }
-
-    /* Recipient selection card */
-    .recipient-active-card {
-        background: rgba(6, 182, 212, 0.03);
-        border: 1px solid rgba(6, 182, 212, 0.15);
-        border-radius: 20px;
-        padding: 1.25rem;
-        display: none;
-        align-items: center;
-        gap: 1rem;
-        animation: cardFadeIn 0.4s ease forwards;
-    }
-
-    @keyframes cardFadeIn {
-        from { opacity: 0; transform: translateY(10px); }
-        to { opacity: 1; transform: translateY(0); }
-    }
-
-    .recipient-avatar {
-        width: 48px;
-        height: 48px;
-        background: linear-gradient(135deg, var(--cyan), #6366f1);
-        color: #000;
-        border-radius: 50%;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        font-weight: 900;
-        font-size: 1.25rem;
-        box-shadow: 0 4px 12px rgba(6, 182, 212, 0.2);
-    }
-
-    /* Button styles */
-    .btn-premium-action {
-        background: linear-gradient(135deg, #06b6d4, #6366f1);
-        color: white;
-        font-weight: 800;
-        border-radius: 16px;
-        padding: 1rem;
-        width: 100%;
-        text-align: center;
-        border: none;
-        cursor: pointer;
-        transition: all 0.3s;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        gap: 8px;
-    }
-
-    .btn-premium-action:hover:not(:disabled) {
-        transform: translateY(-2px);
-        box-shadow: 0 8px 24px rgba(6, 182, 212, 0.35);
-    }
-
-    .btn-premium-action:disabled {
-        opacity: 0.4;
-        cursor: not-allowed;
-    }
-
-    /* Limits progress bar */
-    .limit-progress-bg {
-        width: 100%;
-        height: 8px;
-        background: rgba(255, 255, 255, 0.05);
-        border-radius: 4px;
-        overflow: hidden;
-        margin: 0.75rem 0;
-    }
-
-    .limit-progress-bar {
-        height: 100%;
-        background: linear-gradient(to right, var(--cyan), #6366f1);
-        border-radius: 4px;
-        transition: width 0.6s ease;
-    }
-
-    .limit-info-row {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        font-size: 0.75rem;
-        color: #94a3b8;
-    }
-
-    .limit-info-val {
-        font-weight: 800;
-        color: #fff;
-    }
-
+  }
+  .glass-card {
+    background: #ffffff;
+    border: 1px solid #e2e8f0;
+    border-radius: 18px;
+    padding: 1.75rem;
+    box-shadow: 0 2px 6px rgba(15, 23, 42, 0.04);
+  }
+  .limit-badge {
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    border-radius: 12px;
+    padding: 1rem 1.15rem;
+  }
+  .premium-input {
+    width: 100%;
+    padding: 0.75rem 1rem;
+    background: #ffffff;
+    border: 1px solid #cbd5e1;
+    border-radius: 10px;
+    color: #0f172a;
+    font-weight: 700;
+    transition: all 0.2s ease;
+  }
+  .premium-input:focus {
+    border-color: #2563eb;
+    outline: none;
+    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.14);
+  }
+  .premium-input:disabled {
+    background: #f1f5f9;
+    color: #94a3b8;
+    cursor: not-allowed;
+  }
+  .recipient-active-card {
+    background: #eff6ff;
+    border: 1px solid #bfdbfe;
+    border-radius: 14px;
+    padding: 1rem 1.15rem;
+    display: none;
+    align-items: center;
+    gap: 0.85rem;
+  }
+  .recipient-avatar {
+    width: 44px;
+    height: 44px;
+    background: #2563eb;
+    color: #ffffff;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 900;
+    font-size: 1.1rem;
+  }
+  .btn-premium-action {
+    background: #2563eb;
+    color: #ffffff;
+    font-weight: 800;
+    border-radius: 10px;
+    padding: 0.85rem 1.25rem;
+    width: 100%;
+    text-align: center;
+    border: none;
+    cursor: pointer;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+  }
+  .btn-premium-action:hover:not(:disabled) {
+    background: #1d4ed8;
+  }
+  .btn-premium-action:disabled {
+    background: #cbd5e1;
+    color: #64748b;
+    cursor: not-allowed;
+  }
+  .limit-progress-bg {
+    width: 100%;
+    height: 8px;
+    background: #e2e8f0;
+    border-radius: 4px;
+    overflow: hidden;
+    margin: 0.65rem 0;
+  }
+  .limit-progress-bar {
+    height: 100%;
+    background: #2563eb;
+    border-radius: 4px;
+    transition: width 0.4s ease;
+  }
+  .limit-info-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 0.78rem;
+    color: #475569;
+  }
+  .limit-info-val {
+    font-weight: 800;
+    color: #0f172a;
+  }
 </style>
 {% endblock %}
 
 {% block content %}
-<div class="container py-8">
+<div class="rq-dash-container">
     <!-- Top Header -->
-    <div class="flex items-center justify-between mb-8">
+    <div style="display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 1rem; margin-bottom: 1.5rem;">
         <div>
-            <span class="text-xs font-black tracking-widest text-cyan uppercase mb-1 block"><i class="fas fa-paper-plane ml-1"></i> P2P Transfer</span>
-            <h1 class="text-3xl font-black">تحويل رصيد مباشر</h1>
+            <span style="font-size: 0.74rem; font-weight: 800; color: var(--rq-primary); display: block; margin-bottom: 0.2rem;"><i class="fas fa-paper-plane ml-1"></i> تحويل فوري بين المحافظ</span>
+            <h1 style="font-size: clamp(1.35rem, 2.5vw, 1.8rem); font-weight: 900; color: var(--rq-navy); margin: 0;">تحويل رصيد مباشر</h1>
         </div>
-        <a href="{% url 'dashboard_transfer_history' %}" class="btn btn-outline btn-sm rounded-xl">
-            <i class="fas fa-history ml-2"></i> سجل التحويلات
+        <a href="{% url 'dashboard_transfer_history' %}" class="rq-btn-secondary rq-btn-sm">
+            <i class="fas fa-history"></i>
+            <span>سجل التحويلات</span>
         </a>
     </div>
 
-    {% if messages %}
-        {% for message in messages %}
-        <div class="p-4 rounded-xl mb-6 flex items-center gap-3 {% if message.tags == 'success' %}bg-emerald-500/10 border border-emerald-500/20 text-emerald-400{% else %}bg-rose-500/10 border border-rose-500/20 text-rose-400{% endif %}">
-            <i class="fas {% if message.tags == 'success' %}fa-check-circle{% else %}fa-exclamation-triangle{% endif %}"></i>
-            <span class="font-bold text-sm">{{ message }}</span>
-        </div>
-        {% endfor %}
-    {% endif %}
-
     <div class="transfer-grid">
-        <!-- ════════ COLUMN 1: FORM ════════ -->
+        <!-- COLUMN 1: FORM -->
         <div class="glass-card">
             <!-- Balance & UID Hub -->
-            <div class="flex flex-col sm:flex-row items-stretch sm:items-center justify-between p-4 bg-slate-900/40 rounded-2xl mb-8 border border-white/5 gap-4">
+            <div style="display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; padding: 1rem 1.15rem; background: var(--rq-bg-body); border-radius: 12px; border: 1px solid var(--rq-border); margin-bottom: 1.5rem; gap: 1rem;">
                 <div>
-                    <span class="text-[10px] text-slate-500 block mb-1">الرصيد القابل للتحويل</span>
-                    <span class="text-2xl font-black text-emerald-400">{% currency_format wallet.available_balance wallet.currency mode="withdraw" %}</span>
+                    <span style="font-size: 0.74rem; color: var(--rq-text-muted); font-weight: 700; display: block; margin-bottom: 0.2rem;">الرصيد القابل للتحويل</span>
+                    <span style="font-size: 1.35rem; font-weight: 900; color: #059669;">{% currency_format wallet.available_balance wallet.currency mode="withdraw" %}</span>
                 </div>
-                <div class="sm:text-left">
-                    <span class="text-[10px] text-slate-500 block mb-1">المعرف الخاص بك (UID)</span>
-                    <div class="flex items-center gap-2 justify-start sm:justify-end">
-                        <code class="bg-black/30 px-3 py-1 rounded-xl text-cyan font-mono text-sm tracking-widest border border-cyan/10">{{ request.user.uid }}</code>
-                        <button type="button" onclick="copyUid('{{ request.user.uid }}', this)" class="text-slate-500 hover:text-white transition-colors" title="نسخ المعرف">
+                <div>
+                    <span style="font-size: 0.74rem; color: var(--rq-text-muted); font-weight: 700; display: block; margin-bottom: 0.2rem;">المعرف الخاص بك (UID)</span>
+                    <div style="display: flex; align-items: center; gap: 0.45rem;">
+                        <code style="background: #ffffff; padding: 0.25rem 0.65rem; border-radius: 8px; color: var(--rq-primary); font-family: monospace; font-weight: 800; font-size: 0.85rem; border: 1px solid var(--rq-border);">{{ request.user.uid }}</code>
+                        <button type="button" onclick="copyUid('{{ request.user.uid }}', this)" style="background: none; border: none; color: var(--rq-text-secondary); cursor: pointer;" title="نسخ المعرف">
                             <i class="fas fa-copy"></i>
                         </button>
                     </div>
                 </div>
             </div>
 
-            <form method="post" id="transfer-form" class="space-y-6">
+            <form method="post" id="transfer-form" style="display: flex; flex-direction: column; gap: 1.25rem;">
                 {% csrf_token %}
                 <input type="hidden" name="recipient_uid" id="recipient-uid-hidden">
 
                 <!-- Step 1: Search Recipient -->
                 <div>
-                    <label class="block text-sm font-black text-slate-300 mb-2">البحث عن الحساب</label>
-                    <div class="flex flex-col sm:flex-row gap-3">
-                        <div class="relative flex-grow">
+                    <label class="rq-label">البحث عن الحساب المستلم</label>
+                    <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+                        <div style="flex: 1; min-width: 200px;">
                             <input type="text" id="search-input" class="premium-input" style="text-align: right;" placeholder="أدخل المعرف (UID)، البريد الإلكتروني، أو رقم الهاتف..." autocomplete="off">
                         </div>
-                        <button type="button" id="search-btn" class="btn btn-primary px-6 rounded-2xl font-black text-sm whitespace-nowrap shadow-lg shadow-cyan/10">البحث عن حساب</button>
+                        <button type="button" id="search-btn" class="rq-btn-auth-register" style="height: 44px; padding: 0 1.25rem;">البحث عن حساب</button>
                     </div>
 
                     <!-- Search Feedback Alert -->
-                    <div id="search-feedback" class="mt-3 p-3.5 rounded-2xl text-xs font-bold flex items-center gap-2.5 hidden"></div>
+                    <div id="search-feedback" class="hidden" style="margin-top: 0.65rem; padding: 0.75rem 1rem; border-radius: 10px; font-size: 0.8rem; font-weight: 700;"></div>
                 </div>
 
                 <!-- Found Recipient Card -->
-                <div id="recipient-card" class="recipient-active-card mt-3">
+                <div id="recipient-card" class="recipient-active-card">
                     <div class="recipient-avatar" id="avatar-letter">؟</div>
-                    <div class="flex-1">
-                        <p class="text-[10px] text-cyan mb-0.5 font-black"><i class="fas fa-check-circle mr-1 text-cyan"></i> تم العثور على الحساب</p>
-                        <p id="recipient-name" class="font-black text-white text-base truncate"></p>
-                        <p id="recipient-uid-display" class="text-xs text-slate-400 font-mono mt-0.5"></p>
-                        <span id="recipient-kyc-badge" class="text-[9px] bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 px-2 py-0.5 rounded-lg font-bold mt-1 inline-flex items-center gap-1 hidden">
+                    <div style="flex: 1; min-width: 0;">
+                        <p style="font-size: 0.72rem; color: var(--rq-primary); margin: 0 0 0.15rem; font-weight: 800;"><i class="fas fa-check-circle ml-1"></i> تم العثور على الحساب</p>
+                        <p id="recipient-name" style="font-weight: 900; color: var(--rq-navy); font-size: 0.95rem; margin: 0;"></p>
+                        <p id="recipient-uid-display" style="font-size: 0.76rem; color: var(--rq-text-secondary); font-family: monospace; margin: 0.15rem 0 0;"></p>
+                        <span id="recipient-kyc-badge" class="hidden" style="font-size: 0.7rem; background: #ecfdf5; border: 1px solid #a7f3d0; color: #059669; padding: 0.15rem 0.5rem; border-radius: 6px; font-weight: 700; margin-top: 0.25rem; display: inline-flex; align-items: center; gap: 0.25rem;">
                             <i class="fas fa-shield-check"></i> حساب موثق الهوية
                         </span>
                     </div>
-                    <button type="button" onclick="resetRecipient()" class="text-rose-500 hover:bg-rose-500/15 w-9 h-9 rounded-xl flex items-center justify-center transition-colors"><i class="fas fa-times"></i></button>
+                    <button type="button" onclick="resetRecipient()" style="background: #fef2f2; color: #dc2626; border: 1px solid #fecaca; width: 34px; height: 34px; border-radius: 8px; cursor: pointer;"><i class="fas fa-times"></i></button>
                 </div>
 
-                <!-- Phone number format guide and methods explanation -->
-                <div id="search-guidelines" class="mt-3 p-3.5 bg-slate-900/40 border border-white/5 rounded-2xl text-[10px] text-slate-400 leading-relaxed">
-                    <div class="font-bold text-white mb-1.5 flex items-center gap-1.5">
-                        <i class="fas fa-info-circle text-cyan"></i>
-                        <span>طرق البحث المتاحة وتنسيق رقم الهاتف:</span>
+                <!-- Search Guidelines -->
+                <div id="search-guidelines" style="padding: 0.9rem 1rem; background: var(--rq-bg-body); border: 1px solid var(--rq-border); border-radius: 12px; font-size: 0.76rem; color: var(--rq-text-secondary); line-height: 1.65;">
+                    <div style="font-weight: 800; color: var(--rq-navy); margin-bottom: 0.35rem; display: flex; align-items: center; gap: 0.4rem;">
+                        <i class="fas fa-info-circle" style="color: var(--rq-primary);"></i>
+                        <span>طرق البحث المتاحة:</span>
                     </div>
-                    <ul class="space-y-1 list-disc list-inside pr-1 text-slate-400">
-                        <li><strong>البحث بالمعرّف (UID):</strong> أدخل المعرف الرقمي الخاص بالحساب (مثال: <code class="text-cyan font-mono text-[10px]">123456</code>).</li>
-                        <li><strong>البحث بالبريد الإلكتروني:</strong> أدخل البريد الإلكتروني الكامل المسجل به حساب المستلم.</li>
-                        <li><strong>البحث بالاسم:</strong> أدخل اسم صاحب الحساب (الاسم الأول أو العائلي).</li>
-                        <li><strong>البحث برقم الهاتف (مهم):</strong> يجب إدخال رقم الهاتف بالصيغة الدولية مع رمز الدولة (مثال: سوريا <code class="text-cyan font-mono text-[10px]">+9639xxxxxxxx</code> أو بدون إشارة الزائد <code class="text-cyan font-mono text-[10px]">9639xxxxxxxx</code>). لا تستخدم الأصفار البادئة مثل <code class="text-rose-400 font-mono text-[10px]">00963</code>.</li>
+                    <ul style="margin: 0; padding-right: 1.1rem;">
+                        <li><strong>المعرّف (UID):</strong> أدخل المعرف الرقمي الخاص بالحساب.</li>
+                        <li><strong>البريد الإلكتروني أو الاسم:</strong> أدخل البريد الإلكتروني أو الاسم الكامل.</li>
+                        <li><strong>رقم الهاتف:</strong> بالصيغة الدولية مثل <code style="color: var(--rq-primary); font-family: monospace;">+9639xxxxxxxx</code>.</li>
                     </ul>
                 </div>
 
                 <!-- Step 2: Amount & Details -->
-                <div id="amount-section" class="space-y-6 opacity-30 pointer-events-none transition-opacity duration-300">
+                <div id="amount-section" class="opacity-30 pointer-events-none" style="display: flex; flex-direction: column; gap: 1.15rem; transition: opacity 0.25s;">
                     <div>
-                        <label class="block text-sm font-black text-slate-300 mb-2">المبلغ المراد تحويله</label>
-                        <div class="flex gap-2">
-                            <input type="number" name="input_amount" id="amount-input" step="0.01" min="0.01" class="premium-input text-xl font-black text-cyan flex-1" placeholder="0.00" required disabled>
-                            <select id="currency-select" class="premium-input !w-36 bg-slate-900 border-white/5" disabled>
+                        <label class="rq-label">المبلغ المراد تحويله</label>
+                        <div style="display: flex; gap: 0.5rem;">
+                            <input type="number" name="input_amount" id="amount-input" step="0.01" min="0.01" class="premium-input" style="font-size: 1.15rem; font-weight: 900; flex: 1;" placeholder="0.00" required disabled>
+                            <select id="currency-select" class="premium-input" style="width: 110px;" disabled>
                                 <option value="{{ wallet.currency.code }}" data-rate="{{ wallet.currency.buy_rate|unlocalize }}" {% if preferred_currency.code == wallet.currency.code %}selected{% endif %}>{{ wallet.currency.code }}</option>
                                 {% for curr in currencies %}
                                     {% if curr.code != wallet.currency.code %}
@@ -274,25 +217,25 @@
                         <input type="hidden" name="amount" id="hidden-wallet-amount">
                         
                         <!-- Calculations Preview -->
-                        <div class="flex flex-col mt-4 space-y-2 text-xs">
-                            <div class="flex justify-between items-center text-slate-400 p-1">
+                        <div style="display: flex; flex-direction: column; gap: 0.4rem; margin-top: 0.85rem; font-size: 0.8rem; background: var(--rq-bg-body); padding: 0.85rem 1rem; border-radius: 10px; border: 1px solid var(--rq-border);">
+                            <div style="display: flex; justify-content: space-between; color: var(--rq-text-secondary);">
                                 <span>الخصم الفعلي من المحفظة:</span>
-                                <span class="text-white font-bold"><span id="equiv-display">0.00</span> {{ wallet.currency.code }}</span>
+                                <span style="color: var(--rq-navy); font-weight: 800;"><span id="equiv-display">0.00</span> {{ wallet.currency.code }}</span>
                             </div>
-                            <div class="flex justify-between items-center text-slate-400 p-1 border-t border-white/5">
-                                <span>رسوم تحويل النظام ({{ fee_percent }}%):</span>
-                                <span class="text-rose-400 font-bold"><span id="fee-display">0.00</span> {{ wallet.currency.code }}</span>
+                            <div style="display: flex; justify-content: space-between; color: var(--rq-text-secondary);">
+                                <span>رسوم التحويل ({{ fee_percent }}%):</span>
+                                <span style="color: #dc2626; font-weight: 800;"><span id="fee-display">0.00</span> {{ wallet.currency.code }}</span>
                             </div>
-                            <div class="flex justify-between items-center bg-emerald-500/5 p-3 rounded-xl border border-emerald-500/10 mt-2">
-                                <span class="text-emerald-400 font-bold">الصافي الواصل للمستلم:</span>
-                                <span class="text-emerald-400 font-black text-sm"><span id="net-display">0.00</span> {{ wallet.currency.code }}</span>
+                            <div style="display: flex; justify-content: space-between; padding-top: 0.45rem; border-top: 1px solid var(--rq-border); color: #059669; font-weight: 900;">
+                                <span>الصافي الواصل للمستلم:</span>
+                                <span><span id="net-display">0.00</span> {{ wallet.currency.code }}</span>
                             </div>
                         </div>
                     </div>
 
                     <div>
-                        <label class="block text-sm font-black text-slate-300 mb-2">ملاحظة للمستلم <span class="text-[10px] text-slate-500 font-bold">(اختياري)</span></label>
-                        <input type="text" name="note" class="premium-input text-sm" placeholder="اكتب ملاحظة قصيرة تظهر للمستلم..." maxlength="255" disabled>
+                        <label class="rq-label">ملاحظة للمستلم <span style="font-size: 0.72rem; color: var(--rq-text-muted);">(اختياري)</span></label>
+                        <input type="text" name="note" class="premium-input" placeholder="اكتب ملاحظة قصيرة تظهر للمستلم..." maxlength="255" disabled>
                     </div>
 
                     <button type="submit" class="btn-premium-action" id="submit-btn" disabled>
@@ -303,78 +246,58 @@
             </form>
         </div>
 
-        <!-- ════════ COLUMN 2: STATS & DETAILS ════════ -->
-        <div class="space-y-6">
-            <!-- Cumulative limits display -->
+        <!-- COLUMN 2: STATS & DETAILS -->
+        <div style="display: flex; flex-direction: column; gap: 1.25rem;">
             <div class="glass-card">
-                <h3 class="text-base font-black text-white mb-4"><i class="fas fa-shield-alt text-cyan ml-2"></i> حدود التحويل اليومية</h3>
+                <h3 style="font-size: 0.98rem; font-weight: 900; color: var(--rq-navy); margin: 0 0 1rem;"><i class="fas fa-shield-alt ml-2" style="color: var(--rq-primary);"></i> حدود التحويل اليومية</h3>
                 
-                <div class="space-y-5">
-                    <!-- Progress Bar Component -->
-                    <div>
-                        <div class="flex justify-between items-center text-xs text-slate-400 font-bold">
-                            <span>التحويل اليومي التراكمي</span>
-                            <span id="limit-pct-display">0%</span>
-                        </div>
-                        <div class="limit-progress-bg">
-                            <div class="limit-progress-bar" id="limit-progress-bar" style="width: 0%;"></div>
-                        </div>
-                        <div class="flex justify-between items-center text-[10px] text-slate-500 font-mono">
-                            <span>المستخدم: {{ daily_usage|floatformat:2 }} {{ wallet.currency.code }}</span>
-                            <span>الحد: {{ daily_limit|floatformat:2 }} {{ wallet.currency.code }}</span>
-                        </div>
+                <div>
+                    <div style="display: flex; justify-content: space-between; font-size: 0.8rem; color: var(--rq-text-secondary); font-weight: 700;">
+                        <span>التحويل اليومي التراكمي</span>
+                        <span id="limit-pct-display">0%</span>
                     </div>
+                    <div class="limit-progress-bg">
+                        <div class="limit-progress-bar" id="limit-progress-bar" style="width: 0%;"></div>
+                    </div>
+                    <div style="display: flex; justify-content: space-between; font-size: 0.74rem; color: var(--rq-text-muted); font-family: monospace;">
+                        <span>المستخدم: {{ daily_usage|floatformat:2 }} {{ wallet.currency.code }}</span>
+                        <span>الحد: {{ daily_limit|floatformat:2 }} {{ wallet.currency.code }}</span>
+                    </div>
+                </div>
 
-                    <!-- Limit Metrics List -->
-                    <div class="space-y-3 pt-2 border-t border-white/5">
-                        <div class="limit-badge">
-                            <div class="limit-info-row mb-2">
-                                <span>الحد الأقصى لليوم (USD):</span>
-                                <span class="limit-info-val">{{ limit_usd|floatformat:2 }} USD</span>
-                            </div>
-                            <div class="limit-info-row mb-2">
-                                <span>الحد الأقصى لليوم بمحفظتك:</span>
-                                <span class="limit-info-val">{{ daily_limit|floatformat:2 }} {{ wallet.currency.code }}</span>
-                            </div>
-                            <div class="limit-info-row mb-2 text-emerald-400">
-                                <span class="font-bold">المتبقي المتاح للتحويل:</span>
-                                <span class="limit-info-val text-emerald-400 font-black">{{ remaining_limit|floatformat:2 }} {{ wallet.currency.code }}</span>
-                            </div>
-                            <div class="limit-info-row text-[10px] text-slate-500 border-t border-white/5 pt-2 mt-2">
-                                <span>المستعمل اليوم (USD):</span>
-                                <span>{{ daily_usage_usd|floatformat:2 }} USD</span>
-                            </div>
+                <div style="margin-top: 1rem; padding-top: 1rem; border-top: 1px solid var(--rq-border);">
+                    <div class="limit-badge">
+                        <div class="limit-info-row" style="margin-bottom: 0.45rem;">
+                            <span>الحد الأقصى لليوم (USD):</span>
+                            <span class="limit-info-val">{{ limit_usd|floatformat:2 }} USD</span>
                         </div>
-
-                        <!-- Syria Reset Time Box -->
-                        <div class="flex gap-3 p-3 bg-cyan/5 border border-cyan/10 rounded-xl text-xs text-cyan">
-                            <i class="fas fa-clock text-sm mt-0.5"></i>
-                            <div>
-                                <span class="font-black block mb-0.5">توقيت تصفير العداد</span>
-                                <p class="text-slate-400 text-[10px] leading-relaxed">يتم إعادة ضبط حد التحويل التراكمي للعملاء تلقائياً كل 24 ساعة عند **الساعة 12:00 منتصف الليل بتوقيت سوريا** (Asia/Damascus).</p>
-                            </div>
+                        <div class="limit-info-row" style="margin-bottom: 0.45rem;">
+                            <span>الحد الأقصى بمحفظتك:</span>
+                            <span class="limit-info-val">{{ daily_limit|floatformat:2 }} {{ wallet.currency.code }}</span>
+                        </div>
+                        <div class="limit-info-row" style="color: #059669; font-weight: 800;">
+                            <span>المتبقي المتاح للتحويل:</span>
+                            <span style="color: #059669; font-weight: 900;">{{ remaining_limit|floatformat:2 }} {{ wallet.currency.code }}</span>
                         </div>
                     </div>
                 </div>
             </div>
 
-            <!-- Guidelines -->
             <div class="glass-card">
-                <h3 class="text-sm font-black text-indigo-400 mb-3"><i class="fas fa-info-circle ml-2"></i> تعليمات الاستخدام والأمان</h3>
-                <ul class="text-xs text-slate-400 space-y-2.5 list-disc list-inside pr-2 leading-relaxed">
+                <h3 style="font-size: 0.94rem; font-weight: 900; color: var(--rq-navy); margin: 0 0 0.75rem;"><i class="fas fa-info-circle ml-1" style="color: var(--rq-primary);"></i> تعليمات الأمان</h3>
+                <ul style="font-size: 0.8rem; color: var(--rq-text-secondary); margin: 0; padding-right: 1.15rem; line-height: 1.7;">
                     {% if not request.user.is_kyc_verified %}
-                    <li>حسابك حالياً <span class="text-rose-400 font-black">غير موثق الهوية</span>، حد التحويل المتاح لك هو <strong>{{ settings.unverified_transfer_limit }} USD</strong> يومياً. يمكنك رفع الحد فوراً عن طريق طلب توثيق الهوية.</li>
+                    <li>حسابك حالياً <strong>غير موثق الهوية</strong>، حد التحويل اليومي هو <strong>{{ settings.unverified_transfer_limit }} USD</strong>.</li>
                     {% else %}
-                    <li>حسابك <span class="text-emerald-400 font-black">موثق الهوية</span>، الحد اليومي المتاح لك هو <strong>{{ settings.verified_transfer_limit }} USD</strong>.</li>
+                    <li>حسابك <strong>موثق الهوية</strong>، الحد اليومي المتاح هو <strong>{{ settings.verified_transfer_limit }} USD</strong>.</li>
                     {% endif %}
-                    <li>تأكد تماماً من **UID أو اسم صاحب الحساب** قبل الضغط على زر التحويل.</li>
-                    <li>عمليات التحويل بين المحافظ فوريّة ومحمية، ولا يمكن إلغاؤها أو استردادها إطلاقاً بعد التأكيد.</li>
+                    <li>تأكد من <strong>UID أو اسم صاحب الحساب</strong> قبل إتمام التحويل.</li>
+                    <li>عمليات التحويل بين المحافظ فورية ولا يمكن التراجع عنها بعد التأكيد.</li>
                 </ul>
             </div>
         </div>
     </div>
 </div>
-
 {% endblock %}
 
 {% block extra_js %}
@@ -395,7 +318,6 @@
     const feePercent = {{ fee_percent|unlocalize|default:0 }};
     const walletCurrencyCode = "{{ wallet.currency.code }}";
     
-    // Limits percentage setup
     const limitMax = {{ daily_limit|unlocalize|default:0 }};
     const limitUsage = {{ daily_usage|unlocalize|default:0 }};
     if (limitMax > 0) {
@@ -407,7 +329,7 @@
     function copyUid(text, btn) {
         navigator.clipboard.writeText(text).then(() => {
             const icon = btn.querySelector('i');
-            icon.className = 'fas fa-check text-emerald-400';
+            icon.className = 'fas fa-check';
             setTimeout(() => { icon.className = 'fas fa-copy'; }, 2000);
         });
     }
@@ -446,9 +368,7 @@
 
                 recipientName.textContent = data.display_name;
                 document.getElementById('recipient-uid-display').textContent = 'المعرف (UID): ' + data.uid;
-                recipientUidHidden.value = data.id; // UUID mapping
-                
-                // Avatar setup
+                recipientUidHidden.value = data.id;
                 avatarLetter.textContent = data.display_name.charAt(0).toUpperCase();
 
                 if(data.is_verified) {
@@ -460,21 +380,15 @@
                 recipientCard.style.display = 'flex';
                 showFeedback('تم التحقق من الحساب والعثور عليه بنجاح.', 'success');
                 
-                // Hide search guidelines box
                 const guidelines = document.getElementById('search-guidelines');
-                if (guidelines) {
-                    guidelines.style.display = 'none';
-                }
+                if (guidelines) guidelines.style.display = 'none';
                 
-                // Unlock Form
                 amountSection.classList.remove('opacity-30', 'pointer-events-none');
                 formInputs.forEach(inp => inp.disabled = false);
                 amountInput.disabled = false;
                 document.getElementById('currency-select').disabled = false;
                 document.querySelector('input[name="note"]').disabled = false;
                 submitBtn.disabled = false;
-                
-                // Focus amount input
                 amountInput.focus();
             })
             .catch(error => {
@@ -488,7 +402,9 @@
     function showFeedback(msg, type) {
         const fb = document.getElementById('search-feedback');
         fb.innerHTML = `<i class="fas ${type === 'error' ? 'fa-exclamation-circle' : 'fa-check-circle'}"></i> <span>${msg}</span>`;
-        fb.className = `mt-3 p-3.5 rounded-2xl text-xs font-bold flex items-center gap-2.5 ${type === 'error' ? 'bg-rose-500/10 border border-rose-500/20 text-rose-400' : 'bg-emerald-500/10 border border-emerald-500/20 text-emerald-400'}`;
+        fb.style.background = type === 'error' ? '#fef2f2' : '#ecfdf5';
+        fb.style.color = type === 'error' ? '#dc2626' : '#059669';
+        fb.style.border = type === 'error' ? '1px solid #fecaca' : '1px solid #a7f3d0';
         fb.classList.remove('hidden');
     }
 
@@ -501,13 +417,9 @@
         recipientUidHidden.value = '';
         searchInput.value = '';
         
-        // Show search guidelines box
         const guidelines = document.getElementById('search-guidelines');
-        if (guidelines) {
-            guidelines.style.display = 'block';
-        }
+        if (guidelines) guidelines.style.display = 'block';
         
-        // Lock Form
         amountSection.classList.add('opacity-30', 'pointer-events-none');
         amountInput.disabled = true;
         document.getElementById('currency-select').disabled = true;
@@ -529,8 +441,6 @@
         const walletRateOption = document.querySelector(`#currency-select option[value="${walletCurrencyCode}"]`);
         const walletRate = walletRateOption ? parseFloat(walletRateOption.getAttribute('data-rate')) : 1.0;
         
-        // Base Amount (USD) = inputAmount / exchangeRate
-        // Wallet Amount = Base Amount * walletRate
         const walletAmount = (inputAmount / exchangeRate) * walletRate;
         
         hiddenWalletAmount.value = walletAmount.toFixed(2);

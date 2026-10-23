@@ -1,12 +1,108 @@
+from decimal import Decimal
 from apps.common.models import Currency, SocialMediaLink, MetaPixelConfiguration
 from apps.common.security import sanitize_custom_css
 from apps.payments.models import PaymentMethod
+
+
+def _build_cart_context(request, pref_currency=None):
+    """
+    Builds server-validated cart items, count, and total from session['rq_cart'].
+    Prices are always fetched live from the database (never trusted from session).
+    """
+    session = getattr(request, "session", None)
+    if not session:
+        return {"cart_items": [], "cart_items_count": 0, "cart_total": Decimal("0.00")}
+
+    raw_cart = session.get("rq_cart")
+    if not raw_cart or not isinstance(raw_cart, dict):
+        return {"cart_items": [], "cart_items_count": 0, "cart_total": Decimal("0.00")}
+
+    try:
+        from apps.catalog.models import ProductVariant
+        variant_ids = list(raw_cart.keys())
+        variants_qs = ProductVariant.all_objects.filter(
+            id__in=variant_ids,
+            is_active=True,
+            product__is_active=True,
+            product__is_publicly_visible=True,
+        ).select_related("product", "product__category")
+        variants_map = {str(v.id): v for v in variants_qs}
+
+        user = getattr(request, "user", None)
+        cart_items = []
+        cart_items_count = 0
+        cart_total = Decimal("0.00")
+        cleaned_cart = {}
+
+        for v_id, item_data in raw_cart.items():
+            variant = variants_map.get(str(v_id))
+            if not variant or not variant.product:
+                continue
+            product = variant.product
+            try:
+                qty = int(item_data.get("quantity", 1))
+            except (ValueError, TypeError):
+                qty = 1
+            if qty < 1:
+                continue
+            if product.track_inventory and product.quantity > 0:
+                qty = min(qty, product.quantity)
+
+            unit_price = (
+                Decimal(str(variant.price))
+                if (variant.price and variant.price > Decimal("0.00"))
+                else variant.get_price_for_user(user)
+            )
+            line_total = (unit_price * Decimal(qty)).quantize(Decimal("0.01"))
+            is_available = (
+                not product.is_out_of_stock
+                and not variant.is_temporarily_disabled
+                and (not product.track_inventory or product.quantity >= qty)
+            )
+
+            cart_items.append({
+                "key": str(variant.id),
+                "variant_id": str(variant.id),
+                "product_id": str(product.id),
+                "name": product.name,
+                "variant_name": variant.name if variant.name != product.name else "",
+                "category_name": product.category.name if product.category else "",
+                "product_type": product.product_type,
+                "image": product.image_url or "",
+                "quantity": qty,
+                "max_quantity": product.quantity if product.track_inventory and product.quantity > 0 else 99,
+                "unit_price": unit_price,
+                "total_price": line_total,
+                "is_available": is_available,
+                "metadata": item_data.get("metadata", {}),
+            })
+            cart_items_count += qty
+            cart_total += line_total
+            cleaned_cart[str(variant.id)] = {
+                "product_id": str(product.id),
+                "variant_id": str(variant.id),
+                "quantity": qty,
+                "metadata": item_data.get("metadata", {}),
+            }
+
+        if len(cleaned_cart) != len(raw_cart):
+            session["rq_cart"] = cleaned_cart
+            session.modified = True
+
+        return {
+            "cart_items": cart_items,
+            "cart_items_count": cart_items_count,
+            "cart_total": cart_total,
+        }
+    except Exception:
+        return {"cart_items": [], "cart_items_count": 0, "cart_total": Decimal("0.00")}
+
 
 def preferred_currency(request):
     """
     Determines the preferred currency for the current user or guest session.
     Returns:
-        Currency object and a list of all active currencies.
+        Currency object, active currencies, payment methods, and live cart context.
     """
     store = getattr(request, "store", None)
     if store and not Currency.all_objects.filter(store=store).exists():
@@ -60,8 +156,8 @@ def preferred_currency(request):
 
     system_currency = next((c for c in all_currencies if c.code == "USD"), None) or (all_currencies[0] if all_currencies else None)
 
-    # Task 9: KYC handling is now managed in templates/views with a message instead of hiding
     payment_methods = PaymentMethod.objects.filter(is_active=True).order_by('display_order')
+    cart_ctx = _build_cart_context(request, pref_currency)
 
     return {
         "CURRENCY": pref_currency,
@@ -72,7 +168,8 @@ def preferred_currency(request):
         "WITHDRAWAL_RATE": pref_currency.sell_rate if pref_currency else 1.0,
         "SOCIAL_LINKS": SocialMediaLink.objects.filter(is_active=True).order_by("display_order"),
         "PAYMENT_METHODS": payment_methods,
-        "payment_methods": payment_methods
+        "payment_methods": payment_methods,
+        **cart_ctx,
     }
 
 
@@ -81,16 +178,6 @@ def tenant_context(request):
     Multi-Tenant Context Processor.
     
     Provides store branding data to ALL templates automatically.
-    When request.store is set (by TenantMiddleware), this processor injects:
-    - The active store object
-    - Store colors as CSS variables
-    - Store logo, name, font, contact info
-    
-    When request.store is None (main Raqamiyat site), it provides
-    the default Raqamiyat branding values.
-    
-    This is the core of the Shared Template architecture: one template,
-    multiple tenants, data isolation via store context.
     """
     try:
         from django.conf import settings
@@ -128,22 +215,17 @@ def tenant_context(request):
         return {
             "PLATFORM_URL": platform_url,
             "SSO_GOOGLE_LOGIN_URL": sso_google_login_url,
-            # Core store object (available as {{ store }} in all templates)
             "store": store,
             "is_tenant": True,
-
-            # Store identity
             "STORE_NAME": store.name,
             "STORE_LOGO": store.logo if store.logo else None,
             "STORE_BANNER": store.banner if store.banner else None,
             "STORE_DESCRIPTION": store.description or store.name,
-
-            # Store theme colors (used as CSS variables in base.html)
-            "STORE_PRIMARY": store.primary_color or "#06b6d4",
-            "STORE_SECONDARY": store.secondary_color or "#0891b2",
-            "STORE_BUTTON_COLOR": store.button_color or store.primary_color or "#06b6d4",
-            "STORE_BG": store.background_color or "#0f172a",
-            "STORE_TEXT": store.text_color or "#f8fafc",
+            "STORE_PRIMARY": store.primary_color or "#2563eb",
+            "STORE_SECONDARY": store.secondary_color or "#1d4ed8",
+            "STORE_BUTTON_COLOR": store.button_color or store.primary_color or "#2563eb",
+            "STORE_BG": store.background_color or "#f8fafc",
+            "STORE_TEXT": store.text_color or "#0f172a",
             "STORE_FONT": store.theme_font or "Cairo",
             "STORE_CARD_STYLE": store.card_style or "flat",
             "STORE_HEADER_STYLE": store.header_style or "classic",
@@ -151,27 +233,18 @@ def tenant_context(request):
             "STORE_BUTTON_STYLE": store.button_style or "pill",
             "STORE_SHADOW_STYLE": store.shadow_style or "soft",
             "STORE_CUSTOM_CSS": sanitize_custom_css(store.custom_css or ""),
-
-            # Store contact details
             "STORE_PHONE": store.phone or "",
             "STORE_EMAIL": store.email or "",
             "STORE_ADDRESS": store.address or "",
-
-            # Store social links
             "STORE_FACEBOOK": store.social_facebook or "",
             "STORE_INSTAGRAM": store.social_instagram or "",
             "STORE_TWITTER": store.social_twitter or "",
             "STORE_TIKTOK": store.social_tiktok or "",
-
-            # Store subscription info (for feature gating in templates)
             "STORE_PLAN": store.subscription_plan,
-
-            # Meta Pixel Integration
             "META_PIXEL_CONFIG": pixel_config,
             "META_PIXEL_ID": pixel_id,
         }
     else:
-        # Main Raqamiyat platform — no store, use platform defaults
         pixel_config = MetaPixelConfiguration.get_settings(store=None)
         pixel_id = pixel_config.pixel_id.strip() if (pixel_config and pixel_config.is_active and pixel_config.pixel_id) else None
 
@@ -180,28 +253,22 @@ def tenant_context(request):
             "SSO_GOOGLE_LOGIN_URL": "/accounts/google/login/",
             "store": None,
             "is_tenant": False,
-
-            # Default platform branding
             "STORE_NAME": "رقميات",
             "STORE_LOGO": None,
             "STORE_BANNER": None,
-            "STORE_DESCRIPTION": "رقميات | منصة الخدمات الرقمية",
-
-            # Default platform theme (matches Raqamiyat design)
-            "STORE_PRIMARY": "#06b6d4",
-            "STORE_SECONDARY": "#0891b2",
-            "STORE_BUTTON_COLOR": "#06b6d4",
-            "STORE_BG": "#0f172a",
-            "STORE_TEXT": "#f8fafc",
+            "STORE_DESCRIPTION": "رقميات | متجر الإلكترونيات والتقنية والخدمات الرقمية",
+            "STORE_PRIMARY": "#2563eb",
+            "STORE_SECONDARY": "#1d4ed8",
+            "STORE_BUTTON_COLOR": "#2563eb",
+            "STORE_BG": "#f8fafc",
+            "STORE_TEXT": "#0f172a",
             "STORE_FONT": "Cairo",
-            "STORE_CARD_STYLE": "glass",
+            "STORE_CARD_STYLE": "flat",
             "STORE_HEADER_STYLE": "classic",
             "STORE_FOOTER_STYLE": "classic",
             "STORE_BUTTON_STYLE": "pill",
             "STORE_SHADOW_STYLE": "soft",
             "STORE_CUSTOM_CSS": "",
-
-            # No contact details on main site (handled separately)
             "STORE_PHONE": "",
             "STORE_EMAIL": "",
             "STORE_ADDRESS": "",
@@ -209,11 +276,7 @@ def tenant_context(request):
             "STORE_INSTAGRAM": "",
             "STORE_TWITTER": "",
             "STORE_TIKTOK": "",
-
             "STORE_PLAN": None,
-
-            # Meta Pixel Integration
             "META_PIXEL_CONFIG": pixel_config,
             "META_PIXEL_ID": pixel_id,
         }
-

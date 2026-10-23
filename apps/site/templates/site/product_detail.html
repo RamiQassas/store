@@ -44,35 +44,35 @@
 {% block content %}
 <div class="rq-pdp-container">
 
-  <!-- 1. Compact Breadcrumbs -->
-  <nav style="display: flex; align-items: center; gap: 0.45rem; font-size: 0.78rem; color: var(--rq-text-muted); margin-bottom: 1.25rem; flex-wrap: wrap;" aria-label="مسار التنقل">
-    <a href="{% url 'home' %}" style="color: var(--rq-text-muted); text-decoration: none;"><i class="fas fa-home text-xs"></i></a>
-    <i class="fas fa-chevron-left text-[9px] text-slate-600"></i>
-    <a href="{% url 'catalog' %}" style="color: var(--rq-text-muted); text-decoration: none;">المنتجات</a>
+  <!-- 1. Breadcrumbs -->
+  <nav style="display: flex; align-items: center; gap: 0.45rem; font-size: 0.8rem; color: var(--rq-text-muted); margin-bottom: 1.25rem; flex-wrap: wrap;" aria-label="مسار التنقل">
+    <a href="{% url 'home' %}" style="color: var(--rq-text-muted);">الرئيسية</a>
+    <i class="fas fa-chevron-left text-xs"></i>
+    <a href="{% url 'catalog' %}" style="color: var(--rq-text-muted);">الكتالوج</a>
     {% if product.category %}
-    <i class="fas fa-chevron-left text-[9px] text-slate-600"></i>
-    <a href="{% url 'catalog' %}?category={{ product.category.id }}" style="color: var(--rq-primary-light); font-weight: 700; text-decoration: none;">{{ product.category.name }}</a>
+    <i class="fas fa-chevron-left text-xs"></i>
+    <a href="{% url 'catalog' %}?category={{ product.category.id }}" style="color: var(--rq-accent); font-weight: 700;">{{ product.category.name }}</a>
     {% endif %}
-    <i class="fas fa-chevron-left text-[9px] text-slate-600"></i>
-    <span style="color: #fff; font-weight: 800; max-width: 240px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">{{ product.name }}</span>
+    <i class="fas fa-chevron-left text-xs"></i>
+    <span style="color: var(--rq-navy); font-weight: 800; max-width: 280px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">{{ product.name }}</span>
   </nav>
 
   <!-- 2. Insufficient Balance Alert (If Triggered) -->
   {% if missing_amount %}
-  <div style="background: rgba(239, 68, 68, 0.1); border: 1.5px solid rgba(239, 68, 68, 0.32); border-radius: 16px; padding: 1rem 1.25rem; margin-bottom: 1.5rem; display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 0.85rem;">
+  <div style="background: #fef2f2; border: 1.5px solid #fecaca; border-radius: 14px; padding: 1rem 1.25rem; margin-bottom: 1.5rem; display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 0.85rem;">
     <div style="display: flex; align-items: center; gap: 0.75rem;">
-      <div style="width: 40px; height: 40px; border-radius: 10px; background: rgba(239, 68, 68, 0.2); color: #f87171; display: flex; align-items: center; justify-content: center; font-size: 1.1rem;">
+      <div style="width: 40px; height: 40px; border-radius: 10px; background: #fee2e2; color: #b91c1c; display: flex; align-items: center; justify-content: center; font-size: 1.1rem;">
         <i class="fas fa-wallet"></i>
       </div>
       <div>
-        <h4 style="font-size: 0.9rem; font-weight: 900; color: #fff; margin: 0 0 0.15rem;">رصيد المحفظة غير كافٍ</h4>
-        <p style="font-size: 0.78rem; color: #fca5a5; margin: 0;">
-          المبلغ المتبقي المطلوب: <strong style="color: #fff; font-family: monospace;">{{ missing_amount }} {{ missing_currency }}</strong>
+        <h4 style="font-size: 0.92rem; font-weight: 900; color: #991b1b; margin: 0 0 0.15rem;">رصيد المحفظة غير كافٍ</h4>
+        <p style="font-size: 0.8rem; color: #b91c1c; margin: 0;">
+          المبلغ المتبقي المطلوب: <strong style="color: #7f1d1d; font-family: monospace;">{{ missing_amount }} {{ missing_currency }}</strong>
         </p>
       </div>
     </div>
     <div style="display: flex; align-items: center; gap: 0.5rem;">
-      <a href="{% url 'dashboard_deposits' %}" class="rq-btn-auth-register" style="height: 36px; padding: 0 1.1rem; font-size: 0.78rem;">
+      <a href="{% url 'dashboard_deposits' %}" class="rq-btn-primary rq-btn-sm">
         <i class="fas fa-bolt"></i>
         <span>شحن الرصيد</span>
       </a>
@@ -80,105 +80,125 @@
   </div>
   {% endif %}
 
-  <!-- 3. Main Express Studio Layout -->
+  <!-- 3. Main Product Detail Layout -->
   <div class="rq-pdp-layout">
 
-    <!-- Right Column (RTL): Visual Product Showcase & Concise Details -->
+    <!-- Right Column (RTL): Image Gallery, Specs & Warranty/Shipping Info -->
     <div class="rq-pdp-showcase">
 
-      <!-- Product Visual Stage -->
-      <div class="rq-pdp-viewer-card" style="padding: 1.35rem;">
-        <div class="rq-pdp-badge-stack" style="margin-bottom: 1rem;">
+      <!-- Product Visual Gallery Card -->
+      <div class="rq-pdp-viewer-card">
+        <div class="rq-pdp-badge-stack">
           {% if is_instant_product or product.product_type != 'physical' %}
-          <span style="background: rgba(16, 185, 129, 0.14); border: 1px solid rgba(16, 185, 129, 0.35); color: #34d399; font-size: 0.72rem; font-weight: 800; padding: 0.3rem 0.7rem; border-radius: 9999px; display: inline-flex; align-items: center; gap: 0.35rem;">
-            <i class="fas fa-bolt text-xs"></i>
-            <span>تسليم فوري ⚡</span>
+          <span style="background: var(--rq-emerald-soft); border: 1px solid #a7f3d0; color: #047857; font-size: 0.74rem; font-weight: 800; padding: 0.28rem 0.7rem; border-radius: 9999px; display: inline-flex; align-items: center; gap: 0.35rem;">
+            <i class="fas fa-bolt"></i>
+            <span>تسليم فوري</span>
           </span>
           {% else %}
-          <span style="background: rgba(245, 158, 11, 0.14); border: 1px solid rgba(245, 158, 11, 0.35); color: #fbbf24; font-size: 0.72rem; font-weight: 800; padding: 0.3rem 0.7rem; border-radius: 9999px; display: inline-flex; align-items: center; gap: 0.35rem;">
-            <i class="fas fa-truck text-xs"></i>
-            <span>شحن وتوصيل</span>
+          <span style="background: var(--rq-primary-soft); border: 1px solid #bfdbfe; color: var(--rq-primary); font-size: 0.74rem; font-weight: 800; padding: 0.28rem 0.7rem; border-radius: 9999px; display: inline-flex; align-items: center; gap: 0.35rem;">
+            <i class="fas fa-truck"></i>
+            <span>منتج مادي • شحن وتوصيل</span>
           </span>
           {% endif %}
 
           {% if product.is_out_of_stock or is_inactive_product %}
-          <span style="background: rgba(239, 68, 68, 0.14); border: 1px solid rgba(239, 68, 68, 0.35); color: #f87171; font-size: 0.72rem; font-weight: 800; padding: 0.3rem 0.7rem; border-radius: 9999px;">
-            غير متوفر
+          <span style="background: var(--rq-rose-soft); border: 1px solid #fecaca; color: var(--rq-rose); font-size: 0.74rem; font-weight: 800; padding: 0.28rem 0.7rem; border-radius: 9999px;">
+            غير متوفر حالياً
           </span>
           {% else %}
-          <span style="background: rgba(59, 130, 246, 0.14); border: 1px solid rgba(59, 130, 246, 0.35); color: #60a5fa; font-size: 0.72rem; font-weight: 800; padding: 0.3rem 0.7rem; border-radius: 9999px;">
-            متوفر ✓
+          <span style="background: var(--rq-emerald-soft); border: 1px solid #a7f3d0; color: #047857; font-size: 0.74rem; font-weight: 800; padding: 0.28rem 0.7rem; border-radius: 9999px;">
+            متوفر في المتجر ✓
           </span>
           {% endif %}
         </div>
 
-        <div class="rq-pdp-viewer-box" style="background: radial-gradient(circle at center, rgba(37, 99, 235, 0.1), #060913 75%);">
-          {% product_display_image product as prod_img %}
+        {% product_display_image product as prod_img %}
+        <div class="rq-pdp-viewer-box">
           <img src="{{ prod_img }}" alt="{{ product.name }}" id="pdp-main-image" class="rq-pdp-viewer-img" onerror="this.onerror=null; this.src='{% static 'site/img/raqamiyat_logo_square.jpg' %}';">
         </div>
+
+        {% if gallery_images %}
+        <div class="rq-pdp-thumbs" aria-label="صور إضافية للمنتج">
+          <button type="button" class="rq-pdp-thumb active" onclick="switchMainPdpImage('{{ prod_img }}', this)">
+            <img src="{{ prod_img }}" alt="{{ product.name }}">
+          </button>
+          {% for g_img in gallery_images %}
+          {% if g_img.image %}
+          <button type="button" class="rq-pdp-thumb" onclick="switchMainPdpImage('{{ g_img.image.url }}', this)">
+            <img src="{{ g_img.image.url }}" alt="{{ g_img.alt_text|default:product.name }}">
+          </button>
+          {% endif %}
+          {% endfor %}
+        </div>
+        {% endif %}
       </div>
 
-      <!-- Concise Product Info Card -->
-      <div style="background: var(--rq-surface-card); border: 1px solid var(--rq-border); border-radius: 18px; padding: 1.35rem 1.5rem;">
-        <h3 style="font-size: 0.95rem; font-weight: 900; color: #fff; margin: 0 0 0.75rem; display: flex; align-items: center; gap: 0.45rem;">
-          <i class="fas fa-circle-info text-blue-400"></i>
-          <span>تفاصيل المنتج</span>
-        </h3>
-        <div style="font-size: 0.86rem; line-height: 1.75; color: var(--rq-text-secondary); white-space: pre-line;">
+      <!-- Structured Specifications & Description Card -->
+      <div style="background: #ffffff; border: 1px solid var(--rq-border); border-radius: var(--rq-radius-xl); padding: 1.4rem 1.5rem; box-shadow: var(--rq-shadow-xs);">
+        <h2 style="font-size: 1rem; font-weight: 900; color: var(--rq-navy); margin: 0 0 0.85rem; display: flex; align-items: center; gap: 0.45rem; padding-bottom: 0.65rem; border-bottom: 1px solid var(--rq-border);">
+          <i class="fas fa-list-check" style="color: var(--rq-accent);"></i>
+          <span>المواصفات وتفاصيل المنتج</span>
+        </h2>
+
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 0.65rem; margin-bottom: 1rem;">
+          <div style="background: var(--rq-bg-body); border: 1px solid var(--rq-border); border-radius: 10px; padding: 0.65rem 0.85rem;">
+            <span style="font-size: 0.7rem; color: var(--rq-text-muted); display: block;">التصنيف</span>
+            <strong style="font-size: 0.84rem; color: var(--rq-navy);">{{ product.category.name|default:"عام" }}</strong>
+          </div>
+          <div style="background: var(--rq-bg-body); border: 1px solid var(--rq-border); border-radius: 10px; padding: 0.65rem 0.85rem;">
+            <span style="font-size: 0.7rem; color: var(--rq-text-muted); display: block;">نوع التسليم</span>
+            <strong style="font-size: 0.84rem; color: var(--rq-navy);">{% if product.product_type == 'physical' %}شحن وتوصيل للعنوان{% else %}تسليم رقمي فوري{% endif %}</strong>
+          </div>
+          <div style="background: var(--rq-bg-body); border: 1px solid var(--rq-border); border-radius: 10px; padding: 0.65rem 0.85rem;">
+            <span style="font-size: 0.7rem; color: var(--rq-text-muted); display: block;">حالة التوفر</span>
+            <strong style="font-size: 0.84rem; color: {% if product.is_out_of_stock or is_inactive_product %}var(--rq-rose){% else %}var(--rq-emerald){% endif %};">{% if product.is_out_of_stock or is_inactive_product %}غير متوفر{% else %}متوفر للطلب{% endif %}</strong>
+          </div>
+        </div>
+
+        <div style="font-size: 0.88rem; line-height: 1.75; color: var(--rq-text-secondary); white-space: pre-line;">
           {{ product.description|default:"منتج أصلي معتمد ومضمون من متجر رقميات." }}
         </div>
+
+        {% if product.instructions %}
+        <div style="margin-top: 1rem; padding-top: 0.9rem; border-top: 1px solid var(--rq-border);">
+          <h3 style="font-size: 0.88rem; font-weight: 800; color: var(--rq-navy); margin: 0 0 0.35rem;">تعليمات الاستخدام والضمان:</h3>
+          <p style="font-size: 0.82rem; color: var(--rq-text-secondary); margin: 0; white-space: pre-line;">{{ product.instructions }}</p>
+        </div>
+        {% endif %}
       </div>
 
-      <!-- Compact 3-Badge Guarantee Strip -->
-      <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.65rem;">
-        <div style="background: rgba(15, 23, 42, 0.7); border: 1px solid var(--rq-border); border-radius: 12px; padding: 0.75rem; text-align: center; font-size: 0.75rem; font-weight: 800; color: #cbd5e1;">
-          <i class="fas fa-bolt text-emerald-400 block mb-1"></i> تنفيذ سريع
+      <!-- Warranty & Shipping Policy Strip -->
+      <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.75rem;">
+        <div style="background: #ffffff; border: 1px solid var(--rq-border); border-radius: 12px; padding: 0.85rem; text-align: center; font-size: 0.78rem; font-weight: 800; color: var(--rq-navy);">
+          <i class="fas fa-truck-fast block mb-1" style="color: var(--rq-accent); font-size: 1rem;"></i> شحن وتنفيذ سريع
         </div>
-        <div style="background: rgba(15, 23, 42, 0.7); border: 1px solid var(--rq-border); border-radius: 12px; padding: 0.75rem; text-align: center; font-size: 0.75rem; font-weight: 800; color: #cbd5e1;">
-          <i class="fas fa-shield-check text-sky-400 block mb-1"></i> ضمان معتمد
+        <div style="background: #ffffff; border: 1px solid var(--rq-border); border-radius: 12px; padding: 0.85rem; text-align: center; font-size: 0.78rem; font-weight: 800; color: var(--rq-navy);">
+          <i class="fas fa-shield-halved block mb-1" style="color: var(--rq-emerald); font-size: 1rem;"></i> ضمان رسمي معتمد
         </div>
-        <div style="background: rgba(15, 23, 42, 0.7); border: 1px solid var(--rq-border); border-radius: 12px; padding: 0.75rem; text-align: center; font-size: 0.75rem; font-weight: 800; color: #cbd5e1;">
-          <i class="fas fa-lock text-amber-400 block mb-1"></i> دفع آمن
+        <div style="background: #ffffff; border: 1px solid var(--rq-border); border-radius: 12px; padding: 0.85rem; text-align: center; font-size: 0.78rem; font-weight: 800; color: var(--rq-navy);">
+          <i class="fas fa-lock block mb-1" style="color: var(--rq-primary); font-size: 1rem;"></i> دفع آمن وموثوق
         </div>
       </div>
 
     </div>
 
-    <!-- Left Column (RTL): Express Purchase Console -->
+    <!-- Left Column (RTL): Purchase & Cart Console -->
     <div>
-      <div class="rq-pdp-purchase-card" style="padding: 1.5rem; border-radius: 22px; background: linear-gradient(165deg, rgba(16, 24, 45, 0.96) 0%, rgba(9, 14, 28, 0.99) 100%); border: 1px solid rgba(59, 130, 246, 0.25);">
+      <div class="rq-pdp-purchase-card">
 
         <!-- Product Title Header -->
-        <div style="margin-bottom: 1rem;">
+        <div style="margin-bottom: 1rem; padding-bottom: 0.85rem; border-bottom: 1px solid var(--rq-border);">
           {% if product.category %}
           <a href="{% url 'catalog' %}?category={{ product.category.id }}" class="rq-pdp-category-tag">
-            <i class="fas fa-tag text-[10px]"></i>
+            <i class="fas fa-tag text-xs"></i>
             <span>{{ product.category.name }}</span>
           </a>
           {% endif %}
-          <h1 class="rq-pdp-title" style="margin: 0.25rem 0 0; font-size: clamp(1.15rem, 2vw, 1.45rem);">{{ product.name }}</h1>
-        </div>
-
-        <!-- Visual 3-Step Indicator -->
-        <div class="rq-step-bar" style="padding: 0.65rem 0.9rem; margin-bottom: 1.25rem;">
-          <div class="rq-step-item active">
-            <span class="rq-step-dot">1</span>
-            <span>الباقة</span>
-          </div>
-          <div class="rq-step-line done"></div>
-          <div class="rq-step-item active">
-            <span class="rq-step-dot">2</span>
-            <span>البيانات</span>
-          </div>
-          <div class="rq-step-line done"></div>
-          <div class="rq-step-item active">
-            <span class="rq-step-dot">3</span>
-            <span>الدفع</span>
-          </div>
+          <h1 class="rq-pdp-title" style="margin: 0.25rem 0 0;">{{ product.name }}</h1>
         </div>
 
         <!-- Order Form -->
-        <form method="post" id="pdp-purchase-form" action="{% url 'product_detail' product.id %}">
+        <form method="post" id="pdp-purchase-form" action="{% url 'product_detail' product.id %}" onsubmit="const b=document.getElementById('pdp-submit-btn'); if(b && !b.disabled){b.dataset.submitting='1'; setTimeout(()=>{b.disabled=true;}, 10);}">
           {% csrf_token %}
 
           <input type="hidden" name="variant_id" id="selected-variant-id" value="{% if active_variant %}{{ active_variant.id }}{% elif variants.0 %}{{ variants.0.id }}{% endif %}">
@@ -187,9 +207,9 @@
           <!-- 1. Variants Selection -->
           {% if variants %}
           <div style="margin-bottom: 1.15rem;">
-            <div class="rq-pdp-variant-selector-title" style="margin-bottom: 0.5rem;">
-              <span>1. اختر الباقة</span>
-              <span style="font-size: 0.7rem; color: var(--rq-text-muted);">{{ variants|length }} خيارات</span>
+            <div class="rq-pdp-variant-selector-title">
+              <span>اختر الخيار / الباقة</span>
+              <span style="font-size: 0.72rem; color: var(--rq-text-muted);">{{ variants|length }} خيارات</span>
             </div>
 
             <div class="rq-pdp-variants-list">
@@ -198,14 +218,13 @@
                    data-variant-id="{{ v.id }}"
                    data-variant-name="{{ v.name|escape }}"
                    data-variant-price="{{ v.price|unlocalize }}"
-                   onclick="selectVariant(this)"
-                   style="padding: 0.7rem 0.95rem; border-radius: 12px;">
+                   onclick="selectVariant(this)">
                 <div style="display: flex; align-items: center; gap: 0.55rem;">
-                  <span style="width: 8px; height: 8px; border-radius: 50%; background: {% if not v.is_active or v.is_temporarily_disabled %}#f87171{% else %}#34d399{% endif %}; flex-shrink: 0;"></span>
+                  <span style="width: 8px; height: 8px; border-radius: 50%; background: {% if not v.is_active or v.is_temporarily_disabled %}var(--rq-rose){% else %}var(--rq-emerald){% endif %}; flex-shrink: 0;"></span>
                   <div>
                     <div class="rq-pdp-variant-name">{{ v.name }}</div>
                     {% if not v.is_active or v.is_temporarily_disabled %}
-                    <span style="font-size: 0.65rem; color: #f87171;">غير متاح</span>
+                    <span style="font-size: 0.68rem; color: var(--rq-rose);">غير متاح حالياً</span>
                     {% endif %}
                   </div>
                 </div>
@@ -220,17 +239,17 @@
 
           <!-- 2. Dynamic Custom Fields -->
           {% if product.form_schema and product.form_schema.fields %}
-          <div style="background: rgba(6, 10, 22, 0.55); border: 1px solid var(--rq-border); border-radius: 14px; padding: 1rem; margin-bottom: 1.15rem;">
-            <div style="font-size: 0.8rem; font-weight: 800; color: #60a5fa; margin-bottom: 0.75rem; display: flex; align-items: center; gap: 0.4rem;">
-              <i class="fas fa-pen-to-square"></i>
-              <span>بيانات الطلب</span>
+          <div style="background: var(--rq-bg-body); border: 1px solid var(--rq-border); border-radius: 12px; padding: 1rem; margin-bottom: 1.15rem;">
+            <div style="font-size: 0.82rem; font-weight: 800; color: var(--rq-navy); margin-bottom: 0.75rem; display: flex; align-items: center; gap: 0.4rem;">
+              <i class="fas fa-pen-to-square" style="color: var(--rq-accent);"></i>
+              <span>بيانات الطلب المطلوبة</span>
             </div>
 
             {% for field in product.form_schema.fields %}
             <div class="rq-form-group" style="margin-bottom: {% if forloop.last %}0{% else %}0.75rem{% endif %};">
               <label class="rq-label" style="margin-bottom: 0.3rem; font-size: 0.78rem;">
                 <span>{{ field.label|default:field.name }}</span>
-                {% if field.required %}<span style="color: #f87171;">*</span>{% endif %}
+                {% if field.required %}<span style="color: var(--rq-rose);">*</span>{% endif %}
               </label>
 
               {% if field.type == 'textarea' %}
@@ -252,10 +271,10 @@
 
           <!-- 3. Physical Product Shipping Fields -->
           {% if product.product_type == 'physical' and not product.form_schema.fields %}
-          <div style="background: rgba(6, 10, 22, 0.55); border: 1px solid var(--rq-border); border-radius: 14px; padding: 1rem; margin-bottom: 1.15rem;">
-            <div style="font-size: 0.8rem; font-weight: 800; color: #fbbf24; margin-bottom: 0.75rem; display: flex; align-items: center; gap: 0.4rem;">
-              <i class="fas fa-location-dot"></i>
-              <span>عنوان التوصيل</span>
+          <div style="background: var(--rq-bg-body); border: 1px solid var(--rq-border); border-radius: 12px; padding: 1rem; margin-bottom: 1.15rem;">
+            <div style="font-size: 0.82rem; font-weight: 800; color: var(--rq-navy); margin-bottom: 0.75rem; display: flex; align-items: center; gap: 0.4rem;">
+              <i class="fas fa-location-dot" style="color: var(--rq-accent);"></i>
+              <span>عنوان الشحن والتوصيل</span>
             </div>
 
             <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.6rem; margin-bottom: 0.6rem;">
@@ -266,18 +285,18 @@
           </div>
           {% endif %}
 
-          <!-- 4. Compact Quantity & Collapsible Coupon Row -->
-          <div style="display: flex; align-items: center; justify-content: space-between; gap: 0.75rem; padding: 0.65rem 0.9rem; background: rgba(255, 255, 255, 0.025); border: 1px solid var(--rq-border); border-radius: 12px; margin-bottom: 0.85rem;">
+          <!-- 4. Quantity Stepper & Coupon Toggle -->
+          <div style="display: flex; align-items: center; justify-content: space-between; gap: 0.75rem; padding: 0.65rem 0.9rem; background: var(--rq-bg-body); border: 1px solid var(--rq-border); border-radius: 12px; margin-bottom: 0.85rem;">
             <div style="display: flex; align-items: center; gap: 0.65rem;">
-              <span style="font-size: 0.82rem; font-weight: 800; color: #fff;">الكمية</span>
+              <span style="font-size: 0.84rem; font-weight: 800; color: var(--rq-navy);">الكمية</span>
               <div class="rq-qty-stepper">
                 <button type="button" class="rq-qty-btn" onclick="adjustQty(-1)">-</button>
-                <input type="number" name="quantity" id="pdp-quantity-input" value="1" min="1" max="99" class="rq-qty-num" style="background: transparent; border: none; outline: none; width: 36px; text-align: center; color: #fff; font-weight: 800;" onchange="recalculatePrice()">
+                <input type="number" name="quantity" id="pdp-quantity-input" value="1" min="1" max="{% if product.track_inventory and product.quantity > 0 %}{{ product.quantity }}{% else %}99{% endif %}" class="rq-qty-num" style="background: transparent; border: none; outline: none; width: 38px; text-align: center; color: var(--rq-navy); font-weight: 800;" onchange="recalculatePrice()">
                 <button type="button" class="rq-qty-btn" onclick="adjustQty(1)">+</button>
               </div>
             </div>
 
-            <button type="button" onclick="toggleCouponBox()" style="background: transparent; border: none; color: #60a5fa; font-size: 0.76rem; font-weight: 800; cursor: pointer; display: inline-flex; align-items: center; gap: 0.35rem; padding: 0.25rem 0.5rem;">
+            <button type="button" onclick="toggleCouponBox()" style="background: transparent; border: none; color: var(--rq-accent); font-size: 0.78rem; font-weight: 800; cursor: pointer; display: inline-flex; align-items: center; gap: 0.35rem; padding: 0.25rem 0.5rem;">
               <i class="fas fa-ticket"></i>
               <span>لديك كود خصم؟</span>
             </button>
@@ -291,14 +310,14 @@
                 تطبيق
               </button>
             </div>
-            <div id="coupon-feedback" style="font-size: 0.72rem; margin-top: 0.35rem; display: none;"></div>
+            <div id="coupon-feedback" style="font-size: 0.74rem; margin-top: 0.35rem; display: none; font-weight: 700;"></div>
           </div>
 
-          <!-- 5. Payment Method Selector (Clean & Direct) -->
-          <div style="margin-bottom: 1.25rem;">
+          <!-- 5. Payment Method Selector (Wallet, ShamCash, Paymera) -->
+          <div style="margin-bottom: 1.15rem;">
             <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.55rem;">
-              <span style="font-size: 0.82rem; font-weight: 800; color: #e2e8f0;">طريقة الدفع</span>
-              <span id="pdp-active-pm-badge" style="font-size: 0.7rem; font-weight: 800; color: #38bdf8; background: rgba(56, 189, 248, 0.12); padding: 0.15rem 0.55rem; border-radius: 9999px; border: 1px solid rgba(56, 189, 248, 0.3);">
+              <span style="font-size: 0.84rem; font-weight: 800; color: var(--rq-navy);">طريقة الدفع المباشر</span>
+              <span id="pdp-active-pm-badge" style="font-size: 0.72rem; font-weight: 800; color: var(--rq-primary); background: var(--rq-primary-soft); padding: 0.15rem 0.6rem; border-radius: 9999px; border: 1px solid #bfdbfe;">
                 المحفظة
               </span>
             </div>
@@ -308,12 +327,12 @@
             <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(115px, 1fr)); gap: 0.5rem;" id="pdp-pm-buttons-grid">
               
               <!-- Wallet Card -->
-              <div class="pdp-pm-card active" id="pm-btn-wallet" onclick="selectPdpMethod('wallet', 'wallet', this, 'المحفظة')" style="display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 0.3rem; padding: 0.7rem 0.45rem; border-radius: 12px; background: rgba(56, 189, 248, 0.1); border: 2px solid #38bdf8; cursor: pointer; transition: all 0.2s; text-align: center;">
+              <div class="pdp-pm-card active" id="pm-btn-wallet" onclick="selectPdpMethod('wallet', 'wallet', this, 'المحفظة')" style="display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 0.3rem; padding: 0.7rem 0.45rem; border-radius: 12px; background: var(--rq-primary-soft); border: 2px solid var(--rq-accent); cursor: pointer; transition: all 0.2s; text-align: center;">
                 <div style="display: flex; align-items: center; gap: 0.35rem;">
-                  <i class="fas fa-wallet text-sky-400" style="font-size: 1rem;"></i>
-                  <span style="font-size: 0.82rem; font-weight: 800; color: #fff;">المحفظة</span>
+                  <i class="fas fa-wallet" style="font-size: 0.95rem; color: var(--rq-accent);"></i>
+                  <span style="font-size: 0.82rem; font-weight: 800; color: var(--rq-navy);">المحفظة</span>
                 </div>
-                <div style="font-size: 0.68rem; color: #34d399; font-weight: 700;">
+                <div style="font-size: 0.7rem; color: var(--rq-emerald); font-weight: 800;">
                   {% if user.is_authenticated and user.wallet %}
                   {% format_price user.wallet.available_balance %}
                   {% else %}
@@ -326,17 +345,17 @@
               {% for gw in gateway_methods %}
               <div class="pdp-pm-card" id="pm-btn-{{ gw.code }}"
                    onclick="selectPdpMethod('{{ gw.id }}', '{{ gw.code }}', this, '{{ gw.name|escapejs }}')"
-                   style="display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 0.3rem; padding: 0.7rem 0.45rem; border-radius: 12px; background: rgba(0, 0, 0, 0.3); border: 2px solid var(--rq-border); cursor: pointer; transition: all 0.2s; text-align: center;">
+                   style="display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 0.3rem; padding: 0.7rem 0.45rem; border-radius: 12px; background: var(--rq-bg-body); border: 2px solid var(--rq-border); cursor: pointer; transition: all 0.2s; text-align: center;">
                 <div style="display: flex; align-items: center; gap: 0.4rem;">
                   {% if gw.logo %}
                   <img src="{{ gw.logo }}" alt="{{ gw.name }}" style="height: 22px; width: 22px; object-fit: contain;">
                   {% else %}
-                  <i class="fas fa-credit-card text-emerald-400" style="font-size: 0.95rem;"></i>
+                  <i class="fas fa-credit-card" style="font-size: 0.95rem; color: var(--rq-accent);"></i>
                   {% endif %}
-                  <span style="font-size: 0.82rem; font-weight: 800; color: #fff;">{{ gw.name }}</span>
+                  <span style="font-size: 0.82rem; font-weight: 800; color: var(--rq-navy);">{{ gw.name }}</span>
                 </div>
-                <div style="font-size: 0.65rem; font-weight: 800; {% if gw.code == 'sham_cash' %}color: #00C9A7; background: rgba(0, 201, 167, 0.14);{% elif gw.code == 'paymera' %}color: #a78bfa; background: rgba(139, 92, 246, 0.14);{% else %}color: #34d399; background: rgba(52, 211, 153, 0.14);{% endif %} padding: 0.12rem 0.45rem; border-radius: 9999px;">
-                  {% if gw.code == 'sham_cash' %}⚡ دفع مباشر{% elif gw.code == 'paymera' %}💳 بطاقة{% else %}فوري{% endif %}
+                <div style="font-size: 0.66rem; font-weight: 800; color: var(--rq-text-secondary); background: #ffffff; border: 1px solid var(--rq-border); padding: 0.1rem 0.45rem; border-radius: 9999px;">
+                  {% if gw.code == 'sham_cash' %}دفع مباشر{% elif gw.code == 'paymera' %}بطاقة إلكترونية{% else %}فوري{% endif %}
                 </div>
               </div>
               {% endfor %}
@@ -345,53 +364,60 @@
             </div>
 
             <!-- ShamCash Dual Currency Box -->
-            <div id="shamcash-currency-box" style="display: none; margin-top: 0.65rem; padding: 0.75rem; border-radius: 12px; background: rgba(0, 201, 167, 0.08); border: 1px solid rgba(0, 201, 167, 0.35);">
-              <div style="font-size: 0.75rem; font-weight: 800; color: #00C9A7; margin-bottom: 0.45rem;">عملة الدفع في شام كاش:</div>
+            <div id="shamcash-currency-box" style="display: none; margin-top: 0.65rem; padding: 0.8rem; border-radius: 12px; background: var(--rq-emerald-soft); border: 1px solid #a7f3d0;">
+              <div style="font-size: 0.78rem; font-weight: 800; color: #065f46; margin-bottom: 0.45rem;">عملة الدفع في شام كاش:</div>
               <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.45rem;">
-                <label id="shamcash-curr-usd-label" onclick="selectShamCashCurrency('USD')" style="display: flex; align-items: center; justify-content: center; gap: 0.35rem; padding: 0.45rem 0.5rem; border-radius: 8px; background: rgba(0, 201, 167, 0.2); border: 1.5px solid #00C9A7; cursor: pointer;">
-                  <input type="radio" name="gateway_currency" value="USD" checked onchange="updateShamCashDisplay()" style="accent-color: #00C9A7;">
-                  <span style="font-size: 0.76rem; font-weight: 800; color: #fff;">دولار (USD)</span>
+                <label id="shamcash-curr-usd-label" onclick="selectShamCashCurrency('USD')" style="display: flex; align-items: center; justify-content: center; gap: 0.35rem; padding: 0.45rem 0.5rem; border-radius: 8px; background: #ffffff; border: 1.5px solid var(--rq-emerald); cursor: pointer;">
+                  <input type="radio" name="gateway_currency" value="USD" checked onchange="updateShamCashDisplay()" style="accent-color: var(--rq-emerald);">
+                  <span style="font-size: 0.78rem; font-weight: 800; color: var(--rq-navy);">دولار (USD)</span>
                 </label>
-                <label id="shamcash-curr-syp-label" onclick="selectShamCashCurrency('SYP')" style="display: flex; align-items: center; justify-content: center; gap: 0.35rem; padding: 0.45rem 0.5rem; border-radius: 8px; background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.1); cursor: pointer;">
-                  <input type="radio" name="gateway_currency" value="SYP" onchange="updateShamCashDisplay()" style="accent-color: #00C9A7;">
-                  <span style="font-size: 0.76rem; font-weight: 800; color: #fff;">ليرة (SYP)</span>
+                <label id="shamcash-curr-syp-label" onclick="selectShamCashCurrency('SYP')" style="display: flex; align-items: center; justify-content: center; gap: 0.35rem; padding: 0.45rem 0.5rem; border-radius: 8px; background: #ffffff; border: 1px solid var(--rq-border); cursor: pointer;">
+                  <input type="radio" name="gateway_currency" value="SYP" onchange="updateShamCashDisplay()" style="accent-color: var(--rq-emerald);">
+                  <span style="font-size: 0.78rem; font-weight: 800; color: var(--rq-navy);">ليرة (SYP)</span>
                 </label>
               </div>
-              <div id="shamcash-conversion-hint" style="display: none; margin-top: 0.45rem; padding: 0.4rem 0.6rem; border-radius: 6px; background: rgba(0, 0, 0, 0.35); font-size: 0.74rem; color: #34d399; font-weight: 800; text-align: center;">
-                المبلغ بالليرة: <span id="shamcash-syp-preview" class="font-mono text-amber-300">0</span> ل.س
+              <div id="shamcash-conversion-hint" style="display: none; margin-top: 0.45rem; padding: 0.4rem 0.6rem; border-radius: 6px; background: #ffffff; border: 1px solid #a7f3d0; font-size: 0.76rem; color: #047857; font-weight: 800; text-align: center;">
+                المبلغ بالليرة: <span id="shamcash-syp-preview" class="tabular-nums" style="color: var(--rq-navy);">0</span> ل.س
               </div>
             </div>
 
           </div>
 
-          <!-- 6. Crisp Total & 1-Click Submit -->
-          <div style="background: rgba(6, 10, 22, 0.65); border-radius: 14px; border: 1px solid var(--rq-border); padding: 0.85rem 1rem; margin-bottom: 1rem;">
-            <div style="display: flex; align-items: center; justify-content: space-between; font-size: 0.78rem; color: var(--rq-text-muted); margin-bottom: 0.25rem;">
+          <!-- 6. Order Summary Box -->
+          <div style="background: var(--rq-bg-body); border-radius: 12px; border: 1px solid var(--rq-border); padding: 0.85rem 1rem; margin-bottom: 1rem;">
+            <div style="display: flex; align-items: center; justify-content: space-between; font-size: 0.8rem; color: var(--rq-text-secondary); margin-bottom: 0.25rem;">
               <span>سعر الوحدة:</span>
-              <span id="pdp-unit-price" class="tabular-nums font-mono" style="color: #cbd5e1;">-</span>
+              <span id="pdp-unit-price" class="tabular-nums font-bold" style="color: var(--rq-navy);">-</span>
             </div>
-            <div id="pdp-discount-row" style="display: none; align-items: center; justify-content: space-between; margin-bottom: 0.25rem; font-size: 0.78rem; color: #34d399;">
+            <div id="pdp-discount-row" style="display: none; align-items: center; justify-content: space-between; margin-bottom: 0.25rem; font-size: 0.8rem; color: var(--rq-emerald);">
               <span>الخصم:</span>
-              <span id="pdp-discount-amount" class="tabular-nums font-mono">-</span>
+              <span id="pdp-discount-amount" class="tabular-nums font-bold">-</span>
             </div>
-            <div style="display: flex; align-items: center; justify-content: space-between; padding-top: 0.4rem; border-top: 1px solid var(--rq-border); font-size: 0.95rem; font-weight: 900; color: #fff;">
+            <div style="display: flex; align-items: center; justify-content: space-between; padding-top: 0.45rem; border-top: 1px solid var(--rq-border); font-size: 0.95rem; font-weight: 900; color: var(--rq-navy);">
               <span>الإجمالي:</span>
-              <span id="pdp-total-price" class="tabular-nums font-mono" style="color: #fbbf24; font-size: 1.25rem;">
+              <span id="pdp-total-price" class="tabular-nums" style="color: var(--rq-accent); font-size: 1.25rem;">
                 {% if active_variant %}{% format_price active_variant.price %}{% elif variants.0 %}{% format_price variants.0.price %}{% else %}-{% endif %}
               </span>
             </div>
           </div>
 
+          <!-- 7. Clear Separated Action Buttons: Add to Cart & Direct Buy Now -->
           {% if is_inactive_product or product.is_out_of_stock or not product.is_active %}
           <button type="button" class="rq-pdp-buy-now" disabled>
             <i class="fas fa-ban"></i>
             <span>غير متوفر حالياً</span>
           </button>
           {% else %}
-          <button type="submit" id="pdp-submit-btn" class="rq-pdp-buy-now">
-            <i class="fas fa-bolt"></i>
-            <span>شراء الآن</span>
-          </button>
+          <div style="display: grid; grid-template-columns: 1fr 1.35fr; gap: 0.65rem;">
+            <button type="button" onclick="addToCartFromPdp()" class="rq-btn-secondary" style="height: 48px; font-weight: 800; border-color: var(--rq-accent); color: var(--rq-accent);">
+              <i class="fas fa-cart-plus"></i>
+              <span>إضافة إلى السلة</span>
+            </button>
+            <button type="submit" id="pdp-submit-btn" class="rq-pdp-buy-now">
+              <i class="fas fa-bolt"></i>
+              <span>شراء فوري</span>
+            </button>
+          </div>
           {% endif %}
 
         </form>
@@ -401,11 +427,71 @@
 
   </div>
 
+  <!-- 4. Related Products Section -->
+  {% if related_products %}
+  <section style="margin-top: 3.25rem; padding-top: 2rem; border-top: 1px solid var(--rq-border);">
+    <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.25rem;">
+      <h2 style="font-size: 1.25rem; font-weight: 900; color: var(--rq-navy); margin: 0;">منتجات ذات صلة</h2>
+      {% if product.category %}
+      <a href="{% url 'catalog' %}?category={{ product.category.id }}" class="rq-section-link">
+        <span>المزيد في {{ product.category.name }}</span>
+        <i class="fas fa-arrow-left text-xs"></i>
+      </a>
+      {% endif %}
+    </div>
+
+    <div class="rq-product-grid" style="margin-bottom: 0;">
+      {% for rp in related_products %}
+      {% product_display_image rp as rp_img %}
+      <article class="rq-card">
+        <div>
+          <a href="{% url 'product_detail' rp.id %}" class="rq-card-media">
+            <img src="{{ rp_img }}" alt="{{ rp.name }}" loading="lazy" onerror="this.onerror=null; this.src='{% static 'site/img/raqamiyat_logo_square.jpg' %}';">
+          </a>
+          <span class="rq-card-category">{{ rp.category.name|default:'منتج معتمد' }}</span>
+          <h3 class="rq-card-title">
+            <a href="{% url 'product_detail' rp.id %}">{{ rp.name }}</a>
+          </h3>
+        </div>
+        <div class="rq-card-footer">
+          <div>
+            <span class="rq-card-price-label">السعر</span>
+            <span class="tabular-nums rq-price-val">{% product_starting_price rp %}</span>
+          </div>
+          <div style="display: flex; align-items: center; gap: 0.4rem;">
+            <button type="button" onclick="addToCartAjax('{{ rp.id }}', '', 1)" class="rq-card-cart-btn" title="إضافة إلى السلة">
+              <i class="fas fa-cart-plus text-xs"></i>
+            </button>
+            <a href="{% url 'product_detail' rp.id %}" class="rq-card-buy-btn">
+              <span>شراء</span>
+              <i class="fas fa-arrow-left text-xs"></i>
+            </a>
+          </div>
+        </div>
+      </article>
+      {% endfor %}
+    </div>
+  </section>
+  {% endif %}
+
 </div>
 
 <script>
 let currentPrice = {% if active_variant %}{{ active_variant.price|unlocalize }}{% elif variants.0 %}{{ variants.0.price|unlocalize }}{% else %}0{% endif %};
 let discountPercentage = 0;
+
+function switchMainPdpImage(url, thumbBtn) {
+  const mainImg = document.getElementById('pdp-main-image');
+  if (mainImg && url) mainImg.src = url;
+  document.querySelectorAll('.rq-pdp-thumb').forEach(b => b.classList.remove('active'));
+  if (thumbBtn) thumbBtn.classList.add('active');
+}
+
+function addToCartFromPdp() {
+  const varId = document.getElementById('selected-variant-id') ? document.getElementById('selected-variant-id').value : '';
+  const qty = document.getElementById('pdp-quantity-input') ? document.getElementById('pdp-quantity-input').value : 1;
+  addToCartAjax('{{ product.id }}', varId, qty);
+}
 
 function toggleCouponBox() {
   const box = document.getElementById('pdp-coupon-drawer');
@@ -428,8 +514,9 @@ function selectVariant(element) {
 
 function adjustQty(delta) {
   const input = document.getElementById('pdp-quantity-input');
+  const maxQty = parseInt(input.getAttribute('max')) || 99;
   let val = parseInt(input.value) || 1;
-  val = Math.max(1, Math.min(99, val + delta));
+  val = Math.max(1, Math.min(maxQty, val + delta));
   input.value = val;
   recalculatePrice();
 }
@@ -467,7 +554,7 @@ function applyCoupon() {
 
   if (!code) {
     feedback.style.display = 'block';
-    feedback.style.color = '#f87171';
+    feedback.style.color = '#b91c1c';
     feedback.innerText = 'أدخل كود الخصم أولاً.';
     return;
   }
@@ -477,18 +564,21 @@ function applyCoupon() {
     .then(data => {
       feedback.style.display = 'block';
       if (data.valid) {
-        feedback.style.color = '#34d399';
-        feedback.innerText = `✓ خصم ${data.discount_percent || 0}% مفعل`;
-        discountPercentage = parseFloat(data.discount_percent) || 0;
+        feedback.style.color = '#047857';
+        feedback.innerText = data.message || 'تم تطبيق الكوبون بنجاح';
+        if (data.new_total !== undefined && currentPrice > 0) {
+          const subtotal = currentPrice * (parseInt(qty) || 1);
+          discountPercentage = subtotal > 0 ? ((subtotal - parseFloat(data.new_total)) / subtotal) * 100 : 0;
+        }
         recalculatePrice();
       } else {
-        feedback.style.color = '#f87171';
+        feedback.style.color = '#b91c1c';
         feedback.innerText = data.error || 'الكود غير صالح.';
       }
     })
     .catch(() => {
       feedback.style.display = 'block';
-      feedback.style.color = '#f87171';
+      feedback.style.color = '#b91c1c';
       feedback.innerText = 'تعذر التحقق من الكود.';
     });
 }
@@ -505,7 +595,7 @@ function selectPdpMethod(val, code, cardEl, gwName) {
 
   document.querySelectorAll('.pdp-pm-card').forEach(c => {
     c.style.borderColor = 'var(--rq-border)';
-    c.style.background = 'rgba(0, 0, 0, 0.3)';
+    c.style.background = 'var(--rq-bg-body)';
     c.classList.remove('active');
   });
 
@@ -522,70 +612,59 @@ function selectPdpMethod(val, code, cardEl, gwName) {
 
   if (isSham) {
     if (cardEl && cardEl.style) {
-      cardEl.style.borderColor = '#00C9A7';
-      cardEl.style.background = 'rgba(0, 201, 167, 0.12)';
+      cardEl.style.borderColor = 'var(--rq-emerald)';
+      cardEl.style.background = 'var(--rq-emerald-soft)';
     }
     const displayName = gwName || 'شام كاش';
     if (badge) {
-      badge.style.color = '#00C9A7';
-      badge.style.background = 'rgba(0, 201, 167, 0.15)';
-      badge.style.borderColor = 'rgba(0, 201, 167, 0.3)';
+      badge.style.color = '#047857';
+      badge.style.background = 'var(--rq-emerald-soft)';
+      badge.style.borderColor = '#a7f3d0';
       badge.innerText = displayName;
     }
     if (shamBox) shamBox.style.display = 'block';
     if (submitBtn) {
-      submitBtn.innerHTML = `<i class="fas fa-bolt"></i> <span>شراء مباشر • ${displayName} ⚡</span>`;
-      submitBtn.style.background = 'linear-gradient(135deg, #00C9A7 0%, #008f75 100%)';
-      submitBtn.style.boxShadow = '0 4px 20px rgba(0, 201, 167, 0.4)';
+      submitBtn.innerHTML = `<i class="fas fa-bolt"></i> <span>شراء مباشر • ${displayName}</span>`;
+      submitBtn.style.background = '#059669';
+      submitBtn.style.borderColor = '#059669';
     }
     updateShamCashDisplay();
   } else if (isPaymera) {
     if (cardEl && cardEl.style) {
-      cardEl.style.borderColor = '#8b5cf6';
-      cardEl.style.background = 'rgba(139, 92, 246, 0.12)';
+      cardEl.style.borderColor = 'var(--rq-accent)';
+      cardEl.style.background = 'var(--rq-primary-soft)';
     }
     const displayName = gwName || 'بيميرا';
     if (badge) {
-      badge.style.color = '#a78bfa';
-      badge.style.background = 'rgba(139, 92, 246, 0.15)';
-      badge.style.borderColor = 'rgba(139, 92, 246, 0.3)';
+      badge.style.color = 'var(--rq-primary)';
+      badge.style.background = 'var(--rq-primary-soft)';
+      badge.style.borderColor = '#bfdbfe';
       badge.innerText = displayName;
     }
     if (shamBox) shamBox.style.display = 'none';
     if (submitBtn) {
-      submitBtn.innerHTML = `<i class="fas fa-credit-card"></i> <span>دفع بالبطاقة • ${displayName} 💳</span>`;
-      submitBtn.style.background = 'linear-gradient(135deg, #7c3aed 0%, #6d28d9 100%)';
-      submitBtn.style.boxShadow = '0 4px 20px rgba(124, 58, 237, 0.4)';
+      submitBtn.innerHTML = `<i class="fas fa-credit-card"></i> <span>دفع • ${displayName}</span>`;
+      submitBtn.style.background = 'var(--rq-primary)';
+      submitBtn.style.borderColor = 'var(--rq-primary)';
     }
   } else {
     if (cardEl && cardEl.style) {
-      cardEl.style.borderColor = '#38bdf8';
-      cardEl.style.background = 'rgba(56, 189, 248, 0.1)';
+      cardEl.style.borderColor = 'var(--rq-accent)';
+      cardEl.style.background = 'var(--rq-primary-soft)';
     }
     if (badge) {
-      badge.style.color = '#38bdf8';
-      badge.style.background = 'rgba(56, 189, 248, 0.12)';
-      badge.style.borderColor = 'rgba(56, 189, 248, 0.25)';
+      badge.style.color = 'var(--rq-primary)';
+      badge.style.background = 'var(--rq-primary-soft)';
+      badge.style.borderColor = '#bfdbfe';
       badge.innerText = 'المحفظة';
     }
     if (shamBox) shamBox.style.display = 'none';
     if (submitBtn) {
-      submitBtn.innerHTML = '<i class="fas fa-bolt"></i> <span>شراء الآن من المحفظة</span>';
+      submitBtn.innerHTML = '<i class="fas fa-bolt"></i> <span>شراء فوري</span>';
       submitBtn.style.background = '';
-      submitBtn.style.boxShadow = '';
+      submitBtn.style.borderColor = '';
     }
   }
-}
-
-function handlePaymentMethodChange(radio) {
-  const code = (radio.getAttribute('data-gw-code') || '').toLowerCase();
-  const val = (radio.value || '').toLowerCase();
-  const isShamCash = (code === 'sham_cash' || val.includes('sham'));
-  const shamBox = document.getElementById('shamcash-currency-box');
-  if (shamBox) {
-    shamBox.style.display = isShamCash ? 'block' : 'none';
-  }
-  updateShamCashDisplay();
 }
 
 function selectShamCashCurrency(curr) {
@@ -609,15 +688,15 @@ function updateShamCashDisplay() {
 
   if (usdLabel && sypLabel) {
     if (isSYP) {
-      sypLabel.style.background = 'rgba(0, 201, 167, 0.22)';
-      sypLabel.style.borderColor = '#00C9A7';
-      usdLabel.style.background = 'rgba(0, 0, 0, 0.3)';
-      usdLabel.style.borderColor = 'rgba(255, 255, 255, 0.1)';
+      sypLabel.style.borderColor = 'var(--rq-emerald)';
+      sypLabel.style.borderWidth = '1.5px';
+      usdLabel.style.borderColor = 'var(--rq-border)';
+      usdLabel.style.borderWidth = '1px';
     } else {
-      usdLabel.style.background = 'rgba(0, 201, 167, 0.22)';
-      usdLabel.style.borderColor = '#00C9A7';
-      sypLabel.style.background = 'rgba(0, 0, 0, 0.3)';
-      sypLabel.style.borderColor = 'rgba(255, 255, 255, 0.1)';
+      usdLabel.style.borderColor = 'var(--rq-emerald)';
+      usdLabel.style.borderWidth = '1.5px';
+      sypLabel.style.borderColor = 'var(--rq-border)';
+      sypLabel.style.borderWidth = '1px';
     }
   }
 
@@ -647,21 +726,15 @@ function updateShamCashDisplay() {
       const sypRate = {{ syp_rate|default:15000 }};
       const rawTotal = CURRENCY_DECIMAL_PLACES === 0 ? Math.round(total) : total;
       const totalSYP = Math.round(rawTotal * sypRate);
-      submitBtn.innerHTML = `<i class="fas fa-bolt"></i> <span>شراء عبر شام كاش (${totalSYP.toLocaleString()} ل.س) ⚡</span>`;
+      submitBtn.innerHTML = `<i class="fas fa-bolt"></i> <span>شراء عبر شام كاش (${totalSYP.toLocaleString()} ل.س)</span>`;
     } else {
-      submitBtn.innerHTML = `<i class="fas fa-bolt"></i> <span>شراء عبر شام كاش ($${displayTotal}) ⚡</span>`;
+      submitBtn.innerHTML = `<i class="fas fa-bolt"></i> <span>شراء عبر شام كاش ($${displayTotal})</span>`;
     }
-    submitBtn.style.background = 'linear-gradient(135deg, #00C9A7 0%, #008080 100%)';
-    submitBtn.style.boxShadow = '0 4px 20px rgba(0, 201, 167, 0.4)';
   }
 }
 
 document.addEventListener('DOMContentLoaded', () => {
   recalculatePrice();
-  const checkedMethod = document.querySelector('input[name="payment_method"]:checked');
-  if (checkedMethod) {
-    handlePaymentMethodChange(checkedMethod);
-  }
 });
 </script>
 {% endblock %}
