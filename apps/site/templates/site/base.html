@@ -585,40 +585,45 @@
   </footer>
 
   <!-- ====================================================================
-       7. MOBILE BOTTOM NAVIGATION BAR (WITH MY ORDERS TAB)
+       7. MOBILE BOTTOM NAVIGATION BAR (WITH MY WALLET & MY ORDERS)
        ==================================================================== -->
   <nav class="rq-bottom-nav" aria-label="التنقل السفلي للهاتف">
     <a href="{% url 'home' %}" class="rq-bottom-nav-item {% if request.resolver_match.url_name == 'home' %}active{% endif %}">
       <i class="fas fa-home"></i>
       <span>الرئيسية</span>
     </a>
-    <a href="{% url 'catalog' %}" class="rq-bottom-nav-item {% if request.resolver_match.url_name == 'catalog' %}active{% endif %}">
+    <a href="{% url 'catalog' %}" class="rq-bottom-nav-item {% if request.resolver_match.url_name == 'catalog' or request.resolver_match.url_name == 'product_detail' %}active{% endif %}">
       <i class="fas fa-th-large"></i>
       <span>المنتجات</span>
+    </a>
+    <a href="{% url 'dashboard_wallet' %}" class="rq-bottom-nav-item rq-bottom-nav-wallet {% if 'wallet' in request.path or 'deposit' in request.path or 'withdraw' in request.path or request.resolver_match.url_name == 'dashboard_wallet' or request.resolver_match.url_name == 'dashboard_deposits' or request.resolver_match.url_name == 'dashboard_withdrawals' %}active{% endif %}">
+      <div class="rq-nav-wallet-icon-wrap">
+        <i class="fas fa-wallet"></i>
+      </div>
+      <span>محفظتي</span>
     </a>
     <a href="{% url 'dashboard_orders' %}" class="rq-bottom-nav-item {% if 'orders' in request.path or request.resolver_match.url_name == 'dashboard_orders' or request.resolver_match.url_name == 'order_detail' %}active{% endif %}">
       <i class="fas fa-receipt"></i>
       <span>طلباتي</span>
     </a>
-    <button type="button" onclick="toggleCartDrawer(true)" class="rq-bottom-nav-item" style="background: none; border: none; cursor: pointer;">
-      <div style="position: relative; display: inline-flex;">
-        <i class="fas fa-shopping-bag"></i>
-        <span class="rq-cart-badge" style="position: absolute; top: -7px; right: -10px; width: 17px; height: 17px; font-size: 0.62rem; min-width: 17px; padding: 0;">{{ cart_items_count|default:0 }}</span>
-      </div>
-      <span>السلة</span>
-    </button>
     {% if user.is_authenticated %}
-    <a href="{% url 'dashboard' %}" class="rq-bottom-nav-item {% if 'dashboard' in request.path and not 'orders' in request.path %}active{% endif %}">
+    <a href="{% url 'dashboard' %}" class="rq-bottom-nav-item {% if request.resolver_match.url_name == 'dashboard' or request.resolver_match.url_name == 'change_password' %}active{% endif %}">
       <i class="fas fa-user-circle"></i>
       <span>حسابي</span>
     </a>
     {% else %}
-    <a href="{% url 'site_login' %}" class="rq-bottom-nav-item {% if request.resolver_match.url_name == 'site_login' %}active{% endif %}">
+    <a href="{% url 'site_login' %}" class="rq-bottom-nav-item {% if request.resolver_match.url_name == 'site_login' or request.resolver_match.url_name == 'site_register' %}active{% endif %}">
       <i class="fas fa-sign-in-alt"></i>
       <span>دخول</span>
     </a>
     {% endif %}
   </nav>
+
+  <!-- Mobile Floating Cart Pill (Shown when cart has items) -->
+  <button type="button" onclick="toggleCartDrawer(true)" class="rq-floating-cart-btn lg:hidden {% if not cart_items_count or cart_items_count == 0 %}rq-cart-empty{% endif %}" id="rq-mobile-floating-cart" aria-label="عرض سلة التسوق" title="سلة التسوق">
+    <i class="fas fa-shopping-bag"></i>
+    <span class="rq-cart-badge" id="rq-floating-cart-count">{{ cart_items_count|default:0 }}</span>
+  </button>
   {% endif %}
 
   <!-- Global Interactive Scripts (Theme Toggle, Drawers, AJAX Cart) -->

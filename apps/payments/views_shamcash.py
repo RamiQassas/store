@@ -391,9 +391,10 @@ def shamcash_redirect_view(request):
 
             if deposit:
                 # Active fallback verification if still pending
-                if deposit.status == DepositRequest.Status.PENDING and client and bill_no:
+                active_bill_no = bill_no or getattr(deposit, "gateway_payment_id", "")
+                if deposit.status == DepositRequest.Status.PENDING and client and active_bill_no:
                     try:
-                        bill_info = client.get_bill_info(bill_no)
+                        bill_info = client.get_bill_info(active_bill_no)
                         status_id = bill_info.get("statusId")
                         if status_id == ShamCashClient.STATUS_PAID:
                             _complete_successful_shamcash_deposit(deposit, bill_info.get("tranId"), bill_info)
@@ -421,16 +422,17 @@ def shamcash_redirect_view(request):
 
             if order:
                 # Active fallback verification if still pending
-                if order.status == Order.Status.PENDING and client and bill_no:
+                active_bill_no = bill_no or (order.metadata.get("gateway_payment_id") if order.metadata else "") or getattr(order, "order_number", "")
+                if order.status == Order.Status.PENDING and client and active_bill_no:
                     try:
-                        bill_info = client.get_bill_info(bill_no)
+                        bill_info = client.get_bill_info(active_bill_no)
                         status_id = bill_info.get("statusId")
                         if status_id == ShamCashClient.STATUS_PAID:
                             gateway_data = {
                                 "status": "A",
-                                "id": str(bill_info.get("tranId") or bill_no),
+                                "id": str(bill_info.get("tranId") or active_bill_no),
                                 "tran_id": bill_info.get("tranId"),
-                                "bill_no": bill_no,
+                                "bill_no": active_bill_no,
                                 "provider": "sham_cash",
                                 "payload": bill_info,
                             }

@@ -11847,6 +11847,31 @@ def payment_status_view(request):
             with bypass_tenant_filter():
                 deposit = DepositRequest.all_objects.filter(pk=obj_id).first()
         if deposit:
+            # Active realtime verification with ShamCash if still pending
+            if deposit.status == DepositRequest.Status.PENDING and deposit.payment_method and getattr(deposit.payment_method, "gateway", None):
+                gw = deposit.payment_method.gateway
+                if getattr(gw, "provider", "") == "sham_cash":
+                    try:
+                        from apps.payments.gateways.shamcash import ShamCashClient, _get_active_shamcash_integration
+                        from apps.payments.views_shamcash import _complete_successful_shamcash_deposit
+                        integration = _get_active_shamcash_integration()
+                        active_bill = deposit.gateway_payment_id or ""
+                        if integration and active_bill:
+                            client = ShamCashClient.from_integration(integration)
+                            bill_info = client.get_bill_info(active_bill)
+                            status_id = bill_info.get("statusId")
+                            if status_id == ShamCashClient.STATUS_PAID:
+                                _complete_successful_shamcash_deposit(deposit, bill_info.get("tranId"), bill_info)
+                                deposit.refresh_from_db()
+                            elif status_id == ShamCashClient.STATUS_EXPIRED:
+                                deposit.status = DepositRequest.Status.REJECTED
+                                deposit.admin_note = "انتهت صلاحية الفاتورة دون دفع."
+                                deposit.save(update_fields=["status", "admin_note", "updated_at"])
+                                deposit.refresh_from_db()
+                    except Exception as err:
+                        import logging
+                        logging.getLogger(__name__).warning(f"Could not actively check ShamCash bill in payment_status_view: {err}")
+
             reference = deposit.gateway_payment_id or str(deposit.id)[:8]
             tran_id = deposit.transaction_id or ""
             amount_display = f"{deposit.amount:,.2f} {deposit.currency.code}"
@@ -11883,6 +11908,38 @@ def payment_status_view(request):
             with bypass_tenant_filter():
                 order = Order.all_objects.filter(pk=obj_id).first()
         if order:
+            # Active realtime verification with ShamCash if still pending
+            if order.status == Order.Status.PENDING:
+                active_bill = (order.metadata.get("gateway_payment_id") if order.metadata else "") or getattr(order, "order_number", "")
+                if active_bill:
+                    try:
+                        from apps.payments.gateways.shamcash import ShamCashClient, _get_active_shamcash_integration
+                        from apps.orders.services import finalize_paid_gateway_order
+                        integration = _get_active_shamcash_integration()
+                        if integration:
+                            client = ShamCashClient.from_integration(integration)
+                            bill_info = client.get_bill_info(active_bill)
+                            status_id = bill_info.get("statusId")
+                            if status_id == ShamCashClient.STATUS_PAID:
+                                gateway_data = {
+                                    "status": "A",
+                                    "id": str(bill_info.get("tranId") or active_bill),
+                                    "tran_id": bill_info.get("tranId"),
+                                    "bill_no": active_bill,
+                                    "provider": "sham_cash",
+                                    "payload": bill_info,
+                                }
+                                finalize_paid_gateway_order(order, gateway_data)
+                                order.refresh_from_db()
+                            elif status_id == ShamCashClient.STATUS_EXPIRED:
+                                order.status = Order.Status.CANCELLED
+                                order.admin_note = "انتهت مهلة الدفع في شام كاش."
+                                order.save(update_fields=["status", "admin_note", "updated_at"])
+                                order.refresh_from_db()
+                    except Exception as err:
+                        import logging
+                        logging.getLogger(__name__).warning(f"Could not actively check ShamCash order in payment_status_view: {err}")
+
             redirect_url = reverse("dashboard_order_detail", kwargs={"pk": order.id})
             reference = str(order.order_number or order.id)[:12]
             amount_display = f"{order.total:,.2f} USD"
@@ -11899,6 +11956,18 @@ def payment_status_view(request):
                 status = "pending"
                 title = "طلبك قيد المتابعة"
                 message = "تم تسجيل الطلب وبانتظار اكتمال التحقق من السداد."
+
+    # Refresh wallet balance if authenticated
+    if request.user.is_authenticated:
+        try:
+            wallet = get_or_create_wallet(request.user)
+            wallet_balance = f"{wallet.available_balance:,.2f} {wallet.currency.code}"
+            if wallet.debt_balance > 0:
+                debt_balance = f"-{wallet.debt_balance:,.2f} {wallet.currency.code}"
+            else:
+                debt_balance = None
+        except Exception:
+            pass
 
     ctx = {
         "status": status,
@@ -11917,4 +11986,9 @@ def payment_status_view(request):
         "timestamp": timezone.now().strftime("%Y-%m-%d %H:%M"),
         "auto_redirect": (status == "success"),
     }
+
+    # AJAX / Polling JSON response
+    if request.headers.get("x-requested-with") == "XMLHttpRequest" or request.GET.get("format") == "json" or request.GET.get("poll") == "1":
+        return JsonResponse(ctx)
+
     return render(request, "site/payment_status.html", ctx)

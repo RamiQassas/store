@@ -22,6 +22,11 @@
   @keyframes fillPending {
     100% { box-shadow: inset 0px 0px 0px 45px rgba(6, 182, 212, 0.15); }
   }
+  @keyframes rqPing {
+    0% { transform: scale(1); opacity: 0.8; }
+    50% { transform: scale(1.6); opacity: 0.2; }
+    100% { transform: scale(2.2); opacity: 0; }
+  }
 
   .status-circle {
     width: 88px;
@@ -119,35 +124,40 @@
   <div class="receipt-card p-6 sm:p-10 text-center relative">
     
     <!-- Ambient Glow Effect -->
-    {% if status == 'success' %}
-    <div style="position: absolute; top: -50px; left: 50%; transform: translateX(-50%); width: 280px; height: 180px; background: radial-gradient(circle, rgba(16, 185, 129, 0.25) 0%, transparent 70%); pointer-events: none;"></div>
-    {% elif status == 'failed' or status == 'cancelled' %}
-    <div style="position: absolute; top: -50px; left: 50%; transform: translateX(-50%); width: 280px; height: 180px; background: radial-gradient(circle, rgba(239, 68, 68, 0.25) 0%, transparent 70%); pointer-events: none;"></div>
-    {% else %}
-    <div style="position: absolute; top: -50px; left: 50%; transform: translateX(-50%); width: 280px; height: 180px; background: radial-gradient(circle, rgba(6, 182, 212, 0.25) 0%, transparent 70%); pointer-events: none;"></div>
-    {% endif %}
+    <div id="ambient-glow" style="position: absolute; top: -50px; left: 50%; transform: translateX(-50%); width: 280px; height: 180px; background: {% if status == 'success' %}radial-gradient(circle, rgba(16, 185, 129, 0.25) 0%, transparent 70%){% elif status == 'failed' or status == 'cancelled' %}radial-gradient(circle, rgba(239, 68, 68, 0.25) 0%, transparent 70%){% else %}radial-gradient(circle, rgba(6, 182, 212, 0.25) 0%, transparent 70%){% endif %}; pointer-events: none; transition: background 0.5s ease;"></div>
+
+    <!-- Live Auto-Polling Radar Badge (Shown when pending) -->
+    <div id="live-polling-badge" style="display: {% if status == 'pending' %}inline-flex{% else %}none{% endif %}; align-items: center; gap: 0.6rem; background: rgba(6, 182, 212, 0.12); border: 1.5px solid rgba(6, 182, 212, 0.35); border-radius: 9999px; padding: 0.4rem 1.15rem; margin-bottom: 1.25rem;">
+      <span style="position: relative; display: flex; width: 10px; height: 10px;">
+        <span style="position: absolute; width: 100%; height: 100%; border-radius: 50%; background: #06b6d4; opacity: 0.75; animation: rqPing 1.8s infinite;"></span>
+        <span style="position: relative; display: inline-flex; border-radius: 50%; width: 10px; height: 10px; background: #06b6d4;"></span>
+      </span>
+      <span style="font-size: 0.8rem; font-weight: 800; color: #38bdf8;">جارٍ المتابعة المباشرة مع مزود الدفع وتحديث الرصيد تلقائياً...</span>
+    </div>
 
     <!-- Animated Status Icon -->
     <div style="position: relative; z-index: 2;">
-      {% if status == 'success' %}
-      <svg class="status-circle success" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 52 52">
-        <circle class="circle-bg" cx="26" cy="26" r="23" fill="none"/>
-        <path class="check-icon" fill="none" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round" d="M14.1 27.2l7.1 7.2 16.7-16.8"/>
-      </svg>
-      {% elif status == 'failed' or status == 'cancelled' %}
-      <svg class="status-circle failed" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 52 52">
-        <circle class="circle-bg" cx="26" cy="26" r="23" fill="none"/>
-        <path class="cross-icon" fill="none" stroke-width="3.5" stroke-linecap="round" d="M16 16 36 36 M36 16 16 36"/>
-      </svg>
-      {% else %}
-      <svg class="status-circle pending" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 52 52">
-        <circle class="circle-bg" cx="26" cy="26" r="23" fill="none"/>
-        <path class="check-icon" fill="none" stroke-width="3" stroke-linecap="round" d="M26 14 v12 l8 4"/>
-      </svg>
-      {% endif %}
+      <div id="status-icon-container">
+        {% if status == 'success' %}
+        <svg class="status-circle success" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 52 52">
+          <circle class="circle-bg" cx="26" cy="26" r="23" fill="none"/>
+          <path class="check-icon" fill="none" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round" d="M14.1 27.2l7.1 7.2 16.7-16.8"/>
+        </svg>
+        {% elif status == 'failed' or status == 'cancelled' %}
+        <svg class="status-circle failed" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 52 52">
+          <circle class="circle-bg" cx="26" cy="26" r="23" fill="none"/>
+          <path class="cross-icon" fill="none" stroke-width="3.5" stroke-linecap="round" d="M16 16 36 36 M36 16 16 36"/>
+        </svg>
+        {% else %}
+        <svg class="status-circle pending" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 52 52">
+          <circle class="circle-bg" cx="26" cy="26" r="23" fill="none"/>
+          <path class="check-icon" fill="none" stroke-width="3" stroke-linecap="round" d="M26 14 v12 l8 4"/>
+        </svg>
+        {% endif %}
+      </div>
 
       <!-- Status Header -->
-      <h1 style="font-size: 1.65rem; font-weight: 900; margin: 0 0 0.5rem; color: #fff;">
+      <h1 id="status-title" style="font-size: 1.65rem; font-weight: 900; margin: 0 0 0.5rem; color: #fff; transition: all 0.3s ease;">
         {% if status == 'success' %}
           {{ title|default:"تم تأكيد الدفع بنجاح!" }}
         {% elif status == 'failed' %}
@@ -155,11 +165,11 @@
         {% elif status == 'cancelled' %}
           {{ title|default:"تم إلغاء عملية الدفع" }}
         {% else %}
-          {{ title|default:"عملية الدفع قيد المعالجة" }}
+          {{ title|default:"العملية قيد المراجعة والمعالجة" }}
         {% endif %}
       </h1>
 
-      <p style="font-size: 0.92rem; color: #94a3b8; margin: 0 0 1.85rem; line-height: 1.6;">
+      <p id="status-desc" style="font-size: 0.92rem; color: #94a3b8; margin: 0 0 1.85rem; line-height: 1.6; transition: all 0.3s ease;">
         {% if message %}
           {{ message }}
         {% elif status == 'success' %}
@@ -169,7 +179,7 @@
         {% elif status == 'cancelled' %}
           تم إلغاء العملية بناءً على طلبك. لم يتم خصم أي رصيد.
         {% else %}
-          جارٍ التحقق النهائي من حالة السداد لدى المزود، وسيتم تحديث رصيدك تلقائياً فور التأكيد.
+          تم استلام إشعار الدفع وبانتظار اكتمال المعالجة البنكية، وسيتم تحديث رصيدك تلقائياً فور التأكيد.
         {% endif %}
       </p>
 
@@ -222,32 +232,30 @@
         <div class="receipt-row">
           <span style="color: #94a3b8;">حالة العملية</span>
           {% if status == 'success' %}
-          <span style="background: rgba(16, 185, 129, 0.15); color: #10b981; border: 1px solid rgba(16, 185, 129, 0.3); padding: 0.2rem 0.65rem; border-radius: 999px; font-size: 0.75rem; font-weight: 800;">
+          <span id="status-badge" style="background: rgba(16, 185, 129, 0.15); color: #10b981; border: 1px solid rgba(16, 185, 129, 0.3); padding: 0.2rem 0.65rem; border-radius: 999px; font-size: 0.75rem; font-weight: 800; transition: all 0.3s ease;">
             <i class="fas fa-check-circle ml-1"></i> مكتملة ومؤكدة
           </span>
           {% elif status == 'failed' %}
-          <span style="background: rgba(239, 68, 68, 0.15); color: #ef4444; border: 1px solid rgba(239, 68, 68, 0.3); padding: 0.2rem 0.65rem; border-radius: 999px; font-size: 0.75rem; font-weight: 800;">
+          <span id="status-badge" style="background: rgba(239, 68, 68, 0.15); color: #ef4444; border: 1px solid rgba(239, 68, 68, 0.3); padding: 0.2rem 0.65rem; border-radius: 999px; font-size: 0.75rem; font-weight: 800; transition: all 0.3s ease;">
             <i class="fas fa-times-circle ml-1"></i> عملية مرفوضة
           </span>
           {% elif status == 'cancelled' %}
-          <span style="background: rgba(148, 163, 184, 0.15); color: #94a3b8; border: 1px solid rgba(148, 163, 184, 0.3); padding: 0.2rem 0.65rem; border-radius: 999px; font-size: 0.75rem; font-weight: 800;">
+          <span id="status-badge" style="background: rgba(148, 163, 184, 0.15); color: #94a3b8; border: 1px solid rgba(148, 163, 184, 0.3); padding: 0.2rem 0.65rem; border-radius: 999px; font-size: 0.75rem; font-weight: 800; transition: all 0.3s ease;">
             <i class="fas fa-ban ml-1"></i> ملغاة من العميل
           </span>
           {% else %}
-          <span style="background: rgba(6, 182, 212, 0.15); color: #06b6d4; border: 1px solid rgba(6, 182, 212, 0.3); padding: 0.2rem 0.65rem; border-radius: 999px; font-size: 0.75rem; font-weight: 800;">
+          <span id="status-badge" style="background: rgba(6, 182, 212, 0.15); color: #06b6d4; border: 1px solid rgba(6, 182, 212, 0.3); padding: 0.2rem 0.65rem; border-radius: 999px; font-size: 0.75rem; font-weight: 800; transition: all 0.3s ease;">
             <i class="fas fa-clock ml-1"></i> قيد المراجعة
           </span>
           {% endif %}
         </div>
 
-        {% if wallet_balance is not None %}
-        <div class="receipt-row">
+        <div class="receipt-row" id="wallet-balance-row" style="display: {% if wallet_balance is not None %}flex{% else %}none{% endif %};">
           <span style="color: #94a3b8;">الرصيد النقدي المتاح</span>
-          <strong style="color: #34d399; font-size: 0.95rem; font-family: monospace;">
-            {{ wallet_balance }}
+          <strong id="wallet-balance-value" style="color: #34d399; font-size: 0.95rem; font-family: monospace;">
+            {{ wallet_balance|default:'' }}
           </strong>
         </div>
-        {% endif %}
 
         {% if debt_balance %}
         <div class="receipt-row">
@@ -287,8 +295,7 @@
       </div>
 
       <!-- Auto Redirect Countdown -->
-      {% if auto_redirect|default:True and status == 'success' %}
-      <div style="margin-top: 1.5rem;">
+      <div id="countdown-box" style="margin-top: 1.5rem; display: {% if auto_redirect|default:True and status == 'success' %}block{% else %}none{% endif %};">
         <p style="font-size: 0.78rem; color: #64748b; margin: 0;">
           جارٍ التحويل تلقائياً خلال <strong id="countdown" style="color: #38bdf8;">5</strong> ثوانٍ...
           <button type="button" onclick="stopCountdown()" style="background: none; border: none; color: #94a3b8; text-decoration: underline; cursor: pointer; font-size: 0.78rem; padding: 0 4px;">إلغاء التوجيه التلقائي</button>
@@ -297,7 +304,6 @@
           <div id="countdown-bar" class="countdown-bar-fill"></div>
         </div>
       </div>
-      {% endif %}
 
     </div>
   </div>
@@ -343,34 +349,176 @@
 
   // Auto Countdown Redirect
   let countdownTimer = null;
-  {% if auto_redirect|default:True and status == 'success' %}
-  let seconds = 5;
-  const targetUrl = "{{ redirect_url|default:'/dashboard/wallet/' }}";
-  const countdownEl = document.getElementById('countdown');
-  const barEl = document.getElementById('countdown-bar');
+  function startCountdown(target) {
+    let seconds = 4;
+    const targetUrl = target || "{{ redirect_url|default:'/dashboard/wallet/' }}";
+    const countdownEl = document.getElementById('countdown');
+    const barEl = document.getElementById('countdown-bar');
+    const box = document.getElementById('countdown-box');
+    if (box) box.style.display = 'block';
 
-  countdownTimer = setInterval(() => {
-    seconds--;
-    if (countdownEl) countdownEl.textContent = seconds;
-    if (barEl) barEl.style.width = (seconds / 5 * 100) + '%';
-    if (seconds <= 0) {
-      clearInterval(countdownTimer);
-      window.location.href = targetUrl;
-    }
-  }, 1000);
+    if (countdownTimer) clearInterval(countdownTimer);
+    countdownTimer = setInterval(() => {
+      seconds--;
+      if (countdownEl) countdownEl.textContent = seconds;
+      if (barEl) barEl.style.width = (seconds / 4 * 100) + '%';
+      if (seconds <= 0) {
+        clearInterval(countdownTimer);
+        window.location.href = targetUrl;
+      }
+    }, 1000);
+  }
 
   function stopCountdown() {
     if (countdownTimer) {
       clearInterval(countdownTimer);
       countdownTimer = null;
+      const countdownEl = document.getElementById('countdown');
+      const barEl = document.getElementById('countdown-bar');
       if (countdownEl && countdownEl.parentElement) {
         countdownEl.parentElement.innerHTML = '<span style="color: #64748b;">تم إيقاف التوجيه التلقائي.</span>';
       }
-      if (barEl) barEl.parentElement.style.display = 'none';
+      if (barEl && barEl.parentElement) barEl.parentElement.style.display = 'none';
     }
   }
-  {% else %}
-  function stopCountdown() {}
+
+  {% if auto_redirect|default:True and status == 'success' %}
+  document.addEventListener('DOMContentLoaded', () => {
+    startCountdown("{{ redirect_url|default:'/dashboard/wallet/' }}");
+  });
+  {% endif %}
+
+  // Real-Time Polling for Pending Payments (ShamCash, etc.)
+  {% if status == 'pending' %}
+  let pollInterval = null;
+  let pollCount = 0;
+  const MAX_POLL_COUNT = 90; // ~3.5 minutes at 2.2s intervals
+
+  function startLiveStatusPolling() {
+    const currentUrl = new URL(window.location.href);
+    currentUrl.searchParams.set('format', 'json');
+
+    pollInterval = setInterval(async () => {
+      pollCount++;
+      if (pollCount > MAX_POLL_COUNT) {
+        clearInterval(pollInterval);
+        const badge = document.getElementById('live-polling-badge');
+        if (badge) badge.innerHTML = '<span style="font-size: 0.78rem; color: #94a3b8;">يرجى تحديث الصفحة لمتابعة حالة السداد.</span>';
+        return;
+      }
+
+      try {
+        const resp = await fetch(currentUrl.toString(), {
+          headers: { 'X-Requested-With': 'XMLHttpRequest' }
+        });
+        if (!resp.ok) return;
+        const data = await resp.json();
+
+        if (data.status === 'success') {
+          clearInterval(pollInterval);
+          applyLiveSuccess(data);
+        } else if (data.status === 'failed' || data.status === 'cancelled') {
+          clearInterval(pollInterval);
+          applyLiveFailed(data);
+        }
+      } catch (err) {
+        console.warn("Live status check error:", err);
+      }
+    }, 2200);
+  }
+
+  function applyLiveSuccess(data) {
+    // 1. Confetti
+    if (typeof confetti === 'function') {
+      confetti({
+        particleCount: 100,
+        spread: 75,
+        origin: { y: 0.6 },
+        colors: ['#10b981', '#06b6d4', '#3b82f6', '#f59e0b', '#ffffff']
+      });
+      setTimeout(() => confetti({ particleCount: 60, spread: 60, origin: { y: 0.5 } }), 350);
+    }
+
+    // 2. Hide live polling radar badge
+    const badge = document.getElementById('live-polling-badge');
+    if (badge) badge.style.display = 'none';
+
+    // 3. Update Ambient Glow
+    const glow = document.getElementById('ambient-glow');
+    if (glow) glow.style.background = 'radial-gradient(circle, rgba(16, 185, 129, 0.25) 0%, transparent 70%)';
+
+    // 4. Update SVG Icon to Green Check
+    const iconWrap = document.getElementById('status-icon-container');
+    if (iconWrap) {
+      iconWrap.innerHTML = `
+        <svg class="status-circle success" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 52 52">
+          <circle class="circle-bg" cx="26" cy="26" r="23" fill="none"/>
+          <path class="check-icon" fill="none" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round" d="M14.1 27.2l7.1 7.2 16.7-16.8"/>
+        </svg>
+      `;
+    }
+
+    // 5. Update Header Title and Message
+    const titleEl = document.getElementById('status-title');
+    if (titleEl) {
+      titleEl.innerText = data.title || 'تم شحن الرصيد بنجاح!';
+      titleEl.style.color = '#fff';
+    }
+    const descEl = document.getElementById('status-desc');
+    if (descEl) {
+      descEl.innerText = data.message || 'تم تأكيد عملية الدفع بنجاح عبر بوابة الدفع وتم شحن رصيد محفظتك فورياً.';
+    }
+
+    // 6. Update Status Badge
+    const statusBadge = document.getElementById('status-badge');
+    if (statusBadge) {
+      statusBadge.style.background = 'rgba(16, 185, 129, 0.15)';
+      statusBadge.style.color = '#10b981';
+      statusBadge.style.borderColor = 'rgba(16, 185, 129, 0.3)';
+      statusBadge.innerHTML = '<i class="fas fa-check-circle ml-1"></i> مكتملة ومؤكدة';
+    }
+
+    // 7. Update Wallet Balance if provided
+    if (data.wallet_balance) {
+      const wbRow = document.getElementById('wallet-balance-row');
+      const wbVal = document.getElementById('wallet-balance-value');
+      if (wbVal) wbVal.innerText = data.wallet_balance;
+      if (wbRow) wbRow.style.display = 'flex';
+    }
+
+    // 8. Start auto-redirect countdown
+    startCountdown(data.redirect_url || '/dashboard/wallet/');
+  }
+
+  function applyLiveFailed(data) {
+    const badge = document.getElementById('live-polling-badge');
+    if (badge) badge.style.display = 'none';
+
+    const iconWrap = document.getElementById('status-icon-container');
+    if (iconWrap) {
+      iconWrap.innerHTML = `
+        <svg class="status-circle failed" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 52 52">
+          <circle class="circle-bg" cx="26" cy="26" r="23" fill="none"/>
+          <path class="cross-icon" fill="none" stroke-width="3.5" stroke-linecap="round" d="M16 16 36 36 M36 16 16 36"/>
+        </svg>
+      `;
+    }
+
+    const titleEl = document.getElementById('status-title');
+    if (titleEl) titleEl.innerText = data.title || 'فشلت عملية الدفع';
+    const descEl = document.getElementById('status-desc');
+    if (descEl) descEl.innerText = data.message || 'تعذر إتمام العملية.';
+
+    const statusBadge = document.getElementById('status-badge');
+    if (statusBadge) {
+      statusBadge.style.background = 'rgba(239, 68, 68, 0.15)';
+      statusBadge.style.color = '#ef4444';
+      statusBadge.style.borderColor = 'rgba(239, 68, 68, 0.3)';
+      statusBadge.innerHTML = '<i class="fas fa-times-circle ml-1"></i> عملية مرفوضة';
+    }
+  }
+
+  document.addEventListener('DOMContentLoaded', startLiveStatusPolling);
   {% endif %}
 </script>
 {% endblock %}
