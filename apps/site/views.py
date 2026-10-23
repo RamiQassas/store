@@ -2108,8 +2108,12 @@ def catalog(request):
     cols = request.GET.get("cols", "2")
 
     # Default to categories view if user opened /catalog/ directly without query or specific category
-    # Default to products view so user immediately sees the products catalog
-    view_type = request.GET.get("view", "products")
+    view_type = request.GET.get("view")
+    if not view_type:
+        if cat_id or q or request.GET.get("type") or request.GET.get("in_stock") or request.GET.get("min_price") or request.GET.get("max_price"):
+            view_type = "products"
+        else:
+            view_type = "categories"
 
     if store:
         all_cats = list(Category.objects.filter(store=store, is_active=True, is_publicly_visible=True).order_by("sort_order", "name"))
