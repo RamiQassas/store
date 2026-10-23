@@ -692,6 +692,9 @@
             <a href="{% url 'payment_methods_list' %}" class="admin-nav-link {% if 'payment-method' in request.path %}active{% endif %}">
                 <i class="fas fa-credit-card"></i> وسائل الدفع
             </a>
+            <a href="{% url 'control_quick_amounts' %}" class="admin-nav-link {% if 'quick-amounts' in request.path %}active{% endif %}">
+                <i class="fas fa-layer-group text-amber-400"></i> فئات الشحن السريعة
+            </a>
             <a href="{% url 'control_announcements' %}" class="admin-nav-link {% if 'announcements' in request.path %}active{% endif %}">
                 <i class="fas fa-bullhorn"></i> شريط الإعلانات
             </a>

@@ -134,15 +134,7 @@
         <div style="margin-bottom: 0.95rem;">
           <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.45rem;">
             <span style="font-size: 0.78rem; color: var(--rq-text-muted); font-weight: 700;">فئات شحن سريعة:</span>
-            <div style="display: flex; align-items: center; gap: 0.75rem;">
-              {% if user.is_staff or user.is_superuser or user.role == 'super_admin' or user.role == 'admin' %}
-              <a href="{% url 'control_quick_amounts' %}" target="_blank" style="font-size: 0.72rem; color: var(--rq-primary-light); text-decoration: none; display: inline-flex; align-items: center; gap: 0.25rem;">
-                <i class="fas fa-cog text-cyan"></i>
-                <span>تعديل الفئات</span>
-              </a>
-              {% endif %}
-              <span id="quick-chips-currency-hint" style="font-size: 0.72rem; color: var(--rq-primary-light); font-weight: 800;"></span>
-            </div>
+            <span id="quick-chips-currency-hint" style="font-size: 0.72rem; color: var(--rq-primary-light); font-weight: 800;"></span>
           </div>
           <div id="quick-amount-chips-container" style="display: flex; align-items: center; gap: 0.45rem; flex-wrap: wrap;">
             <!-- Rendered dynamically by renderQuickAmountChips -->
@@ -161,14 +153,21 @@
           </div>
 
           <!-- Live Paymera SYP conversion reassurance notice -->
-          <div id="paymera-syp-notice" style="display: none; margin-top: 0.85rem; padding: 0.95rem 1.15rem; background: rgba(59, 130, 246, 0.08); border: 1.5px solid rgba(59, 130, 246, 0.28); border-radius: 14px;">
-            <div style="display: flex; align-items: center; gap: 0.5rem; font-weight: 800; color: #60a5fa; font-size: 0.86rem; margin-bottom: 0.35rem;">
-              <i class="fas fa-shield-alt" style="color: #38bdf8;"></i>
-              <span>تنبيه شفافية الدفع (بوابة بيميرا Paymera):</span>
+          <div id="paymera-syp-notice" style="display: none; margin-top: 0.95rem; padding: 1.15rem 1.35rem; background: linear-gradient(135deg, rgba(14, 165, 233, 0.12), rgba(15, 23, 42, 0.9)); border: 1.5px solid rgba(56, 189, 248, 0.45); border-radius: 16px; box-shadow: 0 10px 25px -5px rgba(56, 189, 248, 0.18); backdrop-filter: blur(8px); transition: all 0.3s ease;">
+            <div style="display: flex; align-items: center; justify-content: space-between; gap: 0.5rem; margin-bottom: 0.65rem; border-bottom: 1px solid rgba(56, 189, 248, 0.2); padding-bottom: 0.5rem;">
+              <div style="display: flex; align-items: center; gap: 0.55rem; font-weight: 900; color: #38bdf8; font-size: 0.92rem;">
+                <span style="display: inline-flex; align-items: center; justify-content: center; width: 30px; height: 30px; border-radius: 9px; background: rgba(56, 189, 248, 0.2); color: #38bdf8;">
+                  <i class="fas fa-credit-card"></i>
+                </span>
+                <span>تنبيه شفافية السداد (بوابة بيميرا Paymera)</span>
+              </div>
+              <span style="font-size: 0.72rem; font-weight: 800; color: #34d399; background: rgba(16, 185, 129, 0.15); border: 1px solid rgba(16, 185, 129, 0.3); padding: 0.2rem 0.65rem; border-radius: 9999px;">
+                تحويل لحظي مباشر
+              </span>
             </div>
-            <p style="margin: 0; font-size: 0.82rem; line-height: 1.6; color: #cbd5e1;">
-              بوابة بيميرا الإلكترونية تعمل بالليرة السورية فقط. عند المتابعة سيتم خصم ما يعادل <strong id="paymera-converted-syp" style="color: #38bdf8; font-weight: 900; font-size: 0.92rem;">0 ل.س</strong> من بطاقتك البنكية ثمناً لمبلغ <strong id="paymera-original-usd" style="color: #38bdf8; font-weight: 900; font-size: 0.92rem;">0 USD</strong> وفق سعر الصرف المعتمد، دون أي توتر أو رسوم إضافية.
-            </p>
+            <div id="paymera-dynamic-content" style="font-size: 0.84rem; line-height: 1.7; color: #e2e8f0;">
+              <!-- Dynamic content updated live by JS -->
+            </div>
           </div>
 
           {% if user.wallet.debt_balance > 0 %}
@@ -351,7 +350,8 @@ function renderQuickAmountChips(currCode) {
     btn.className = 'rq-quick-chip';
     btn.setAttribute('data-amount', val);
     btn.textContent = Number(val).toLocaleString('en-US');
-    btn.onclick = () => {
+    btn.onclick = (e) => {
+      if (e) e.preventDefault();
       setQuickDepositAmount(val);
       document.querySelectorAll('#quick-amount-chips-container .rq-quick-chip').forEach(b => b.classList.remove('active'));
       btn.classList.add('active');
@@ -362,18 +362,55 @@ function renderQuickAmountChips(currCode) {
 
 function updatePaymeraReassuranceNotice() {
   const noticeEl = document.getElementById('paymera-syp-notice');
+  const dynamicContent = document.getElementById('paymera-dynamic-content');
   if (!noticeEl) return;
-  const isPaymera = activeMethodData && (activeMethodData.gatewayProvider === 'paymera' || (activeMethodData.name && activeMethodData.name.toLowerCase().includes('paymera')));
-  const isUsd = (selectedCurrencyCode === 'USD');
-  const amountVal = parseFloat(document.getElementById('deposit-amount-input')?.value || 0);
 
-  if (isPaymera && isUsd && amountVal > 0) {
-    const sypTotal = Math.round(amountVal * LIVE_SYP_RATE);
-    const sypSpan = document.getElementById('paymera-converted-syp');
-    const usdSpan = document.getElementById('paymera-original-usd');
-    if (sypSpan) sypSpan.textContent = sypTotal.toLocaleString('en-US') + ' ل.س';
-    if (usdSpan) usdSpan.textContent = amountVal.toLocaleString('en-US') + ' USD';
+  const gwProvider = String(activeMethodData.gatewayProvider || '').toLowerCase();
+  const methodName = String(activeMethodData.name || '').toLowerCase();
+  const isPaymera = (gwProvider === 'paymera' || methodName.includes('paymera') || methodName.includes('بيميرا'));
+  const currCode = String(activeMethodData.currencyCode || 'USD').toUpperCase();
+  const isUsd = (currCode === 'USD');
+
+  if (isPaymera && isUsd) {
     noticeEl.style.display = 'block';
+    const amtInput = document.getElementById('deposit-amount-input');
+    const amountVal = parseFloat(amtInput ? amtInput.value : 0) || 0;
+
+    if (dynamicContent) {
+      if (amountVal > 0) {
+        const sypTotal = Math.round(amountVal * LIVE_SYP_RATE);
+        dynamicContent.innerHTML = `
+          <div style="display: flex; flex-direction: column; gap: 0.5rem;">
+            <div style="color: #cbd5e1; font-size: 0.84rem;">
+              بوابة بيميرا الإلكترونية تقبل وتخصم بالليرة السورية فقط. عند متابعة الدفع:
+            </div>
+            <div style="background: rgba(15, 23, 42, 0.75); border: 1.5px solid rgba(56, 189, 248, 0.4); border-radius: 12px; padding: 0.8rem 1.1rem; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 0.75rem;">
+              <div>
+                <div style="color: #94a3b8; font-size: 0.74rem; font-weight: 700; margin-bottom: 0.2rem;">المبلغ المقتطع من بطاقتك البنكية:</div>
+                <div style="color: #38bdf8; font-weight: 900; font-size: 1.2rem; font-family: monospace;">${sypTotal.toLocaleString('en-US')} ل.س</div>
+              </div>
+              <div style="text-align: left;">
+                <div style="color: #94a3b8; font-size: 0.74rem; font-weight: 700; margin-bottom: 0.2rem;">المبلغ المضاف لمحفظتك:</div>
+                <div style="color: #10b981; font-weight: 900; font-size: 1.2rem; font-family: monospace;">$${amountVal.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})} USD</div>
+              </div>
+            </div>
+            <div style="font-size: 0.74rem; color: #94a3b8; display: flex; align-items: center; gap: 0.35rem; margin-top: 0.15rem;">
+              <i class="fas fa-shield-halved" style="color: #38bdf8;"></i>
+              <span>سعر الصرف المعتمد للعملية: 1$ = ${LIVE_SYP_RATE.toLocaleString('en-US')} ل.س (دون أي فوائد أو رسوم مخفية).</span>
+            </div>
+          </div>
+        `;
+      } else {
+        dynamicContent.innerHTML = `
+          <div style="display: flex; align-items: flex-start; gap: 0.6rem;">
+            <i class="fas fa-info-circle" style="color: #38bdf8; margin-top: 0.25rem; font-size: 1.1rem; flex-shrink: 0;"></i>
+            <div>
+              بوابة <strong>بيميرا (Paymera)</strong> الإلكترونية تعمل بالليرة السورية فقط. عند المتابعة سيتم خصم ما يعادل المبلغ بالليرة السورية من بطاقتك البنكية بسعر الصرف المعتمد (<strong>1$ = ${LIVE_SYP_RATE.toLocaleString('en-US')} ل.س</strong>) فور إدخال أو اختيار المبلغ، دون أي توتر أو رسوم إضافية.
+            </div>
+          </div>
+        `;
+      }
+    }
   } else {
     noticeEl.style.display = 'none';
   }
@@ -563,6 +600,13 @@ function previewProofImage(input) {
 }
 
 document.addEventListener('DOMContentLoaded', () => {
+  const amtInput = document.getElementById('deposit-amount-input');
+  if (amtInput) {
+    amtInput.addEventListener('input', calculateDepositNet);
+    amtInput.addEventListener('keyup', calculateDepositNet);
+    amtInput.addEventListener('change', calculateDepositNet);
+  }
+
   const firstCard = document.querySelector('.rq-method-card');
   if (firstCard) {
     const mId = firstCard.getAttribute('data-method-id');

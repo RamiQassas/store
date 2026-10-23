@@ -482,6 +482,14 @@ class KYCSettings(TimeStampedModel):
                 return val
             return self.DEFAULT_QUICK_AMOUNTS.get(code, [5, 10, 20, 50, 100, 200])
         res = dict(self.DEFAULT_QUICK_AMOUNTS)
+        try:
+            from apps.common.models import Currency
+            for curr in Currency.all_objects.filter(is_active=True):
+                c_code = curr.code.upper()
+                if c_code not in res:
+                    res[c_code] = [5, 10, 20, 50, 100, 200]
+        except Exception:
+            pass
         for k, v in data.items():
             if isinstance(v, list):
                 res[k] = v
