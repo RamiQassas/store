@@ -313,6 +313,26 @@ class PaymentMethod(TimeStampedModel):
             return default_currency.sell_rate
         return Decimal("1.000000")
 
+    @property
+    def logo_url(self):
+        if self.gateway and self.gateway.logo:
+            try:
+                return self.gateway.logo.url
+            except Exception:
+                pass
+        if self.gateway and getattr(self.gateway, "logo_url", None):
+            return self.gateway.logo_url
+        if self.logo:
+            try:
+                return self.logo.url
+            except Exception:
+                pass
+        if self.gateway and getattr(self.gateway, "provider", "") == "sham_cash":
+            return "/static/site/img/brands/shamcash.svg"
+        if self.gateway and getattr(self.gateway, "provider", "") == "paymera":
+            return "/media/payment-methods/logos/paymera.png"
+        return ""
+
 
 class PaymentMethodExchangeRateLog(TimeStampedModel):
     payment_method = models.ForeignKey(PaymentMethod, related_name="exchange_rate_logs", on_delete=models.CASCADE, verbose_name="وسيلة الدفع")
@@ -478,8 +498,10 @@ class DepositRequest(TimeStampedModel):
         return results
 
     def calculate_fees(self):
-        self.fee_amount = self.payment_method.calculate_fee(self.amount, mode="deposit")
-        self.final_amount = self.amount - self.fee_amount
+        amt = Decimal(str(self.amount)) if self.amount is not None else Decimal("0.00")
+        self.fee_amount = self.payment_method.calculate_fee(amt, mode="deposit")
+        fee = Decimal(str(self.fee_amount)) if self.fee_amount is not None else Decimal("0.00")
+        self.final_amount = max(Decimal("0.00"), amt - fee)
         if self.currency:
             try:
                 # Use wallet currency for wallet_amount calculation

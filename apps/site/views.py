@@ -1351,18 +1351,18 @@ def deposits(request):
     from apps.common.tenant_utils import bypass_tenant_filter
     with bypass_tenant_filter():
         current_store = getattr(request, 'store', None)
+        # Filter out disabled / test payment methods
+        filter_kwargs = {'is_active': True, 'can_deposit': True}
         if current_store:
             base_methods = PaymentMethod.all_objects.filter(
                 Q(store=current_store) | Q(store__isnull=True),
-                is_active=True,
-                can_deposit=True
-            ).select_related('gateway', 'store')
+                **filter_kwargs
+            ).exclude(name__iexact='TestPM').select_related('gateway', 'store')
         else:
             base_methods = PaymentMethod.all_objects.filter(
                 store__isnull=True,
-                is_active=True,
-                can_deposit=True
-            ).select_related('gateway', 'store')
+                **filter_kwargs
+            ).exclude(name__iexact='TestPM').select_related('gateway', 'store')
 
         seen_gw_providers = set()
         deduped_methods = []
@@ -2886,24 +2886,30 @@ def product_detail(request, pk):
             # Look up associated PaymentMethod in the site to read user configured name and logo
             pm = PaymentMethod.all_objects.filter(gateway=gw, is_active=True).first()
 
-            # Dynamic name: use PaymentMethod name if configured, otherwise Gateway name, otherwise display
-            gw_name = (pm.name if pm and pm.name else "") or (gw.name if gw.name else "") or gw.get_provider_display()
+            # Dynamic name: prioritize clean provider title or user configured name
+            if gw.provider == "sham_cash":
+                default_gw_name = "شام كاش"
+            elif gw.provider == "paymera":
+                default_gw_name = "بيميرا"
+            else:
+                default_gw_name = gw.get_provider_display() or gw.name
+            gw_name = (gw.name if gw.name and not any(ch in gw.name for ch in ['\ufffd', '?']) else "") or (pm.name if pm and pm.name and not any(ch in pm.name for ch in ['\ufffd', '?']) else "") or default_gw_name
 
-            # Dynamic logo: use PaymentMethod logo if configured, otherwise Gateway logo
+            # Dynamic logo: prioritize Gateway logo from DB
             gw_logo = ""
-            if pm and pm.logo:
-                try: gw_logo = pm.logo.url
-                except Exception: pass
-            if not gw_logo and gw.logo:
+            if gw.logo:
                 try: gw_logo = gw.logo.url
                 except Exception: pass
-            if not gw_logo and gw.logo_url:
+            if not gw_logo and getattr(gw, "logo_url", None):
                 gw_logo = gw.logo_url
+            if not gw_logo and pm and pm.logo:
+                try: gw_logo = pm.logo.url
+                except Exception: pass
 
             # Fallback to local files only if no logo set in DB
             if not gw_logo:
                 if gw.provider == "sham_cash":
-                    gw_logo = "/media/payment-methods/logos/shamcash.svg"
+                    gw_logo = "/static/site/img/brands/shamcash.svg"
                 elif gw.provider == "paymera":
                     gw_logo = "/media/payment-methods/logos/paymera.png"
 

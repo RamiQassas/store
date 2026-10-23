@@ -56,19 +56,30 @@ def common_context(request):
                 seen_providers.add(g.provider)
 
                 pm = PaymentMethod.all_objects.filter(gateway=g, is_active=True).first()
-                name = (pm.name if pm and pm.name else "") or g.name or g.get_provider_display()
+                if g.provider == "sham_cash":
+                    default_name = "شام كاش (ShamCash)"
+                elif g.provider == "paymera":
+                    default_name = "بيميرا (Paymera)"
+                else:
+                    default_name = g.get_provider_display() or g.name
+                name = (g.name if g.name and not any(ch in g.name for ch in ['\ufffd', '?']) else "") or (pm.name if pm and pm.name and not any(ch in pm.name for ch in ['\ufffd', '?']) else "") or default_name
+
                 logo_url = ""
-                if pm and pm.logo:
-                    try: logo_url = pm.logo.url
-                    except Exception: pass
-                if not logo_url and g.logo:
+                # Priority 1: Gateway logo uploaded by store owner
+                if g.logo:
                     try: logo_url = g.logo.url
                     except Exception: pass
-                if not logo_url and g.logo_url:
+                # Priority 2: Gateway logo_url property
+                if not logo_url and getattr(g, "logo_url", None):
                     logo_url = g.logo_url
+                # Priority 3: PaymentMethod logo
+                if not logo_url and pm and pm.logo:
+                    try: logo_url = pm.logo.url
+                    except Exception: pass
+                # Fallback to local files only if no logo set in DB
                 if not logo_url:
                     if g.provider == "sham_cash":
-                        logo_url = "/media/payment-methods/logos/shamcash.svg"
+                        logo_url = "/static/site/img/brands/shamcash.svg"
                     elif g.provider == "paymera":
                         logo_url = "/media/payment-methods/logos/paymera.png"
 

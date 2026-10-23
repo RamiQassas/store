@@ -6,20 +6,20 @@
 {% block content %}
 <div class="rq-dash-container" style="max-width: 920px;">
 
-  <!-- 1. Compact Header -->
+  <!-- 1. Header -->
   <div style="display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 1rem; margin-bottom: 1.5rem;">
     <div>
-      <h1 style="font-size: clamp(1.35rem, 2.5vw, 1.8rem); font-weight: 900; color: var(--rq-navy); margin: 0 0 0.25rem;">
+      <h1 style="font-size: clamp(1.35rem, 2.5vw, 1.8rem); font-weight: 900; color: var(--rq-text-primary); margin: 0 0 0.25rem;">
         شحن رصيد المحفظة
       </h1>
       <p style="font-size: 0.84rem; color: var(--rq-text-muted); margin: 0;">
-        اختر وسيلة الشحن وحدد المبلغ لإضافته إلى محفظتك فوراً
+        اختر وسيلة الشحن وحدد المبلغ ليتم شحن محفظتك فوراً
       </p>
     </div>
 
     <div style="display: flex; align-items: center; gap: 0.45rem;">
       <span style="font-size: 0.78rem; color: var(--rq-text-muted); font-weight: 700;">الحد المتاح اليوم:</span>
-      <span class="tabular-nums font-mono" style="font-size: 0.82rem; font-weight: 800; color: #059669; background: #ecfdf5; padding: 0.25rem 0.65rem; border-radius: 9999px; border: 1px solid #a7f3d0;">
+      <span class="tabular-nums font-mono" style="font-size: 0.82rem; font-weight: 800; color: #10b981; background: var(--rq-accent-soft); padding: 0.25rem 0.65rem; border-radius: 9999px; border: 1px solid rgba(16, 185, 129, 0.3);">
         ${{ remaining_limit|default:'غير محدود' }}
       </span>
     </div>
@@ -51,47 +51,35 @@
 
       <!-- SECTION 1: Select Payment Method Cards -->
       <div style="margin-bottom: 1.75rem;">
-        <h3 style="font-size: 0.95rem; font-weight: 800; color: var(--rq-navy); margin: 0 0 0.85rem; display: flex; align-items: center; gap: 0.45rem;">
-          <i class="fas fa-wallet" style="color: var(--rq-primary);"></i>
+        <h3 style="font-size: 0.95rem; font-weight: 800; color: var(--rq-text-primary); margin: 0 0 0.85rem; display: flex; align-items: center; gap: 0.45rem;">
+          <i class="fas fa-wallet" style="color: var(--rq-primary-light);"></i>
           <span>1. اختر وسيلة الدفع</span>
         </h3>
 
         <div class="rq-method-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 0.85rem;">
           {% for m in payment_methods %}
           <div class="rq-method-card {% if forloop.first %}selected{% endif %}"
+               id="method-card-{{ m.id }}"
                data-method-id="{{ m.id }}"
-               data-method-name="{{ m.name|escape }}"
-               data-is-gateway="{% if m.gateway and m.gateway.is_active %}true{% else %}false{% endif %}"
-               data-gateway-provider="{% if m.gateway %}{{ m.gateway.provider }}{% endif %}"
-               data-currency-id="{{ m.supported_currencies.first.id|default:'' }}"
-               data-currency-code="{{ m.supported_currencies.first.code|default:'USD' }}"
-               data-currency-symbol="{{ m.supported_currencies.first.symbol|default:'$' }}"
-               data-min="{{ m.deposit_min_amount|default:0 }}"
-               data-max="{{ m.deposit_max_amount|default:0 }}"
-               data-fee="0"
-               data-instructions="{{ m.deposit_instructions|default:''|escapejs }}"
-               data-currencies='[{% for c in m.supported_currencies.all %}{"id":"{{ c.id }}","code":"{{ c.code }}","symbol":"{{ c.symbol }}","name":"{{ c.name }}"}{% if not forloop.last %},{% endif %}{% endfor %}]'
-               onclick="selectDepositMethod(this)"
+               onclick="selectDepositMethod('{{ m.id }}', this)"
                style="cursor: pointer; padding: 1rem; border-radius: 14px; border: 1.5px solid {% if forloop.first %}var(--rq-primary){% else %}var(--rq-border){% endif %}; background: {% if forloop.first %}var(--rq-primary-soft){% else %}var(--rq-bg-surface){% endif %}; display: flex; flex-direction: row; align-items: center; gap: 0.85rem; text-align: right; transition: all 0.2s ease;">
             
-            {% if m.logo %}
-            <img src="{{ m.logo.url }}" alt="{{ m.name }}" class="rq-method-logo" style="height: 38px; width: 38px; object-fit: contain; flex-shrink: 0;">
-            {% elif m.gateway and m.gateway.logo %}
-            <img src="{{ m.gateway.logo.url }}" alt="{{ m.name }}" class="rq-method-logo" style="height: 38px; width: 38px; object-fit: contain; flex-shrink: 0;">
-            {% elif m.gateway and m.gateway.logo_url %}
-            <img src="{{ m.gateway.logo_url }}" alt="{{ m.name }}" class="rq-method-logo" style="height: 38px; width: 38px; object-fit: contain; flex-shrink: 0;">
+            {% if m.logo_url %}
+            <img src="{{ m.logo_url }}" alt="{{ m.name }}" class="rq-method-logo" style="height: 38px; width: 38px; object-fit: contain; flex-shrink: 0;">
             {% else %}
-            <div style="width: 38px; height: 38px; border-radius: 10px; background: var(--rq-primary-soft); color: var(--rq-primary); display: flex; align-items: center; justify-content: center; font-size: 1.15rem; flex-shrink: 0;">
+            <div style="width: 38px; height: 38px; border-radius: 10px; background: var(--rq-primary-soft); color: var(--rq-primary-light); display: flex; align-items: center; justify-content: center; font-size: 1.15rem; flex-shrink: 0;">
               <i class="fas fa-money-bill-wave"></i>
             </div>
             {% endif %}
 
             <div style="flex: 1; min-width: 0;">
               <div style="display: flex; align-items: center; justify-content: space-between; gap: 0.4rem; margin-bottom: 0.2rem;">
-                <div style="font-size: 0.88rem; font-weight: 800; color: var(--rq-navy); overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">{{ m.name }}</div>
+                <div style="font-size: 0.88rem; font-weight: 800; color: var(--rq-text-primary); overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+                  {% if m.gateway and m.gateway.provider == 'sham_cash' %}شام كاش (ShamCash){% elif m.gateway and m.gateway.provider == 'paymera' %}بيميرا (Paymera){% else %}{{ m.name }}{% endif %}
+                </div>
                 {% if m.gateway and m.gateway.is_active %}
-                <span style="font-size: 0.65rem; font-weight: 800; color: #059669; background: #ecfdf5; border: 1px solid #a7f3d0; padding: 0.12rem 0.45rem; border-radius: 9999px; white-space: nowrap;">
-                  ⚡ فوري
+                <span style="font-size: 0.65rem; font-weight: 800; color: #10b981; background: var(--rq-accent-soft); border: 1px solid rgba(16, 185, 129, 0.3); padding: 0.12rem 0.45rem; border-radius: 9999px; white-space: nowrap;">
+                  ⚡ شحن فوري
                 </span>
                 {% else %}
                 <span style="font-size: 0.65rem; color: var(--rq-text-muted); background: var(--rq-bg-body); border: 1px solid var(--rq-border); padding: 0.12rem 0.45rem; border-radius: 9999px; white-space: nowrap;">
@@ -113,14 +101,14 @@
 
       <!-- SECTION 2: Amount & Currency -->
       <div style="margin-bottom: 1.75rem; border-top: 1px solid var(--rq-border); padding-top: 1.5rem;">
-        <h3 style="font-size: 0.95rem; font-weight: 800; color: var(--rq-navy); margin: 0 0 1rem; display: flex; align-items: center; gap: 0.45rem;">
-          <i class="fas fa-coins" style="color: var(--rq-primary);"></i>
+        <h3 style="font-size: 0.95rem; font-weight: 800; color: var(--rq-text-primary); margin: 0 0 1rem; display: flex; align-items: center; gap: 0.45rem;">
+          <i class="fas fa-coins" style="color: var(--rq-primary-light);"></i>
           <span>2. العملة والمبلغ</span>
         </h3>
 
         <!-- Multi-Currency Selector Pills -->
         <div id="method-currency-selector-box" style="display: none; margin-bottom: 1rem; background: var(--rq-bg-body); border: 1px solid var(--rq-border); border-radius: 12px; padding: 0.85rem;">
-          <label class="rq-label" style="margin-bottom: 0.5rem; display: flex; align-items: center; gap: 0.35rem; color: var(--rq-navy); font-size: 0.8rem; font-weight: 800;">
+          <label class="rq-label" style="margin-bottom: 0.5rem; display: flex; align-items: center; gap: 0.35rem; color: var(--rq-text-primary); font-size: 0.8rem; font-weight: 800;">
             <span>عملة الإيداع:</span>
           </label>
           <div id="method-currency-options" style="display: flex; gap: 0.6rem; flex-wrap: wrap;"></div>
@@ -139,12 +127,12 @@
         <!-- Amount Input -->
         <div class="rq-form-group" style="margin-bottom: 1rem;">
           <label class="rq-label" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.4rem;">
-            <span style="font-weight: 800; color: var(--rq-navy); font-size: 0.84rem;">المبلغ:</span>
+            <span style="font-weight: 800; color: var(--rq-text-primary); font-size: 0.84rem;">المبلغ:</span>
             <span id="amount-limits-hint" style="font-size: 0.74rem; color: var(--rq-text-muted);"></span>
           </label>
           <div style="position: relative;">
             <input type="number" step="any" min="0.01" name="amount" id="deposit-amount-input" placeholder="0.00" class="rq-input" style="font-size: 1.3rem; font-weight: 900; font-family: monospace; padding-left: 5rem; height: 50px; border-radius: 12px;" required oninput="calculateDepositNet()">
-            <span id="amount-currency-label" style="position: absolute; left: 1rem; top: 50%; transform: translateY(-50%); font-size: 0.9rem; font-weight: 800; color: var(--rq-primary); font-family: monospace;">USD</span>
+            <span id="amount-currency-label" style="position: absolute; left: 1rem; top: 50%; transform: translateY(-50%); font-size: 0.9rem; font-weight: 800; color: var(--rq-primary-light); font-family: monospace;">USD</span>
           </div>
         </div>
 
@@ -152,45 +140,45 @@
         <div style="background: var(--rq-bg-body); border-radius: 12px; border: 1px solid var(--rq-border); padding: 0.85rem 1.15rem;">
           <div style="display: flex; justify-content: space-between; font-size: 0.8rem; color: var(--rq-text-secondary); margin-bottom: 0.3rem;">
             <span>الرسوم:</span>
-            <span id="deposit-fee-text" class="tabular-nums font-mono" style="color: var(--rq-navy); font-weight: 700;">0.00</span>
+            <span id="deposit-fee-text" class="tabular-nums font-mono" style="color: var(--rq-text-primary); font-weight: 700;">0.00</span>
           </div>
-          <div style="display: flex; justify-content: space-between; font-size: 0.95rem; font-weight: 900; color: var(--rq-navy); padding-top: 0.4rem; border-top: 1px solid var(--rq-border);">
+          <div style="display: flex; justify-content: space-between; font-size: 0.95rem; font-weight: 900; color: var(--rq-text-primary); padding-top: 0.4rem; border-top: 1px solid var(--rq-border);">
             <span>يُضاف إلى محفظتك:</span>
-            <span id="deposit-net-text" class="tabular-nums font-mono" style="color: #059669; font-size: 1.15rem;">0.00</span>
+            <span id="deposit-net-text" class="tabular-nums font-mono" style="color: #10b981; font-size: 1.15rem;">0.00</span>
           </div>
         </div>
       </div>
 
       <!-- SECTION 3A: AUTOMATED INSTANT GATEWAYS -->
-      <div id="gateway-instant-section" style="display: none; border-top: 1px solid var(--rq-border); padding-top: 1.35rem;">
-        <div style="margin-bottom: 1rem; padding: 0.9rem 1.15rem; border-radius: 12px; background: #ecfdf5; border: 1px solid #a7f3d0;">
-          <div style="display: flex; align-items: center; gap: 0.5rem; color: #059669; font-weight: 800; font-size: 0.9rem; margin-bottom: 0.2rem;">
+      <div id="gateway-instant-section" style="display: {% if payment_methods.0.gateway and payment_methods.0.gateway.is_active %}block{% else %}none{% endif %}; border-top: 1px solid var(--rq-border); padding-top: 1.35rem;">
+        <div style="margin-bottom: 1.15rem; padding: 1rem 1.25rem; border-radius: 14px; background: rgba(16, 185, 129, 0.1); border: 1.5px solid rgba(16, 185, 129, 0.35);">
+          <div style="display: flex; align-items: center; gap: 0.55rem; color: #10b981; font-weight: 900; font-size: 0.96rem; margin-bottom: 0.35rem;">
             <i class="fas fa-bolt"></i>
-            <span id="gateway-auto-title">شحن فوري مباشر</span>
+            <span id="gateway-auto-title">شحن فوري مباشر عبر {% if payment_methods.0.gateway.provider == 'sham_cash' %}شام كاش (ShamCash){% elif payment_methods.0.gateway.provider == 'paymera' %}بيميرا (Paymera){% else %}{{ payment_methods.0.name }}{% endif %}</span>
           </div>
-          <p id="gateway-auto-desc" style="font-size: 0.8rem; color: #047857; margin: 0;">
-            يُضاف الرصيد تلقائياً إلى محفظتك فور إتمام السداد دون الحاجة لرفع إشعار.
+          <p id="gateway-auto-desc" style="font-size: 0.84rem; color: var(--rq-text-secondary); margin: 0; line-height: 1.6;">
+            يتم توجيهك فورياً إلى بوابة الدفع الرسمية، ويُضاف الرصيد تلقائياً وبشكل آمن إلى محفظتك بمجرد إتمام السداد دون الحاجة لرفع أي إشعار يدوي.
           </p>
         </div>
 
-        <button type="submit" id="btn-gateway-direct-submit" class="rq-pdp-buy-now" style="background: #0d9488; border-color: #0d9488;">
-          <span id="gateway-submit-btn-text">متابعة الدفع والشحن الفوري ⚡</span>
+        <button type="submit" id="btn-gateway-direct-submit" class="rq-pdp-buy-now" style="background: linear-gradient(135deg, #0d9488, #059669); border-color: #0d9488; width: 100%; height: 50px; font-size: 1rem; font-weight: 900; display: flex; align-items: center; justify-content: center; gap: 0.65rem;">
+          <span id="gateway-submit-btn-text">متابعة الدفع والشحن الفوري عبر {% if payment_methods.0.gateway.provider == 'sham_cash' %}شام كاش{% else %}{{ payment_methods.0.name }}{% endif %} ⚡</span>
           <i class="fas fa-arrow-left text-xs"></i>
         </button>
       </div>
 
       <!-- SECTION 3B: MANUAL TRANSFER -->
-      <div id="manual-transfer-section" style="display: none; border-top: 1px solid var(--rq-border); padding-top: 1.35rem;">
+      <div id="manual-transfer-section" style="display: {% if payment_methods.0.gateway and payment_methods.0.gateway.is_active %}none{% else %}block{% endif %}; border-top: 1px solid var(--rq-border); padding-top: 1.35rem;">
         <div id="method-instructions-box" style="background: var(--rq-primary-soft); border: 1px solid rgba(37, 99, 235, 0.2); border-radius: 12px; padding: 1rem; margin-bottom: 1.15rem;">
-          <div style="font-size: 0.8rem; font-weight: 800; color: var(--rq-primary); margin-bottom: 0.35rem;">تعليمات التحويل:</div>
+          <div style="font-size: 0.8rem; font-weight: 800; color: var(--rq-primary-light); margin-bottom: 0.35rem;">تعليمات التحويل:</div>
           <div id="method-instructions-text" style="font-size: 0.84rem; color: var(--rq-text-secondary); line-height: 1.65; white-space: pre-line;"></div>
         </div>
 
         <div class="rq-form-group" style="margin-bottom: 1rem;">
           <label class="rq-label" style="font-size: 0.8rem;">صورة إشعار التحويل:</label>
           <div style="border: 1.5px dashed var(--rq-border-strong); border-radius: 12px; padding: 1.25rem; text-align: center; background: var(--rq-bg-body); cursor: pointer;" onclick="document.getElementById('proof-image-input').click();">
-            <i class="fas fa-cloud-upload-alt" style="font-size: 1.5rem; color: var(--rq-primary); margin-bottom: 0.35rem; display: block;"></i>
-            <span style="font-size: 0.84rem; font-weight: 700; color: var(--rq-navy); display: block;">اضغط لإرفاق صورة الإشعار</span>
+            <i class="fas fa-cloud-upload-alt" style="font-size: 1.5rem; color: var(--rq-primary-light); margin-bottom: 0.35rem; display: block;"></i>
+            <span style="font-size: 0.84rem; font-weight: 700; color: var(--rq-text-primary); display: block;">اضغط لإرفاق صورة الإشعار</span>
             <input type="file" name="proof_image" id="proof-image-input" accept="image/*" style="display: none;" onchange="previewProofImage(this)">
           </div>
 
@@ -214,8 +202,8 @@
 
   <!-- 3. Previous Deposit Requests History -->
   <div style="background: var(--rq-surface-card); border: 1px solid var(--rq-border); border-radius: 18px; padding: 1.5rem; box-shadow: var(--rq-shadow-xs);">
-    <h3 style="font-size: 1rem; font-weight: 900; color: var(--rq-navy); margin: 0 0 1rem; display: flex; align-items: center; gap: 0.45rem;">
-      <i class="fas fa-clock-rotate-left" style="color: var(--rq-primary);"></i>
+    <h3 style="font-size: 1rem; font-weight: 900; color: var(--rq-text-primary); margin: 0 0 1rem; display: flex; align-items: center; gap: 0.45rem;">
+      <i class="fas fa-clock-rotate-left" style="color: var(--rq-primary-light);"></i>
       <span>سجل عمليات الشحن</span>
     </h3>
 
@@ -236,22 +224,22 @@
             <td style="padding: 0.8rem 0.85rem; color: var(--rq-text-muted); font-size: 0.76rem; white-space: nowrap;">
               {{ req.created_at|date:"Y-m-d H:i" }}
             </td>
-            <td style="padding: 0.8rem 0.85rem; font-weight: 700; color: var(--rq-navy);">
+            <td style="padding: 0.8rem 0.85rem; font-weight: 700; color: var(--rq-text-primary);">
               {{ req.payment_method.name }}
             </td>
             <td style="padding: 0.8rem 0.85rem; font-family: monospace; font-weight: 800; color: var(--rq-text-secondary);">
               {{ req.amount }} {{ req.currency.code }}
             </td>
-            <td style="padding: 0.8rem 0.85rem; font-family: monospace; font-weight: 900; color: #059669;">
+            <td style="padding: 0.8rem 0.85rem; font-family: monospace; font-weight: 900; color: #10b981;">
               {% if req.wallet_amount %}{% format_price req.wallet_amount %}{% else %}-{% endif %}
             </td>
             <td style="padding: 0.8rem 0.85rem;">
               {% if req.status == 'completed' %}
               <span class="rq-status-pill rq-status-completed">مكتمل ✓</span>
               {% elif req.status == 'pending' %}
-              <span class="rq-status-pill rq-status-pending">قيد المراجعة</span>
+              <span class="rq-status-pill rq-status-pending">قيد المعالجة</span>
               {% elif req.status == 'rejected' %}
-              <span class="rq-status-pill rq-status-cancelled">مرفوض</span>
+              <span class="rq-status-pill rq-status-cancelled">ملغي / مرفوض</span>
               {% else %}
               <span class="rq-status-pill rq-status-processing">{{ req.get_status_display }}</span>
               {% endif %}
@@ -271,7 +259,40 @@
 
 </div>
 
+<!-- Embedded Methods Data Dictionary (Safe JSON) -->
+<script type="application/json" id="rq-methods-data">
+{
+  {% for m in payment_methods %}
+  "{{ m.id }}": {
+    "id": "{{ m.id }}",
+    "name": "{% if m.gateway and m.gateway.provider == 'sham_cash' %}شام كاش (ShamCash){% elif m.gateway and m.gateway.provider == 'paymera' %}بيميرا (Paymera){% else %}{{ m.name|escapejs }}{% endif %}",
+    "isGateway": {% if m.gateway and m.gateway.is_active %}true{% else %}false{% endif %},
+    "gatewayProvider": "{% if m.gateway %}{{ m.gateway.provider }}{% endif %}",
+    "currencyId": "{{ m.supported_currencies.first.id|default:'' }}",
+    "currencyCode": "{{ m.supported_currencies.first.code|default:'USD' }}",
+    "currencySymbol": "{{ m.supported_currencies.first.symbol|default:'$' }}",
+    "min": {{ m.deposit_min_amount|default:0 }},
+    "max": {{ m.deposit_max_amount|default:0 }},
+    "fee": 0,
+    "instructions": "{{ m.deposit_instructions|default:''|escapejs }}",
+    "currencies": [
+      {% for c in m.supported_currencies.all %}
+      {"id": "{{ c.id }}", "code": "{{ c.code }}", "symbol": "{{ c.symbol }}", "name": "{{ c.name|escapejs }}"}{% if not forloop.last %},{% endif %}
+      {% endfor %}
+    ]
+  }{% if not forloop.last %},{% endif %}
+  {% endfor %}
+}
+</script>
+
 <script>
+let METHODS_CACHE = {};
+try {
+  METHODS_CACHE = JSON.parse(document.getElementById('rq-methods-data').textContent || '{}');
+} catch(e) {
+  METHODS_CACHE = {};
+}
+
 let activeMethodData = {};
 
 function setQuickDepositAmount(val) {
@@ -282,48 +303,48 @@ function setQuickDepositAmount(val) {
   }
 }
 
-function selectDepositMethod(el) {
+function selectDepositMethod(methodId, cardEl) {
   document.querySelectorAll('.rq-method-card').forEach(c => {
     c.classList.remove('selected');
     c.style.borderColor = 'var(--rq-border)';
     c.style.background = 'var(--rq-bg-surface)';
   });
 
-  el.classList.add('selected');
-  el.style.borderColor = 'var(--rq-primary)';
-  el.style.background = 'var(--rq-primary-soft)';
+  if (cardEl) {
+    cardEl.classList.add('selected');
+    cardEl.style.borderColor = 'var(--rq-primary)';
+    cardEl.style.background = 'var(--rq-primary-soft)';
+  }
 
-  let currencies = [];
-  try {
-    currencies = JSON.parse(el.getAttribute('data-currencies') || '[]');
-  } catch(e) {}
-
+  const raw = METHODS_CACHE[methodId] || {};
   activeMethodData = {
-    id: el.getAttribute('data-method-id'),
-    name: el.getAttribute('data-method-name'),
-    isGateway: el.getAttribute('data-is-gateway') === 'true',
-    gatewayProvider: el.getAttribute('data-gateway-provider') || '',
-    currencyId: el.getAttribute('data-currency-id'),
-    currencyCode: el.getAttribute('data-currency-code'),
-    currencySymbol: el.getAttribute('data-currency-symbol'),
-    min: parseFloat(el.getAttribute('data-min')) || 0,
-    max: parseFloat(el.getAttribute('data-max')) || 0,
-    fee: parseFloat(el.getAttribute('data-fee')) || 0,
-    instructions: el.getAttribute('data-instructions') || '',
-    currencies: currencies
+    id: methodId,
+    name: raw.name || '',
+    isGateway: !!raw.isGateway,
+    gatewayProvider: raw.gatewayProvider || '',
+    currencyId: raw.currencyId || '',
+    currencyCode: raw.currencyCode || 'USD',
+    currencySymbol: raw.currencySymbol || '$',
+    min: parseFloat(raw.min) || 0,
+    max: parseFloat(raw.max) || 0,
+    fee: parseFloat(raw.fee) || 0,
+    instructions: raw.instructions || '',
+    currencies: raw.currencies || []
   };
 
-  if (currencies.length > 0) {
-    const firstC = currencies[0];
+  if (activeMethodData.currencies.length > 0) {
+    const firstC = activeMethodData.currencies[0];
     activeMethodData.currencyId = firstC.id;
     activeMethodData.currencyCode = firstC.code;
     activeMethodData.currencySymbol = firstC.symbol;
   }
 
-  document.getElementById('selected-payment-method').value = activeMethodData.id;
-  document.getElementById('selected-currency-id').value = activeMethodData.currencyId;
+  const hiddenMethod = document.getElementById('selected-payment-method');
+  const hiddenCurrency = document.getElementById('selected-currency-id');
+  if (hiddenMethod) hiddenMethod.value = activeMethodData.id;
+  if (hiddenCurrency) hiddenCurrency.value = activeMethodData.currencyId;
   
-  renderCurrencySelector(currencies);
+  renderCurrencySelector(activeMethodData.currencies);
   updateMethodDetailsView();
 }
 
@@ -356,7 +377,8 @@ function renderCurrencySelector(currencies) {
       activeMethodData.currencyId = c.id;
       activeMethodData.currencyCode = c.code;
       activeMethodData.currencySymbol = c.symbol;
-      document.getElementById('selected-currency-id').value = c.id;
+      const hiddenCurr = document.getElementById('selected-currency-id');
+      if (hiddenCurr) hiddenCurr.value = c.id;
       renderCurrencySelector(currencies);
       updateMethodDetailsView();
       if (typeof calculateDepositNet === 'function') calculateDepositNet();
@@ -382,21 +404,23 @@ function updateMethodDetailsView() {
     const methodName = activeMethodData.name || 'بوابة الدفع';
 
     if (isSham) {
-      if (gwTitle) gwTitle.innerText = `شحن فوري مباشر عبر ${methodName}`;
-      if (gwDesc) gwDesc.innerText = `يُضاف الرصيد تلقائياً إلى محفظتك فور إتمام السداد في ${methodName}.`;
-      if (gwBtnText) gwBtnText.innerText = `شحن فوري عبر ${methodName} ⚡`;
+      if (gwTitle) gwTitle.innerText = `شحن فوري مباشر عبر شام كاش (ShamCash)`;
+      if (gwDesc) gwDesc.innerText = `يتم توجيهك فورياً إلى شام كاش للدفع، ويُضاف الرصيد تلقائياً إلى محفظتك فور إتمام السداد.`;
+      if (gwBtnText) gwBtnText.innerText = `متابعة الدفع والشحن الفوري عبر شام كاش ⚡`;
       if (gwBtn) {
-        gwBtn.style.background = '#0d9488';
+        gwBtn.style.background = 'linear-gradient(135deg, #0d9488, #059669)';
+        gwBtn.style.borderColor = '#0d9488';
       }
     } else if (isPaymera) {
-      if (gwTitle) gwTitle.innerText = `شحن فوري بالبطاقة عبر ${methodName}`;
-      if (gwDesc) gwDesc.innerText = `يُضاف الرصيد فوراً إلى محفظتك بعد الدفع بالبطاقة عبر ${methodName}.`;
-      if (gwBtnText) gwBtnText.innerText = `شحن فوري عبر ${methodName} 💳`;
+      if (gwTitle) gwTitle.innerText = `شحن فوري بالبطاقة عبر بيميرا (Paymera)`;
+      if (gwDesc) gwDesc.innerText = `يُضاف الرصيد فوراً إلى محفظتك بعد الدفع بالبطاقة عبر بيميرا.`;
+      if (gwBtnText) gwBtnText.innerText = `متابعة الدفع بالبطاقة عبر بيميرا 💳`;
       if (gwBtn) {
-        gwBtn.style.background = '#4f46e5';
+        gwBtn.style.background = 'linear-gradient(135deg, #4f46e5, #4338ca)';
+        gwBtn.style.borderColor = '#4f46e5';
       }
     } else {
-      if (gwTitle) gwTitle.innerText = `شحن فوري عبر ${methodName}`;
+      if (gwTitle) gwTitle.innerText = `شحن فوري مباشر عبر ${methodName}`;
       if (gwDesc) gwDesc.innerText = `توجيه مباشر لإتمام العملية وشحن محفظتك تلقائياً.`;
       if (gwBtnText) gwBtnText.innerText = `شحن فوري عبر ${methodName} ⚡`;
       if (gwBtn) {
@@ -452,8 +476,11 @@ function previewProofImage(input) {
 }
 
 document.addEventListener('DOMContentLoaded', () => {
-  const firstMethod = document.querySelector('.rq-method-card');
-  if (firstMethod) selectDepositMethod(firstMethod);
+  const firstCard = document.querySelector('.rq-method-card');
+  if (firstCard) {
+    const mId = firstCard.getAttribute('data-method-id');
+    selectDepositMethod(mId, firstCard);
+  }
 });
 </script>
 {% endblock %}

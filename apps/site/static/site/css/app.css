@@ -1913,12 +1913,32 @@ button, input, select, textarea {
 }
 
 .rq-footer-bottom {
-  padding-top: 1.5rem;
+  padding-top: 1.75rem;
   display: flex;
   flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
-  gap: 1rem;
+  gap: 1.25rem;
+}
+
+@media (max-width: 1023.98px) {
+  .rq-footer {
+    padding-bottom: 5.85rem;
+  }
+}
+
+@media (max-width: 768px) {
+  .rq-footer-bottom {
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    gap: 1.25rem;
+  }
+  .rq-footer-bottom > div {
+    align-items: center !important;
+    text-align: center !important;
+    justify-content: center !important;
+  }
 }
 
 /* ==========================================================================

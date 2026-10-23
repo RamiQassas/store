@@ -36,10 +36,12 @@
   <style>{{ STORE_CUSTOM_CSS|safe }}</style>
   {% endif %}
 
+  {% block control_base_head %}{% endblock %}
   {% block extra_head %}{% endblock %}
 </head>
-<body>
+<body class="{% if '/control/' in request.path or '/admin/' in request.path %}admin-page{% else %}storefront-page{% endif %}">
 
+  {% if not '/control/' in request.path and not '/admin/' in request.path %}
   <!-- ====================================================================
        1. TOP HEADER & ACTUAL CATEGORY NAVIGATION BAR
        ==================================================================== -->
@@ -174,6 +176,7 @@
       </div>
     </nav>
   </header>
+  {% endif %}
 
   <!-- ====================================================================
        2. SYSTEM ALERTS / FLASH MESSAGES
@@ -195,10 +198,11 @@
   <!-- ====================================================================
        3. MAIN PAGE CONTENT
        ==================================================================== -->
-  <main class="rq-main-wrapper">
+  <main class="{% if not '/control/' in request.path and not '/admin/' in request.path %}rq-main-wrapper{% else %}rq-admin-wrapper{% endif %}">
     {% block content %}{% endblock %}
   </main>
 
+  {% if not '/control/' in request.path and not '/admin/' in request.path %}
   <!-- ====================================================================
        4. SLIDE-OVER SHOPPING CART DRAWER
        ==================================================================== -->
@@ -555,25 +559,31 @@
 
       <!-- Structured Bottom Copyright & Ownership Bar -->
       <div class="rq-footer-bottom">
-        <div style="display: flex; flex-direction: column; gap: 0.2rem;">
-          <div style="font-size: 0.84rem; font-weight: 800; color: var(--rq-navy);">
+        <div style="display: flex; flex-direction: column; gap: 0.35rem;">
+          <div style="font-size: 0.88rem; font-weight: 800; color: var(--rq-text-primary);">
             جميع الحقوق محفوظة &copy; {% now "Y" %} — <span style="color: var(--rq-primary-light);">مؤسسة رامي قصاص بن ماهر</span>
           </div>
-          <div style="font-size: 0.74rem; color: var(--rq-text-muted);">
-            منصة رقميات (Raqamiyat) للتجارة الإلكترونية والخدمات التقنية المتكاملة
+          <div style="font-size: 0.76rem; color: var(--rq-text-muted);">
+            منصة رقميات (Raqamiyat) للتجارة الإلكترونية والخدمات التقنية المتكاملة • ترخيص رسمي وسجل تجاري معتمد
           </div>
         </div>
 
-        <div style="display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap;">
-          <span style="font-size: 0.74rem; font-weight: 800; padding: 0.3rem 0.7rem; border-radius: 8px; background: var(--rq-bg-elevated); border: 1px solid var(--rq-border); color: var(--rq-text-secondary); display: inline-flex; align-items: center; gap: 0.35rem;">
+        <div style="display: flex; align-items: center; gap: 0.6rem; flex-wrap: wrap;">
+          <span style="font-size: 0.76rem; font-weight: 800; padding: 0.4rem 0.85rem; border-radius: 10px; background: var(--rq-bg-elevated); border: 1px solid var(--rq-border); color: var(--rq-text-secondary); display: inline-flex; align-items: center; gap: 0.45rem;">
             <i class="fas fa-wallet" style="color: var(--rq-primary-light);"></i> المحفظة الرقمية
           </span>
-          <span style="font-size: 0.74rem; font-weight: 800; padding: 0.3rem 0.7rem; border-radius: 8px; background: var(--rq-bg-elevated); border: 1px solid var(--rq-border); color: var(--rq-text-secondary); display: inline-flex; align-items: center; gap: 0.35rem;">
-            <i class="fas fa-bolt" style="color: var(--rq-accent);"></i> شام كاش ShamCash
+          {% for gw in SITE_GATEWAYS %}
+          <span style="font-size: 0.76rem; font-weight: 800; padding: 0.4rem 0.85rem; border-radius: 10px; background: var(--rq-bg-elevated); border: 1px solid var(--rq-border); color: var(--rq-text-secondary); display: inline-flex; align-items: center; gap: 0.5rem;">
+            {% if gw.logo_url %}
+            <img src="{{ gw.logo_url }}" alt="{{ gw.name }}" style="height: 18px; max-width: 70px; object-fit: contain;">
+            {% elif gw.provider == 'sham_cash' %}
+            <i class="fas fa-bolt" style="color: var(--rq-accent);"></i>
+            {% else %}
+            <i class="fas fa-credit-card" style="color: var(--rq-primary-light);"></i>
+            {% endif %}
+            <span>{{ gw.name }}</span>
           </span>
-          <span style="font-size: 0.74rem; font-weight: 800; padding: 0.3rem 0.7rem; border-radius: 8px; background: var(--rq-bg-elevated); border: 1px solid var(--rq-border); color: var(--rq-text-secondary); display: inline-flex; align-items: center; gap: 0.35rem;">
-            <i class="fas fa-credit-card" style="color: #818cf8;"></i> بيميرا Paymera
-          </span>
+          {% endfor %}
         </div>
       </div>
     </div>
@@ -611,6 +621,7 @@
     </a>
     {% endif %}
   </nav>
+  {% endif %}
 
   <!-- Global Interactive Scripts (Theme Toggle, Drawers, AJAX Cart) -->
   <script>
@@ -720,6 +731,7 @@
     }
   </script>
 
+  {% block extra_scripts %}{% endblock %}
   {% block extra_js %}{% endblock %}
 </body>
 </html>
