@@ -30,7 +30,7 @@
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
 
   <!-- Dual-Theme Design System Stylesheet -->
-  <link rel="stylesheet" href="{% static 'site/css/app.css' %}?v=20261023_mobile_v13">
+  <link rel="stylesheet" href="{% static 'site/css/app.css' %}?v=20261023_mobile_v15">
 
   {% if STORE_CUSTOM_CSS %}
   <style>{{ STORE_CUSTOM_CSS|safe }}</style>
@@ -527,42 +527,26 @@
           </div>
         </div>
 
-        <!-- Column 2: Actual Store Categories -->
+        <!-- Column 2: Legal & Compliance Policies -->
         <div>
-          <h4 class="rq-footer-title">أقسام المتجر</h4>
+          <h4 class="rq-footer-title">السياسات والشروط القانونية</h4>
           <ul class="rq-footer-links">
-            <li><a href="{% url 'catalog' %}"><i class="fas fa-angle-left" style="font-size: 0.7rem; color: var(--rq-primary-light);"></i> جميع المنتجات</a></li>
-            {% for nav_cat in nav_categories|slice:":6" %}
-            <li>
-              <a href="{% url 'catalog' %}?category={{ nav_cat.id }}">
-                <i class="fas fa-angle-left" style="font-size: 0.7rem; color: var(--rq-primary-light);"></i>
-                <span>{{ nav_cat.name }}</span>
-              </a>
-            </li>
-            {% endfor %}
+            <li><a href="{% url 'privacy_policy' %}"><i class="fas fa-shield-alt" style="font-size: 0.75rem; color: var(--rq-primary-light);"></i> سياسة الخصوصية وحماية البيانات</a></li>
+            <li><a href="{% url 'terms_of_service' %}"><i class="fas fa-file-contract" style="font-size: 0.75rem; color: var(--rq-primary-light);"></i> شروط الخدمة والاستخدام</a></li>
+            <li><a href="{% url 'refund_policy' %}"><i class="fas fa-undo-alt" style="font-size: 0.75rem; color: var(--rq-primary-light);"></i> سياسة الاستبدال والاسترجاع والضمان</a></li>
+            <li><a href="{% url 'contact' %}"><i class="fas fa-check-circle" style="font-size: 0.75rem; color: var(--rq-primary-light);"></i> معايير الأمان المالي والدفع الآمن</a></li>
+            <li><a href="{% url 'contact' %}"><i class="fas fa-truck" style="font-size: 0.75rem; color: var(--rq-primary-light);"></i> سياسة الشحن والتوصيل الفوري</a></li>
           </ul>
         </div>
 
-        <!-- Column 3: Account & Wallet -->
+        <!-- Column 3: Customer Care & Support -->
         <div>
-          <h4 class="rq-footer-title">حساب العميل والمحفظة</h4>
+          <h4 class="rq-footer-title">خدمة العملاء والمساعدة</h4>
           <ul class="rq-footer-links">
-            <li><a href="{% url 'dashboard' %}"><i class="fas fa-angle-left" style="font-size: 0.7rem; color: var(--rq-primary-light);"></i> حسابي الشخصي</a></li>
-            <li><a href="{% url 'cart_detail' %}"><i class="fas fa-angle-left" style="font-size: 0.7rem; color: var(--rq-primary-light);"></i> سلة التسوق</a></li>
-            <li><a href="{% url 'dashboard_orders' %}"><i class="fas fa-angle-left" style="font-size: 0.7rem; color: var(--rq-primary-light);"></i> تتبع الطلبات والمشتريات</a></li>
-            <li><a href="{% url 'dashboard_wallet' %}"><i class="fas fa-angle-left" style="font-size: 0.7rem; color: var(--rq-primary-light);"></i> المحفظة الرقمية</a></li>
-            <li><a href="{% url 'dashboard_deposits' %}"><i class="fas fa-angle-left" style="font-size: 0.7rem; color: var(--rq-primary-light);"></i> شحن رصيد المحفظة</a></li>
-          </ul>
-        </div>
-
-        <!-- Column 4: Customer Support & Policies -->
-        <div>
-          <h4 class="rq-footer-title">خدمة العملاء والسياسات</h4>
-          <ul class="rq-footer-links">
-            <li><a href="{% url 'contact' %}"><i class="fas fa-headset" style="font-size: 0.75rem; color: var(--rq-primary-light);"></i> مركز المساعدة والدعم الفني</a></li>
-            <li><a href="{% url 'privacy_policy' %}"><i class="fas fa-angle-left" style="font-size: 0.7rem; color: var(--rq-primary-light);"></i> سياسة الخصوصية</a></li>
-            <li><a href="{% url 'terms_of_service' %}"><i class="fas fa-angle-left" style="font-size: 0.7rem; color: var(--rq-primary-light);"></i> شروط الخدمة والاستخدام</a></li>
-            <li><a href="{% url 'refund_policy' %}"><i class="fas fa-angle-left" style="font-size: 0.7rem; color: var(--rq-primary-light);"></i> سياسة الاستبدال والاسترجاع</a></li>
+            <li><a href="{% url 'contact' %}"><i class="fas fa-headset" style="font-size: 0.75rem; color: var(--rq-primary-light);"></i> مركز المساعدة والدعم الفني المباشر</a></li>
+            <li><a href="{% url 'dashboard_orders' %}"><i class="fas fa-receipt" style="font-size: 0.75rem; color: var(--rq-primary-light);"></i> متابعة وتتبع الطلبات السابقة</a></li>
+            <li><a href="{% url 'dashboard_wallet' %}"><i class="fas fa-wallet" style="font-size: 0.75rem; color: var(--rq-primary-light);"></i> شحن الرصيد والدفع المعتمد</a></li>
+            <li><a href="{% url 'dashboard' %}"><i class="fas fa-user-shield" style="font-size: 0.75rem; color: var(--rq-primary-light);"></i> إدارة الحساب وتأمين العمليات</a></li>
           </ul>
         </div>
 
@@ -601,7 +585,7 @@
   </footer>
 
   <!-- ====================================================================
-       7. MOBILE BOTTOM NAVIGATION BAR
+       7. MOBILE BOTTOM NAVIGATION BAR (WITH MY ORDERS TAB)
        ==================================================================== -->
   <nav class="rq-bottom-nav" aria-label="التنقل السفلي للهاتف">
     <a href="{% url 'home' %}" class="rq-bottom-nav-item {% if request.resolver_match.url_name == 'home' %}active{% endif %}">
@@ -612,21 +596,24 @@
       <i class="fas fa-th-large"></i>
       <span>المنتجات</span>
     </a>
-    <button type="button" onclick="toggleCartDrawer(true)" class="rq-bottom-nav-item" style="background: none; border: none; cursor: pointer;">
-      <i class="fas fa-shopping-bag"></i>
-      <span>السلة ({{ cart_items_count|default:0 }})</span>
-    </button>
-    <a href="{% url 'contact' %}" class="rq-bottom-nav-item {% if request.resolver_match.url_name == 'contact' %}active{% endif %}">
-      <i class="fas fa-headset"></i>
-      <span>الدعم</span>
+    <a href="{% url 'dashboard_orders' %}" class="rq-bottom-nav-item {% if 'orders' in request.path or request.resolver_match.url_name == 'dashboard_orders' or request.resolver_match.url_name == 'order_detail' %}active{% endif %}">
+      <i class="fas fa-receipt"></i>
+      <span>طلباتي</span>
     </a>
+    <button type="button" onclick="toggleCartDrawer(true)" class="rq-bottom-nav-item" style="background: none; border: none; cursor: pointer;">
+      <div style="position: relative; display: inline-flex;">
+        <i class="fas fa-shopping-bag"></i>
+        <span class="rq-cart-badge" style="position: absolute; top: -7px; right: -10px; width: 17px; height: 17px; font-size: 0.62rem; min-width: 17px; padding: 0;">{{ cart_items_count|default:0 }}</span>
+      </div>
+      <span>السلة</span>
+    </button>
     {% if user.is_authenticated %}
-    <a href="{% url 'dashboard' %}" class="rq-bottom-nav-item {% if 'dashboard' in request.resolver_match.url_name %}active{% endif %}">
-      <i class="fas fa-user"></i>
+    <a href="{% url 'dashboard' %}" class="rq-bottom-nav-item {% if 'dashboard' in request.path and not 'orders' in request.path %}active{% endif %}">
+      <i class="fas fa-user-circle"></i>
       <span>حسابي</span>
     </a>
     {% else %}
-    <a href="{% url 'site_login' %}" class="rq-bottom-nav-item">
+    <a href="{% url 'site_login' %}" class="rq-bottom-nav-item {% if request.resolver_match.url_name == 'site_login' %}active{% endif %}">
       <i class="fas fa-sign-in-alt"></i>
       <span>دخول</span>
     </a>

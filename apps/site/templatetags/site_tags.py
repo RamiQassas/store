@@ -36,10 +36,11 @@ def variant_price(context, variant):
         return None
 
     request = context.get('request')
-    if not request or not request.user.is_authenticated:
+    user = getattr(request, 'user', None) if request else None
+    if not user or not getattr(user, 'is_authenticated', False):
         return variant.price
     
-    return variant.get_price_for_user(request.user)
+    return variant.get_price_for_user(user)
 
 @register.simple_tag(takes_context=True)
 def variant_card_price(context, variant):

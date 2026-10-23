@@ -49,7 +49,7 @@
             <img src="{{ hcat_img }}" alt="{{ hcat.name }}" style="width: 100%; height: 100%; object-fit: cover;" onerror="this.onerror=null; this.src='/media/categories/raqamiyat_category_brand.jpg';">
           </div>
           <span>{{ hcat.name|truncatechars:18 }}</span>
-          <small style="font-size: 0.68rem; color: #93c5fd; display: block; margin-top: 0.15rem;">{{ hcat.product_count|default:hcat.active_products_count|default:1 }} منتج</small>
+          <small style="font-size: 0.68rem; color: #93c5fd; display: block; margin-top: 0.15rem;">{{ hcat.product_count|default:1 }} منتج</small>
         </a>
         {% empty %}
         <a href="{% url 'catalog' %}" class="rq-hero-mini-card" style="grid-column: span 2;">
@@ -86,7 +86,7 @@
       <a href="{% url 'catalog' %}?category={{ cat.id }}&view=products" class="rq-cat-clean-card">
         <div class="rq-cat-thumb">
           <img src="{{ cat_img }}" alt="{{ cat.name }}" loading="lazy" onerror="this.onerror=null; this.src='/media/categories/raqamiyat_category_brand.jpg';">
-          <span class="rq-cat-badge">{{ cat.product_count|default:cat.active_products_count|default:1 }} منتج</span>
+          <span class="rq-cat-badge">{{ cat.product_count|default:1 }} منتج</span>
         </div>
         <h3 class="rq-cat-clean-title">{{ cat.name }}</h3>
         <span class="rq-cat-action">تصفح القسم <i class="fas fa-arrow-left text-[10px]"></i></span>

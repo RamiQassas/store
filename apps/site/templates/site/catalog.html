@@ -232,6 +232,23 @@
 
         <!-- ── SECTION 2: Products Grid View (Strictly 2 Products Per Row on Mobile) ── -->
         <div id="catalog-products-view" style="{% if view_type == 'categories' %}display: none;{% endif %}">
+          
+          <!-- Quick Filter Chips for Instant One-Tap Filtering -->
+          <div style="display: flex; align-items: center; gap: 0.45rem; overflow-x: auto; -webkit-overflow-scrolling: touch; padding-bottom: 0.65rem; margin-bottom: 0.85rem; scrollbar-width: none;">
+            <a href="?view=products{% if query %}&q={{ query }}{% endif %}{% if active_category %}&category={{ active_category }}{% endif %}" style="flex-shrink: 0; padding: 0.38rem 0.85rem; border-radius: 9999px; font-size: 0.74rem; font-weight: 800; border: 1px solid {% if not product_type_filter and not in_stock_filter %}var(--rq-primary-light){% else %}var(--rq-border){% endif %}; background: {% if not product_type_filter and not in_stock_filter %}linear-gradient(135deg, rgba(37,99,235,0.25), rgba(14,165,233,0.25)){% else %}var(--rq-surface-card){% endif %}; color: {% if not product_type_filter and not in_stock_filter %}#38bdf8{% else %}var(--rq-text-secondary){% endif %}; transition: all 0.2s;">
+              ✨ الكل
+            </a>
+            <a href="?view=products&type=physical{% if query %}&q={{ query }}{% endif %}{% if active_category %}&category={{ active_category }}{% endif %}" style="flex-shrink: 0; padding: 0.38rem 0.85rem; border-radius: 9999px; font-size: 0.74rem; font-weight: 800; border: 1px solid {% if product_type_filter == 'physical' %}var(--rq-primary-light){% else %}var(--rq-border){% endif %}; background: {% if product_type_filter == 'physical' %}linear-gradient(135deg, rgba(37,99,235,0.25), rgba(14,165,233,0.25)){% else %}var(--rq-surface-card){% endif %}; color: {% if product_type_filter == 'physical' %}#38bdf8{% else %}var(--rq-text-secondary){% endif %}; transition: all 0.2s;">
+              💻 أجهزة وعتاد تقني
+            </a>
+            <a href="?view=products&type=digital{% if query %}&q={{ query }}{% endif %}{% if active_category %}&category={{ active_category }}{% endif %}" style="flex-shrink: 0; padding: 0.38rem 0.85rem; border-radius: 9999px; font-size: 0.74rem; font-weight: 800; border: 1px solid {% if product_type_filter == 'digital' %}var(--rq-primary-light){% else %}var(--rq-border){% endif %}; background: {% if product_type_filter == 'digital' %}linear-gradient(135deg, rgba(37,99,235,0.25), rgba(14,165,233,0.25)){% else %}var(--rq-surface-card){% endif %}; color: {% if product_type_filter == 'digital' %}#38bdf8{% else %}var(--rq-text-secondary){% endif %}; transition: all 0.2s;">
+              ⚡ بطاقات وخدمات رقمية
+            </a>
+            <a href="?view=products&in_stock=1{% if query %}&q={{ query }}{% endif %}{% if active_category %}&category={{ active_category }}{% endif %}" style="flex-shrink: 0; padding: 0.38rem 0.85rem; border-radius: 9999px; font-size: 0.74rem; font-weight: 800; border: 1px solid {% if in_stock_filter == '1' %}#34d399{% else %}var(--rq-border){% endif %}; background: {% if in_stock_filter == '1' %}rgba(16,185,129,0.2){% else %}var(--rq-surface-card){% endif %}; color: {% if in_stock_filter == '1' %}#34d399{% else %}var(--rq-text-secondary){% endif %}; transition: all 0.2s;">
+              🟢 المتوفر حالياً فقط
+            </a>
+          </div>
+
           <div class="rq-products-grid">
             {% for p in page_obj %}
             {% product_display_image p as p_img %}

@@ -2123,7 +2123,7 @@ button, input, select, textarea {
 
 @media (min-width: 768px) {
   .rq-footer-grid {
-    grid-template-columns: 1.4fr 1fr 1fr 1fr;
+    grid-template-columns: 1.5fr 1fr 1fr;
   }
 }
 
@@ -2234,14 +2234,17 @@ button, input, select, textarea {
   bottom: 0;
   left: 0;
   right: 0;
-  height: 62px;
-  background: var(--rq-header-bg);
-  backdrop-filter: blur(16px);
-  border-top: 1px solid var(--rq-border);
+  height: 64px;
+  background: rgba(10, 15, 29, 0.94);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
   display: grid;
   grid-template-columns: repeat(5, 1fr);
   z-index: 95;
-  box-shadow: 0 -2px 12px rgba(0, 0, 0, 0.15);
+  box-shadow: 0 -4px 25px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.06);
+  padding: 0 0.2rem;
+  box-sizing: border-box;
 }
 
 @media (min-width: 1024px) {
@@ -2252,7 +2255,7 @@ button, input, select, textarea {
 
 @media (max-width: 1023.98px) {
   body:not(.admin-page) {
-    padding-bottom: 66px;
+    padding-bottom: 70px;
   }
 }
 
@@ -2261,20 +2264,52 @@ button, input, select, textarea {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 0.2rem;
+  gap: 0.22rem;
   font-size: 0.68rem;
   font-weight: 800;
-  color: var(--rq-text-muted);
+  color: #94a3b8;
   position: relative;
+  text-decoration: none;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  -webkit-tap-highlight-color: transparent;
+  padding: 0.25rem 0;
 }
 
-.rq-bottom-nav-item.active,
-.rq-bottom-nav-item:hover {
-  color: var(--rq-primary-light);
+.rq-bottom-nav-item::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 50%;
+  transform: translateX(-50%) scaleX(0);
+  width: 28px;
+  height: 3px;
+  border-radius: 0 0 3px 3px;
+  background: linear-gradient(90deg, #38bdf8, #2563eb);
+  box-shadow: 0 0 10px rgba(56, 189, 248, 0.6);
+  transition: transform 0.25s ease;
+}
+
+.rq-bottom-nav-item.active {
+  color: #38bdf8 !important;
+}
+
+.rq-bottom-nav-item.active::before {
+  transform: translateX(-50%) scaleX(1);
+}
+
+.rq-bottom-nav-item.active i {
+  color: #38bdf8 !important;
+  transform: translateY(-1px) scale(1.1);
+  filter: drop-shadow(0 0 8px rgba(56, 189, 248, 0.5));
+}
+
+.rq-bottom-nav-item:active {
+  transform: scale(0.92);
 }
 
 .rq-bottom-nav-item i {
-  font-size: 1.05rem;
+  font-size: 1.12rem;
+  transition: transform 0.2s ease, color 0.2s ease;
 }
 
 /* Responsive Helper Classes */
