@@ -4,7 +4,7 @@
 {% block title %}كتالوج المنتجات والأقسام | {% if is_tenant %}{{ STORE_NAME }}{% else %}رقميات RAQAMIYAT{% endif %}{% endblock %}
 
 {% block content %}
-<div style="min-height: 100vh; padding: 1.25rem 0 4.5rem;">
+<div style="min-height: 100vh; padding: 1rem 0 4.5rem; overflow-x: clip; width: 100%; max-width: 100vw; box-sizing: border-box;">
   <div class="rq-container">
 
     <!-- ── Breadcrumbs & Catalog Header ── -->
@@ -19,9 +19,9 @@
         {% endif %}
       </nav>
 
-      <div style="display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 1rem;">
+      <div style="display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 0.75rem;">
         <div>
-          <h1 style="font-size: clamp(1.35rem, 2.5vw, 1.9rem); font-weight: 900; color: var(--rq-text-primary); margin: 0 0 0.25rem;">
+          <h1 style="font-size: clamp(1.15rem, 2.5vw, 1.8rem); font-weight: 900; color: var(--rq-text-primary); margin: 0 0 0.25rem;">
             {% if selected_category %}
               {{ selected_category.name }}
             {% elif query %}
@@ -30,14 +30,14 @@
               كتالوج الأجهزة والمنتجات التقنية
             {% endif %}
           </h1>
-          <p style="font-size: 0.82rem; color: var(--rq-text-secondary); margin: 0; max-width: 600px;">
+          <p class="hidden sm:block" style="font-size: 0.82rem; color: var(--rq-text-secondary); margin: 0; max-width: 600px;">
             تصفح الأقسام والمنتجات الإلكترونية، الهواتف الذكية، الحواسيب، شبكات الاتصال، والخدمات الرقمية.
           </p>
         </div>
 
         <!-- Search Input in Catalog Header -->
-        <div style="width: 100%; max-width: 360px;">
-          <form method="get" action="{% url 'catalog' %}" style="position: relative;">
+        <div style="width: 100%; max-width: 360px;" class="w-full sm:w-auto">
+          <form method="get" action="{% url 'catalog' %}" style="position: relative; width: 100%;">
             {% if active_category %}<input type="hidden" name="category" value="{{ active_category }}">{% endif %}
             {% if product_type_filter %}<input type="hidden" name="type" value="{{ product_type_filter }}">{% endif %}
             <input type="hidden" name="view" value="products">
@@ -54,7 +54,7 @@
     </div>
 
     <!-- ── Mobile Horizontal Category Pills ── -->
-    <div class="rq-categories-scroller lg:hidden" style="margin-bottom: 1.15rem; display: flex; gap: 0.5rem; overflow-x: auto; -webkit-overflow-scrolling: touch; padding-bottom: 0.35rem; width: 100%; max-width: 100%; box-sizing: border-box;">
+    <div id="mobile-categories-pills" class="rq-categories-scroller lg:hidden" style="margin-bottom: 1.15rem; display: {% if view_type == 'categories' %}none{% else %}flex{% endif %}; gap: 0.5rem; overflow-x: auto; -webkit-overflow-scrolling: touch; padding-bottom: 0.35rem; width: 100%; max-width: 100%; box-sizing: border-box;">
       <a href="{% url 'catalog' %}{% if query %}?q={{ query }}&{% else %}?{% endif %}view=categories" style="flex-shrink: 0; padding: 0.4rem 0.9rem; border-radius: 9999px; font-size: 0.76rem; font-weight: 800; border: 1.5px solid {% if not active_category and view_type == 'categories' %}var(--rq-primary-light){% else %}var(--rq-border){% endif %}; background: {% if not active_category and view_type == 'categories' %}linear-gradient(135deg, #2563eb, #0ea5e9){% else %}var(--rq-surface-card){% endif %}; color: {% if not active_category and view_type == 'categories' %}#ffffff{% else %}var(--rq-text-secondary){% endif %}; transition: all 0.2s ease;">
         📂 الأقسام ({{ categories|length }})
       </a>
@@ -167,26 +167,26 @@
       <div style="min-width: 0;">
 
         <!-- Controls Toolbar: Tabs & Sorting -->
-        <div style="background: var(--rq-surface-card); border: 1px solid var(--rq-border); border-radius: 14px; padding: 0.65rem 0.95rem; margin-bottom: 1.15rem; display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 0.65rem; box-shadow: var(--rq-shadow-xs);">
+        <div class="rq-catalog-toolbar">
           
           <!-- View Switcher Tabs: Categories First, Then All Products -->
-          <div style="display: inline-flex; align-items: center; gap: 0.25rem; background: var(--rq-bg-elevated); padding: 0.25rem; border-radius: 10px; border: 1px solid var(--rq-border);">
-            <button type="button" id="tab-categories-btn" onclick="switchCatalogView('categories')" style="padding: 0.42rem 0.85rem; border-radius: 8px; border: none; font-size: 0.78rem; font-weight: 800; cursor: pointer; display: inline-flex; align-items: center; gap: 0.35rem; font-family: inherit; {% if view_type == 'categories' %}background: linear-gradient(135deg, #2563eb, #0ea5e9); color: #ffffff;{% else %}background: transparent; color: var(--rq-text-secondary);{% endif %}">
+          <div class="rq-catalog-tabs">
+            <button type="button" id="tab-categories-btn" onclick="switchCatalogView('categories')" class="rq-catalog-tab-btn {% if view_type == 'categories' %}active{% endif %}">
               <i class="fas fa-layer-group"></i>
               <span>الأقسام ({{ categories|length }})</span>
             </button>
-            <button type="button" id="tab-products-btn" onclick="switchCatalogView('products')" style="padding: 0.42rem 0.85rem; border-radius: 8px; border: none; font-size: 0.78rem; font-weight: 800; cursor: pointer; display: inline-flex; align-items: center; gap: 0.35rem; font-family: inherit; {% if view_type != 'categories' %}background: linear-gradient(135deg, #2563eb, #0ea5e9); color: #ffffff;{% else %}background: transparent; color: var(--rq-text-secondary);{% endif %}">
+            <button type="button" id="tab-products-btn" onclick="switchCatalogView('products')" class="rq-catalog-tab-btn {% if view_type != 'categories' %}active{% endif %}">
               <i class="fas fa-table-cells-large"></i>
               <span>جميع المنتجات ({{ total_products_count }})</span>
             </button>
           </div>
 
-          <div style="display: flex; align-items: center; gap: 0.65rem; flex-wrap: wrap;">
+          <div class="rq-catalog-toolbar-right">
             <span class="tabular-nums hidden sm:inline" style="font-size: 0.78rem; color: var(--rq-text-muted);">
               النتائج: <strong style="color: var(--rq-text-primary);">{{ total_products_count }}</strong> منتج
             </span>
 
-            <form method="get" style="display: flex; align-items: center; gap: 0.35rem; margin: 0;">
+            <form method="get" class="rq-catalog-sort-form">
               {% if active_category %}<input type="hidden" name="category" value="{{ active_category }}">{% endif %}
               {% if query %}<input type="hidden" name="q" value="{{ query }}">{% endif %}
               {% if product_type_filter %}<input type="hidden" name="type" value="{{ product_type_filter }}">{% endif %}
@@ -194,8 +194,8 @@
               {% if max_price %}<input type="hidden" name="max_price" value="{{ max_price }}">{% endif %}
               {% if in_stock_filter %}<input type="hidden" name="in_stock" value="{{ in_stock_filter }}">{% endif %}
               <input type="hidden" name="view" value="{{ view_type|default:'categories' }}">
-              <label for="sort-select" style="font-size: 0.76rem; color: var(--rq-text-secondary); font-weight: 700;">الترتيب:</label>
-              <select id="sort-select" name="sort" onchange="this.form.submit()" class="rq-currency-select" style="height: 34px; font-size: 0.75rem; padding: 0 0.55rem;">
+              <label for="sort-select" class="rq-catalog-sort-label">الترتيب:</label>
+              <select id="sort-select" name="sort" onchange="this.form.submit()" class="rq-currency-select rq-catalog-sort-select">
                 <option value="newest" {% if sort == "newest" or not sort %}selected{% endif %}>الأحدث أولاً</option>
                 <option value="price_low" {% if sort == "price_low" %}selected{% endif %}>السعر: الأقل أولاً</option>
                 <option value="price_high" {% if sort == "price_high" %}selected{% endif %}>السعر: الأعلى أولاً</option>
@@ -300,30 +300,30 @@
 
           <!-- Pagination Bar -->
           {% if total_products_count > 0 %}
-          <div style="margin-top: 1.5rem; display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 0.85rem; background: var(--rq-surface-card); border: 1px solid var(--rq-border); border-radius: 14px; padding: 0.75rem 1.15rem; box-shadow: var(--rq-shadow-xs);">
+          <div class="rq-catalog-pagination">
             {% if page_obj.has_previous %}
-            <a href="?start={{ prev_start }}{% if query %}&q={{ query }}{% endif %}{% if active_category %}&category={{ active_category }}{% endif %}{% if sort %}&sort={{ sort }}{% endif %}{% if product_type_filter %}&type={{ product_type_filter }}{% endif %}&view=products" class="rq-btn-secondary rq-btn-sm" style="height: 34px; font-size: 0.78rem;">
+            <a href="?start={{ prev_start }}{% if query %}&q={{ query }}{% endif %}{% if active_category %}&category={{ active_category }}{% endif %}{% if sort %}&sort={{ sort }}{% endif %}{% if product_type_filter %}&type={{ product_type_filter }}{% endif %}&view=products" class="rq-btn-secondary rq-btn-sm rq-pag-btn">
               <i class="fas fa-chevron-right text-xs"></i>
               <span>السابق</span>
             </a>
             {% else %}
-            <span style="opacity: 0.4; cursor: not-allowed; height: 34px; font-size: 0.78rem;" class="rq-btn-secondary rq-btn-sm">
+            <span class="rq-btn-secondary rq-btn-sm rq-pag-btn disabled">
               <i class="fas fa-chevron-right text-xs"></i>
               <span>السابق</span>
             </span>
             {% endif %}
 
-            <div style="font-size: 0.8rem; font-weight: 800; color: var(--rq-text-secondary);">
+            <div class="rq-pag-info">
               عرض <span class="tabular-nums font-mono" style="color: var(--rq-primary-light);">{{ start_num }} - {{ end_num }}</span> من أصل <span class="tabular-nums font-mono" style="color: var(--rq-text-primary);">{{ total_products_count }}</span> منتج
             </div>
 
             {% if page_obj.has_next %}
-            <a href="?start={{ next_start }}{% if query %}&q={{ query }}{% endif %}{% if active_category %}&category={{ active_category }}{% endif %}{% if sort %}&sort={{ sort }}{% endif %}{% if product_type_filter %}&type={{ product_type_filter }}{% endif %}&view=products" class="rq-btn-secondary rq-btn-sm" style="height: 34px; font-size: 0.78rem;">
+            <a href="?start={{ next_start }}{% if query %}&q={{ query }}{% endif %}{% if active_category %}&category={{ active_category }}{% endif %}{% if sort %}&sort={{ sort }}{% endif %}{% if product_type_filter %}&type={{ product_type_filter }}{% endif %}&view=products" class="rq-btn-secondary rq-btn-sm rq-pag-btn">
               <span>التالي</span>
               <i class="fas fa-chevron-left text-xs"></i>
             </a>
             {% else %}
-            <span style="opacity: 0.4; cursor: not-allowed; height: 34px; font-size: 0.78rem;" class="rq-btn-secondary rq-btn-sm">
+            <span class="rq-btn-secondary rq-btn-sm rq-pag-btn disabled">
               <span>التالي</span>
               <i class="fas fa-chevron-left text-xs"></i>
             </span>
@@ -385,29 +385,20 @@ function switchCatalogView(view) {
   var catView = document.getElementById('catalog-categories-view');
   var prodBtn = document.getElementById('tab-products-btn');
   var catBtn = document.getElementById('tab-categories-btn');
+  var mobileCatPills = document.getElementById('mobile-categories-pills');
 
   if (view === 'products') {
     if (prodView) prodView.style.display = 'block';
     if (catView) catView.style.display = 'none';
-    if (prodBtn) {
-      prodBtn.style.background = 'linear-gradient(135deg, #2563eb, #0ea5e9)';
-      prodBtn.style.color = '#ffffff';
-    }
-    if (catBtn) {
-      catBtn.style.background = 'transparent';
-      catBtn.style.color = 'var(--rq-text-secondary)';
-    }
+    if (mobileCatPills) mobileCatPills.style.display = 'flex';
+    if (prodBtn) prodBtn.classList.add('active');
+    if (catBtn) catBtn.classList.remove('active');
   } else {
     if (prodView) prodView.style.display = 'none';
     if (catView) catView.style.display = 'block';
-    if (prodBtn) {
-      prodBtn.style.background = 'transparent';
-      prodBtn.style.color = 'var(--rq-text-secondary)';
-    }
-    if (catBtn) {
-      catBtn.style.background = 'linear-gradient(135deg, #2563eb, #0ea5e9)';
-      catBtn.style.color = '#ffffff';
-    }
+    if (mobileCatPills) mobileCatPills.style.display = 'none';
+    if (prodBtn) prodBtn.classList.remove('active');
+    if (catBtn) catBtn.classList.add('active');
   }
 
   try {

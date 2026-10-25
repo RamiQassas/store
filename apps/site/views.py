@@ -11892,7 +11892,8 @@ def payment_status_view(request):
 
             reference = deposit.gateway_payment_id or str(deposit.id)[:8]
             tran_id = deposit.transaction_id or ""
-            amount_display = f"{deposit.amount:,.2f} {deposit.currency.code}"
+            dep_curr = deposit.currency.code if deposit.currency else "USD"
+            amount_display = f"{deposit.amount:,.2f} {dep_curr}"
             
             if deposit.payment_method and deposit.payment_method.gateway:
                 gw = deposit.payment_method.gateway
@@ -11983,8 +11984,12 @@ def payment_status_view(request):
                         logging.getLogger(__name__).warning(f"Could not actively check ShamCash order in payment_status_view: {err}")
 
             redirect_url = reverse("dashboard_order_detail", kwargs={"pk": order.id})
-            reference = str(order.order_number or order.id)[:12]
-            amount_display = f"{order.total:,.2f} USD"
+            reference = str(getattr(order, "number", None) or getattr(order, "order_number", None) or order.id)[:12]
+            order_total = getattr(order, "total_price", None) or getattr(order, "total_amount", None) or Decimal("0.00")
+            order_curr = "USD"
+            if getattr(order, "metadata", None) and isinstance(order.metadata, dict):
+                order_curr = order.metadata.get("gateway_currency") or order.metadata.get("selected_currency") or "USD"
+            amount_display = f"{order_total:,.2f} {order_curr}"
             provider_title = "دفع إلكتروني مباشر"
             if order.status in (Order.Status.PROCESSING, Order.Status.COMPLETED) or status_param in ("success", "paid"):
                 status = "success"
