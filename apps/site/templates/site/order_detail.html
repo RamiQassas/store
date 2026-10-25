@@ -253,6 +253,39 @@
           <span style="color: var(--rq-text-muted);">وسيلة الدفع:</span>
           <span style="font-weight: 800; color: #059669;"><i class="fas fa-check-circle ml-1"></i>{{ order.get_payment_method_display|default:'المحفظة' }}</span>
         </div>
+
+        <!-- Refund Request Section -->
+        <div style="margin-top: 1rem; padding-top: 0.85rem; border-top: 1px solid var(--rq-border);">
+          {% if order.metadata.refund_requested %}
+            {% if order.metadata.refund_status == 'approved' %}
+            <div style="padding: 0.75rem; background: rgba(16, 185, 129, 0.1); border: 1px solid rgba(16, 185, 129, 0.25); border-radius: 12px; font-size: 0.8rem; color: #10b981;">
+              <i class="fas fa-check-circle ml-1"></i>
+              <strong>تمت الموافقة على استرداد الأموال</strong>
+              <div style="font-size: 0.72rem; color: var(--rq-text-secondary); margin-top: 0.25rem;">تم إرجاع كامل المبلغ مباشرة إلى وسيلة الدفع الخاصة بك بنجاح.</div>
+            </div>
+            {% elif order.metadata.refund_status == 'rejected' %}
+            <div style="padding: 0.75rem; background: rgba(239, 68, 68, 0.1); border: 1px solid rgba(239, 68, 68, 0.25); border-radius: 12px; font-size: 0.8rem; color: #ef4444;">
+              <i class="fas fa-times-circle ml-1"></i>
+              <strong>تم رفض طلب الاسترداد</strong>
+              {% if order.metadata.refund_rejection_reason %}
+              <div style="font-size: 0.72rem; color: var(--rq-text-secondary); margin-top: 0.25rem;">السبب: {{ order.metadata.refund_rejection_reason }}</div>
+              {% endif %}
+            </div>
+            {% else %}
+            <div style="padding: 0.75rem; background: rgba(245, 158, 11, 0.1); border: 1px solid rgba(245, 158, 11, 0.25); border-radius: 12px; font-size: 0.8rem; color: #f59e0b;">
+              <i class="fas fa-clock fa-spin ml-1"></i>
+              <strong>طلب استرداد الأموال قيد المراجعة</strong>
+              <div style="font-size: 0.72rem; color: var(--rq-text-secondary); margin-top: 0.25rem;">السبب: {{ order.metadata.refund_reason }}</div>
+              <div style="font-size: 0.68rem; color: var(--rq-text-muted); margin-top: 0.2rem;">تتم مراجعة طلبك من قبل الإدارة وسيتم إرجاع المبلغ فور الموافقة.</div>
+            </div>
+            {% endif %}
+          {% elif order.status != 'refunded' and order.status != 'cancelled' %}
+            <button type="button" onclick="document.getElementById('refund-modal').style.display = 'flex'" class="rq-btn-secondary" style="width: 100%; justify-content: center; background: rgba(239, 68, 68, 0.1); color: #ef4444; border: 1px solid rgba(239, 68, 68, 0.25); font-size: 0.82rem; font-weight: 800; padding: 0.65rem 1rem; border-radius: 12px; cursor: pointer; transition: all 0.2s;">
+              <i class="fas fa-undo ml-1.5"></i>
+              <span>طلب استرداد الأموال</span>
+            </button>
+          {% endif %}
+        </div>
       </div>
 
       <div style="background: var(--rq-primary-soft); border: 1px solid rgba(37, 99, 235, 0.2); border-radius: 16px; padding: 1.25rem; text-align: center;">
@@ -268,5 +301,44 @@
 
   </div>
 
+</div>
+
+<!-- Refund Request Modal -->
+<div id="refund-modal" style="display: none; position: fixed; inset: 0; background: rgba(0, 0, 0, 0.75); backdrop-filter: blur(4px); z-index: 99999; align-items: center; justify-content: center; padding: 1rem;">
+  <div style="background: var(--rq-surface-card, #0f172a); border: 1px solid var(--rq-border, #1e293b); border-radius: 20px; max-width: 480px; width: 100%; padding: 1.5rem; box-shadow: 0 20px 40px rgba(0,0,0,0.5); text-align: right; position: relative;" dir="rtl">
+    <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 1rem; border-bottom: 1px solid rgba(255,255,255,0.08); padding-bottom: 0.75rem;">
+      <h3 style="font-size: 1.05rem; font-weight: 900; color: #fff; margin: 0; display: flex; align-items: center; gap: 0.5rem;">
+        <i class="fas fa-undo" style="color: #ef4444;"></i>
+        <span>طلب استرداد أموال الطلب</span>
+      </h3>
+      <button type="button" onclick="document.getElementById('refund-modal').style.display = 'none'" style="background: none; border: none; color: #94a3b8; font-size: 1.25rem; cursor: pointer; padding: 0.2rem 0.5rem;">✕</button>
+    </div>
+    
+    <div style="background: rgba(239, 68, 68, 0.08); border: 1px solid rgba(239, 68, 68, 0.2); border-radius: 12px; padding: 0.85rem; margin-bottom: 1rem; font-size: 0.82rem; color: #fca5a5; line-height: 1.5;">
+      <i class="fas fa-info-circle ml-1"></i>
+      عند تقديم طلب الاسترداد، ستقوم الإدارة بمراجعة طلبك وفور الموافقة عليه سيتم استرداد كامل المبلغ ({% format_price order.total_amount %}) مباشرة وفورياً إلى وسيلة الدفع الأصلية التي استخدمتها.
+    </div>
+
+    <form method="post" action="{% url 'dashboard_order_detail' order.id %}">
+      {% csrf_token %}
+      <input type="hidden" name="action" value="request_refund">
+      <div style="margin-bottom: 1.25rem;">
+        <label style="display: block; font-size: 0.84rem; font-weight: 800; color: #e2e8f0; margin-bottom: 0.45rem;">
+          سبب طلب الاسترداد <span style="color: #ef4444;">*</span>
+        </label>
+        <textarea name="refund_reason" rows="4" required placeholder="يرجى كتابة سبب طلب الاسترداد بالتفصيل لمساعدتنا في مراجعة طلبك بسرعة..." style="width: 100%; background: var(--rq-bg-body, #020617); border: 1px solid rgba(255,255,255,0.12); border-radius: 12px; padding: 0.75rem; color: #fff; font-size: 0.85rem; resize: none; outline: none;"></textarea>
+      </div>
+
+      <div style="display: flex; gap: 0.75rem; justify-content: flex-end;">
+        <button type="button" onclick="document.getElementById('refund-modal').style.display = 'none'" style="padding: 0.65rem 1.25rem; background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.1); border-radius: 12px; color: #cbd5e1; font-weight: 700; font-size: 0.84rem; cursor: pointer;">
+          إلغاء
+        </button>
+        <button type="submit" style="padding: 0.65rem 1.4rem; background: linear-gradient(135deg, #ef4444, #dc2626); border: none; border-radius: 12px; color: #fff; font-weight: 800; font-size: 0.84rem; cursor: pointer; box-shadow: 0 4px 14px rgba(239, 68, 68, 0.4); display: flex; align-items: center; gap: 0.4rem;">
+          <i class="fas fa-paper-plane"></i>
+          <span>إرسال طلب الاسترداد</span>
+        </button>
+      </div>
+    </form>
+  </div>
 </div>
 {% endblock %}

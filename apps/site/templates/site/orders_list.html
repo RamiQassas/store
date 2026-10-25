@@ -113,6 +113,15 @@
               {% else %}
               <span class="rq-status-pill rq-status-processing">{{ ord.get_status_display }}</span>
               {% endif %}
+              {% if ord.metadata.refund_requested %}
+                {% if ord.metadata.refund_status == 'approved' %}
+                <span class="rq-status-pill" style="background: rgba(16, 185, 129, 0.15); color: #10b981; border: 1px solid rgba(16, 185, 129, 0.35);"><i class="fas fa-check-circle ml-1"></i> تم الاسترداد</span>
+                {% elif ord.metadata.refund_status == 'rejected' %}
+                <span class="rq-status-pill" style="background: rgba(239, 68, 68, 0.15); color: #ef4444; border: 1px solid rgba(239, 68, 68, 0.35);"><i class="fas fa-times-circle ml-1"></i> استرداد مرفوض</span>
+                {% else %}
+                <span class="rq-status-pill" style="background: rgba(245, 158, 11, 0.15); color: #f59e0b; border: 1px solid rgba(245, 158, 11, 0.35);"><i class="fas fa-undo ml-1"></i> طلب استرداد</span>
+                {% endif %}
+              {% endif %}
             </div>
           </div>
 

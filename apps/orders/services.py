@@ -1676,6 +1676,199 @@ def process_order_refund_to_paymera(order, actor=None, reason=None, otp: Optiona
     return True, "تمت عملية إلغاء واسترداد المبلغ بنجاح إلى البطاقة البنكية للعميل عبر بوابة بيميرا."
 
 
+def process_order_refund_to_shamcash(order, actor=None, reason=None) -> tuple[bool, str]:
+    """
+    Cancels an order and executes a real-time refund back to the customer's ShamCash account
+    via ShamCash API (POST /api/ElectronicPayment/refundBill).
+    
+    Returns (success: bool, message: str)
+    """
+    import uuid
+    from decimal import Decimal
+    from apps.notifications.services import notify_user, notify_staff
+    from apps.payments.gateways import gateway_for
+    from apps.payments.shamcash import ShamCashError, ShamCashClient
+    from apps.payments.models import ShamCashBillRecord, ShamCashRefundRecord
+    from apps.wallets.services import debit_wallet
+
+    meta = dict(order.metadata or {})
+    ff = dict(order.fulfillment_data or {})
+
+    # 1. Validation: check if already refunded
+    if meta.get("shamcash_refunded"):
+        return False, "تم استرداد هذا الطلب بالفعل إلى حساب شام كاش مسبقاً."
+    if meta.get("wallet_refunded") or ff.get("api_refunded"):
+        return False, "تم استرداد هذا الطلب مسبقاً إلى المحفظة الداخلية، لا يمكن تكرار الاسترداد إلى شام كاش."
+
+    # 2. Extract ShamCash bill number
+    bill_no = meta.get("shamcash_bill_no") or meta.get("gateway_payment_id")
+    if not bill_no:
+        bill_rec = ShamCashBillRecord.objects.filter(order=order).first()
+        if bill_rec:
+            bill_no = bill_rec.bill_no
+
+    if not bill_no:
+        return False, "لا يوجد رقم فاتورة شام كاش (billNo) مسجل لهذا الطلب."
+
+    # 3. Determine refund amount
+    raw_amount = meta.get("gateway_charge_amount") or order.total_amount
+    try:
+        refund_amount = Decimal(str(raw_amount)).quantize(Decimal("0.01"))
+    except Exception:
+        refund_amount = Decimal(str(order.total_amount)).quantize(Decimal("0.01"))
+
+    if refund_amount <= Decimal("0.00"):
+        return False, "مبلغ الاسترداد غير صالح أو يساوي صفراً."
+
+    # 4. Call ShamCash refundBill API
+    refund_note = (reason or f"استرداد الطلب #{order.number} بواسطة الإدارة").strip()[:200]
+    idempotency_key = f"REF-{uuid.uuid4().hex[:30]}"
+    try:
+        gw = gateway_for("sham_cash")
+        client = gw.get_client()
+        logger.info(f"Initiating ShamCash refund for order #{order.number}, bill_no={bill_no}, amount={refund_amount}")
+        refund_res = client.refund_bill(
+            bill_no=bill_no,
+            amount=refund_amount,
+            note=refund_note,
+            idempotency_key=idempotency_key,
+        )
+    except ShamCashError as exc:
+        err_msg = str(exc)
+        logger.warning(f"ShamCash refund failed for order #{order.number}: {err_msg}")
+        OrderLog.objects.create(
+            order=order,
+            status=order.status,
+            note=f"فشل طلب استرداد الأموال عبر شام كاش: {err_msg}",
+            created_by=actor,
+        )
+        return False, f"فشلت عملية استرداد الأموال عبر شام كاش: {err_msg}"
+    except Exception as exc:
+        logger.exception(f"Unexpected error during ShamCash refund for order #{order.number}: {exc}")
+        return False, f"حدث خطأ غير متوقع أثناء الاتصال ببوابة شام كاش: {exc}"
+
+    tran_id = refund_res.get("tranId") if isinstance(refund_res, dict) else None
+
+    # 5. Atomic state update
+    with transaction.atomic():
+        old_status = order.status
+        new_status = Order.Status.CANCELLED if old_status == Order.Status.PENDING else Order.Status.REFUNDED
+        order.status = new_status
+        order.admin_note = (order.admin_note or "") + f"\n[استرداد عبر شام كاش]: تم إلغاء/استرداد المبلغ في {timezone.now().strftime('%Y-%m-%d %H:%M')}. رقم العملية: {tran_id or '---'}. السبب: {reason or 'طلب استرداد'}"
+
+        meta["shamcash_refunded"] = True
+        meta["shamcash_refund_timestamp"] = timezone.now().isoformat()
+        meta["shamcash_refund_actor"] = getattr(actor, "email", str(actor)) if actor else "نظام"
+        meta["shamcash_refund_reason"] = reason or "استرداد لحساب شام كاش"
+        meta["shamcash_refund_tran_id"] = tran_id
+        meta["shamcash_refund_raw"] = refund_res
+        order.metadata = meta
+
+        # Reverse substore owner profit if it was credited
+        profit_amt_str = meta.get("substore_profit_amount")
+        owner_wallet_id = meta.get("substore_owner_wallet_id")
+        if profit_amt_str and owner_wallet_id:
+            try:
+                profit_amt = Decimal(profit_amt_str)
+                if profit_amt > 0:
+                    debit_wallet(
+                        wallet_id=owner_wallet_id,
+                        amount=profit_amt,
+                        reference=f"reversal_substore_profit:{order.id}",
+                        description=f"خصم أرباح طلب مسترد #{order.number} (استرداد شام كاش)",
+                        created_by=actor,
+                        source="refund_reversal"
+                    )
+            except Exception as w_exc:
+                logger.error(f"Failed to reverse substore owner profit for order #{order.number}: {w_exc}")
+
+        order.save(update_fields=["status", "admin_note", "metadata", "updated_at"])
+
+        # Save ShamCash bill and refund records
+        bill_record = ShamCashBillRecord.objects.filter(bill_no=bill_no).first()
+        if not bill_record:
+            bill_record = ShamCashBillRecord.objects.create(
+                bill_no=bill_no,
+                amount=refund_amount,
+                currency_id=2 if "SYP" in str(meta.get("gateway_charge_currency", "")) else 1,
+                status_id=ShamCashClient.STATUS_REFUNDED,
+                order=order,
+                user=order.customer,
+            )
+        else:
+            bill_record.status_id = ShamCashClient.STATUS_REFUNDED
+            bill_record.save(update_fields=["status_id", "updated_at"])
+
+        try:
+            ShamCashRefundRecord.objects.create(
+                bill=bill_record,
+                bill_no=bill_no,
+                amount=refund_amount,
+                idempotency_key=idempotency_key,
+                tran_id=tran_id,
+                note=refund_note,
+                status="success",
+                created_by=actor if (actor and getattr(actor, "is_authenticated", False)) else None,
+                raw_response=refund_res if isinstance(refund_res, dict) else {},
+            )
+        except Exception as rec_err:
+            logger.warning(f"Failed to persist ShamCashRefundRecord: {rec_err}")
+
+        OrderLog.objects.create(
+            order=order,
+            status=new_status,
+            note=f"تم استرداد كامل قيمة الطلب ({refund_amount} {meta.get('gateway_charge_currency', 'USD')}) بنجاح إلى حساب شام كاش للعميل (رقم العملية: {tran_id or '---'}). السبب: {reason or 'طلب استرداد'}.",
+            created_by=actor,
+        )
+
+    # 6. Notifications
+    try:
+        currency_label = meta.get("gateway_charge_currency", "USD")
+        notify_user(
+            user=order.customer,
+            title="تم استرداد المبلغ إلى حسابك في شام كاش",
+            body=f"تم استرداد كامل قيمة طلبك رقم #{order.number} ({refund_amount} {currency_label}) بنجاح إلى حسابك في شام كاش.",
+            action_url=f"/dashboard/orders/{order.id}/",
+            category="financial",
+            priority="high",
+        )
+        notify_staff(
+            title="استرداد ناجح عبر شام كاش",
+            body=f"تم استرداد الطلب رقم #{order.number} بنجاح إلى حساب العميل {getattr(order.customer, 'email', '')} عبر شام كاش.",
+            action_url=f"/control/orders/{order.id}/",
+            category="financial",
+        )
+    except Exception:
+        pass
+
+    return True, f"تمت عملية استرداد المبلغ بنجاح ({refund_amount} {meta.get('gateway_charge_currency', 'USD')}) وإعادته فورياً إلى حساب العميل عبر شام كاش."
+
+
+def process_order_refund_to_gateway(order, actor=None, reason=None, otp=None) -> tuple[bool, str]:
+    """
+    Unified router that determines the original payment method and executes
+    an immediate real-time refund to the exact gateway used:
+    - ShamCash -> process_order_refund_to_shamcash
+    - Paymera  -> process_order_refund_to_paymera
+    - Wallet   -> process_order_refund_to_wallet
+    """
+    meta = dict(order.metadata or {})
+    provider = (meta.get("payment_provider") or "").lower()
+    gw_payment_id = str(meta.get("gateway_payment_id") or "")
+    
+    # 1. ShamCash detection
+    if provider == "sham_cash" or meta.get("shamcash_bill_no") or gw_payment_id.startswith("ORD-"):
+        return process_order_refund_to_shamcash(order, actor=actor, reason=reason)
+
+    # 2. Paymera detection
+    if provider == "paymera" or meta.get("paymera_payment_id") or (gw_payment_id and not gw_payment_id.startswith("ORD-")):
+        return process_order_refund_to_paymera(order, actor=actor, reason=reason, otp=otp)
+
+    # 3. Platform wallet fallback
+    return process_order_refund_to_wallet(order, actor=actor, old_status=order.status, source="admin_refund_approval", reason=reason)
+
+
+
 def auto_cancel_expired_pending_orders(max_minutes: int = 5) -> dict:
     """
     Scans and automatically cancels pending orders that have remained uncompleted for more than max_minutes.

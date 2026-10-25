@@ -196,6 +196,80 @@
     </div>
 </div>
 
+{% if refund_requested %}
+<!-- Customer Refund Request Alert Banner -->
+<div class="mb-6 p-4 sm:p-5 rounded-2xl {% if refund_status == 'pending' %}bg-amber-500/10 border-2 border-amber-500/40 shadow-lg shadow-amber-500/10{% elif refund_status == 'approved' %}bg-emerald-500/10 border-2 border-emerald-500/30{% else %}bg-slate-900 border-2 border-white/10{% endif %}">
+    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div class="flex items-start gap-3">
+            <span class="w-10 h-10 rounded-xl {% if refund_status == 'pending' %}bg-amber-500/20 text-amber-400{% elif refund_status == 'approved' %}bg-emerald-500/20 text-emerald-400{% else %}bg-rose-500/20 text-rose-400{% endif %} flex items-center justify-center shrink-0 text-lg">
+                <i class="fas {% if refund_status == 'pending' %}fa-undo fa-flip-horizontal animate-pulse{% elif refund_status == 'approved' %}fa-check-circle{% else %}fa-times-circle{% endif %}"></i>
+            </span>
+            <div>
+                <div class="flex items-center gap-2">
+                    <h3 class="text-sm sm:text-base font-black text-white">
+                        طلب استرداد أموال من العميل
+                    </h3>
+                    {% if refund_status == 'pending' %}
+                    <span class="px-2.5 py-0.5 rounded-lg bg-amber-500/25 text-amber-300 font-black text-[10px] border border-amber-500/40">بانتظار قرار الإدارة</span>
+                    {% elif refund_status == 'approved' %}
+                    <span class="px-2.5 py-0.5 rounded-lg bg-emerald-500/25 text-emerald-300 font-black text-[10px] border border-emerald-500/40">تمت الموافقة والاسترداد</span>
+                    {% elif refund_status == 'rejected' %}
+                    <span class="px-2.5 py-0.5 rounded-lg bg-rose-500/25 text-rose-300 font-black text-[10px] border border-rose-500/40">مرفوض من الإدارة</span>
+                    {% endif %}
+                </div>
+                <div class="mt-1.5 text-xs text-slate-300">
+                    <strong class="text-white">سبب طلب العميل:</strong>
+                    <span class="text-amber-200 font-medium mr-1">{{ refund_reason|default:"غير محدد" }}</span>
+                </div>
+                {% if refund_requested_at %}
+                <div class="mt-1 text-[11px] text-slate-400 font-mono">
+                    تاريخ الطلب: {{ refund_requested_at }}
+                </div>
+                {% endif %}
+                {% if refund_status == 'rejected' and refund_rejection_reason %}
+                <div class="mt-1 text-xs text-rose-300">
+                    <strong>سبب الرفض:</strong> {{ refund_rejection_reason }}
+                </div>
+                {% endif %}
+            </div>
+        </div>
+
+        {% if refund_status == 'pending' %}
+        <div class="flex flex-wrap items-center gap-2 self-start sm:self-center shrink-0">
+            <!-- Approve Form -->
+            <form method="post" onsubmit="return confirm('تأكيد الموافقة على استرداد الأموال: سيتم إرجاع كامل المبلغ فورياً ومباشرة إلى وسيلة الدفع الأصلية (شام كاش / بيميرا / المحفظة). هل تريد المتابعة؟');">
+                {% csrf_token %}
+                <input type="hidden" name="action" value="approve_refund">
+                <button type="submit" class="px-4 py-2.5 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-500 hover:brightness-110 text-slate-950 font-black text-xs transition flex items-center gap-1.5 shadow-lg shadow-emerald-500/20 cursor-pointer">
+                    <i class="fas fa-check-circle"></i>
+                    <span>الموافقة والاسترداد فورياً للبوابة</span>
+                </button>
+            </form>
+
+            <!-- Reject Toggle / Form -->
+            <button type="button" onclick="document.getElementById('reject-refund-form').classList.toggle('hidden')" class="px-3.5 py-2.5 rounded-xl bg-rose-500/20 border border-rose-500/40 hover:bg-rose-500/30 text-rose-300 font-bold text-xs transition flex items-center gap-1.5 cursor-pointer">
+                <i class="fas fa-times-circle"></i>
+                <span>رفض الطلب</span>
+            </button>
+        </div>
+        {% endif %}
+    </div>
+
+    {% if refund_status == 'pending' %}
+    <div id="reject-refund-form" class="hidden mt-4 pt-4 border-t border-white/10">
+        <form method="post" class="flex flex-col sm:flex-row gap-2">
+            {% csrf_token %}
+            <input type="hidden" name="action" value="reject_refund">
+            <input type="text" name="rejection_reason" required placeholder="اكتب سبب رفض استرداد الأموال للعميل..." class="admin-input text-xs flex-grow">
+            <button type="submit" class="px-4 py-2 rounded-xl bg-rose-600 hover:bg-rose-500 text-white font-black text-xs transition shrink-0 cursor-pointer">
+                تأكيد الرفض
+            </button>
+        </form>
+    </div>
+    {% endif %}
+</div>
+{% endif %}
+
 {% if order.fulfillment_data.error_code or order.fulfillment_data.admin_error_reason %}
 <!-- Admin Error Translation Banner -->
 <div class="mb-6 p-4 sm:p-5 rounded-2xl bg-rose-500/10 border-2 border-rose-500/30 shadow-lg shadow-rose-500/5">
@@ -584,25 +658,35 @@
                         <textarea name="admin_note" rows="3" placeholder="اكتب سبب تغيير الحالة أو أي ملاحظات للمتابعة..." class="admin-input text-xs resize-none"></textarea>
                     </div>
 
-                    {% if order.metadata.gateway_payment_id or order.metadata.paymera_payment_id or order.metadata.payment_provider == 'paymera' %}
+                    {% if is_shamcash or is_paymera or order.metadata.gateway_payment_id %}
                     <div class="p-3 rounded-xl bg-slate-950/80 border border-emerald-500/20 text-xs space-y-2">
                         <span class="block text-[11px] font-black text-emerald-400 flex items-center gap-1.5">
-                            <i class="fas fa-credit-card"></i> خيار الاسترداد (عند الإلغاء أو الاسترداد):
+                            <i class="fas fa-undo"></i> خيار الاسترداد المالي (عند الإلغاء أو الاسترداد):
                         </span>
                         <div class="space-y-1.5">
                             <label class="flex items-center gap-2 cursor-pointer text-slate-200 hover:text-white">
-                                <input type="radio" name="refund_target" value="paymera_card" checked class="text-emerald-500 focus:ring-emerald-400">
-                                <span class="font-bold text-[11px]">إعادة الأموال للبطاقة البنكية (Paymera Reversal)</span>
+                                <input type="radio" name="refund_target" value="gateway" checked class="text-emerald-500 focus:ring-emerald-400">
+                                <span class="font-bold text-[11px]">
+                                    {% if is_shamcash %}
+                                    إعادة الأموال فورياً لحساب العميل عبر شام كاش (ShamCash Refund)
+                                    {% elif is_paymera %}
+                                    إعادة الأموال فورياً للبطاقة البنكية (Paymera Reversal)
+                                    {% else %}
+                                    إعادة الأموال فورياً لبوابة الدفع المستخدمة
+                                    {% endif %}
+                                </span>
                             </label>
                             <label class="flex items-center gap-2 cursor-pointer text-slate-300 hover:text-white">
                                 <input type="radio" name="refund_target" value="wallet" class="text-cyan focus:ring-cyan">
-                                <span class="text-[11px]">إيداع المبلغ في محفظة العميل داخل المنصة (تحويل يدوي)</span>
+                                <span class="text-[11px]">إيداع المبلغ في محفظة العميل داخل المنصة</span>
                             </label>
                         </div>
+                        {% if is_paymera %}
                         <div class="pt-1.5">
                             <label class="block text-[10px] font-black uppercase text-slate-400 mb-1">رمز التحقق OTP (إذا تطلبته بوابة بيميرا عند الإلغاء)</label>
                             <input type="text" name="paymera_otp" placeholder="أدخل رمز OTP في حال تم طلبه لإتمام العملية..." class="admin-input text-xs font-mono">
                         </div>
+                        {% endif %}
                     </div>
                     {% endif %}
 
@@ -626,7 +710,70 @@
             </div>
         </div>
 
-        {% if order.metadata.gateway_payment_id or order.metadata.paymera_payment_id or order.metadata.payment_provider == 'paymera' %}
+        {% if is_shamcash %}
+        <!-- Sidebar Card: ShamCash Payment & Instant Refund -->
+        <div class="detail-card border-teal-500/30 bg-teal-950/10 shadow-lg shadow-teal-500/5">
+            <div class="detail-header border-teal-500/20 bg-teal-500/[0.04]">
+                <div class="flex items-center gap-2">
+                    <img src="/static/site/img/brands/shamcash.svg" alt="ShamCash" class="h-4 w-auto">
+                    <h3 class="text-sm font-black text-teal-300">بوابة شام كاش (ShamCash API)</h3>
+                </div>
+                {% if order.metadata.shamcash_refunded %}
+                <span class="px-2.5 py-0.5 rounded-lg bg-teal-500/20 text-teal-300 border border-teal-500/30 font-bold text-[10px]">
+                    مسترد بالكامل
+                </span>
+                {% endif %}
+            </div>
+
+            <div class="detail-body space-y-3">
+                <div class="field-box">
+                    <span class="text-[10px] font-black uppercase text-slate-400 block mb-1">رقم الفاتورة (billNo)</span>
+                    <div class="flex items-center justify-between gap-2">
+                        <span class="font-mono text-xs text-white truncate max-w-[210px]">{{ gateway_bill_no }}</span>
+                        <button type="button" onclick="copyToClipboard('{{ gateway_bill_no }}', this)" class="text-slate-400 hover:text-teal-400 cursor-pointer p-1">
+                            <i class="far fa-copy text-xs"></i>
+                        </button>
+                    </div>
+                </div>
+
+                {% if order.metadata.gateway_charge_amount %}
+                <div class="field-box">
+                    <span class="text-[10px] font-black uppercase text-slate-400 block mb-1">المبلغ المخصوم عبر شام كاش</span>
+                    <span class="font-mono text-sm font-black text-white">{{ order.metadata.gateway_charge_amount }} {{ order.metadata.gateway_charge_currency|default:'USD' }}</span>
+                </div>
+                {% endif %}
+
+                {% if order.metadata.shamcash_refunded %}
+                <div class="p-3 rounded-xl bg-teal-500/15 border border-teal-500/30 text-teal-300 text-xs leading-relaxed">
+                    <i class="fas fa-check-circle text-teal-400 ml-1"></i>
+                    <strong>تم استرداد المبلغ بنجاح إلى حساب شام كاش للعميل</strong>
+                    <div class="text-[10px] font-mono text-teal-400/80 mt-1">
+                        {{ order.metadata.shamcash_refund_timestamp|default:'' }}
+                    </div>
+                    {% if order.metadata.shamcash_refund_reason %}
+                    <div class="text-[10px] text-slate-300 mt-1">
+                        السبب: {{ order.metadata.shamcash_refund_reason }}
+                    </div>
+                    {% endif %}
+                </div>
+                {% else %}
+                <form method="post" onsubmit="return confirm('تنبيه: هل أنت متأكد من استرداد كامل المبلغ فورياً إلى حساب شام كاش للعميل عبر API؟ لا يمكن التراجع عن هذا الإجراء.');" class="space-y-2 pt-1">
+                    {% csrf_token %}
+                    <input type="hidden" name="action" value="shamcash_refund">
+                    <div>
+                        <input type="text" name="refund_reason" placeholder="سبب الاسترداد لشام كاش..." class="admin-input text-xs" required>
+                    </div>
+                    <button type="submit" class="w-full py-2.5 rounded-xl bg-teal-500/20 border border-teal-500/40 hover:bg-teal-600 hover:text-white text-teal-300 font-black text-xs transition flex items-center justify-center gap-2 cursor-pointer shadow-sm">
+                        <i class="fas fa-undo"></i>
+                        <span>استرداد فوري لحساب شام كاش</span>
+                    </button>
+                </form>
+                {% endif %}
+            </div>
+        </div>
+        {% endif %}
+
+        {% if is_paymera %}
         <!-- Sidebar Card: Paymera Card Reversal & Status -->
         <div class="detail-card border-emerald-500/30 bg-emerald-950/10 shadow-lg shadow-emerald-500/5">
             <div class="detail-header border-emerald-500/20 bg-emerald-500/[0.04]">
@@ -645,8 +792,8 @@
                 <div class="field-box">
                     <span class="text-[10px] font-black uppercase text-slate-400 block mb-1">معرف العملية (Payment ID)</span>
                     <div class="flex items-center justify-between gap-2">
-                        <span class="font-mono text-xs text-white truncate max-w-[210px]">{{ order.metadata.gateway_payment_id|default:order.metadata.paymera_payment_id }}</span>
-                        <button type="button" onclick="copyToClipboard('{{ order.metadata.gateway_payment_id|default:order.metadata.paymera_payment_id }}', this)" class="text-slate-400 hover:text-emerald-400 cursor-pointer p-1">
+                        <span class="font-mono text-xs text-white truncate max-w-[210px]">{% if gateway_payment_id %}{{ gateway_payment_id }}{% else %}{{ order.metadata.paymera_payment_id }}{% endif %}</span>
+                        <button type="button" onclick="copyToClipboard('{% if gateway_payment_id %}{{ gateway_payment_id }}{% else %}{{ order.metadata.paymera_payment_id }}{% endif %}', this)" class="text-slate-400 hover:text-emerald-400 cursor-pointer p-1">
                             <i class="far fa-copy text-xs"></i>
                         </button>
                     </div>
@@ -655,7 +802,7 @@
                 {% if order.metadata.gateway_rrn or order.metadata.rrn %}
                 <div class="field-box">
                     <span class="text-[10px] font-black uppercase text-slate-400 block mb-1">رقم المعاملة البنكية (RRN)</span>
-                    <span class="font-mono text-xs font-bold text-emerald-400">{{ order.metadata.gateway_rrn|default:order.metadata.rrn }}</span>
+                    <span class="font-mono text-xs font-bold text-emerald-400">{% if gateway_rrn %}{{ gateway_rrn }}{% else %}{{ order.metadata.rrn }}{% endif %}</span>
                 </div>
                 {% endif %}
 

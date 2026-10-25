@@ -1028,6 +1028,50 @@ def order_detail(request, pk):
             messages.error(request, "لا يمكن إلغاء هذا الطلب لأنه ليس في حالة الانتظار.")
             return redirect("dashboard_order_detail", pk=order.id)
 
+    # Allow customer to submit refund request
+    if request.method == "POST" and request.POST.get("action") == "request_refund":
+        reason = request.POST.get("refund_reason", "").strip()
+        if not reason:
+            messages.error(request, "يرجى كتابة سبب طلب استرداد الأموال لتتمكن الإدارة من معالجته.")
+            return redirect("dashboard_order_detail", pk=order.id)
+
+        meta = dict(order.metadata or {})
+        if meta.get("refund_requested"):
+            messages.info(request, "تم تقديم طلب استرداد لهذا الطلب مسبقاً، وهو قيد المراجعة والمعالجة من قبل الإدارة.")
+            return redirect("dashboard_order_detail", pk=order.id)
+
+        if order.status in (Order.Status.REFUNDED, Order.Status.CANCELLED):
+            messages.error(request, "لا يمكن تقديم طلب استرداد لطلب تم إلغاؤه أو استرداده مسبقاً.")
+            return redirect("dashboard_order_detail", pk=order.id)
+
+        meta["refund_requested"] = True
+        meta["refund_reason"] = reason
+        meta["refund_requested_at"] = timezone.now().isoformat()
+        meta["refund_status"] = "pending"
+        order.metadata = meta
+        order.save(update_fields=["metadata", "updated_at"])
+
+        OrderLog.objects.create(
+            order=order,
+            status=order.status,
+            note=f"قام العميل بطلب استرداد الأموال. السبب: {reason}",
+            created_by=request.user,
+        )
+
+        try:
+            from apps.notifications.services import notify_staff
+            notify_staff(
+                title=f"طلب استرداد أموال جديد - طلب #{order.number}",
+                body=f"قام العميل {order.customer.email} بطلب استرداد الأموال للطلب #{order.number}. السبب: {reason}",
+                action_url=f"/control/orders/{order.id}/",
+                category="orders",
+            )
+        except Exception:
+            pass
+
+        messages.success(request, "تم تقديم طلب استرداد الأموال بنجاح! سيتم فحص طلبك وإعادة المبلغ مباشرة إلى وسيلة الدفع المستخدمة فور الموافقة.")
+        return redirect("dashboard_order_detail", pk=order.id)
+
     # Auto-refresh status from provider if order is still pending or processing
     if order.status in (Order.Status.PROCESSING, Order.Status.PENDING) and (order.api_order_uuid or order.api_order_id or order.provider_orders.exists()):
         try:
@@ -4199,38 +4243,23 @@ def control_order_detail(request, pk):
             OrderLog.objects.create(order=order, status=order.status, note=request.POST.get("admin_note", ""), created_by=request.user)
             
             if order.status in [Order.Status.REFUNDED, Order.Status.CANCELLED] and old_status not in [Order.Status.REFUNDED, Order.Status.CANCELLED]:
-                refund_target = request.POST.get("refund_target", "paymera_card")
-                meta = dict(order.metadata or {})
-                has_paymera = bool(meta.get("gateway_payment_id") or meta.get("paymera_payment_id") or meta.get("payment_provider") == "paymera" or meta.get("is_direct_gateway_purchase"))
+                refund_target = request.POST.get("refund_target", "gateway")
                 otp = request.POST.get("paymera_otp")
-                
-                if (refund_target == "paymera_card" or (has_paymera and refund_target != "wallet")) and has_paymera and not meta.get("paymera_refunded"):
-                    from apps.orders.services import process_order_refund_to_paymera
-                    refunded, refund_msg = process_order_refund_to_paymera(
-                        order, actor=request.user, reason=request.POST.get("admin_note", "إلغاء/استرداد للبطاقة عبر لوحة الإدارة"), otp=otp
-                    )
-                    if refunded:
-                        messages.success(request, refund_msg)
-                    else:
-                        messages.error(request, refund_msg)
-                elif refund_target == "wallet":
+                admin_note = request.POST.get("admin_note", "إلغاء/استرداد الطلب عبر لوحة الإدارة")
+                if refund_target == "wallet":
                     from apps.orders.services import process_order_refund_to_wallet
                     refunded, refund_msg = process_order_refund_to_wallet(
-                        order, actor=request.user, old_status=old_status, source="explicit_wallet_choice"
+                        order, actor=request.user, old_status=old_status, source="explicit_wallet_choice", reason=admin_note
                     )
-                    if refunded:
-                        messages.success(request, refund_msg)
-                    else:
-                        messages.info(request, refund_msg)
                 else:
-                    from apps.orders.services import process_order_refund_to_wallet
-                    refunded, refund_msg = process_order_refund_to_wallet(
-                        order, actor=request.user, old_status=old_status, source="control_order_detail"
+                    from apps.orders.services import process_order_refund_to_gateway
+                    refunded, refund_msg = process_order_refund_to_gateway(
+                        order, actor=request.user, reason=admin_note, otp=otp
                     )
-                    if refunded:
-                        messages.success(request, refund_msg)
-                    else:
-                        messages.info(request, refund_msg)
+                if refunded:
+                    messages.success(request, refund_msg)
+                else:
+                    messages.info(request, refund_msg)
             
             messages.success(request, f"تم تحديث حالة الطلب إلى: {order.get_status_display()}")
             
@@ -4245,6 +4274,68 @@ def control_order_detail(request, pk):
                         category="orders"
                     )
             except: pass
+            return redirect("control_order_detail", pk=pk)
+        elif action == "approve_refund":
+            from apps.orders.services import process_order_refund_to_gateway
+            admin_note = request.POST.get("admin_note", "").strip() or order.metadata.get("refund_reason") or "موافقة الإدارة على طلب استرداد الأموال"
+            otp = request.POST.get("paymera_otp")
+            refunded, refund_msg = process_order_refund_to_gateway(order, actor=request.user, reason=admin_note, otp=otp)
+            if refunded:
+                meta = dict(order.metadata or {})
+                meta["refund_status"] = "approved"
+                meta["refund_approved_at"] = timezone.now().isoformat()
+                meta["refund_approved_by"] = getattr(request.user, "email", str(request.user))
+                order.metadata = meta
+                order.save(update_fields=["metadata", "updated_at"])
+                messages.success(request, refund_msg)
+            else:
+                messages.error(request, refund_msg)
+            return redirect("control_order_detail", pk=pk)
+        elif action == "reject_refund":
+            rejection_reason = request.POST.get("rejection_reason", "").strip() or "لم يتم استيفاء شروط الاسترداد الخاصة بالمنصة"
+            meta = dict(order.metadata or {})
+            meta["refund_status"] = "rejected"
+            meta["refund_rejected_at"] = timezone.now().isoformat()
+            meta["refund_rejection_reason"] = rejection_reason
+            meta["refund_rejected_by"] = getattr(request.user, "email", str(request.user))
+            order.metadata = meta
+            order.save(update_fields=["metadata", "updated_at"])
+            OrderLog.objects.create(
+                order=order,
+                status=order.status,
+                note=f"تم رفض طلب استرداد الأموال بواسطة الإدارة. السبب: {rejection_reason}",
+                created_by=request.user,
+            )
+            try:
+                notify_user(
+                    user=order.customer,
+                    title="رفض طلب استرداد الأموال",
+                    body=f"تم رفض طلب استرداد الأموال الخاص بطلبك رقم #{order.number}. السبب: {rejection_reason}",
+                    action_url=f"/dashboard/orders/{order.id}/",
+                    category="orders",
+                )
+            except Exception:
+                pass
+            messages.info(request, "تم رفض طلب استرداد الأموال وإخطار العميل بالسبب.")
+            return redirect("control_order_detail", pk=pk)
+        elif action == "shamcash_refund":
+            from apps.orders.services import process_order_refund_to_shamcash
+            refund_reason = request.POST.get("refund_reason") or "استرداد الأموال إلى حساب شام كاش بواسطة الإدارة"
+            success, msg = process_order_refund_to_shamcash(order, actor=request.user, reason=refund_reason)
+            if success:
+                messages.success(request, msg)
+            else:
+                messages.error(request, msg)
+            return redirect("control_order_detail", pk=pk)
+        elif action == "instant_gateway_refund":
+            from apps.orders.services import process_order_refund_to_gateway
+            refund_reason = request.POST.get("refund_reason") or "استرداد فوري للأموال عبر بوابة الدفع بواسطة الإدارة"
+            otp = request.POST.get("paymera_otp")
+            success, msg = process_order_refund_to_gateway(order, actor=request.user, reason=refund_reason, otp=otp)
+            if success:
+                messages.success(request, msg)
+            else:
+                messages.error(request, msg)
             return redirect("control_order_detail", pk=pk)
         elif action == "paymera_refund_card":
             from apps.orders.services import process_order_refund_to_paymera
@@ -4460,10 +4551,26 @@ def control_order_detail(request, pk):
             else:
                 readable_ff[k] = v
 
+    meta = dict(order.metadata or {})
+    provider = (meta.get("payment_provider") or "").lower()
+    gw_payment_id = str(meta.get("gateway_payment_id") or "")
+    is_shamcash = provider == "sham_cash" or bool(meta.get("shamcash_bill_no")) or gw_payment_id.startswith("ORD-")
+    is_paymera = provider == "paymera" or bool(meta.get("paymera_payment_id")) or (bool(gw_payment_id) and not is_shamcash)
+
     ctx = {
         "order": order,
         "mapped_metadata": order.formatted_metadata(),
-        "readable_fulfillment": readable_ff
+        "readable_fulfillment": readable_ff,
+        "is_shamcash": is_shamcash,
+        "is_paymera": is_paymera,
+        "gateway_bill_no": meta.get("shamcash_bill_no") or gw_payment_id,
+        "gateway_payment_id": gw_payment_id or meta.get("paymera_payment_id") or "",
+        "gateway_rrn": meta.get("gateway_rrn") or meta.get("rrn") or "",
+        "refund_requested": meta.get("refund_requested", False),
+        "refund_reason": meta.get("refund_reason", ""),
+        "refund_status": meta.get("refund_status", "pending"),
+        "refund_requested_at": meta.get("refund_requested_at", ""),
+        "refund_rejection_reason": meta.get("refund_rejection_reason", ""),
     }
     return render(request, "site/control_order_detail.html", ctx)
 
@@ -4481,37 +4588,23 @@ def control_order_status_update(request, pk):
         order.save()
         OrderLog.objects.create(order=order, status=order.status, note=request.POST.get("admin_note", ""), created_by=request.user)
         if order.status in [Order.Status.REFUNDED, Order.Status.CANCELLED] and old_status not in [Order.Status.REFUNDED, Order.Status.CANCELLED]:
-            refund_target = request.POST.get("refund_target", "paymera_card")
-            meta = dict(order.metadata or {})
-            has_paymera = bool(meta.get("gateway_payment_id") or meta.get("paymera_payment_id") or meta.get("payment_provider") == "paymera" or meta.get("is_direct_gateway_purchase"))
+            refund_target = request.POST.get("refund_target", "gateway")
             otp = request.POST.get("paymera_otp")
-            if (refund_target == "paymera_card" or (has_paymera and refund_target != "wallet")) and has_paymera and not meta.get("paymera_refunded"):
-                from apps.orders.services import process_order_refund_to_paymera
-                refunded, refund_msg = process_order_refund_to_paymera(
-                    order, actor=request.user, reason=request.POST.get("admin_note", "استرداد للبطاقة عبر لوحة الإدارة"), otp=otp
-                )
-                if refunded:
-                    messages.success(request, refund_msg)
-                else:
-                    messages.error(request, refund_msg)
-            elif refund_target == "wallet":
+            admin_note = request.POST.get("admin_note", "تحديث حالة الطلب عبر لوحة الإدارة")
+            if refund_target == "wallet":
                 from apps.orders.services import process_order_refund_to_wallet
                 refunded, refund_msg = process_order_refund_to_wallet(
-                    order, actor=request.user, old_status=old_status, source="explicit_wallet_choice"
+                    order, actor=request.user, old_status=old_status, source="explicit_wallet_choice", reason=admin_note
                 )
-                if refunded:
-                    messages.success(request, refund_msg)
-                else:
-                    messages.info(request, refund_msg)
             else:
-                from apps.orders.services import process_order_refund_to_wallet
-                refunded, refund_msg = process_order_refund_to_wallet(
-                    order, actor=request.user, old_status=old_status, source="control_order_status_update"
+                from apps.orders.services import process_order_refund_to_gateway
+                refunded, refund_msg = process_order_refund_to_gateway(
+                    order, actor=request.user, reason=admin_note, otp=otp
                 )
-                if refunded:
-                    messages.success(request, refund_msg)
-                else:
-                    messages.info(request, refund_msg)
+            if refunded:
+                messages.success(request, refund_msg)
+            else:
+                messages.info(request, refund_msg)
         messages.success(request, f"تم تحديث حالة الطلب إلى: {order.get_status_display()}")
         try:
             if order.customer:
