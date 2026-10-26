@@ -86,8 +86,8 @@
           <i class="fas fa-key"></i>
         </div>
         <div>
-          <h3 style="font-size: 0.98rem; font-weight: 900; color: var(--rq-navy); margin: 0;">أكواد وبيانات التفعيل</h3>
-          <span style="font-size: 0.74rem; color: #059669; font-weight: 600;">انقر على نسخ لاستخدام الكود مباشرة</span>
+          <h3 style="font-size: 0.98rem; font-weight: 900; color: var(--rq-navy); margin: 0;">بيانات تجهيز وشحن الطلب</h3>
+          <span style="font-size: 0.74rem; color: #059669; font-weight: 600;">معلومات وتفاصيل الشحنة والتجهيز</span>
         </div>
       </div>
       <span class="rq-status-pill rq-status-completed">جاهز ✓</span>
@@ -118,7 +118,7 @@
   <div style="background: var(--rq-primary-soft); border: 1px solid rgba(37, 99, 235, 0.2); border-radius: 14px; padding: 1.15rem 1.35rem; margin-bottom: 1.5rem;">
     <div style="font-size: 0.86rem; font-weight: 800; color: var(--rq-primary); margin-bottom: 0.65rem; display: flex; align-items: center; gap: 0.4rem;">
       <i class="fas fa-bolt"></i>
-      <span>تأكيد التنفيذ الفوري</span>
+      <span>تأكيد تجهيز الطلب والشحن</span>
     </div>
     <div style="display: flex; flex-direction: column; gap: 0.5rem;">
       {% for res in responses %}
@@ -128,7 +128,7 @@
           {% if res.package_info %}<div style="color: var(--rq-text-secondary);">{{ res.package_info }}</div>{% endif %}
           {% if res.status_msg %}<div style="color: var(--rq-text-muted); font-size: 0.76rem;">{{ res.status_msg }}</div>{% endif %}
         </div>
-        <span class="rq-status-pill rq-status-completed">تم التفعيل ✓</span>
+        <span class="rq-status-pill rq-status-completed">تم التجهيز ✓</span>
       </div>
       {% endfor %}
     </div>

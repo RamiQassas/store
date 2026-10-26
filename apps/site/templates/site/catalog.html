@@ -31,7 +31,7 @@
             {% endif %}
           </h1>
           <p class="hidden sm:block" style="font-size: 0.82rem; color: var(--rq-text-secondary); margin: 0; max-width: 600px;">
-            تصفح الأقسام والمنتجات الإلكترونية، الهواتف الذكية، الحواسيب، شبكات الاتصال، والخدمات الرقمية.
+            تصفح الأقسام والمنتجات الإلكترونية، الهواتف الذكية، الحواسيب، ملحقاتها، والمعدات الأصلية.
           </p>
         </div>
 
@@ -120,9 +120,8 @@
               <div>
                 <label class="rq-label" style="font-size: 0.74rem;">نوع المنتج</label>
                 <select name="type" class="rq-select" style="padding: 0.45rem 0.75rem; font-size: 0.78rem;">
-                  <option value="" {% if not product_type_filter %}selected{% endif %}>الكل (أجهزة ورقميات)</option>
-                  <option value="physical" {% if product_type_filter == 'physical' %}selected{% endif %}>أجهزة ومعدات مادية</option>
-                  <option value="digital" {% if product_type_filter == 'digital' %}selected{% endif %}>منتجات وخدمات رقمية</option>
+                  <option value="" {% if not product_type_filter %}selected{% endif %}>جميع الأجهزة والمعدات</option>
+                  <option value="physical" {% if product_type_filter == 'physical' %}selected{% endif %}>أجهزة ومعدات مادية (متوفر للشحن)</option>
                 </select>
               </div>
 
@@ -241,8 +240,8 @@
             <a href="?view=products&type=physical{% if query %}&q={{ query }}{% endif %}{% if active_category %}&category={{ active_category }}{% endif %}" style="flex-shrink: 0; padding: 0.38rem 0.85rem; border-radius: 9999px; font-size: 0.74rem; font-weight: 800; border: 1px solid {% if product_type_filter == 'physical' %}var(--rq-primary-light){% else %}var(--rq-border){% endif %}; background: {% if product_type_filter == 'physical' %}linear-gradient(135deg, rgba(37,99,235,0.25), rgba(14,165,233,0.25)){% else %}var(--rq-surface-card){% endif %}; color: {% if product_type_filter == 'physical' %}#38bdf8{% else %}var(--rq-text-secondary){% endif %}; transition: all 0.2s;">
               💻 أجهزة وعتاد تقني
             </a>
-            <a href="?view=products&type=digital{% if query %}&q={{ query }}{% endif %}{% if active_category %}&category={{ active_category }}{% endif %}" style="flex-shrink: 0; padding: 0.38rem 0.85rem; border-radius: 9999px; font-size: 0.74rem; font-weight: 800; border: 1px solid {% if product_type_filter == 'digital' %}var(--rq-primary-light){% else %}var(--rq-border){% endif %}; background: {% if product_type_filter == 'digital' %}linear-gradient(135deg, rgba(37,99,235,0.25), rgba(14,165,233,0.25)){% else %}var(--rq-surface-card){% endif %}; color: {% if product_type_filter == 'digital' %}#38bdf8{% else %}var(--rq-text-secondary){% endif %}; transition: all 0.2s;">
-              ⚡ بطاقات وخدمات رقمية
+            <a href="?view=products&type=physical{% if query %}&q={{ query }}{% endif %}{% if active_category %}&category={{ active_category }}{% endif %}" style="flex-shrink: 0; padding: 0.38rem 0.85rem; border-radius: 9999px; font-size: 0.74rem; font-weight: 800; border: 1px solid {% if product_type_filter == 'physical' %}var(--rq-primary-light){% else %}var(--rq-border){% endif %}; background: {% if product_type_filter == 'physical' %}linear-gradient(135deg, rgba(37,99,235,0.25), rgba(14,165,233,0.25)){% else %}var(--rq-surface-card){% endif %}; color: {% if product_type_filter == 'physical' %}#38bdf8{% else %}var(--rq-text-secondary){% endif %}; transition: all 0.2s;">
+              📦 متوفر للشحن الفوري
             </a>
             <a href="?view=products&in_stock=1{% if query %}&q={{ query }}{% endif %}{% if active_category %}&category={{ active_category }}{% endif %}" style="flex-shrink: 0; padding: 0.38rem 0.85rem; border-radius: 9999px; font-size: 0.74rem; font-weight: 800; border: 1px solid {% if in_stock_filter == '1' %}#34d399{% else %}var(--rq-border){% endif %}; background: {% if in_stock_filter == '1' %}rgba(16,185,129,0.2){% else %}var(--rq-surface-card){% endif %}; color: {% if in_stock_filter == '1' %}#34d399{% else %}var(--rq-text-secondary){% endif %}; transition: all 0.2s;">
               🟢 المتوفر حالياً فقط
@@ -257,7 +256,7 @@
                 {% if p.product_type == 'physical' %}
                 <span class="rq-badge rq-badge-stock" style="position: absolute; top: 0.45rem; right: 0.45rem; z-index: 2;"><i class="fas fa-truck"></i> شحن</span>
                 {% else %}
-                <span class="rq-badge rq-badge-featured" style="position: absolute; top: 0.45rem; right: 0.45rem; z-index: 2;"><i class="fas fa-bolt"></i> فوري</span>
+                <span class="rq-badge rq-badge-featured" style="position: absolute; top: 0.45rem; right: 0.45rem; z-index: 2;"><i class="fas fa-truck-fast"></i> شحن وتوصيل</span>
                 {% endif %}
                 <img src="{{ p_img }}" alt="{{ p.name }}" loading="lazy" onerror="this.onerror=null; this.src='{% static 'site/img/raqamiyat_logo_square.jpg' %}';">
               </a>

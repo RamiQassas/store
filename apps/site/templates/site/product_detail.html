@@ -79,7 +79,7 @@
           </div>
           <div style="background: var(--rq-bg-elevated); padding: 0.65rem 0.85rem; border-radius: 10px; border: 1px solid var(--rq-border);">
             <span style="color: var(--rq-text-muted); display: block; font-size: 0.72rem;">نوع المنتج:</span>
-            <strong style="color: var(--rq-navy);">{% if product.product_type == 'physical' %}منتج فيزيائي (شحن وتوصيل){% else %}منتج رقمي (تسليم فوري){% endif %}</strong>
+            <strong style="color: var(--rq-navy);">منتج مادي (شحن وتوصيل للمستلم)</strong>
           </div>
           <div style="background: var(--rq-bg-elevated); padding: 0.65rem 0.85rem; border-radius: 10px; border: 1px solid var(--rq-border);">
             <span style="color: var(--rq-text-muted); display: block; font-size: 0.72rem;">التوفر:</span>
@@ -176,7 +176,7 @@
         {% if product.form_schema %}
         <div style="margin-bottom: 1.25rem; padding: 1rem; background: var(--rq-bg-elevated); border: 1px solid var(--rq-border); border-radius: 14px;">
           <div style="font-size: 0.82rem; font-weight: 800; color: var(--rq-navy); margin-bottom: 0.75rem;">
-            <i class="fas fa-pen-to-square ml-1" style="color: var(--rq-primary-light);"></i> بيانات التفعيل أو الحساب:
+            <i class="fas fa-pen-to-square ml-1" style="color: var(--rq-primary-light);"></i> تفاصيل وملاحظات الطلب الإضافية:
           </div>
           {% for field in product.form_schema %}
           <div class="rq-form-group" style="margin-bottom: {% if forloop.last %}0{% else %}0.75rem{% endif %};">

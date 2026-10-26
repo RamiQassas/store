@@ -2655,7 +2655,7 @@ def product_detail(request, pk):
         prov_prod, _ = resolve_variant_provider_and_product(variant)
         if prov_prod and (not prov_prod.is_active or not prov_prod.local_is_active):
             mark_variant_unavailable(variant, reason="Provider product is inactive", provider_product=prov_prod)
-            msg = "⚠️ هذه الباقة غير متوفرة حالياً لدى مزود الخدمة."
+            msg = "⚠️ هذا المنتج غير متوفر حالياً في المخزون."
             if request.headers.get('x-requested-with') == 'XMLHttpRequest' or request.POST.get('ajax') == '1':
                 return JsonResponse({"success": False, "error": msg}, status=400)
             messages.error(request, msg)
@@ -2796,8 +2796,8 @@ def product_detail(request, pk):
             shipping_address = request.POST.get("shipping_address", "").strip()
             if not (shipping_name and shipping_phone and shipping_address):
                 if request.headers.get('x-requested-with') == 'XMLHttpRequest' or request.POST.get('ajax') == '1':
-                    return JsonResponse({"success": False, "error": "جميع حقول الشحن والتوصيل مطلوبة للطلب المادي."}, status=400)
-                messages.error(request, "جميع حقول الشحن والتوصيل مطلوبة للطلب المادي.")
+                    return JsonResponse({"success": False, "error": "جميع بيانات الشحن والتوصيل (الاسم، رقم الهاتف، العنوان بالتفصيل) مطلوبة لإتمام الطلب."}, status=400)
+                messages.error(request, "جميع بيانات الشحن والتوصيل (الاسم، رقم الهاتف، العنوان بالتفصيل) مطلوبة لإتمام الطلب.")
                 return redirect("product_detail", pk=pk)
 
         # Verification check (only for internal wallet debit)

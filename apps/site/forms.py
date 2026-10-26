@@ -614,9 +614,9 @@ class ProductSuggestionForm(forms.ModelForm):
         model = ProductSuggestion
         fields = ["product_name", "category_name", "description"]
         widgets = {
-            "product_name": forms.TextInput(attrs={"class": "builder-input", "placeholder": "مثال: شحن رصيد بلايستيشن سعودي"}),
-            "category_name": forms.TextInput(attrs={"class": "builder-input", "placeholder": "مثال: بطاقات الألعاب"}),
-            "description": forms.Textarea(attrs={"class": "builder-input", "rows": 4, "placeholder": "صف الخدمة بوضوح أو ضع رابطاً لمثال عليها..."}),
+            "product_name": forms.TextInput(attrs={"class": "builder-input", "placeholder": "مثال: هاتف سامسونج Galaxy S24 أو لابتوب Dell XPS"}),
+            "category_name": forms.TextInput(attrs={"class": "builder-input", "placeholder": "مثال: هواتف ذكية أو حواسيب وملحقاتها"}),
+            "description": forms.Textarea(attrs={"class": "builder-input", "rows": 4, "placeholder": "صف مواصفات الجهاز المطلوب أو ضع رابطاً له إن وجد..."}),
         }
 
 class CategoryForm(forms.ModelForm):

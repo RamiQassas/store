@@ -12,7 +12,7 @@ from typing import Dict, Any, Tuple, Optional
 PROVIDER_ERROR_REGISTRY = {
     100: {
         "code_tag": "ERR-100",
-        "customer_message": "تعذر تنفيذ الطلب حالياً (رمز الخطأ: ERR-100)، يرجى مراجعة الدعم الفني أو المحاولة لاحقاً.",
+        "customer_message": "تعذر معالجة وتجهيز الطلب حالياً (رمز الخطأ: ERR-100)، يرجى مراجعة خدمة العملاء أو المحاولة لاحقاً.",
         "admin_message": "الرصيد غير كافٍ في حساب المزود الخارجي (Insufficient Balance)",
         "admin_tip": "يرجى شحن وتغذية رصيد حسابك لدى المزود الخارجي لتتمكن من استئناف معالجة وتنفيذ الطلبات.",
         "keywords": [
@@ -22,21 +22,21 @@ PROVIDER_ERROR_REGISTRY = {
     },
     105: {
         "code_tag": "ERR-105",
-        "customer_message": "الكمية المطلوبة غير متوفرة حالياً لدى مزود الخدمة (رمز الخطأ: ERR-105).",
+        "customer_message": "الكمية المطلوبة غير متوفرة حالياً في المستودع (رمز الخطأ: ERR-105).",
         "admin_message": "الكمية غير متوفرة لدى المزود الخارجي (Quantity Not Available)",
         "admin_tip": "الكمية المطلوبة في الباقة غير متوفرة حالياً في مخزون المزود الخارجي.",
         "keywords": ["quantity not available", "الكمية غير متوفرة", "out of stock"]
     },
     106: {
         "code_tag": "ERR-106",
-        "customer_message": "الكمية المحددة غير مسموح بها لهذا الطلب (رمز الخطأ: ERR-106).",
+        "customer_message": "الكمية المحددة غير متاحة لهذا المنتج حالياً (رمز الخطأ: ERR-106).",
         "admin_message": "الكمية غير مسموح بها لدى المزود الخارجي (Quantity Not Allowed)",
         "admin_tip": "الكمية المحددة تخالف سياسات أو قيود المزود لهذا المنتج.",
         "keywords": ["quantity not allowed", "الكمية غير مسموح بها"]
     },
     107: {
         "code_tag": "ERR-107",
-        "customer_message": "معرف الحساب المدخل غير صالح أو محظور لدى مزود الخدمة (رمز الخطأ: ERR-107).",
+        "customer_message": "بيانات عنوان الشحن والتوصيل المدخلة غير مكتملة أو تحتاج إلى تدقيق (رمز الخطأ: ERR-107).",
         "admin_message": "حساب اللاعب محظور أو مرفوض لدى المزود (Player Blocked)",
         "admin_tip": "حساب اللاعب المدخل من العميل محظور أو غير صالح لدى سيرفر اللعبة/المزود.",
         "keywords": ["player blocked", "حساب اللاعب محظور", "playerid محظور", "player_blocked"]
@@ -50,21 +50,21 @@ PROVIDER_ERROR_REGISTRY = {
     },
     109: {
         "code_tag": "ERR-109",
-        "customer_message": "المنتج المطلوب غير متاح حالياً (رمز الخطأ: ERR-109).",
+        "customer_message": "هذا المنتج غير متاح للشراء والتوصيل حالياً (رمز الخطأ: ERR-109).",
         "admin_message": "المنتج محذوف أو غير موجود لدى المزود (Product Deleted)",
         "admin_tip": "تم حذف هذا المنتج من قائمة منتجات المزود أو تم تغيير معرفه.",
         "keywords": ["product deleted", "المنتج محذوف", "product not found"]
     },
     110: {
         "code_tag": "ERR-110",
-        "customer_message": "الخدمة المطلوبة غير متوفرة مؤقتاً لدى مزود الخدمة (رمز الخطأ: ERR-110).",
+        "customer_message": "هذا المنتج غير متوفر مؤقتاً في المخزون (رمز الخطأ: ERR-110).",
         "admin_message": "المنتج غير متوفر حالياً لدى المزود (Product Unavailable)",
         "admin_tip": "المنتج معطل أو متوقف مؤقتاً من قبل المزود الخارجي.",
         "keywords": ["product unavailable", "المنتج غير متوفر حالياً", "service unavailable"]
     },
     111: {
         "code_tag": "ERR-111",
-        "customer_message": "مزود الخدمة مشغول حالياً، يرجى المحاولة بعد قليل (رمز الخطأ: ERR-111).",
+        "customer_message": "نظام معالجة وتجهيز الطلبات مشغول حالياً، يرجى المحاولة بعد قليل (رمز الخطأ: ERR-111).",
         "admin_message": "المزود يطلب إعادة المحاولة بعد دقيقة (Rate Limited / Retry After One Minute)",
         "admin_tip": "هناك ضغط طلبات كبير على المزود، يمكن إعادة إرسال الطلب بعد دقيقة.",
         "keywords": ["retry after one minute", "إعادة المحاولة بعد دقيقة", "حاول بعد دقيقة", "rate limited"]
@@ -85,14 +85,14 @@ PROVIDER_ERROR_REGISTRY = {
     },
     120: {
         "code_tag": "ERR-120",
-        "customer_message": "تعذر الاتصال بمزود الخدمة (رمز الخطأ: ERR-120).",
+        "customer_message": "تعذر تأكيد بيانات التجهيز والشحن مؤقتاً (رمز الخطأ: ERR-120).",
         "admin_message": "مفتاح الوصول للـ API مطلوب لدى المزود (API Token Required)",
         "admin_tip": "تأكد من إدخال API Token في إعدادات المزود في لوحة التحكم.",
         "keywords": ["api token required", "مفتاح الوصول مطلوب", "token required"]
     },
     121: {
         "code_tag": "ERR-121",
-        "customer_message": "تعذر التحقق من مزود الخدمة (رمز الخطأ: ERR-121).",
+        "customer_message": "تعذر تأكيد فحص توفر المنتج حالياً (رمز الخطأ: ERR-121).",
         "admin_message": "مفتاح الوصول غير صالح أو منتهي (Invalid API Token)",
         "admin_tip": "قم بتحديث مفتاح API Token في إعدادات المزود في لوحة التحكم.",
         "keywords": ["invalid token", "token error", "مفتاح api غير صالح", "غير صحيح", "مفتاح الوصول غير صالح"]
@@ -106,14 +106,14 @@ PROVIDER_ERROR_REGISTRY = {
     },
     123: {
         "code_tag": "ERR-123",
-        "customer_message": "خطأ في تهيئة مزود الخدمة (رمز الخطأ: ERR-123).",
+        "customer_message": "تعذر إتمام جدولة الشحنة حالياً (رمز الخطأ: ERR-123).",
         "admin_message": "عنوان IP الخاص بالسيرفر غير مصرح له لدى المزود (IP Not Allowed)",
         "admin_tip": "أضف عنوان IP الخاص بسيرفر المتجر إلى القائمة البيضاء (IP Whitelist) لدى المزود.",
         "keywords": ["ip not allowed", "عنوان ip غير مصرح", "عنوان ip غير مسموح"]
     },
     130: {
         "code_tag": "ERR-130",
-        "customer_message": "مزود الخدمة تحت الصيانة المجدولة حالياً (رمز الخطأ: ERR-130).",
+        "customer_message": "نظام إدارة المستودعات قيد الصيانة المجدولة حالياً (رمز الخطأ: ERR-130).",
         "admin_message": "سيرفر المزود في حالة صيانة مجدولة (Provider Under Maintenance)",
         "admin_tip": "المزود يقوم بأعمال صيانة دورية، سيتم استئناف الخدمة قريباً.",
         "keywords": ["provider under maintenance", "وضع الصيانة", "في حالة صيانة", "maintenance"]
@@ -231,7 +231,7 @@ def sanitize_provider_error(raw_data: Any, error_code: Optional[Any] = None) -> 
             "is_error": True,
             "error_code": code,
             "code_tag": code_tag,
-            "customer_message": f"تعذر تنفيذ الطلب حالياً لدى مزود الخدمة (رمز الخطأ: {code_tag})، يرجى التواصل مع الدعم الفني.",
+            "customer_message": f"تعذر معالجة وتجهيز الطلب حالياً (رمز الخطأ: {code_tag})، يرجى التواصل مع خدمة العملاء.",
             "admin_message": f"خطأ من المزود الخارجي (رمز: {code_tag}): {raw_str[:120]}",
             "admin_tip": "يرجى مراجعة تفاصيل الاستجابة لدى المزود الخارجي للتحقق من سبب الرفض.",
             "raw_detail": raw_str,
@@ -255,7 +255,7 @@ def sanitize_provider_error(raw_data: Any, error_code: Optional[Any] = None) -> 
         "is_error": bool(raw_str),
         "error_code": None,
         "code_tag": "ERR-PROVIDER",
-        "customer_message": "تعذر تنفيذ الطلب حالياً لدى مزود الخدمة، يرجى المحاولة لاحقاً أو مراجعة الدعم الفني.",
+        "customer_message": "تعذر تجهيز الطلب حالياً من المستودع، يرجى المحاولة لاحقاً أو التواصل مع خدمة العملاء.",
         "admin_message": f"استجابة غير معتادة من المزود: {raw_str[:150]}" if raw_str else "تعذر تنفيذ الطلب من قبل المزود الخارجي",
         "admin_tip": "راجع استجابة المزود الأخيرة في تفاصيل الطلب لمعرفة السبب.",
         "raw_detail": raw_str,
@@ -281,6 +281,6 @@ def sanitize_text_for_customer(text: Optional[str]) -> str:
 
     # If contains raw token or API key leaks
     if "token" in s_lower or "api_token" in s_lower or "unauthorized" in s_lower or "forbidden" in s_lower:
-        return "تعذر التحقق من مزود الخدمة (رمز الخطأ: ERR-121)."
+        return "تعذر تأكيد بيانات الشحن وتجهيز الطلب (رمز الخطأ: ERR-121)."
 
     return s

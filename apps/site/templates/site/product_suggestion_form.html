@@ -8,8 +8,8 @@
     <div class="page-head reveal">
         <div>
             <span class="eyebrow">Product Requests</span>
-            <h1>اقتراح منتج أو خدمة جديدة</h1>
-            <p class="text-muted">هل تبحث عن خدمة غير متوفرة؟ أخبرنا بها وسنعمل على توفيرها لك.</p>
+            <h1>اقتراح جهاز أو منتج جديد</h1>
+            <p class="text-muted">هل تبحث عن جهاز أو قطعة غير متوفرة في المخزون؟ أخبرنا بها وسنعمل على توفيرها وشحنها لك بأفضل سعر.</p>
         </div>
     </div>
 
@@ -20,7 +20,7 @@
                     {% csrf_token %}
                     
                     <div class="field-group">
-                        <label>اسم المنتج أو الخدمة المقترحة <span class="text-danger">*</span></label>
+                        <label>اسم الجهاز أو المنتج المقترح <span class="text-danger">*</span></label>
                         {{ form.product_name }}
                         {% if form.product_name.errors %}<p class="text-xs text-danger mt-1">{{ form.product_name.errors.0 }}</p>{% endif %}
                     </div>
@@ -28,13 +28,13 @@
                     <div class="field-group">
                         <label>التصنيف (اختياري)</label>
                         {{ form.category_name }}
-                        <p class="text-[10px] text-slate-500 mt-1">مثال: بطاقات بلايستيشن، شحن ألعاب، خدمات سوشيال ميديا...</p>
+                        <p class="text-[10px] text-slate-500 mt-1">مثال: هواتف ذكية، حواسيب محمولة، شاشات، ملحقات ومعدات إلكترونية...</p>
                     </div>
 
                     <div class="field-group">
-                        <label>وصف الخدمة أو رابط لها <span class="text-danger">*</span></label>
+                        <label>مواصفات الجهاز أو رابط له <span class="text-danger">*</span></label>
                         {{ form.description }}
-                        <p class="text-[10px] text-slate-500 mt-1">اشرح الخدمة بوضوح أو ضع رابطاً لموقع يوفرها لنتمكن من دراسة الطلب.</p>
+                        <p class="text-[10px] text-slate-500 mt-1">اشرح مواصفات الجهاز بوضوح أو ضع رابطاً له لنتمكن من توفيره لك بالمستودع.</p>
                         {% if form.description.errors %}<p class="text-xs text-danger mt-1">{{ form.description.errors.0 }}</p>{% endif %}
                     </div>
 

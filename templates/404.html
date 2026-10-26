@@ -29,7 +29,7 @@
 
             <!-- Search Form -->
             <form action="{% url 'catalog' %}" method="get" class="relative max-w-md mx-auto mb-8">
-                <input type="text" name="q" placeholder="ابحث عن اسم المنتج، اللعبة، أو الخدمة..." 
+                <input type="text" name="q" placeholder="ابحث عن اسم المنتج، الجهاز، أو القطعة..." 
                        class="w-full bg-slate-800/80 border border-white/15 focus:border-amber-400/60 rounded-2xl py-3.5 pr-12 pl-24 text-white text-sm outline-none transition-all placeholder:text-slate-500 shadow-inner">
                 <i class="fas fa-search absolute right-4 top-1/2 -translate-y-1/2 text-slate-400"></i>
                 <button type="submit" class="absolute left-2 top-1/2 -translate-y-1/2 px-4 py-2 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 text-slate-950 font-black text-xs hover:brightness-110 transition-all shadow-md">
@@ -40,14 +40,14 @@
             <!-- Quick Suggestions -->
             <div class="flex flex-wrap items-center justify-center gap-2 mb-8">
                 <span class="text-xs text-slate-500 font-bold ml-1">روابط سريعة:</span>
-                <a href="{% url 'catalog' %}?q=شحن" class="px-3 py-1.5 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-xs text-slate-300 transition-all">
-                    ⚡ شحن التطبيقات
+                <a href="{% url 'catalog' %}?q=هواتف" class="px-3 py-1.5 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-xs text-slate-300 transition-all">
+                    📱 هواتف ذكية
                 </a>
-                <a href="{% url 'catalog' %}?q=VPN" class="px-3 py-1.5 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-xs text-slate-300 transition-all">
-                    🔒 اشتراكات VPN
+                <a href="{% url 'catalog' %}?q=أجهزة" class="px-3 py-1.5 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-xs text-slate-300 transition-all">
+                    💻 حواسيب وإلكترونيات
                 </a>
-                <a href="{% url 'catalog' %}?q=بطاقات" class="px-3 py-1.5 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-xs text-slate-300 transition-all">
-                    💳 بطاقات رقمية
+                <a href="{% url 'catalog' %}?q=معدات" class="px-3 py-1.5 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-xs text-slate-300 transition-all">
+                    📦 أجهزة ومعدات مادية
                 </a>
             </div>
 

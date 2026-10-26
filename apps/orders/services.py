@@ -475,7 +475,7 @@ def _create_order_atomic(customer, variant_id, quantity=1, fulfillment_data=None
             .get(id=variant_id, is_active=True, is_temporarily_disabled=False, product__is_active=True)
         )
     except ProductVariant.DoesNotExist:
-        raise ValueError("هذه الباقة أو المنتج غير متوفر حالياً.")
+        raise ValueError("هذا المنتج غير متوفر حالياً في المخزون.")
 
     if variant.product.is_out_of_stock:
         raise ValueError("هذا المنتج غير متوفر حالياً (نفد المخزون).")
@@ -484,7 +484,7 @@ def _create_order_atomic(customer, variant_id, quantity=1, fulfillment_data=None
     prov_prod, _ = resolve_variant_provider_and_product(variant)
     if prov_prod and (not prov_prod.is_active or not prov_prod.local_is_active):
         mark_variant_unavailable(variant, reason="Provider product is inactive", provider_product=prov_prod)
-        raise ValueError("هذه الباقة غير متوفرة حالياً لدى مزود الخدمة.")
+        raise ValueError("هذا المنتج غير متوفر حالياً في المخزون.")
 
 
     # ── Read qty metadata stored during sync ─────────────────────────────────
@@ -504,7 +504,7 @@ def _create_order_atomic(customer, variant_id, quantity=1, fulfillment_data=None
         clean_valid_quantities = [str(x).strip() for x in qty_list if x is not None and str(x).strip().lower() not in ('none', 'null', '')]
         if str(quantity) not in clean_valid_quantities:
             raise ValueError(
-                f"الكمية المسموح بها لهذه الباقة هي إحدى القيم التالية فقط: {', '.join(clean_valid_quantities)}"
+                f"الكمية المسموح بها لهذا المنتج هي إحدى القيم التالية فقط: {', '.join(clean_valid_quantities)}"
             )
 
     elif qty_type == "range":
@@ -556,7 +556,7 @@ def _create_order_atomic(customer, variant_id, quantity=1, fulfillment_data=None
         and not (variant.product.form_schema or {}).get("fields")
     ):
         if not (shipping_name and shipping_phone and shipping_address):
-            raise ValueError("جميع حقول الشحن والتوصيل مطلوبة للطلب المادي.")
+            raise ValueError("جميع بيانات الشحن والتوصيل (الاسم، رقم الهاتف، العنوان بالتفصيل) مطلوبة لإتمام الطلب.")
 
     # ── Auto-delivery keys (digital codes stored locally or via Raqamiyat) ────
     order_store = getattr(variant.product, "store", None)
@@ -767,7 +767,7 @@ def _create_order_atomic(customer, variant_id, quantity=1, fulfillment_data=None
                     order.save(update_fields=["status", "fulfillment_data", "updated_at"])
                     return order
                 else:
-                    raise ValueError(f"المنتج غير مربوط بمزود خدمة فعال.")
+                    raise ValueError("المنتج غير متاح للشحن والتوصيل حالياً في المستودع.")
 
             if not api_order_uuid:
                 api_order_uuid = uuid.uuid4()
@@ -976,7 +976,7 @@ def create_pending_gateway_order(
                 .get(id=variant_id, is_active=True, is_temporarily_disabled=False, product__is_active=True)
             )
     except ProductVariant.DoesNotExist:
-        raise ValueError("هذه الباقة أو المنتج غير متوفر حالياً.")
+        raise ValueError("هذا المنتج غير متوفر حالياً في المخزون.")
 
     product = variant.product
     if product.is_out_of_stock or not product.is_active:
@@ -985,7 +985,7 @@ def create_pending_gateway_order(
     prov_prod, _ = resolve_variant_provider_and_product(variant)
     if prov_prod and (not prov_prod.is_active or not prov_prod.local_is_active):
         mark_variant_unavailable(variant, reason="Provider product is inactive", provider_product=prov_prod)
-        raise ValueError("هذه الباقة غير متوفرة حالياً لدى مزود الخدمة.")
+        raise ValueError("هذا المنتج غير متوفر حالياً في المخزون.")
 
 
     # Read qty metadata
@@ -1000,7 +1000,7 @@ def create_pending_gateway_order(
     elif qty_type == "list":
         if str(quantity) not in [str(x) for x in qty_list]:
             raise ValueError(
-                f"الكمية المسموح بها لهذه الباقة هي إحدى القيم التالية فقط: {', '.join(str(x) for x in qty_list)}"
+                f"الكمية المسموح بها لهذا المنتج هي إحدى القيم التالية فقط: {', '.join(str(x) for x in qty_list)}"
             )
     elif qty_type == "range":
         if quantity < qty_min:
@@ -1023,7 +1023,7 @@ def create_pending_gateway_order(
         and not (product.form_schema or {}).get("fields")
     ):
         if not (shipping_name and shipping_phone and shipping_address):
-            raise ValueError("جميع حقول الشحن والتوصيل مطلوبة للطلب المادي.")
+            raise ValueError("جميع بيانات الشحن والتوصيل (الاسم، رقم الهاتف، العنوان بالتفصيل) مطلوبة لإتمام الطلب.")
 
     # Digital Keys Availability check
     order_store = getattr(variant.product, "store", None)
@@ -1044,7 +1044,7 @@ def create_pending_gateway_order(
                 if global_var:
                     key_count = ProductKey.objects.filter(variant=global_var, is_used=False).count()
         if key_count < quantity:
-            raise ValueError("المخزون الرقمي غير كافٍ حالياً لتلبية هذا الطلب.")
+            raise ValueError("الكمية المتوفرة في المستودع غير كافية لتلبية هذا الطلب حالياً.")
 
     # For direct gateway checkout, ensure we charge the displayed retail variant price,
     # avoiding any unintended tier/cost price drop (e.g. 202 -> 161.57) unless an explicit coupon is applied.
