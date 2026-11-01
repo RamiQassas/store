@@ -11968,14 +11968,26 @@ def payment_status_view(request):
                         from apps.payments.views_shamcash import _complete_successful_shamcash_deposit
                         integration = _get_active_shamcash_integration()
                         active_bill = deposit.gateway_payment_id or ""
+                        if not active_bill:
+                            from apps.payments.models import ShamCashBillRecord
+                            record = ShamCashBillRecord.objects.filter(deposit=deposit).order_by("-created_at").first()
+                            if record:
+                                active_bill = record.bill_no
+                        if not active_bill:
+                            active_bill = request.GET.get("bill_no") or request.GET.get("billNo") or ""
+
                         if integration and active_bill:
                             client = ShamCashClient.from_integration(integration)
                             bill_info = client.get_bill_info(active_bill)
                             status_id = bill_info.get("statusId")
-                            if status_id == ShamCashClient.STATUS_PAID:
+                            is_paid = (
+                                status_id in (ShamCashClient.STATUS_PAID, 4, "4")
+                                or str(bill_info.get("statusName", "")).lower() == "paid"
+                            )
+                            if is_paid:
                                 _complete_successful_shamcash_deposit(deposit, bill_info.get("tranId"), bill_info)
                                 deposit.refresh_from_db()
-                            elif status_id == ShamCashClient.STATUS_EXPIRED:
+                            elif status_id in (ShamCashClient.STATUS_EXPIRED, 5, "5") or str(bill_info.get("statusName", "")).lower() == "expired":
                                 deposit.status = DepositRequest.Status.REJECTED
                                 deposit.admin_note = "انتهت صلاحية الفاتورة دون دفع."
                                 deposit.save(update_fields=["status", "admin_note", "updated_at"])
@@ -12026,6 +12038,16 @@ def payment_status_view(request):
             from apps.common.tenant_utils import bypass_tenant_filter
             with bypass_tenant_filter():
                 order = Order.all_objects.filter(pk=obj_id).first()
+        if not order and (request.GET.get("bill_no") or request.GET.get("billNo")):
+            b_no = request.GET.get("bill_no") or request.GET.get("billNo")
+            from apps.common.tenant_utils import bypass_tenant_filter
+            with bypass_tenant_filter():
+                order = Order.all_objects.filter(metadata__gateway_payment_id=b_no).first()
+                if not order:
+                    from apps.payments.models import ShamCashBillRecord
+                    rec = ShamCashBillRecord.objects.filter(bill_no=b_no).first()
+                    if rec and rec.order:
+                        order = rec.order
         if order:
             # Handle user explicit cancellation
             if user_wants_cancel:
@@ -12047,7 +12069,19 @@ def payment_status_view(request):
 
             # Active realtime verification with ShamCash if still pending
             if order.status == Order.Status.PENDING and not user_wants_cancel:
-                active_bill = (order.metadata.get("gateway_payment_id") if order.metadata else "") or getattr(order, "order_number", "")
+                active_bill = (
+                    (order.metadata.get("gateway_payment_id") if order.metadata else "")
+                    or (order.metadata.get("shamcash_bill_no") if order.metadata else "")
+                    or request.GET.get("bill_no")
+                    or request.GET.get("billNo")
+                    or ""
+                )
+                if not active_bill:
+                    from apps.payments.models import ShamCashBillRecord
+                    record = ShamCashBillRecord.objects.filter(order=order).order_by("-created_at").first()
+                    if record:
+                        active_bill = record.bill_no
+
                 if active_bill:
                     try:
                         from apps.payments.shamcash import ShamCashClient
@@ -12058,7 +12092,11 @@ def payment_status_view(request):
                             client = ShamCashClient.from_integration(integration)
                             bill_info = client.get_bill_info(active_bill)
                             status_id = bill_info.get("statusId")
-                            if status_id == ShamCashClient.STATUS_PAID:
+                            is_paid = (
+                                status_id in (ShamCashClient.STATUS_PAID, 4, "4")
+                                or str(bill_info.get("statusName", "")).lower() == "paid"
+                            )
+                            if is_paid:
                                 gateway_data = {
                                     "status": "A",
                                     "id": str(bill_info.get("tranId") or active_bill),
@@ -12069,7 +12107,7 @@ def payment_status_view(request):
                                 }
                                 finalize_paid_gateway_order(order, gateway_data)
                                 order.refresh_from_db()
-                            elif status_id == ShamCashClient.STATUS_EXPIRED:
+                            elif status_id in (ShamCashClient.STATUS_EXPIRED, 5, "5") or str(bill_info.get("statusName", "")).lower() == "expired":
                                 order.status = Order.Status.CANCELLED
                                 order.admin_note = "انتهت مهلة الدفع في شام كاش."
                                 order.save(update_fields=["status", "admin_note", "updated_at"])

@@ -1226,6 +1226,25 @@ def finalize_paid_gateway_order(order, gateway_data=None):
 
         # 2. Fulfillment
         locked_keys = []
+        is_physical_or_manual = (
+            getattr(variant.product, "product_type", "") == "physical"
+            or variant.delivery_type == "manual"
+        )
+        is_api_candidate = (
+            not is_physical_or_manual
+            and bool(
+                variant.product.is_api_product
+                or variant.api_product_id
+                or getattr(variant.product, "api_product_id", None)
+                or hasattr(variant, "provider_mapping")
+                or (variant.sku and "PRV-" in variant.sku)
+                or (variant.metadata and isinstance(variant.metadata, dict) and variant.metadata.get("remote_id"))
+            )
+        )
+
+        gw_code = (gateway_data.get("provider") if isinstance(gateway_data, dict) else "") or "payment_gateway"
+        gw_display = "شام كاش" if gw_code in ("sham_cash", "shamcash") else "بوابة الدفع"
+
         if variant.delivery_type == "keys":
             key_ids = list(
                 ProductKey.objects
@@ -1278,6 +1297,24 @@ def finalize_paid_gateway_order(order, gateway_data=None):
                     actor=customer,
                     note_prefix="النظام الآلي (دفع مباشر - بيميرا)",
                 )
+
+        elif not is_api_candidate:
+            # Physical products & Manual fulfillment orders
+            if getattr(variant.product, "track_inventory", False):
+                from apps.catalog.models import Product
+                prod = Product.objects.filter(id=variant.product_id).first()
+                if prod:
+                    prod.quantity = max(0, prod.quantity - quantity)
+                    if prod.quantity <= 0:
+                        prod.quantity = 0
+                        prod.is_out_of_stock = True
+                    prod.save(update_fields=["quantity", "is_out_of_stock"])
+
+            locked_order.status = Order.Status.PROCESSING
+            fulfillment = dict(locked_order.fulfillment_data or {})
+            fulfillment["notes"] = "تم استلام وسداد قيمة الطلب بنجاح عبر بوابة الدفع، والطلب قيد المعالجة والتجهيز."
+            locked_order.fulfillment_data = fulfillment
+            locked_order.save(update_fields=["status", "fulfillment_data", "metadata", "updated_at"])
 
         else:
             from apps.common.tenant_utils import bypass_tenant_filter

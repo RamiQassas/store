@@ -413,15 +413,25 @@ def shamcash_redirect_view(request):
 
                 # Active fallback verification if still pending
                 active_bill_no = bill_no or getattr(deposit, "gateway_payment_id", "")
+                if not active_bill_no:
+                    from apps.payments.models import ShamCashBillRecord
+                    record = ShamCashBillRecord.objects.filter(deposit=deposit).order_by("-created_at").first()
+                    if record:
+                        active_bill_no = record.bill_no
+
                 payment_succeeded = False
                 if deposit.status == DepositRequest.Status.PENDING and client and active_bill_no:
                     try:
                         bill_info = client.get_bill_info(active_bill_no)
                         status_id = bill_info.get("statusId")
-                        if status_id == ShamCashClient.STATUS_PAID:
+                        is_paid = (
+                            status_id in (ShamCashClient.STATUS_PAID, 4, "4")
+                            or str(bill_info.get("statusName", "")).lower() == "paid"
+                        )
+                        if is_paid:
                             _complete_successful_shamcash_deposit(deposit, bill_info.get("tranId"), bill_info)
                             payment_succeeded = True
-                        elif status_id == ShamCashClient.STATUS_EXPIRED:
+                        elif status_id in (ShamCashClient.STATUS_EXPIRED, 5, "5") or str(bill_info.get("statusName", "")).lower() == "expired":
                             deposit.status = DepositRequest.Status.REJECTED
                             deposit.admin_note = "انتهت صلاحية الفاتورة دون دفع."
                             deposit.save(update_fields=["status", "admin_note", "updated_at"])
@@ -441,7 +451,7 @@ def shamcash_redirect_view(request):
                     st = "cancelled"
                 else:
                     st = "pending"
-                return redirect(f"{reverse('payment_status')}?type=deposit&id={deposit.id}&status={st}")
+                return redirect(f"{reverse('payment_status')}?type=deposit&id={deposit.id}&status={st}&bill_no={active_bill_no}")
 
         return redirect("dashboard_deposits")
 
@@ -470,13 +480,27 @@ def shamcash_redirect_view(request):
                     return redirect(f"{reverse('payment_status')}?type=order&id={order.id}&status=cancelled")
 
                 # Active fallback verification if still pending
-                active_bill_no = bill_no or (order.metadata.get("gateway_payment_id") if order.metadata else "") or getattr(order, "order_number", "")
+                active_bill_no = (
+                    bill_no
+                    or (order.metadata.get("gateway_payment_id") if order.metadata else "")
+                    or (order.metadata.get("shamcash_bill_no") if order.metadata else "")
+                )
+                if not active_bill_no:
+                    from apps.payments.models import ShamCashBillRecord
+                    record = ShamCashBillRecord.objects.filter(order=order).order_by("-created_at").first()
+                    if record:
+                        active_bill_no = record.bill_no
+
                 payment_succeeded = False
                 if order.status == Order.Status.PENDING and client and active_bill_no:
                     try:
                         bill_info = client.get_bill_info(active_bill_no)
                         status_id = bill_info.get("statusId")
-                        if status_id == ShamCashClient.STATUS_PAID:
+                        is_paid = (
+                            status_id in (ShamCashClient.STATUS_PAID, 4, "4")
+                            or str(bill_info.get("statusName", "")).lower() == "paid"
+                        )
+                        if is_paid:
                             gateway_data = {
                                 "status": "A",
                                 "id": str(bill_info.get("tranId") or active_bill_no),
@@ -487,7 +511,7 @@ def shamcash_redirect_view(request):
                             }
                             finalize_paid_gateway_order(order, gateway_data)
                             payment_succeeded = True
-                        elif status_id == ShamCashClient.STATUS_EXPIRED:
+                        elif status_id in (ShamCashClient.STATUS_EXPIRED, 5, "5") or str(bill_info.get("statusName", "")).lower() == "expired":
                             order.status = Order.Status.CANCELLED
                             order.admin_note = "انتهت مهلة الدفع في شام كاش."
                             order.save(update_fields=["status", "admin_note", "updated_at"])
@@ -513,7 +537,7 @@ def shamcash_redirect_view(request):
                     st = "cancelled"
                 else:
                     st = "pending"
-                return redirect(f"{reverse('payment_status')}?type=order&id={order.id}&status={st}")
+                return redirect(f"{reverse('payment_status')}?type=order&id={order.id}&status={st}&bill_no={active_bill_no}")
 
     # Default fallback
     messages.info(request, "شكراً لاستخدامك خدمة شام كاش.")
