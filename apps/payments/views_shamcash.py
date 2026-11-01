@@ -381,6 +381,21 @@ def shamcash_callback_view(request):
                 return JsonResponse({"result": 2500, "message": "Order already processed"})
 
             if status_id == ShamCashClient.STATUS_PAID:
+                # Anti-tampering check: verify paid amount if present in payload
+                webhook_amount = payload.get("amount")
+                expected_charge = order.metadata.get("gateway_charge_amount") if isinstance(order.metadata, dict) else None
+                if webhook_amount and expected_charge:
+                    try:
+                        wh_amt = Decimal(str(webhook_amount))
+                        exp_amt = Decimal(str(expected_charge))
+                        if wh_amt < (exp_amt * Decimal("0.95")):
+                            logger.error(f"SECURITY: Order {order.id} underpaid in ShamCash! Expected {exp_amt}, received {wh_amt}")
+                            webhook_log.error_message = f"Underpaid: expected {exp_amt}, received {wh_amt}"
+                            webhook_log.save(update_fields=["error_message"])
+                            return JsonResponse({"result": 1700, "message": "Amount underpaid"}, status=400)
+                    except Exception as exc:
+                        logger.warning(f"Error parsing amount for validation: {exc}")
+
                 gateway_data = {
                     "status": "A",
                     "id": str(tran_id or bill_no),
@@ -556,6 +571,20 @@ def shamcash_redirect_view(request):
                 payment_succeeded = False
                 if order.status == Order.Status.PENDING and client and active_bill_no:
                     is_paid, tran_id, bill_info = _check_bill_paid_in_shamcash(client, active_bill_no)
+                    if is_paid:
+                        # Anti-tampering check: verify bill amount
+                        bill_amount = bill_info.get("amount") if isinstance(bill_info, dict) else None
+                        expected_charge = order.metadata.get("gateway_charge_amount") if isinstance(order.metadata, dict) else None
+                        if bill_amount and expected_charge:
+                            try:
+                                b_amt = Decimal(str(bill_amount))
+                                exp_amt = Decimal(str(expected_charge))
+                                if b_amt < (exp_amt * Decimal("0.95")):
+                                    logger.error(f"SECURITY: Order {order.id} underpaid in bill check! Expected {exp_amt}, received {b_amt}")
+                                    is_paid = False
+                            except Exception as exc:
+                                logger.warning(f"Error checking bill amount: {exc}")
+
                     if is_paid:
                         gateway_data = {
                             "status": "A",

@@ -2836,12 +2836,14 @@ def product_detail(request, pk):
             from apps.orders.services import create_pending_gateway_order
             from apps.payments.gateways import gateway_for, PaymentGatewayError
             try:
-                gateway_curr = request.POST.get("gateway_currency") or "USD"
+                gateway_curr = (request.POST.get("gateway_currency") or request.POST.get("shamcash_currency") or "USD").strip().upper()
+                if gateway_curr not in ("USD", "SYP"):
+                    gateway_curr = "USD"
                 order_metadata = dict(metadata or {})
                 order_metadata["gateway_currency"] = gateway_curr
                 order_metadata["selected_currency"] = gateway_curr
-                order_metadata["currency_places"] = currency_places
-                order_metadata["displayed_unit_price"] = str(displayed_unit_price)
+                order_metadata["currency_places"] = 2
+                order_metadata["displayed_unit_price"] = str(base_unit_price)
 
                 order = create_pending_gateway_order(
                     customer=request.user,
@@ -2854,7 +2856,7 @@ def product_detail(request, pk):
                     shipping_phone=shipping_phone,
                     shipping_address=shipping_address,
                     gateway_code=selected_gateway.provider,
-                    exact_unit_price=displayed_unit_price,
+                    exact_unit_price=base_unit_price,
                 )
                 gw_instance = gateway_for(selected_gateway)
                 gw_res = gw_instance.create_order_payment(order, request=request)
@@ -3073,9 +3075,42 @@ def product_detail(request, pk):
         elif any(getattr(v, 'delivery_type', '') == "keys" for v in variants):
             is_instant_product = True
 
+    # Build variants_with_prices for accurate multi-currency and ShamCash conversions
+    variants_with_prices = []
+    from apps.site.context_processors import preferred_currency
+    curr_ctx = preferred_currency(request)
+    pref_curr = curr_ctx.get("CURRENCY")
+    
+    for v in variants:
+        v_base = v.get_price_for_user(request.user) if (request.user.is_authenticated) else v.price
+        if not v_base or v_base <= Decimal("0.00"):
+            v_base = Decimal(str(v.price or "0.00"))
+        
+        if pref_curr and pref_curr.code != "USD":
+            v_conv = pref_curr.from_base(v_base, operation="deposit")
+        else:
+            v_conv = v_base
+        
+        c_places = getattr(pref_curr, "decimal_places", 2)
+        if c_places == 0:
+            formatted_p = f"{Decimal(str(v_conv)):,.0f}"
+            raw_p = float(Decimal(str(v_conv)).quantize(Decimal("1")))
+        else:
+            formatted_p = f"{Decimal(str(v_conv)):,.2f}"
+            raw_p = float(Decimal(str(v_conv)).quantize(Decimal("0.01")))
+            
+        variants_with_prices.append({
+            "variant": v,
+            "base_price": float(Decimal(str(v_base)).quantize(Decimal("0.01"))),
+            "converted_price": formatted_p,
+            "raw_converted_price": raw_p,
+            "is_temporarily_disabled": v.is_temporarily_disabled or not v.is_active,
+        })
+
     return render(request, "site/product_detail.html", {
         "product": product, 
-        "variants": variants, 
+        "variants": variants,
+        "variants_with_prices": variants_with_prices,
         "active_variant": active_variant,
         "related_products": related_products,
         "gallery_images": gallery_images,
@@ -12135,11 +12170,39 @@ def payment_status_view(request):
             redirect_url = reverse("dashboard_order_detail", kwargs={"pk": order.id})
             reference = str(getattr(order, "number", None) or getattr(order, "order_number", None) or order.id)[:12]
             order_total = getattr(order, "total_price", None) or getattr(order, "total_amount", None) or Decimal("0.00")
-            order_curr = "USD"
-            if getattr(order, "metadata", None) and isinstance(order.metadata, dict):
-                order_curr = order.metadata.get("gateway_currency") or order.metadata.get("selected_currency") or "USD"
-            amount_display = f"{order_total:,.2f} {order_curr}"
-            provider_title = "دفع إلكتروني مباشر"
+            
+            # Format order amounts and provider info
+            order_meta = order.metadata if isinstance(order.metadata, dict) else {}
+            charge_curr = order_meta.get("gateway_charge_currency") or order_meta.get("gateway_currency") or "USD"
+            charge_amt_str = order_meta.get("gateway_charge_amount")
+            
+            amount_display = f"${order_total:,.2f} USD"
+            secondary_amount_display = ""
+            if charge_curr == "SYP" and charge_amt_str:
+                try:
+                    syp_num = Decimal(str(charge_amt_str))
+                    secondary_amount_display = f"{syp_num:,.0f} ل.س (شام كاش)"
+                except Exception:
+                    pass
+
+            provider_title = "شام كاش ⚡" if (order_meta.get("payment_provider") == "sham_cash" or "ORD-" in bill_param) else "دفع إلكتروني مباشر"
+            if order_meta.get("payment_provider") == "sham_cash":
+                provider_logo = "/static/site/img/brands/shamcash.svg"
+            elif order_meta.get("payment_provider") == "paymera":
+                provider_title = "بيميرا 💳"
+                provider_logo = "/media/payment-methods/logos/paymera.png"
+
+            order_items = []
+            for item in order.items.select_related("variant", "variant__product").all():
+                p_name = item.variant.product.name if (item.variant and item.variant.product) else "منتج"
+                v_name = item.variant.name if item.variant else ""
+                order_items.append({
+                    "product_name": p_name,
+                    "variant_name": v_name,
+                    "quantity": item.quantity,
+                    "unit_price": f"${item.unit_price:,.2f}",
+                    "total_price": f"${(item.unit_price * item.quantity):,.2f}",
+                })
             if order.status in (Order.Status.PROCESSING, Order.Status.COMPLETED) or status_param in ("success", "paid"):
                 status = "success"
                 title = "تم تأكيد طلبك وسداد قيمته بنجاح!"
@@ -12187,6 +12250,7 @@ def payment_status_view(request):
         "target_type": target_type,
         "timestamp": timezone.now().strftime("%Y-%m-%d %H:%M"),
         "auto_redirect": (status == "success"),
+        "order_items": order_items if target_type == "order" else [],
     }
 
     # AJAX / Polling JSON response

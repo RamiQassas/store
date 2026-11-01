@@ -234,35 +234,6 @@
     }
   }
 
-  /* Mobile Sticky Bottom Floating Buy Bar */
-  .rq-mobile-sticky-bar {
-    display: none;
-    position: fixed;
-    bottom: 58px; /* Above bottom navigation bar */
-    left: 0;
-    right: 0;
-    background: rgba(15, 23, 42, 0.94);
-    backdrop-filter: blur(14px);
-    border-top: 1px solid rgba(255, 255, 255, 0.14);
-    padding: 0.65rem 1rem;
-    z-index: 998;
-    box-shadow: 0 -8px 24px rgba(0, 0, 0, 0.35);
-    align-items: center;
-    justify-content: space-between;
-    gap: 0.85rem;
-    transform: translateY(140%);
-    transition: transform 0.35s cubic-bezier(0.16, 1, 0.3, 1);
-  }
-
-  .rq-mobile-sticky-bar.visible {
-    transform: translateY(0);
-  }
-
-  @media (max-width: 768px) {
-    .rq-mobile-sticky-bar {
-      display: flex;
-    }
-  }
 </style>
 {% endblock %}
 
@@ -404,8 +375,8 @@
         <form method="post" id="pdp-order-form" action="{% url 'product_detail' product.id %}">
           {% csrf_token %}
           <input type="hidden" name="variant_id" id="selected-variant-id" value="{% if variants_with_prices %}{{ variants_with_prices.0.variant.id }}{% endif %}">
-          <input type="hidden" name="displayed_price" id="displayed-price-input" value="{% if variants_with_prices %}{{ variants_with_prices.0.raw_converted_price }}{% endif %}">
-          <input type="hidden" name="payment_method" id="selected-payment-method" value="{% if gateway_methods and gateway_methods.0.code == 'sham_cash' %}gateway:{{ gateway_methods.0.id|cut:'gateway:' }}{% else %}wallet{% endif %}">
+          <input type="hidden" name="displayed_price" id="displayed-price-input" value="{% if variants_with_prices %}{{ variants_with_prices.0.base_price }}{% endif %}">
+          <input type="hidden" name="payment_method" id="selected-payment-method" value="wallet">
           <input type="hidden" name="gateway_currency" id="selected-gateway-currency" value="USD">
           <input type="hidden" name="shamcash_currency" id="selected-shamcash-currency" value="USD">
 
@@ -417,6 +388,7 @@
               {% for vp in variants_with_prices %}
               <div class="rq-pdp-variant-pill {% if forloop.first %}active{% endif %}"
                    data-variant-id="{{ vp.variant.id }}"
+                   data-base-price="{{ vp.base_price }}"
                    data-raw-price="{{ vp.raw_converted_price }}"
                    data-formatted-price="{{ vp.converted_price }}"
                    data-disabled="{% if vp.is_temporarily_disabled %}true{% else %}false{% endif %}"
@@ -483,15 +455,29 @@
           </div>
           {% endif %}
 
-          <!-- 5. Payment Gateway Selection -->
+          <!-- 5. Payment Gateway Selection (Strict Order: 1. Raqamiyat Wallet, 2. ShamCash, 3. Paymera) -->
           <div style="margin-bottom: 1.15rem;">
             <label class="rq-label" style="font-size: 0.82rem; margin-bottom: 0.45rem;">اختر طريقة الدفع المفضلة:</label>
             <div class="rq-pdp-pm-grid">
 
-              <!-- ShamCash Gateway (Promoted as Primary direct gateway if active) -->
+              <!-- 1. محفظة رقميات (Raqamiyat Wallet - Primary Default) -->
+              <div class="rq-pdp-pm-card selected is-wallet" id="pm-btn-wallet" onclick="selectPdpMethod('wallet', 'wallet', this)">
+                <div style="display: flex; align-items: center; justify-content: space-between;">
+                  <div style="display: flex; align-items: center; gap: 0.45rem;">
+                    <i class="fas fa-wallet" style="color: var(--rq-primary-light); font-size: 1.05rem;"></i>
+                    <span style="font-size: 0.86rem; font-weight: 900; color: var(--rq-navy);">محفظة رقميات</span>
+                  </div>
+                  <span class="pm-radio-ring" style="width: 16px; height: 16px; border-radius: 50%; border: 2px solid var(--rq-primary); background: var(--rq-primary); display: inline-block;"></span>
+                </div>
+                <span style="font-size: 0.72rem; color: var(--rq-text-muted); font-weight: 700;">
+                  {% if user.is_authenticated and user.wallet %}رصيدك: {% format_price user.wallet.available_balance %}{% else %}خصم فوري من رصيدك{% endif %}
+                </span>
+              </div>
+
+              <!-- 2. شام كاش (ShamCash - Second) -->
               {% for gw in gateway_methods %}
               {% if gw.code == 'sham_cash' %}
-              <div class="rq-pdp-pm-card selected"
+              <div class="rq-pdp-pm-card is-sham_cash"
                    id="pm-btn-{{ gw.code }}"
                    data-gw-id="{{ gw.id }}"
                    data-gw-code="{{ gw.code }}"
@@ -505,16 +491,40 @@
                     {% endif %}
                     <span style="font-size: 0.86rem; font-weight: 900; color: var(--rq-navy);">شام كاش</span>
                   </div>
-                  <span class="pm-radio-ring" style="width: 16px; height: 16px; border-radius: 50%; border: 2px solid #0d9488; background: #0d9488; display: inline-block;"></span>
+                  <span class="pm-radio-ring" style="width: 16px; height: 16px; border-radius: 50%; border: 2px solid var(--rq-border-strong); background: transparent; display: inline-block;"></span>
                 </div>
                 <span style="font-size: 0.72rem; color: #0d9488; font-weight: 800;">⚡ دفع إلكتروني فوري</span>
               </div>
               {% endif %}
               {% endfor %}
 
-              <!-- Other Gateways (e.g. Paymera) -->
+              <!-- 3. بيميرا (Paymera - Third) -->
               {% for gw in gateway_methods %}
-              {% if gw.code != 'sham_cash' %}
+              {% if gw.code == 'paymera' %}
+              <div class="rq-pdp-pm-card is-paymera"
+                   id="pm-btn-{{ gw.code }}"
+                   data-gw-id="{{ gw.id }}"
+                   data-gw-code="{{ gw.code }}"
+                   onclick="selectPdpMethod('{{ gw.id }}', '{{ gw.code }}', this)">
+                <div style="display: flex; align-items: center; justify-content: space-between;">
+                  <div style="display: flex; align-items: center; gap: 0.45rem;">
+                    {% if gw.logo %}
+                    <img src="{{ gw.logo }}" alt="بيميرا" style="height: 20px; width: auto; object-fit: contain;">
+                    {% else %}
+                    <i class="fas fa-credit-card" style="color: #4f46e5;"></i>
+                    {% endif %}
+                    <span style="font-size: 0.86rem; font-weight: 900; color: var(--rq-navy);">بيميرا</span>
+                  </div>
+                  <span class="pm-radio-ring" style="width: 16px; height: 16px; border-radius: 50%; border: 2px solid var(--rq-border-strong); background: transparent; display: inline-block;"></span>
+                </div>
+                <span style="font-size: 0.72rem; color: var(--rq-text-muted); font-weight: 700;">بطاقات وبوابات</span>
+              </div>
+              {% endif %}
+              {% endfor %}
+
+              <!-- 4. Other Gateways (if any) -->
+              {% for gw in gateway_methods %}
+              {% if gw.code != 'sham_cash' and gw.code != 'paymera' %}
               <div class="rq-pdp-pm-card is-{{ gw.code }}"
                    id="pm-btn-{{ gw.code }}"
                    data-gw-id="{{ gw.id }}"
@@ -525,41 +535,27 @@
                     {% if gw.logo %}
                     <img src="{{ gw.logo }}" alt="{{ gw.name }}" style="height: 20px; width: auto; object-fit: contain;">
                     {% else %}
-                    <i class="fas fa-credit-card" style="color: #4f46e5;"></i>
+                    <i class="fas fa-credit-card" style="color: #6366f1;"></i>
                     {% endif %}
                     <span style="font-size: 0.86rem; font-weight: 900; color: var(--rq-navy);">{{ gw.name }}</span>
                   </div>
                   <span class="pm-radio-ring" style="width: 16px; height: 16px; border-radius: 50%; border: 2px solid var(--rq-border-strong); background: transparent; display: inline-block;"></span>
                 </div>
-                <span style="font-size: 0.72rem; color: var(--rq-text-muted); font-weight: 700;">بطاقات وبوابات</span>
+                <span style="font-size: 0.72rem; color: var(--rq-text-muted); font-weight: 700;">دفع إلكتروني</span>
               </div>
               {% endif %}
               {% endfor %}
 
-              <!-- Wallet Option -->
-              <div class="rq-pdp-pm-card is-wallet" id="pm-btn-wallet" onclick="selectPdpMethod('wallet', 'wallet', this)">
-                <div style="display: flex; align-items: center; justify-content: space-between;">
-                  <div style="display: flex; align-items: center; gap: 0.45rem;">
-                    <i class="fas fa-wallet" style="color: var(--rq-primary-light); font-size: 1rem;"></i>
-                    <span style="font-size: 0.86rem; font-weight: 900; color: var(--rq-navy);">محفظة الحساب</span>
-                  </div>
-                  <span class="pm-radio-ring" style="width: 16px; height: 16px; border-radius: 50%; border: 2px solid var(--rq-border-strong); background: transparent; display: inline-block;"></span>
-                </div>
-                <span style="font-size: 0.7rem; color: var(--rq-text-muted); font-weight: 700;">
-                  {% if user.is_authenticated and user.wallet %}رصيدك: {% format_price user.wallet.available_balance %}{% else %}خصم فوري من رصيدك{% endif %}
-                </span>
-              </div>
-
             </div>
 
-            <!-- ShamCash Live Currency Switcher & Conversion Card -->
-            <div id="pdp-shamcash-currency-box" style="display: block; margin-top: 0.75rem; padding: 0.85rem 1rem; border-radius: 14px; background: rgba(13, 148, 136, 0.08); border: 1.5px solid rgba(13, 148, 136, 0.3);">
+            <!-- ShamCash Live Currency Switcher & Conversion Card (Hidden by default, shown when ShamCash selected) -->
+            <div id="pdp-shamcash-currency-box" style="display: none; margin-top: 0.75rem; padding: 0.85rem 1rem; border-radius: 14px; background: rgba(13, 148, 136, 0.08); border: 1.5px solid rgba(13, 148, 136, 0.3);">
               <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 0.5rem; margin-bottom: 0.45rem;">
                 <span style="font-size: 0.8rem; font-weight: 800; color: #0d9488;">
                   <i class="fas fa-coins ml-1"></i> العملة المحصلة في تطبيق شام كاش:
                 </span>
                 <div style="display: flex; gap: 0.35rem;">
-                  <button type="button" class="sc-curr-btn" data-curr="USD" onclick="setShamCashCurrency('USD', this)" style="padding: 0.25rem 0.75rem; border-radius: 8px; border: 2px solid #0d9488; background: #ffffff; color: #0d9488; font-size: 0.78rem; font-weight: 900; cursor: pointer;">USD ($)</button>
+                  <button type="button" class="sc-curr-btn" data-curr="USD" onclick="setShamCashCurrency('USD', this)" style="padding: 0.25rem 0.75rem; border-radius: 8px; border: 2px solid #0d9488; background: rgba(13, 148, 136, 0.08); color: #0d9488; font-size: 0.78rem; font-weight: 900; cursor: pointer;">USD ($)</button>
                   <button type="button" class="sc-curr-btn" data-curr="SYP" onclick="setShamCashCurrency('SYP', this)" style="padding: 0.25rem 0.75rem; border-radius: 8px; border: 1.5px solid var(--rq-border-strong); background: #ffffff; color: var(--rq-text-secondary); font-size: 0.78rem; font-weight: 800; cursor: pointer;">ليرة سورية (SYP)</button>
                 </div>
               </div>
@@ -578,10 +574,10 @@
             <button type="submit"
                     id="pdp-submit-btn"
                     class="rq-pdp-buy-now"
-                    style="height: 52px; font-size: 1rem; font-weight: 900; border-radius: 14px; background: linear-gradient(135deg, #0d9488 0%, #059669 100%); box-shadow: 0 4px 18px rgba(13, 148, 136, 0.35);"
+                    style="height: 52px; font-size: 1rem; font-weight: 900; border-radius: 14px; background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%); box-shadow: 0 4px 18px rgba(37, 99, 235, 0.35);"
                     {% if product.is_out_of_stock %}disabled{% endif %}>
               <i class="fas fa-bolt"></i>
-              <span id="pdp-submit-text">{% if product.is_out_of_stock %}نفذت الكمية{% else %}شراء فوري عبر شام كاش ⚡{% endif %}</span>
+              <span id="pdp-submit-text">{% if product.is_out_of_stock %}نفذت الكمية{% else %}تأكيد وشراء من المحفظة{% endif %}</span>
             </button>
             {% else %}
             <a href="{% url 'site_login' %}?next={{ request.path }}" class="rq-pdp-buy-now" style="height: 52px; font-size: 0.98rem; font-weight: 900; border-radius: 14px;">
@@ -669,31 +665,9 @@
 
 </div>
 
-<!-- Mobile Floating Quick-Buy Bottom Bar -->
-<div class="rq-mobile-sticky-bar" id="mobile-sticky-buy-bar">
-  <div style="display: flex; align-items: center; gap: 0.65rem; min-width: 0;">
-    <div style="width: 44px; height: 44px; border-radius: 8px; background: rgba(255, 255, 255, 0.08); display: flex; align-items: center; justify-content: center; overflow: hidden; flex-shrink: 0; padding: 0.2rem;">
-      {% if main_p_img %}
-      <img src="{{ main_p_img }}" alt="{{ product.name }}" style="max-height: 100%; max-width: 100%; object-fit: contain;">
-      {% else %}
-      <i class="fas fa-box" style="color: #94a3b8; font-size: 1rem;"></i>
-      {% endif %}
-    </div>
-    <div style="min-width: 0;">
-      <span style="font-size: 0.72rem; color: #94a3b8; display: block; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 140px;">{{ product.name }}</span>
-      <span id="mobile-sticky-price" class="font-mono tabular-nums" style="font-size: 1.05rem; font-weight: 900; color: #38bdf8;">
-        {% if variants_with_prices %}{{ variants_with_prices.0.converted_price }}{% else %}0.00{% endif %} {{ current_currency.symbol }}
-      </span>
-    </div>
-  </div>
-  <button type="button" onclick="scrollToOrderForm()" style="height: 42px; padding: 0 1.25rem; border-radius: 10px; border: none; background: linear-gradient(135deg, #0d9488 0%, #059669 100%); color: #fff; font-size: 0.88rem; font-weight: 900; cursor: pointer; display: flex; align-items: center; gap: 0.4rem; box-shadow: 0 4px 14px rgba(13, 148, 136, 0.4); flex-shrink: 0;">
-    <i class="fas fa-bolt"></i>
-    <span>إتمام الطلب</span>
-  </button>
-</div>
-
 <script>
-  let currentUnitRawPrice = parseFloat(document.getElementById('displayed-price-input')?.value || '0') || 0;
+  let currentUnitBasePrice = parseFloat('{% if variants_with_prices %}{{ variants_with_prices.0.base_price }}{% else %}0{% endif %}') || 0;
+  let currentUnitDisplayPrice = parseFloat('{% if variants_with_prices %}{{ variants_with_prices.0.raw_converted_price }}{% else %}0{% endif %}') || 0;
   const sypExchangeRate = parseFloat('{{ syp_rate|default:15000 }}') || 15000;
   let activeShamCashCurrency = 'USD';
 
@@ -709,11 +683,11 @@
     cardEl.classList.add('active');
 
     const vId = cardEl.getAttribute('data-variant-id');
-    const rawPrice = parseFloat(cardEl.getAttribute('data-raw-price') || '0') || 0;
-    currentUnitRawPrice = rawPrice;
+    currentUnitBasePrice = parseFloat(cardEl.getAttribute('data-base-price') || '0') || 0;
+    currentUnitDisplayPrice = parseFloat(cardEl.getAttribute('data-raw-price') || '0') || 0;
 
     document.getElementById('selected-variant-id').value = vId;
-    document.getElementById('displayed-price-input').value = rawPrice;
+    document.getElementById('displayed-price-input').value = currentUnitBasePrice;
     recalcPdpTotal();
   }
 
@@ -730,30 +704,29 @@
 
   function recalcPdpTotal() {
     const qty = Math.max(1, parseInt(document.getElementById('pdp-qty-input')?.value || '1', 10) || 1);
-    const total = currentUnitRawPrice * qty;
+    const totalBaseUsd = currentUnitBasePrice * qty;
+    const totalDisplay = currentUnitDisplayPrice * qty;
     const priceEl = document.getElementById('pdp-live-price');
-    const mobilePriceEl = document.getElementById('mobile-sticky-price');
     
-    const formatted = total.toLocaleString('en-US', {
-      minimumFractionDigits: Number.isInteger(currentUnitRawPrice) ? 0 : 2,
-      maximumFractionDigits: Number.isInteger(currentUnitRawPrice) ? 0 : 2
-    });
-
-    if (priceEl) priceEl.textContent = formatted;
-    if (mobilePriceEl) mobilePriceEl.textContent = formatted + ' {{ current_currency.symbol }}';
+    if (priceEl) {
+      priceEl.textContent = totalDisplay.toLocaleString('en-US', {
+        minimumFractionDigits: Number.isInteger(currentUnitDisplayPrice) ? 0 : 2,
+        maximumFractionDigits: Number.isInteger(currentUnitDisplayPrice) ? 0 : 2
+      });
+    }
 
     // Update ShamCash conversion preview
-    updateShamCashPreview(total);
+    updateShamCashPreview(totalBaseUsd);
   }
 
-  function updateShamCashPreview(totalUsd) {
+  function updateShamCashPreview(totalBaseUsd) {
     const scValEl = document.getElementById('sc-calc-val');
     if (!scValEl) return;
     if (activeShamCashCurrency === 'SYP') {
-      const sypTotal = Math.round(totalUsd * sypExchangeRate);
-      scValEl.textContent = sypTotal.toLocaleString('en-US') + ' ل.س';
+      const sypTotal = Math.round(totalBaseUsd * sypExchangeRate);
+      scValEl.textContent = sypTotal.toLocaleString('en-US') + ' ل.س (سعر الصرف: ' + Math.round(sypExchangeRate).toLocaleString('en-US') + ' ل.س/$)';
     } else {
-      scValEl.textContent = '$' + totalUsd.toFixed(2) + ' USD';
+      scValEl.textContent = '$' + totalBaseUsd.toFixed(2) + ' USD';
     }
   }
 
@@ -821,7 +794,7 @@
       btnEl.style.background = 'rgba(13, 148, 136, 0.08)';
     }
     const qty = Math.max(1, parseInt(document.getElementById('pdp-qty-input')?.value || '1', 10) || 1);
-    updateShamCashPreview(currentUnitRawPrice * qty);
+    updateShamCashPreview(currentUnitBasePrice * qty);
   }
 
   function addPdpToCart(btnEl) {
@@ -829,32 +802,6 @@
     const qty = document.getElementById('pdp-qty-input')?.value || 1;
     addToCartAjax('{{ product.id }}', vId, qty, btnEl);
   }
-
-  function scrollToOrderForm() {
-    const formEl = document.getElementById('pdp-order-form');
-    if (formEl) {
-      formEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
-      const submitBtn = document.getElementById('pdp-submit-btn');
-      if (submitBtn) {
-        submitBtn.classList.add('animate-pulse');
-        setTimeout(() => submitBtn.classList.remove('animate-pulse'), 1200);
-      }
-    }
-  }
-
-  // Mobile Sticky Bar Scroll Observer
-  window.addEventListener('scroll', () => {
-    const buyCard = document.getElementById('pdp-buy-card-section');
-    const stickyBar = document.getElementById('mobile-sticky-buy-bar');
-    if (!buyCard || !stickyBar || window.innerWidth > 768) return;
-    
-    const rect = buyCard.getBoundingClientRect();
-    if (rect.bottom < 150) {
-      stickyBar.classList.add('visible');
-    } else {
-      stickyBar.classList.remove('visible');
-    }
-  }, { passive: true });
 
   // Prevent double submission & show loading spinner
   document.getElementById('pdp-order-form')?.addEventListener('submit', function() {

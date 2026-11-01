@@ -1046,56 +1046,24 @@ def create_pending_gateway_order(
         if key_count < quantity:
             raise ValueError("الكمية المتوفرة في المستودع غير كافية لتلبية هذا الطلب حالياً.")
 
-    # For direct gateway checkout, ensure we charge the displayed retail variant price,
-    # avoiding any unintended tier/cost price drop (e.g. 202 -> 161.57) unless an explicit coupon is applied.
+    # For direct gateway checkout, canonical unit price is in USD
     from decimal import ROUND_HALF_UP
+    server_unit_price = variant.get_price_for_user(customer) if (customer and customer.is_authenticated) else variant.price
+    if not server_unit_price or server_unit_price <= Decimal("0.00"):
+        server_unit_price = Decimal(str(variant.price or "0.00"))
+
+    # Anti-tampering check: exact_unit_price cannot deviate more than 0.05 from server_unit_price
     if exact_unit_price and Decimal(str(exact_unit_price)) > Decimal("0.00"):
-        price = Decimal(str(exact_unit_price))
-    elif variant.price and variant.price > Decimal("0.00"):
-        price = Decimal(str(variant.price))
+        cand_price = Decimal(str(exact_unit_price))
+        if abs(cand_price - server_unit_price) <= Decimal("0.05") or (server_unit_price > 0 and abs(cand_price - server_unit_price) / server_unit_price < Decimal("0.02")):
+            price = cand_price
+        else:
+            price = server_unit_price
     else:
-        price = variant.get_price_for_user(customer)
+        price = server_unit_price
 
-    # If metadata specifies exact displayed price (verified against anti-tamper rounding), honor it
-    if metadata and "displayed_unit_price" in metadata:
-        try:
-            d_val = Decimal(str(metadata["displayed_unit_price"]))
-            if d_val > Decimal("0.00"):
-                rounded_int = price.quantize(Decimal("1"), rounding=ROUND_HALF_UP)
-                rounded_cents = price.quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
-                if d_val == rounded_int or d_val == rounded_cents or (abs(d_val - price) < Decimal("1.00") and d_val == round(price)):
-                    price = d_val
-        except (ValueError, TypeError):
-            pass
-
-    # Ensure price precision matches currency (if currency_places is 0, round to integer e.g. 201.96 -> 202.00)
-    currency_places = None
-    if metadata and "currency_places" in metadata:
-        try:
-            currency_places = int(metadata["currency_places"])
-        except (ValueError, TypeError):
-            pass
-
-    if currency_places is None:
-        from apps.common.models import Currency
-        curr = None
-        if order_store:
-            curr = Currency.all_objects.filter(store=order_store, is_active=True, is_default=True).first()
-            if not curr:
-                curr = Currency.all_objects.filter(store=order_store, is_active=True).first()
-        if not curr:
-            curr = Currency.all_objects.filter(store__isnull=True, is_active=True, is_default=True).first()
-            if not curr:
-                curr = Currency.all_objects.filter(store__isnull=True, code="USD", is_active=True).first()
-        if curr:
-            currency_places = getattr(curr, "decimal_places", 2)
-
-    if currency_places == 0:
-        price = price.quantize(Decimal("1"), rounding=ROUND_HALF_UP)
-    elif currency_places == 2:
-        price = price.quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
-    elif currency_places is not None and currency_places > 0:
-        price = price.quantize(Decimal("10") ** -currency_places, rounding=ROUND_HALF_UP)
+    # Order base currency in database is standard USD (2 decimal places)
+    price = price.quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
 
     subtotal = price * Decimal(quantity)
 
@@ -1169,7 +1137,8 @@ def finalize_paid_gateway_order(order, gateway_data=None):
         meta = dict(locked_order.metadata or {})
         meta["gateway_payment_confirmed"] = True
         meta["is_paid"] = True
-        meta["gateway_charge_amount"] = str(locked_order.total_amount)
+        if "gateway_charge_amount" not in meta:
+            meta["gateway_charge_amount"] = str(locked_order.total_amount)
         if isinstance(gateway_data, dict):
             meta["gateway_payment_status"] = gateway_data.get("status")
             if gateway_data.get("id"):
@@ -1226,13 +1195,10 @@ def finalize_paid_gateway_order(order, gateway_data=None):
 
         # 2. Fulfillment
         locked_keys = []
-        is_physical_or_manual = (
-            getattr(variant.product, "product_type", "") == "physical"
-            or variant.delivery_type == "manual"
-        )
-        is_api_candidate = (
-            not is_physical_or_manual
-            and bool(
+        is_api_candidate = bool(
+            getattr(variant.product, "product_type", "") != "physical"
+            and variant.delivery_type != "keys"
+            and (
                 variant.product.is_api_product
                 or variant.api_product_id
                 or getattr(variant.product, "api_product_id", None)

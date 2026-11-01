@@ -461,22 +461,21 @@ class ShamCashGateway(BasePaymentGateway):
             if not syp_currency:
                 syp_currency = Currency.all_objects.filter(code="SYP", is_active=True).first()
 
-            if syp_currency and float(getattr(syp_currency, "buy_rate", 1) or 1) > 1.0:
-                syp_val = syp_currency.from_base(exact_amount, "deposit")
-                charge_amount = Decimal(str(syp_val)).quantize(Decimal("0.01"))
-            else:
-                charge_amount = exact_amount.quantize(Decimal("0.01"))
+            syp_rate = Decimal(str(getattr(syp_currency, "buy_rate", 15000) or 15000))
+            if syp_rate <= Decimal("1.0"):
+                syp_rate = Decimal("15000")
 
+            syp_val = syp_currency.from_base(exact_amount, "deposit") if syp_currency else (exact_amount * syp_rate)
+            charge_amount = Decimal(str(round(syp_val))).quantize(Decimal("1"))
             currency_id = ShamCashClient.CURRENCY_SYP
             currency_code = "SYP"
         else:
             # USD default
             currency_id = ShamCashClient.CURRENCY_USD
-            if curr_places == 0:
-                charge_amount = exact_amount.quantize(Decimal("1"), rounding=ROUND_HALF_UP).quantize(Decimal("0.01"))
-            else:
-                charge_amount = exact_amount.quantize(Decimal("0.01"))
+            charge_amount = exact_amount.quantize(Decimal("0.01"))
             currency_code = "USD"
+            syp_currency = Currency.all_objects.filter(code="SYP", is_active=True).first()
+            syp_rate = Decimal(str(getattr(syp_currency, "buy_rate", 15000) or 15000))
 
         notes = f"سداد طلب رقم {order.number} للعميل {order.customer.email}"
         try:
@@ -495,6 +494,8 @@ class ShamCashGateway(BasePaymentGateway):
             order.metadata["shamcash_url"] = res.get("paymentUrl")
             order.metadata["gateway_charge_amount"] = str(charge_amount)
             order.metadata["gateway_charge_currency"] = currency_code
+            order.metadata["base_usd_amount"] = str(exact_amount)
+            order.metadata["exchange_rate"] = str(syp_rate)
             order.metadata["payment_provider"] = self.code
             order.save(update_fields=["metadata"])
 
