@@ -433,13 +433,14 @@ def shamcash_redirect_view(request):
                     st = "success"
                 elif deposit.status == DepositRequest.Status.REJECTED:
                     st = "cancelled" if ("المستخدم" in (deposit.admin_note or "")) else "failed"
-                else:
-                    # The customer returned from ShamCash without completing payment (cancelled/closed)
+                elif is_cancelled:
                     if deposit.status == DepositRequest.Status.PENDING:
                         deposit.status = DepositRequest.Status.REJECTED
                         deposit.admin_note = "تم إلغاء عملية الدفع من قبل المستخدم."
                         deposit.save(update_fields=["status", "admin_note", "updated_at"])
                     st = "cancelled"
+                else:
+                    st = "pending"
                 return redirect(f"{reverse('payment_status')}?type=deposit&id={deposit.id}&status={st}")
 
         return redirect("dashboard_deposits")
@@ -498,7 +499,7 @@ def shamcash_redirect_view(request):
                     st = "success"
                 elif order.status == Order.Status.CANCELLED:
                     st = "cancelled"
-                else:
+                elif is_cancelled:
                     if order.status == Order.Status.PENDING:
                         order.status = Order.Status.CANCELLED
                         order.admin_note = "تم إلغاء عملية الدفع من قبل المستخدم."
@@ -510,6 +511,8 @@ def shamcash_redirect_view(request):
                             created_by=request.user if (getattr(request, "user", None) and request.user.is_authenticated and request.user == order.customer) else None,
                         )
                     st = "cancelled"
+                else:
+                    st = "pending"
                 return redirect(f"{reverse('payment_status')}?type=order&id={order.id}&status={st}")
 
     # Default fallback

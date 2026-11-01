@@ -11963,7 +11963,8 @@ def payment_status_view(request):
                 gw = deposit.payment_method.gateway
                 if getattr(gw, "provider", "") == "sham_cash":
                     try:
-                        from apps.payments.gateways.shamcash import ShamCashClient, _get_active_shamcash_integration
+                        from apps.payments.shamcash import ShamCashClient
+                        from apps.payments.views_shamcash import _get_active_shamcash_integration
                         from apps.payments.views_shamcash import _complete_successful_shamcash_deposit
                         integration = _get_active_shamcash_integration()
                         active_bill = deposit.gateway_payment_id or ""
@@ -12049,7 +12050,8 @@ def payment_status_view(request):
                 active_bill = (order.metadata.get("gateway_payment_id") if order.metadata else "") or getattr(order, "order_number", "")
                 if active_bill:
                     try:
-                        from apps.payments.gateways.shamcash import ShamCashClient, _get_active_shamcash_integration
+                        from apps.payments.shamcash import ShamCashClient
+                        from apps.payments.views_shamcash import _get_active_shamcash_integration
                         from apps.orders.services import finalize_paid_gateway_order
                         integration = _get_active_shamcash_integration()
                         if integration:
