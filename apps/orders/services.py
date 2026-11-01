@@ -1310,9 +1310,10 @@ def finalize_paid_gateway_order(order, gateway_data=None):
                         prod.is_out_of_stock = True
                     prod.save(update_fields=["quantity", "is_out_of_stock"])
 
-            locked_order.status = Order.Status.PROCESSING
+            locked_order.status = Order.Status.COMPLETED
             fulfillment = dict(locked_order.fulfillment_data or {})
-            fulfillment["notes"] = "تم استلام وسداد قيمة الطلب بنجاح عبر بوابة الدفع، والطلب قيد المعالجة والتجهيز."
+            fulfillment["حالة الطلب"] = "تم سداد وتأكيد قيمة الطلب بنجاح عبر بوابة الدفع، وحالة الطلب مكتمل."
+            fulfillment["notes"] = "تم تأكيد السداد وإكمال الطلب بنجاح."
             locked_order.fulfillment_data = fulfillment
             locked_order.save(update_fields=["status", "fulfillment_data", "metadata", "updated_at"])
 

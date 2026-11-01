@@ -16,10 +16,10 @@
         <h1 style="font-size: clamp(1.3rem, 2.5vw, 1.7rem); font-weight: 900; color: var(--rq-navy); margin: 0;">
           الطلب <span style="font-family: monospace; color: var(--rq-primary);">#{{ order.number }}</span>
         </h1>
-        {% if order.status == 'completed' %}
+        {% if order.status == 'completed' or order.metadata.is_paid %}
         <span class="rq-status-pill rq-status-completed">مكتمل ✓</span>
         {% elif order.status == 'processing' %}
-        <span class="rq-status-pill rq-status-processing">قيد التنفيذ</span>
+        <span class="rq-status-pill rq-status-processing">قيد المعالجة</span>
         {% elif order.status == 'pending' %}
         <span class="rq-status-pill rq-status-pending">بانتظار الدفع</span>
         {% else %}

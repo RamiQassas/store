@@ -98,10 +98,10 @@
               {% format_price ord.total_price %}
             </span>
             <div style="margin-top: 0.15rem;">
-              {% if ord.status == 'completed' %}
+              {% if ord.status == 'completed' or ord.metadata.is_paid %}
               <span class="rq-status-pill rq-status-completed">مكتمل ✓</span>
               {% elif ord.status == 'processing' %}
-              <span class="rq-status-pill rq-status-processing">قيد التنفيذ</span>
+              <span class="rq-status-pill rq-status-processing">قيد المعالجة</span>
               {% elif ord.status == 'pending' %}
               <span class="rq-status-pill rq-status-pending">بانتظار الدفع</span>
               {% elif ord.status == 'cancelled' or ord.status == 'refunded' %}

@@ -3,29 +3,294 @@
 
 {% block title %}{{ product.name }} | {% if is_tenant %}{{ STORE_NAME }}{% else %}رقميات Raqamiyat{% endif %}{% endblock %}
 
+{% block extra_head %}
+<style>
+  /* ==========================================================================
+     MOBILE-FIRST RESPONSIVE PRODUCT DETAIL STUDIO
+     ========================================================================== */
+  .rq-pdp-layout {
+    display: flex;
+    flex-direction: column;
+    gap: 1.25rem;
+    width: 100%;
+    max-width: 100%;
+    box-sizing: border-box;
+  }
+
+  @media (min-width: 992px) {
+    .rq-pdp-layout {
+      display: grid;
+      grid-template-columns: 1.15fr 1fr;
+      gap: 2rem;
+      align-items: start;
+    }
+    .rq-pdp-left-col {
+      order: 1;
+    }
+    .rq-pdp-right-col {
+      order: 2;
+    }
+    .rq-pdp-buy-card {
+      position: sticky;
+      top: 90px;
+    }
+  }
+
+  /* Order on Mobile: Gallery First, Buy Studio Second, Specs Third */
+  @media (max-width: 991px) {
+    .rq-pdp-gallery-card {
+      order: 1 !important;
+    }
+    .rq-pdp-buy-card {
+      order: 2 !important;
+    }
+    .rq-pdp-specs-card {
+      order: 3 !important;
+    }
+  }
+
+  .rq-pdp-card {
+    background: var(--rq-surface-card);
+    border: 1px solid var(--rq-border);
+    border-radius: 18px;
+    padding: 1.35rem;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.03);
+    box-sizing: border-box;
+    width: 100%;
+    max-width: 100%;
+    overflow: hidden;
+  }
+
+  @media (max-width: 640px) {
+    .rq-pdp-card {
+      padding: 1rem;
+      border-radius: 16px;
+    }
+  }
+
+  /* Gallery Styling */
+  .rq-pdp-main-img-box {
+    width: 100%;
+    aspect-ratio: 4 / 3;
+    max-height: 420px;
+    background: var(--rq-card-img-bg);
+    border: 1px solid var(--rq-border);
+    border-radius: 14px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 1rem;
+    overflow: hidden;
+    position: relative;
+  }
+
+  .rq-pdp-main-img-box img {
+    max-width: 100%;
+    max-height: 100%;
+    object-fit: contain;
+    transition: transform 0.3s ease;
+  }
+
+  .rq-pdp-thumbs-scroll {
+    display: flex;
+    gap: 0.5rem;
+    margin-top: 0.75rem;
+    overflow-x: auto;
+    padding-bottom: 0.25rem;
+    scrollbar-width: thin;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .rq-pdp-thumb-item {
+    width: 62px;
+    height: 62px;
+    border-radius: 10px;
+    border: 2px solid var(--rq-border);
+    background: var(--rq-card-img-bg);
+    padding: 0.25rem;
+    cursor: pointer;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    transition: all 0.2s ease;
+  }
+
+  .rq-pdp-thumb-item.active {
+    border-color: var(--rq-primary);
+    box-shadow: 0 0 0 2px var(--rq-primary-soft);
+    transform: scale(1.05);
+  }
+
+  .rq-pdp-thumb-item img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+  }
+
+  /* Variants Selector */
+  .rq-pdp-variants-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+    gap: 0.55rem;
+  }
+
+  .rq-pdp-variant-pill {
+    background: var(--rq-bg-elevated);
+    border: 1.5px solid var(--rq-border-strong);
+    border-radius: 12px;
+    padding: 0.65rem 0.8rem;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    display: flex;
+    flex-direction: column;
+    gap: 0.2rem;
+    position: relative;
+    user-select: none;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  .rq-pdp-variant-pill:hover {
+    border-color: var(--rq-primary);
+  }
+
+  .rq-pdp-variant-pill.active {
+    border-color: var(--rq-primary);
+    background: var(--rq-primary-soft);
+    box-shadow: 0 0 0 1px var(--rq-primary);
+  }
+
+  /* Payment Choice Cards */
+  .rq-pdp-pm-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(135px, 1fr));
+    gap: 0.6rem;
+  }
+
+  .rq-pdp-pm-card {
+    position: relative;
+    cursor: pointer;
+    padding: 0.75rem 0.85rem;
+    border-radius: 14px;
+    border: 2px solid var(--rq-border-strong);
+    background: var(--rq-bg-elevated);
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+    transition: all 0.22s cubic-bezier(0.4, 0, 0.2, 1);
+    user-select: none;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  .rq-pdp-pm-card:hover {
+    border-color: var(--rq-primary);
+    transform: translateY(-1px);
+  }
+
+  .rq-pdp-pm-card.selected {
+    border-color: #0d9488;
+    background: rgba(13, 148, 136, 0.08);
+    box-shadow: 0 4px 16px rgba(13, 148, 136, 0.18);
+  }
+
+  .rq-pdp-pm-card.selected.is-wallet {
+    border-color: var(--rq-primary);
+    background: var(--rq-primary-soft);
+    box-shadow: 0 4px 16px var(--rq-primary-glow);
+  }
+
+  .rq-pdp-pm-card.selected.is-paymera {
+    border-color: #4f46e5;
+    background: rgba(79, 70, 229, 0.08);
+    box-shadow: 0 4px 16px rgba(79, 70, 229, 0.18);
+  }
+
+  /* Shipping Grid */
+  .rq-pdp-shipping-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 0.65rem;
+  }
+
+  @media (min-width: 640px) {
+    .rq-pdp-shipping-grid {
+      grid-template-columns: 1fr 1fr;
+    }
+  }
+
+  /* Action Buttons */
+  .rq-pdp-actions-row {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    margin-top: 1.25rem;
+  }
+
+  @media (min-width: 640px) {
+    .rq-pdp-actions-row {
+      display: grid;
+      grid-template-columns: 1fr 1.4fr;
+    }
+  }
+
+  /* Mobile Sticky Bottom Floating Buy Bar */
+  .rq-mobile-sticky-bar {
+    display: none;
+    position: fixed;
+    bottom: 58px; /* Above bottom navigation bar */
+    left: 0;
+    right: 0;
+    background: rgba(15, 23, 42, 0.94);
+    backdrop-filter: blur(14px);
+    border-top: 1px solid rgba(255, 255, 255, 0.14);
+    padding: 0.65rem 1rem;
+    z-index: 998;
+    box-shadow: 0 -8px 24px rgba(0, 0, 0, 0.35);
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.85rem;
+    transform: translateY(140%);
+    transition: transform 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  .rq-mobile-sticky-bar.visible {
+    transform: translateY(0);
+  }
+
+  @media (max-width: 768px) {
+    .rq-mobile-sticky-bar {
+      display: flex;
+    }
+  }
+</style>
+{% endblock %}
+
 {% block content %}
 {% product_display_image product as main_p_img %}
-<div class="rq-container" style="padding-top: 1.5rem;">
+<div class="rq-container" style="padding-top: 1rem; padding-bottom: 2rem;">
 
   <!-- Breadcrumbs -->
-  <nav style="display: flex; align-items: center; gap: 0.5rem; font-size: 0.8rem; color: var(--rq-text-muted); margin-bottom: 1.35rem; flex-wrap: wrap;">
+  <nav style="display: flex; align-items: center; gap: 0.45rem; font-size: 0.78rem; color: var(--rq-text-muted); margin-bottom: 1rem; flex-wrap: wrap;">
     <a href="{% url 'home' %}" style="color: var(--rq-text-muted);">الرئيسية</a>
-    <i class="fas fa-chevron-left text-[10px]"></i>
-    <a href="{% url 'catalog' %}" style="color: var(--rq-text-muted);">جميع المنتجات</a>
+    <i class="fas fa-chevron-left text-[9px]"></i>
+    <a href="{% url 'catalog' %}" style="color: var(--rq-text-muted);">المتجر</a>
     {% if product.category %}
-    <i class="fas fa-chevron-left text-[10px]"></i>
+    <i class="fas fa-chevron-left text-[9px]"></i>
     <a href="{% url 'catalog' %}?category={{ product.category.id }}" style="color: var(--rq-text-muted);">{{ product.category.name }}</a>
     {% endif %}
-    <i class="fas fa-chevron-left text-[10px]"></i>
-    <span style="color: var(--rq-navy); font-weight: 800;">{{ product.name }}</span>
+    <i class="fas fa-chevron-left text-[9px]"></i>
+    <span style="color: var(--rq-navy); font-weight: 800; max-width: 200px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">{{ product.name }}</span>
   </nav>
 
-  <!-- Main 2-Column Product Layout -->
-  <div class="rq-pdp-grid">
+  <!-- Main Responsive PDP Layout -->
+  <div class="rq-pdp-layout">
 
-    <!-- Right Column (RTL): Image Gallery & Product Specs -->
-    <div style="display: flex; flex-direction: column; gap: 1.25rem;">
-      <div class="rq-pdp-gallery-card">
+    <!-- Column 1 (RTL): Image Gallery & Product Specs -->
+    <div class="rq-pdp-left-col" style="display: flex; flex-direction: column; gap: 1.25rem;">
+      
+      <!-- 1. Image Gallery Card -->
+      <div class="rq-pdp-card rq-pdp-gallery-card">
         <div class="rq-pdp-main-img-box" id="pdp-main-image-box">
           {% if main_p_img %}
           <img src="{{ main_p_img }}" alt="{{ product.name }}" id="pdp-main-img">
@@ -35,15 +300,15 @@
         </div>
 
         {% if gallery_images %}
-        <div class="rq-pdp-thumbs">
+        <div class="rq-pdp-thumbs-scroll">
           {% if main_p_img %}
-          <button type="button" class="rq-pdp-thumb-btn active" onclick="switchPdpImage('{{ main_p_img|escapejs }}', this)">
+          <button type="button" class="rq-pdp-thumb-item active" onclick="switchPdpImage('{{ main_p_img|escapejs }}', this)">
             <img src="{{ main_p_img }}" alt="{{ product.name }}">
           </button>
           {% endif %}
           {% for gimg in gallery_images %}
           {% if gimg.image %}
-          <button type="button" class="rq-pdp-thumb-btn" onclick="switchPdpImage('{{ gimg.image.url|escapejs }}', this)">
+          <button type="button" class="rq-pdp-thumb-item" onclick="switchPdpImage('{{ gimg.image.url|escapejs }}', this)">
             <img src="{{ gimg.image.url }}" alt="{{ product.name }}">
           </button>
           {% endif %}
@@ -52,260 +317,303 @@
         {% endif %}
       </div>
 
-      <!-- Product Description & Specifications Card -->
-      <div class="rq-pdp-gallery-card">
-        <h3 style="font-size: 1rem; font-weight: 900; color: var(--rq-navy); margin: 0 0 0.85rem; display: flex; align-items: center; gap: 0.5rem;">
+      <!-- 2. Product Description & Specifications Card -->
+      <div class="rq-pdp-card rq-pdp-specs-card">
+        <h3 style="font-size: 0.98rem; font-weight: 900; color: var(--rq-navy); margin: 0 0 0.85rem; display: flex; align-items: center; gap: 0.5rem;">
           <i class="fas fa-circle-info" style="color: var(--rq-primary-light);"></i>
-          <span>تفاصيل ومواصفات المنتج</span>
+          <span>مواصفات وتفاصيل المنتج</span>
         </h3>
 
         {% if product.description %}
-        <div style="font-size: 0.88rem; color: var(--rq-text-secondary); line-height: 1.75; margin-bottom: 1rem;">
+        <div style="font-size: 0.88rem; color: var(--rq-text-secondary); line-height: 1.75; margin-bottom: 1rem; word-break: break-word;">
           {{ product.description|linebreaksbr }}
         </div>
         {% endif %}
 
         {% if product.instructions %}
-        <div style="background: var(--rq-primary-soft); border: 1px solid rgba(59, 130, 246, 0.25); border-radius: 12px; padding: 0.9rem 1rem; margin-bottom: 1rem;">
-          <div style="font-size: 0.8rem; font-weight: 800; color: var(--rq-primary-light); margin-bottom: 0.25rem;">تعليمات الاستخدام والتسليم:</div>
-          <div style="font-size: 0.82rem; color: var(--rq-text-secondary); line-height: 1.6;">{{ product.instructions|linebreaksbr }}</div>
+        <div style="background: var(--rq-primary-soft); border: 1px solid rgba(59, 130, 246, 0.25); border-radius: 12px; padding: 0.85rem 1rem; margin-bottom: 1rem;">
+          <div style="font-size: 0.8rem; font-weight: 800; color: var(--rq-primary-light); margin-bottom: 0.25rem;">
+            <i class="fas fa-shield-halved ml-1"></i> تعليمات الاستخدام والتوصيل:
+          </div>
+          <div style="font-size: 0.82rem; color: var(--rq-text-secondary); line-height: 1.6; word-break: break-word;">{{ product.instructions|linebreaksbr }}</div>
         </div>
         {% endif %}
 
-        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 0.65rem; padding-top: 0.85rem; border-top: 1px solid var(--rq-border); font-size: 0.8rem;">
-          <div style="background: var(--rq-bg-elevated); padding: 0.65rem 0.85rem; border-radius: 10px; border: 1px solid var(--rq-border);">
-            <span style="color: var(--rq-text-muted); display: block; font-size: 0.72rem;">القسم:</span>
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 0.65rem; padding-top: 0.85rem; border-top: 1px solid var(--rq-border); font-size: 0.8rem;">
+          <div style="background: var(--rq-bg-elevated); padding: 0.65rem 0.8rem; border-radius: 10px; border: 1px solid var(--rq-border);">
+            <span style="color: var(--rq-text-muted); display: block; font-size: 0.72rem;">التصنيف:</span>
             <strong style="color: var(--rq-navy);">{{ product.category.name|default:"عام" }}</strong>
           </div>
-          <div style="background: var(--rq-bg-elevated); padding: 0.65rem 0.85rem; border-radius: 10px; border: 1px solid var(--rq-border);">
+          <div style="background: var(--rq-bg-elevated); padding: 0.65rem 0.8rem; border-radius: 10px; border: 1px solid var(--rq-border);">
             <span style="color: var(--rq-text-muted); display: block; font-size: 0.72rem;">نوع المنتج:</span>
-            <strong style="color: var(--rq-navy);">منتج مادي (شحن وتوصيل للمستلم)</strong>
+            <strong style="color: var(--rq-navy);">{% if product.product_type == 'physical' %}منتج مادي (شحن وتوصيل){% else %}منتج معتمد{% endif %}</strong>
           </div>
-          <div style="background: var(--rq-bg-elevated); padding: 0.65rem 0.85rem; border-radius: 10px; border: 1px solid var(--rq-border);">
-            <span style="color: var(--rq-text-muted); display: block; font-size: 0.72rem;">التوفر:</span>
+          <div style="background: var(--rq-bg-elevated); padding: 0.65rem 0.8rem; border-radius: 10px; border: 1px solid var(--rq-border);">
+            <span style="color: var(--rq-text-muted); display: block; font-size: 0.72rem;">حالة التوفر:</span>
             {% if product.is_out_of_stock %}
-            <strong style="color: var(--rq-danger);">نفذت الكمية</strong>
+            <strong style="color: var(--rq-danger);">نفد المخزون</strong>
             {% else %}
-            <strong style="color: var(--rq-accent);">متوفر للشراء الفوري</strong>
+            <strong style="color: var(--rq-accent);">متوفر للطلب الفوري</strong>
             {% endif %}
           </div>
         </div>
       </div>
     </div>
 
-    <!-- Left Column (RTL): Clean Interactive Purchase Studio -->
-    <div class="rq-pdp-buy-card">
+    <!-- Column 2 (RTL): Interactive Purchase Studio Card -->
+    <div class="rq-pdp-right-col">
+      <div class="rq-pdp-card rq-pdp-buy-card" id="pdp-buy-card-section">
 
-      <!-- Product Title & Status Badges -->
-      <div style="border-bottom: 1px solid var(--rq-border); padding-bottom: 1.15rem; margin-bottom: 1.25rem;">
-        <div style="display: flex; align-items: center; gap: 0.45rem; margin-bottom: 0.5rem; flex-wrap: wrap;">
-          <span class="rq-badge rq-badge-featured">{{ product.category.name|default:"منتج معتمد" }}</span>
-          {% if product.is_out_of_stock %}
-          <span class="rq-badge rq-badge-out">غير متوفر حالياً</span>
-          {% else %}
-          <span class="rq-badge rq-badge-stock"><i class="fas fa-check-circle ml-1"></i> متوفر</span>
-          {% endif %}
-          {% if product.delivery_time_display %}
-          <span class="rq-badge" style="background: var(--rq-bg-elevated); color: var(--rq-text-secondary); border: 1px solid var(--rq-border);">
-            <i class="fas fa-clock ml-1"></i> {{ product.delivery_time_display }}
-          </span>
-          {% endif %}
-        </div>
-
-        <h1 style="font-size: clamp(1.3rem, 2.5vw, 1.7rem); font-weight: 900; color: var(--rq-navy); margin: 0 0 0.75rem; line-height: 1.35;">
-          {{ product.name }}
-        </h1>
-
-        <!-- Dynamic Price Box -->
-        <div style="display: flex; align-items: baseline; justify-content: space-between; flex-wrap: wrap; gap: 0.75rem; background: var(--rq-bg-elevated); border: 1px solid var(--rq-border); border-radius: 14px; padding: 0.9rem 1.15rem;">
-          <span style="font-size: 0.82rem; font-weight: 800; color: var(--rq-text-secondary);">السعر الإجمالي:</span>
-          <div style="display: flex; align-items: baseline; gap: 0.35rem;">
-            <span id="pdp-live-price" class="font-mono tabular-nums" style="font-size: 1.65rem; font-weight: 900; color: var(--rq-primary-light);">
-              {% if variants_with_prices %}
-                {{ variants_with_prices.0.converted_price }}
-              {% else %}
-                0.00
-              {% endif %}
+        <!-- Header: Badges & Product Name -->
+        <div style="border-bottom: 1px solid var(--rq-border); padding-bottom: 1rem; margin-bottom: 1.15rem;">
+          <div style="display: flex; align-items: center; gap: 0.4rem; margin-bottom: 0.45rem; flex-wrap: wrap;">
+            <span class="rq-badge rq-badge-featured">{{ product.category.name|default:"منتج تقني" }}</span>
+            {% if product.is_out_of_stock %}
+            <span class="rq-badge rq-badge-out">نفدت الكمية</span>
+            {% else %}
+            <span class="rq-badge rq-badge-stock"><i class="fas fa-check-circle ml-1"></i> متوفر</span>
+            {% endif %}
+            {% if product.delivery_time_display %}
+            <span class="rq-badge" style="background: var(--rq-bg-elevated); color: var(--rq-text-secondary); border: 1px solid var(--rq-border);">
+              <i class="fas fa-bolt ml-1" style="color: var(--rq-accent);"></i> {{ product.delivery_time_display }}
             </span>
-            <span style="font-size: 0.9rem; font-weight: 800; color: var(--rq-navy);">{{ current_currency.symbol|default:current_currency.code }}</span>
+            {% endif %}
           </div>
-        </div>
-      </div>
 
-      <!-- Purchase Form -->
-      <form method="post" id="pdp-order-form" action="{% url 'product_detail' product.id %}">
-        {% csrf_token %}
-        <input type="hidden" name="variant_id" id="selected-variant-id" value="{% if variants_with_prices %}{{ variants_with_prices.0.variant.id }}{% endif %}">
-        <input type="hidden" name="displayed_price" id="displayed-price-input" value="{% if variants_with_prices %}{{ variants_with_prices.0.raw_converted_price }}{% endif %}">
-        <input type="hidden" name="payment_method" id="selected-payment-method" value="wallet">
-        <input type="hidden" name="shamcash_currency" id="selected-shamcash-currency" value="{{ current_currency.code|default:'USD' }}">
+          <h1 style="font-size: clamp(1.25rem, 2.5vw, 1.65rem); font-weight: 900; color: var(--rq-navy); margin: 0 0 0.65rem; line-height: 1.35; word-break: break-word;">
+            {{ product.name }}
+          </h1>
 
-        <!-- 1. Select Variant / Package (Only shown if multiple or named variants exist) -->
-        {% if variants_with_prices and variants_with_prices|length > 1 %}
-        <div style="margin-bottom: 1.25rem;">
-          <label class="rq-label">اختر الفئة أو الباقة المطلوبة:</label>
-          <div class="rq-variants-grid">
-            {% for vp in variants_with_prices %}
-            <div class="rq-variant-card {% if forloop.first %}active{% endif %}"
-                 data-variant-id="{{ vp.variant.id }}"
-                 data-raw-price="{{ vp.raw_converted_price }}"
-                 data-formatted-price="{{ vp.converted_price }}"
-                 data-disabled="{% if vp.is_temporarily_disabled %}true{% else %}false{% endif %}"
-                 onclick="selectPdpVariant(this)">
-              <span style="font-size: 0.84rem; font-weight: 800; color: var(--rq-navy);">{{ vp.variant.name }}</span>
-              <span class="font-mono tabular-nums" style="font-size: 0.9rem; font-weight: 900; color: var(--rq-primary-light);">
-                {{ vp.converted_price }} {{ current_currency.symbol }}
-              </span>
-            </div>
-            {% endfor %}
-          </div>
-        </div>
-        {% endif %}
-
-        <!-- 2. Quantity Selector -->
-        <div style="margin-bottom: 1.25rem; display: flex; align-items: center; justify-content: space-between; gap: 1rem; background: var(--rq-bg-elevated); padding: 0.7rem 1rem; border-radius: 12px; border: 1px solid var(--rq-border);">
-          <label class="rq-label" for="pdp-qty-input" style="margin: 0;">الكمية المطلوبة:</label>
-          <div style="display: inline-flex; align-items: center; border: 1px solid var(--rq-border-strong); border-radius: 10px; background: var(--rq-input-bg); overflow: hidden;">
-            <button type="button" onclick="stepPdpQty(-1)" style="width: 36px; height: 36px; border: none; background: var(--rq-bg-elevated); color: var(--rq-navy); font-weight: 900; cursor: pointer;">-</button>
-            <input type="number" name="quantity" id="pdp-qty-input" value="1" min="1" max="{% if product.track_inventory and product.quantity > 0 %}{{ product.quantity }}{% else %}99{% endif %}" style="width: 52px; height: 36px; border: none; background: transparent; text-align: center; font-weight: 900; font-family: monospace; color: var(--rq-navy);" oninput="recalcPdpTotal()">
-            <button type="button" onclick="stepPdpQty(1)" style="width: 36px; height: 36px; border: none; background: var(--rq-bg-elevated); color: var(--rq-navy); font-weight: 900; cursor: pointer;">+</button>
-          </div>
-        </div>
-
-        <!-- 3. Dynamic Custom Fields (Player ID / Account Number / Phone if required) -->
-        {% if product.form_schema %}
-        <div style="margin-bottom: 1.25rem; padding: 1rem; background: var(--rq-bg-elevated); border: 1px solid var(--rq-border); border-radius: 14px;">
-          <div style="font-size: 0.82rem; font-weight: 800; color: var(--rq-navy); margin-bottom: 0.75rem;">
-            <i class="fas fa-pen-to-square ml-1" style="color: var(--rq-primary-light);"></i> تفاصيل وملاحظات الطلب الإضافية:
-          </div>
-          {% for field in product.form_schema %}
-          <div class="rq-form-group" style="margin-bottom: {% if forloop.last %}0{% else %}0.75rem{% endif %};">
-            <label class="rq-label">{{ field.label|default:field.name }} {% if field.required %}<span style="color: var(--rq-danger);">*</span>{% endif %}</label>
-            <input type="{{ field.type|default:'text' }}"
-                   name="custom_{{ field.name }}"
-                   class="rq-input"
-                   placeholder="{{ field.placeholder|default:field.label }}"
-                   {% if field.required %}required{% endif %}>
-          </div>
-          {% endfor %}
-        </div>
-        {% endif %}
-
-        <!-- 4. Physical Product Shipping Fields -->
-        {% if product.product_type == 'physical' %}
-        <div style="margin-bottom: 1.25rem; padding: 1rem; background: var(--rq-bg-elevated); border: 1px solid var(--rq-border); border-radius: 14px;">
-          <div style="font-size: 0.84rem; font-weight: 800; color: var(--rq-navy); margin-bottom: 0.75rem;">
-            <i class="fas fa-truck-fast ml-1" style="color: var(--rq-primary-light);"></i> بيانات المستلم وعنوان التوصيل:
-          </div>
-          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.65rem; margin-bottom: 0.65rem;">
-            <div>
-              <label class="rq-label" style="font-size: 0.76rem;">اسم المستلم *</label>
-              <input type="text" name="shipping_name" class="rq-input" placeholder="الاسم الكامل" value="{{ user.display_name|default:'' }}" required>
-            </div>
-            <div>
-              <label class="rq-label" style="font-size: 0.76rem;">رقم الهاتف *</label>
-              <input type="tel" name="shipping_phone" class="rq-input" placeholder="09xxxxxxxx" value="{{ user.phone_number|default:'' }}" required>
-            </div>
-          </div>
-          <div>
-            <label class="rq-label" style="font-size: 0.76rem;">المحافظة والعنوان التفصيلي *</label>
-            <input type="text" name="shipping_address" class="rq-input" placeholder="المحافظة - المنطقة - الشارع أو أقرب نقطة دالة" required>
-          </div>
-        </div>
-        {% endif %}
-
-        <!-- 5. Payment Method Selection (Wallet + Dynamic Active Gateways with Logos) -->
-        <div style="margin-bottom: 1.25rem;">
-          <label class="rq-label">طريقة الدفع المفضلة:</label>
-          <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(145px, 1fr)); gap: 0.65rem;">
-            
-            <!-- Wallet Option -->
-            <div class="rq-pm-choice-card selected" id="pm-btn-wallet" onclick="selectPdpMethod('wallet', 'wallet', this)">
-              <div style="display: flex; align-items: center; gap: 0.45rem;">
-                <i class="fas fa-wallet" style="color: var(--rq-primary-light); font-size: 1rem;"></i>
-                <span style="font-size: 0.84rem; font-weight: 800; color: var(--rq-navy);">رصيد المحفظة</span>
-              </div>
-              <span style="font-size: 0.7rem; color: var(--rq-text-muted); font-weight: 700;">
-                {% if user.is_authenticated and user.wallet %}متاح: {% format_price user.wallet.available_balance %}{% else %}دفع فوري من رصيدك{% endif %}
-              </span>
-            </div>
-
-            <!-- Dynamic Gateway Methods from Backend -->
-            {% for gw in gateway_methods %}
-            <div class="rq-pm-choice-card"
-                 id="pm-btn-{{ gw.code }}"
-                 data-gw-id="{{ gw.id }}"
-                 data-gw-code="{{ gw.code }}"
-                 onclick="selectPdpMethod('{{ gw.id }}', '{{ gw.code }}', this)">
-              <div style="display: flex; align-items: center; gap: 0.45rem;">
-                {% if gw.logo %}
-                <img src="{{ gw.logo }}" alt="{{ gw.name }}" style="height: 22px; width: auto; object-fit: contain;">
+          <!-- Live Dynamic Price Display Box -->
+          <div style="display: flex; align-items: baseline; justify-content: space-between; flex-wrap: wrap; gap: 0.65rem; background: var(--rq-bg-elevated); border: 1.5px solid var(--rq-border); border-radius: 14px; padding: 0.85rem 1.1rem;">
+            <span style="font-size: 0.82rem; font-weight: 800; color: var(--rq-text-secondary);">السعر الإجمالي:</span>
+            <div style="display: flex; align-items: baseline; gap: 0.35rem;">
+              <span id="pdp-live-price" class="font-mono tabular-nums" style="font-size: 1.7rem; font-weight: 900; color: var(--rq-primary-light);">
+                {% if variants_with_prices %}
+                  {{ variants_with_prices.0.converted_price }}
                 {% else %}
-                <i class="fas fa-bolt" style="color: var(--rq-accent);"></i>
+                  0.00
                 {% endif %}
-                <span style="font-size: 0.84rem; font-weight: 800; color: var(--rq-navy);">
-                  {% if gw.code == 'sham_cash' %}شام كاش{% elif gw.code == 'paymera' %}بيميرا{% else %}{{ gw.name }}{% endif %}
+              </span>
+              <span id="pdp-live-currency-symbol" style="font-size: 0.9rem; font-weight: 800; color: var(--rq-navy);">{{ current_currency.symbol|default:current_currency.code }}</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Purchase Order Form -->
+        <form method="post" id="pdp-order-form" action="{% url 'product_detail' product.id %}">
+          {% csrf_token %}
+          <input type="hidden" name="variant_id" id="selected-variant-id" value="{% if variants_with_prices %}{{ variants_with_prices.0.variant.id }}{% endif %}">
+          <input type="hidden" name="displayed_price" id="displayed-price-input" value="{% if variants_with_prices %}{{ variants_with_prices.0.raw_converted_price }}{% endif %}">
+          <input type="hidden" name="payment_method" id="selected-payment-method" value="{% if gateway_methods and gateway_methods.0.code == 'sham_cash' %}gateway:{{ gateway_methods.0.id|cut:'gateway:' }}{% else %}wallet{% endif %}">
+          <input type="hidden" name="gateway_currency" id="selected-gateway-currency" value="USD">
+          <input type="hidden" name="shamcash_currency" id="selected-shamcash-currency" value="USD">
+
+          <!-- 1. Package / Variant Selection -->
+          {% if variants_with_prices and variants_with_prices|length > 1 %}
+          <div style="margin-bottom: 1.15rem;">
+            <label class="rq-label" style="font-size: 0.82rem; margin-bottom: 0.45rem;">اختر الباقة أو النوع المطلوب:</label>
+            <div class="rq-pdp-variants-grid">
+              {% for vp in variants_with_prices %}
+              <div class="rq-pdp-variant-pill {% if forloop.first %}active{% endif %}"
+                   data-variant-id="{{ vp.variant.id }}"
+                   data-raw-price="{{ vp.raw_converted_price }}"
+                   data-formatted-price="{{ vp.converted_price }}"
+                   data-disabled="{% if vp.is_temporarily_disabled %}true{% else %}false{% endif %}"
+                   onclick="selectPdpVariant(this)">
+                <span style="font-size: 0.82rem; font-weight: 800; color: var(--rq-navy); line-height: 1.25;">{{ vp.variant.name }}</span>
+                <span class="font-mono tabular-nums" style="font-size: 0.88rem; font-weight: 900; color: var(--rq-primary-light);">
+                  {{ vp.converted_price }} {{ current_currency.symbol }}
                 </span>
               </div>
-              <span style="font-size: 0.7rem; color: var(--rq-accent); font-weight: 800;">
-                {% if gw.code == 'sham_cash' %}⚡ دفع مباشر فوري{% elif gw.code == 'paymera' %}💳 بطاقة بنكية{% else %}دفع إلكتروني{% endif %}
-              </span>
+              {% endfor %}
             </div>
-            {% endfor %}
+          </div>
+          {% endif %}
 
+          <!-- 2. Quantity Selector -->
+          <div style="margin-bottom: 1.15rem; display: flex; align-items: center; justify-content: space-between; gap: 0.85rem; background: var(--rq-bg-elevated); padding: 0.65rem 0.95rem; border-radius: 12px; border: 1px solid var(--rq-border);">
+            <label class="rq-label" for="pdp-qty-input" style="margin: 0; font-size: 0.82rem;">الكمية المطلوبة:</label>
+            <div style="display: inline-flex; align-items: center; border: 1px solid var(--rq-border-strong); border-radius: 10px; background: var(--rq-surface-card); overflow: hidden;">
+              <button type="button" onclick="stepPdpQty(-1)" style="width: 38px; height: 38px; border: none; background: var(--rq-bg-elevated); color: var(--rq-navy); font-weight: 900; font-size: 1.1rem; cursor: pointer;">−</button>
+              <input type="number" name="quantity" id="pdp-qty-input" value="1" min="1" max="{% if product.track_inventory and product.quantity > 0 %}{{ product.quantity }}{% else %}99{% endif %}" style="width: 48px; height: 38px; border: none; background: transparent; text-align: center; font-weight: 900; font-family: monospace; font-size: 0.96rem; color: var(--rq-navy);" oninput="recalcPdpTotal()">
+              <button type="button" onclick="stepPdpQty(1)" style="width: 38px; height: 38px; border: none; background: var(--rq-bg-elevated); color: var(--rq-navy); font-weight: 900; font-size: 1.1rem; cursor: pointer;">+</button>
+            </div>
           </div>
 
-          <!-- ShamCash Currency Selector (Shown when ShamCash is selected) -->
-          <div id="pdp-shamcash-currency-box" style="display: none; margin-top: 0.75rem; padding: 0.75rem 1rem; border-radius: 12px; background: var(--rq-accent-soft); border: 1px solid rgba(16, 185, 129, 0.3);">
-            <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 0.5rem;">
-              <span style="font-size: 0.78rem; font-weight: 800; color: var(--rq-accent);">عملة السداد عبر شام كاش:</span>
-              <div style="display: flex; gap: 0.45rem;">
-                <button type="button" class="sc-curr-btn" data-curr="USD" onclick="setShamCashCurrency('USD', this)" style="padding: 0.3rem 0.75rem; border-radius: 8px; border: 1.5px solid var(--rq-accent); background: var(--rq-surface-card); color: var(--rq-accent); font-size: 0.76rem; font-weight: 800; cursor: pointer;">USD ($)</button>
-                <button type="button" class="sc-curr-btn" data-curr="SYP" onclick="setShamCashCurrency('SYP', this)" style="padding: 0.3rem 0.75rem; border-radius: 8px; border: 1px solid var(--rq-border-strong); background: var(--rq-surface-card); color: var(--rq-text-secondary); font-size: 0.76rem; font-weight: 800; cursor: pointer;">ليرة سورية (SYP)</button>
+          <!-- 3. Physical Product Shipping Fields -->
+          {% if product.product_type == 'physical' %}
+          <div style="margin-bottom: 1.15rem; padding: 0.95rem; background: var(--rq-bg-elevated); border: 1px solid var(--rq-border); border-radius: 14px;">
+            <div style="font-size: 0.82rem; font-weight: 800; color: var(--rq-navy); margin-bottom: 0.65rem;">
+              <i class="fas fa-truck-fast ml-1" style="color: var(--rq-primary-light);"></i> بيانات المستلم والتوصيل:
+            </div>
+            <div class="rq-pdp-shipping-grid" style="margin-bottom: 0.65rem;">
+              <div>
+                <label class="rq-label" style="font-size: 0.74rem;">الاسم الكامل *</label>
+                <input type="text" name="shipping_name" class="rq-input" placeholder="اسم مستلم الشحنة" value="{{ user.display_name|default:'' }}" required>
+              </div>
+              <div>
+                <label class="rq-label" style="font-size: 0.74rem;">رقم هاتف المستلم *</label>
+                <input type="tel" name="shipping_phone" class="rq-input" placeholder="09xxxxxxxx" value="{{ user.phone_number|default:'' }}" required>
+              </div>
+            </div>
+            <div>
+              <label class="rq-label" style="font-size: 0.74rem;">عنوان التوصيل بالتفصيل *</label>
+              <input type="text" name="shipping_address" class="rq-input" placeholder="المحافظة - المدينة - الشارع - أقرب نقطة دالة" required>
+            </div>
+          </div>
+          {% endif %}
+
+          <!-- 4. Dynamic Custom Fields (if any) -->
+          {% if product.form_schema %}
+          <div style="margin-bottom: 1.15rem; padding: 0.95rem; background: var(--rq-bg-elevated); border: 1px solid var(--rq-border); border-radius: 14px;">
+            <div style="font-size: 0.82rem; font-weight: 800; color: var(--rq-navy); margin-bottom: 0.65rem;">
+              <i class="fas fa-pen-to-square ml-1" style="color: var(--rq-primary-light);"></i> بيانات التنفيذ المطلوبة:
+            </div>
+            {% for field in product.form_schema %}
+            <div class="rq-form-group" style="margin-bottom: {% if forloop.last %}0{% else %}0.65rem{% endif %};">
+              <label class="rq-label">{{ field.label|default:field.name }} {% if field.required %}<span style="color: var(--rq-danger);">*</span>{% endif %}</label>
+              <input type="{{ field.type|default:'text' }}"
+                     name="custom_{{ field.name }}"
+                     class="rq-input"
+                     placeholder="{{ field.placeholder|default:field.label }}"
+                     {% if field.required %}required{% endif %}>
+            </div>
+            {% endfor %}
+          </div>
+          {% endif %}
+
+          <!-- 5. Payment Gateway Selection -->
+          <div style="margin-bottom: 1.15rem;">
+            <label class="rq-label" style="font-size: 0.82rem; margin-bottom: 0.45rem;">اختر طريقة الدفع المفضلة:</label>
+            <div class="rq-pdp-pm-grid">
+
+              <!-- ShamCash Gateway (Promoted as Primary direct gateway if active) -->
+              {% for gw in gateway_methods %}
+              {% if gw.code == 'sham_cash' %}
+              <div class="rq-pdp-pm-card selected"
+                   id="pm-btn-{{ gw.code }}"
+                   data-gw-id="{{ gw.id }}"
+                   data-gw-code="{{ gw.code }}"
+                   onclick="selectPdpMethod('{{ gw.id }}', '{{ gw.code }}', this)">
+                <div style="display: flex; align-items: center; justify-content: space-between;">
+                  <div style="display: flex; align-items: center; gap: 0.45rem;">
+                    {% if gw.logo %}
+                    <img src="{{ gw.logo }}" alt="شام كاش" style="height: 22px; width: auto; object-fit: contain;">
+                    {% else %}
+                    <i class="fas fa-bolt" style="color: #0d9488; font-size: 1.1rem;"></i>
+                    {% endif %}
+                    <span style="font-size: 0.86rem; font-weight: 900; color: var(--rq-navy);">شام كاش</span>
+                  </div>
+                  <span class="pm-radio-ring" style="width: 16px; height: 16px; border-radius: 50%; border: 2px solid #0d9488; background: #0d9488; display: inline-block;"></span>
+                </div>
+                <span style="font-size: 0.72rem; color: #0d9488; font-weight: 800;">⚡ دفع إلكتروني فوري</span>
+              </div>
+              {% endif %}
+              {% endfor %}
+
+              <!-- Other Gateways (e.g. Paymera) -->
+              {% for gw in gateway_methods %}
+              {% if gw.code != 'sham_cash' %}
+              <div class="rq-pdp-pm-card is-{{ gw.code }}"
+                   id="pm-btn-{{ gw.code }}"
+                   data-gw-id="{{ gw.id }}"
+                   data-gw-code="{{ gw.code }}"
+                   onclick="selectPdpMethod('{{ gw.id }}', '{{ gw.code }}', this)">
+                <div style="display: flex; align-items: center; justify-content: space-between;">
+                  <div style="display: flex; align-items: center; gap: 0.45rem;">
+                    {% if gw.logo %}
+                    <img src="{{ gw.logo }}" alt="{{ gw.name }}" style="height: 20px; width: auto; object-fit: contain;">
+                    {% else %}
+                    <i class="fas fa-credit-card" style="color: #4f46e5;"></i>
+                    {% endif %}
+                    <span style="font-size: 0.86rem; font-weight: 900; color: var(--rq-navy);">{{ gw.name }}</span>
+                  </div>
+                  <span class="pm-radio-ring" style="width: 16px; height: 16px; border-radius: 50%; border: 2px solid var(--rq-border-strong); background: transparent; display: inline-block;"></span>
+                </div>
+                <span style="font-size: 0.72rem; color: var(--rq-text-muted); font-weight: 700;">بطاقات وبوابات</span>
+              </div>
+              {% endif %}
+              {% endfor %}
+
+              <!-- Wallet Option -->
+              <div class="rq-pdp-pm-card is-wallet" id="pm-btn-wallet" onclick="selectPdpMethod('wallet', 'wallet', this)">
+                <div style="display: flex; align-items: center; justify-content: space-between;">
+                  <div style="display: flex; align-items: center; gap: 0.45rem;">
+                    <i class="fas fa-wallet" style="color: var(--rq-primary-light); font-size: 1rem;"></i>
+                    <span style="font-size: 0.86rem; font-weight: 900; color: var(--rq-navy);">محفظة الحساب</span>
+                  </div>
+                  <span class="pm-radio-ring" style="width: 16px; height: 16px; border-radius: 50%; border: 2px solid var(--rq-border-strong); background: transparent; display: inline-block;"></span>
+                </div>
+                <span style="font-size: 0.7rem; color: var(--rq-text-muted); font-weight: 700;">
+                  {% if user.is_authenticated and user.wallet %}رصيدك: {% format_price user.wallet.available_balance %}{% else %}خصم فوري من رصيدك{% endif %}
+                </span>
+              </div>
+
+            </div>
+
+            <!-- ShamCash Live Currency Switcher & Conversion Card -->
+            <div id="pdp-shamcash-currency-box" style="display: block; margin-top: 0.75rem; padding: 0.85rem 1rem; border-radius: 14px; background: rgba(13, 148, 136, 0.08); border: 1.5px solid rgba(13, 148, 136, 0.3);">
+              <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 0.5rem; margin-bottom: 0.45rem;">
+                <span style="font-size: 0.8rem; font-weight: 800; color: #0d9488;">
+                  <i class="fas fa-coins ml-1"></i> العملة المحصلة في تطبيق شام كاش:
+                </span>
+                <div style="display: flex; gap: 0.35rem;">
+                  <button type="button" class="sc-curr-btn" data-curr="USD" onclick="setShamCashCurrency('USD', this)" style="padding: 0.25rem 0.75rem; border-radius: 8px; border: 2px solid #0d9488; background: #ffffff; color: #0d9488; font-size: 0.78rem; font-weight: 900; cursor: pointer;">USD ($)</button>
+                  <button type="button" class="sc-curr-btn" data-curr="SYP" onclick="setShamCashCurrency('SYP', this)" style="padding: 0.25rem 0.75rem; border-radius: 8px; border: 1.5px solid var(--rq-border-strong); background: #ffffff; color: var(--rq-text-secondary); font-size: 0.78rem; font-weight: 800; cursor: pointer;">ليرة سورية (SYP)</button>
+                </div>
+              </div>
+
+              <!-- Live conversion preview -->
+              <div id="shamcash-calc-preview" style="font-size: 0.76rem; color: var(--rq-text-secondary); font-weight: 700; border-top: 1px dashed rgba(13, 148, 136, 0.2); padding-top: 0.4rem;">
+                المبلغ المطلوب في شام كاش: <strong id="sc-calc-val" style="color: #0d9488; font-family: monospace; font-size: 0.86rem;">$0.00</strong>
               </div>
             </div>
           </div>
-        </div>
 
-        <!-- 6. Action Buttons: Separated Add to Cart + Direct Purchase -->
-        <div style="display: grid; grid-template-columns: 1fr 1.45fr; gap: 0.75rem; margin-top: 1.25rem;">
-          <button type="button"
-                  class="rq-btn-secondary"
-                  style="height: 50px; border-radius: 14px; font-size: 0.88rem; border-color: var(--rq-primary); color: var(--rq-primary-light);"
-                  {% if product.is_out_of_stock %}disabled{% endif %}
-                  onclick="addPdpToCart(this)">
-            <i class="fas fa-cart-plus"></i>
-            <span>إضافة إلى السلة</span>
-          </button>
+          <!-- 6. Action Buttons: Direct Purchase + Add to Cart -->
+          <div class="rq-pdp-actions-row">
+            
+            {% if user.is_authenticated %}
+            <button type="submit"
+                    id="pdp-submit-btn"
+                    class="rq-pdp-buy-now"
+                    style="height: 52px; font-size: 1rem; font-weight: 900; border-radius: 14px; background: linear-gradient(135deg, #0d9488 0%, #059669 100%); box-shadow: 0 4px 18px rgba(13, 148, 136, 0.35);"
+                    {% if product.is_out_of_stock %}disabled{% endif %}>
+              <i class="fas fa-bolt"></i>
+              <span id="pdp-submit-text">{% if product.is_out_of_stock %}نفذت الكمية{% else %}شراء فوري عبر شام كاش ⚡{% endif %}</span>
+            </button>
+            {% else %}
+            <a href="{% url 'site_login' %}?next={{ request.path }}" class="rq-pdp-buy-now" style="height: 52px; font-size: 0.98rem; font-weight: 900; border-radius: 14px;">
+              <i class="fas fa-sign-in-alt"></i>
+              <span>تسجيل الدخول للشراء الفوري</span>
+            </a>
+            {% endif %}
 
-          {% if user.is_authenticated %}
-          <button type="submit"
-                  id="pdp-submit-btn"
-                  class="rq-pdp-buy-now"
-                  {% if product.is_out_of_stock %}disabled{% endif %}>
-            <i class="fas fa-bolt"></i>
-            <span id="pdp-submit-text">{% if product.is_out_of_stock %}نفذت الكمية{% else %}شراء فوري الآن{% endif %}</span>
-          </button>
-          {% else %}
-          <a href="{% url 'site_login' %}?next={{ request.path }}" class="rq-pdp-buy-now">
-            <i class="fas fa-sign-in-alt"></i>
-            <span>سجل دخولك للشراء الفوري</span>
-          </a>
-          {% endif %}
-        </div>
+            <button type="button"
+                    class="rq-btn-secondary"
+                    style="height: 52px; border-radius: 14px; font-size: 0.92rem; font-weight: 800; border-color: var(--rq-primary); color: var(--rq-primary-light); background: transparent;"
+                    {% if product.is_out_of_stock %}disabled{% endif %}
+                    onclick="addPdpToCart(this)">
+              <i class="fas fa-cart-plus"></i>
+              <span>إضافة إلى السلة</span>
+            </button>
 
-      </form>
+          </div>
+
+        </form>
+      </div>
     </div>
 
   </div>
 
   <!-- Related Products Section -->
   {% if related_products %}
-  <section class="rq-section" style="margin-top: 3rem;">
+  <section class="rq-section" style="margin-top: 2.5rem;">
     <div class="rq-section-header">
       <div>
         <h2 class="rq-section-title">منتجات مشابهة قد تهمك</h2>
-        <p class="rq-section-subtitle">منتجات أخرى ضمن نفس التصنيف</p>
+        <p class="rq-section-subtitle">أجهزة ومنتجات تقنية موثوقة ضمن نفس التصنيف</p>
       </div>
       {% if product.category %}
       <a href="{% url 'catalog' %}?category={{ product.category.id }}" class="rq-section-link">
@@ -361,18 +669,43 @@
 
 </div>
 
+<!-- Mobile Floating Quick-Buy Bottom Bar -->
+<div class="rq-mobile-sticky-bar" id="mobile-sticky-buy-bar">
+  <div style="display: flex; align-items: center; gap: 0.65rem; min-width: 0;">
+    <div style="width: 44px; height: 44px; border-radius: 8px; background: rgba(255, 255, 255, 0.08); display: flex; align-items: center; justify-content: center; overflow: hidden; flex-shrink: 0; padding: 0.2rem;">
+      {% if main_p_img %}
+      <img src="{{ main_p_img }}" alt="{{ product.name }}" style="max-height: 100%; max-width: 100%; object-fit: contain;">
+      {% else %}
+      <i class="fas fa-box" style="color: #94a3b8; font-size: 1rem;"></i>
+      {% endif %}
+    </div>
+    <div style="min-width: 0;">
+      <span style="font-size: 0.72rem; color: #94a3b8; display: block; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 140px;">{{ product.name }}</span>
+      <span id="mobile-sticky-price" class="font-mono tabular-nums" style="font-size: 1.05rem; font-weight: 900; color: #38bdf8;">
+        {% if variants_with_prices %}{{ variants_with_prices.0.converted_price }}{% else %}0.00{% endif %} {{ current_currency.symbol }}
+      </span>
+    </div>
+  </div>
+  <button type="button" onclick="scrollToOrderForm()" style="height: 42px; padding: 0 1.25rem; border-radius: 10px; border: none; background: linear-gradient(135deg, #0d9488 0%, #059669 100%); color: #fff; font-size: 0.88rem; font-weight: 900; cursor: pointer; display: flex; align-items: center; gap: 0.4rem; box-shadow: 0 4px 14px rgba(13, 148, 136, 0.4); flex-shrink: 0;">
+    <i class="fas fa-bolt"></i>
+    <span>إتمام الطلب</span>
+  </button>
+</div>
+
 <script>
   let currentUnitRawPrice = parseFloat(document.getElementById('displayed-price-input')?.value || '0') || 0;
+  const sypExchangeRate = parseFloat('{{ syp_rate|default:15000 }}') || 15000;
+  let activeShamCashCurrency = 'USD';
 
   function switchPdpImage(url, btn) {
     const mainImg = document.getElementById('pdp-main-img');
     if (mainImg && url) mainImg.src = url;
-    document.querySelectorAll('.rq-pdp-thumb-btn').forEach(b => b.classList.remove('active'));
+    document.querySelectorAll('.rq-pdp-thumb-item').forEach(b => b.classList.remove('active'));
     if (btn) btn.classList.add('active');
   }
 
   function selectPdpVariant(cardEl) {
-    document.querySelectorAll('.rq-variant-card').forEach(c => c.classList.remove('active'));
+    document.querySelectorAll('.rq-pdp-variant-pill').forEach(c => c.classList.remove('active'));
     cardEl.classList.add('active');
 
     const vId = cardEl.getAttribute('data-variant-id');
@@ -399,22 +732,50 @@
     const qty = Math.max(1, parseInt(document.getElementById('pdp-qty-input')?.value || '1', 10) || 1);
     const total = currentUnitRawPrice * qty;
     const priceEl = document.getElementById('pdp-live-price');
-    if (priceEl) {
-      const decimals = Number.isInteger(currentUnitRawPrice) ? 0 : 2;
-      priceEl.textContent = total.toLocaleString('en-US', {
-        minimumFractionDigits: decimals,
-        maximumFractionDigits: decimals
-      });
+    const mobilePriceEl = document.getElementById('mobile-sticky-price');
+    
+    const formatted = total.toLocaleString('en-US', {
+      minimumFractionDigits: Number.isInteger(currentUnitRawPrice) ? 0 : 2,
+      maximumFractionDigits: Number.isInteger(currentUnitRawPrice) ? 0 : 2
+    });
+
+    if (priceEl) priceEl.textContent = formatted;
+    if (mobilePriceEl) mobilePriceEl.textContent = formatted + ' {{ current_currency.symbol }}';
+
+    // Update ShamCash conversion preview
+    updateShamCashPreview(total);
+  }
+
+  function updateShamCashPreview(totalUsd) {
+    const scValEl = document.getElementById('sc-calc-val');
+    if (!scValEl) return;
+    if (activeShamCashCurrency === 'SYP') {
+      const sypTotal = Math.round(totalUsd * sypExchangeRate);
+      scValEl.textContent = sypTotal.toLocaleString('en-US') + ' ل.س';
+    } else {
+      scValEl.textContent = '$' + totalUsd.toFixed(2) + ' USD';
     }
   }
 
   function selectPdpMethod(methodVal, code, cardEl) {
     document.getElementById('selected-payment-method').value = methodVal;
-    document.querySelectorAll('.rq-pm-choice-card').forEach(el => {
+    document.querySelectorAll('.rq-pdp-pm-card').forEach(el => {
       el.classList.remove('selected');
+      const ring = el.querySelector('.pm-radio-ring');
+      if (ring) {
+        ring.style.background = 'transparent';
+        ring.style.borderColor = 'var(--rq-border-strong)';
+      }
     });
+
     if (cardEl) {
       cardEl.classList.add('selected');
+      const ring = cardEl.querySelector('.pm-radio-ring');
+      if (ring) {
+        const ringColor = (code === 'sham_cash') ? '#0d9488' : ((code === 'paymera') ? '#4f46e5' : 'var(--rq-primary)');
+        ring.style.background = ringColor;
+        ring.style.borderColor = ringColor;
+      }
     }
 
     const scBox = document.getElementById('pdp-shamcash-currency-box');
@@ -424,28 +785,43 @@
     if (code === 'sham_cash') {
       if (scBox) scBox.style.display = 'block';
       if (submitTxt) submitTxt.textContent = 'شراء فوري عبر شام كاش ⚡';
-      if (submitBtn) submitBtn.style.background = 'linear-gradient(135deg, #0d9488 0%, #059669 100%)';
+      if (submitBtn) {
+        submitBtn.style.background = 'linear-gradient(135deg, #0d9488 0%, #059669 100%)';
+        submitBtn.style.boxShadow = '0 4px 18px rgba(13, 148, 136, 0.35)';
+      }
     } else if (code === 'paymera') {
       if (scBox) scBox.style.display = 'none';
       if (submitTxt) submitTxt.textContent = 'شراء فوري عبر بيميرا 💳';
-      if (submitBtn) submitBtn.style.background = 'linear-gradient(135deg, #4f46e5 0%, #3730a3 100%)';
+      if (submitBtn) {
+        submitBtn.style.background = 'linear-gradient(135deg, #4f46e5 0%, #3730a3 100%)';
+        submitBtn.style.boxShadow = '0 4px 18px rgba(79, 70, 229, 0.35)';
+      }
     } else {
       if (scBox) scBox.style.display = 'none';
-      if (submitTxt) submitTxt.textContent = 'شراء فوري الآن';
-      if (submitBtn) submitBtn.style.background = '';
+      if (submitTxt) submitTxt.textContent = 'تأكيد وشراء من المحفظة';
+      if (submitBtn) {
+        submitBtn.style.background = 'linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%)';
+        submitBtn.style.boxShadow = '0 4px 18px rgba(37, 99, 235, 0.35)';
+      }
     }
   }
 
   function setShamCashCurrency(curr, btnEl) {
+    activeShamCashCurrency = curr;
     document.getElementById('selected-shamcash-currency').value = curr;
+    document.getElementById('selected-gateway-currency').value = curr;
     document.querySelectorAll('.sc-curr-btn').forEach(b => {
       b.style.borderColor = 'var(--rq-border-strong)';
       b.style.color = 'var(--rq-text-secondary)';
+      b.style.background = '#ffffff';
     });
     if (btnEl) {
-      btnEl.style.borderColor = 'var(--rq-accent)';
-      btnEl.style.color = 'var(--rq-accent)';
+      btnEl.style.borderColor = '#0d9488';
+      btnEl.style.color = '#0d9488';
+      btnEl.style.background = 'rgba(13, 148, 136, 0.08)';
     }
+    const qty = Math.max(1, parseInt(document.getElementById('pdp-qty-input')?.value || '1', 10) || 1);
+    updateShamCashPreview(currentUnitRawPrice * qty);
   }
 
   function addPdpToCart(btnEl) {
@@ -454,13 +830,44 @@
     addToCartAjax('{{ product.id }}', vId, qty, btnEl);
   }
 
-  // Prevent double submission on order form
+  function scrollToOrderForm() {
+    const formEl = document.getElementById('pdp-order-form');
+    if (formEl) {
+      formEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      const submitBtn = document.getElementById('pdp-submit-btn');
+      if (submitBtn) {
+        submitBtn.classList.add('animate-pulse');
+        setTimeout(() => submitBtn.classList.remove('animate-pulse'), 1200);
+      }
+    }
+  }
+
+  // Mobile Sticky Bar Scroll Observer
+  window.addEventListener('scroll', () => {
+    const buyCard = document.getElementById('pdp-buy-card-section');
+    const stickyBar = document.getElementById('mobile-sticky-buy-bar');
+    if (!buyCard || !stickyBar || window.innerWidth > 768) return;
+    
+    const rect = buyCard.getBoundingClientRect();
+    if (rect.bottom < 150) {
+      stickyBar.classList.add('visible');
+    } else {
+      stickyBar.classList.remove('visible');
+    }
+  }, { passive: true });
+
+  // Prevent double submission & show loading spinner
   document.getElementById('pdp-order-form')?.addEventListener('submit', function() {
     const btn = document.getElementById('pdp-submit-btn');
     if (btn) {
       btn.disabled = true;
-      btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> <span>جاري معالجة الطلب...</span>';
+      btn.innerHTML = '<i class="fas fa-spinner fa-spin ml-1"></i> <span>جارٍ توجيهك بأمان لمزود الدفع...</span>';
     }
+  });
+
+  // Initial calculation on load
+  document.addEventListener('DOMContentLoaded', () => {
+    recalcPdpTotal();
   });
 </script>
 {% endblock %}

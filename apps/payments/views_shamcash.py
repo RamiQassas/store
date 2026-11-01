@@ -57,6 +57,58 @@ def _get_active_shamcash_integration():
         )
 
 
+def _get_active_shamcash_client():
+    """Retrieve active ShamCashClient from DB integration or settings fallback."""
+    integration = _get_active_shamcash_integration()
+    if integration and getattr(integration, "api_key", None) and getattr(integration, "api_secret", None):
+        return ShamCashClient.from_integration(integration)
+    from django.conf import settings
+    agent_key = getattr(settings, "SHAM_CASH_AGENT_KEY", "")
+    secret_key = getattr(settings, "SHAM_CASH_SECRET_KEY", "")
+    if agent_key and secret_key:
+        return ShamCashClient(
+            agent_key=agent_key,
+            secret_key=secret_key,
+            base_url=getattr(settings, "SHAM_CASH_BASE_URL", None),
+            mode=getattr(settings, "SHAM_CASH_MODE", "sandbox"),
+        )
+    return None
+
+
+def _check_bill_paid_in_shamcash(client, bill_no):
+    """
+    Check if a bill is paid in ShamCash.
+    Returns (is_paid: bool, tran_id: int/str, bill_info: dict)
+    Tries get_bill_info first, then get_transactions fallback.
+    """
+    if not client or not bill_no:
+        return False, None, {}
+    try:
+        bill_info = client.get_bill_info(bill_no)
+        status_id = bill_info.get("statusId")
+        is_paid = (
+            status_id in (ShamCashClient.STATUS_PAID, 4, "4")
+            or str(bill_info.get("statusName", "")).lower() == "paid"
+        )
+        if is_paid:
+            return True, bill_info.get("tranId"), bill_info
+    except Exception as err:
+        logger.warning(f"get_bill_info failed for {bill_no}: {err}")
+
+    # Fallback to get_transactions in case bill was paid but get_bill_info returned cached/not_found
+    try:
+        tx_data = client.get_transactions()
+        tx_list = tx_data.get("list", []) if isinstance(tx_data, dict) else (tx_data if isinstance(tx_data, list) else [])
+        for tx in tx_list:
+            if tx.get("billNo") == bill_no and tx.get("tranType") == "payment":
+                logger.info(f"Matched paid bill {bill_no} via get_transactions [tranId={tx.get('tranId')}].")
+                return True, tx.get("tranId"), tx
+    except Exception as err:
+        logger.warning(f"get_transactions fallback check failed for {bill_no}: {err}")
+
+    return False, None, {}
+
+
 def _complete_successful_shamcash_deposit(deposit: DepositRequest, tran_id: Any, status_data: dict) -> bool:
     """
     Atomically credits the user's wallet and marks DepositRequest as COMPLETED.
@@ -462,6 +514,15 @@ def shamcash_redirect_view(request):
             if obj_id:
                 order = Order.all_objects.filter(pk=obj_id).first()
             if not order and bill_no:
+                from apps.payments.models import ShamCashBillRecord
+                bill_rec = ShamCashBillRecord.objects.filter(bill_no=bill_no).first()
+                if bill_rec and bill_rec.order:
+                    order = bill_rec.order
+            if not order and bill_no and bill_no.startswith("ORD-"):
+                parts = bill_no.split("-")
+                if len(parts) >= 2:
+                    order = Order.all_objects.filter(number=parts[1]).first()
+            if not order and bill_no:
                 order = Order.all_objects.filter(metadata__gateway_payment_id=bill_no).first()
 
             if order:
@@ -491,32 +552,27 @@ def shamcash_redirect_view(request):
                     if record:
                         active_bill_no = record.bill_no
 
+                client = client or _get_active_shamcash_client()
                 payment_succeeded = False
                 if order.status == Order.Status.PENDING and client and active_bill_no:
-                    try:
-                        bill_info = client.get_bill_info(active_bill_no)
+                    is_paid, tran_id, bill_info = _check_bill_paid_in_shamcash(client, active_bill_no)
+                    if is_paid:
+                        gateway_data = {
+                            "status": "A",
+                            "id": str(tran_id or active_bill_no),
+                            "tran_id": tran_id,
+                            "bill_no": active_bill_no,
+                            "provider": "sham_cash",
+                            "payload": bill_info,
+                        }
+                        finalize_paid_gateway_order(order, gateway_data)
+                        payment_succeeded = True
+                    else:
                         status_id = bill_info.get("statusId")
-                        is_paid = (
-                            status_id in (ShamCashClient.STATUS_PAID, 4, "4")
-                            or str(bill_info.get("statusName", "")).lower() == "paid"
-                        )
-                        if is_paid:
-                            gateway_data = {
-                                "status": "A",
-                                "id": str(bill_info.get("tranId") or active_bill_no),
-                                "tran_id": bill_info.get("tranId"),
-                                "bill_no": active_bill_no,
-                                "provider": "sham_cash",
-                                "payload": bill_info,
-                            }
-                            finalize_paid_gateway_order(order, gateway_data)
-                            payment_succeeded = True
-                        elif status_id in (ShamCashClient.STATUS_EXPIRED, 5, "5") or str(bill_info.get("statusName", "")).lower() == "expired":
+                        if status_id in (ShamCashClient.STATUS_EXPIRED, 5, "5") or str(bill_info.get("statusName", "")).lower() == "expired":
                             order.status = Order.Status.CANCELLED
                             order.admin_note = "انتهت مهلة الدفع في شام كاش."
                             order.save(update_fields=["status", "admin_note", "updated_at"])
-                    except Exception as err:
-                        logger.warning(f"Could not actively verify ShamCash order on return: {err}")
 
                 order.refresh_from_db()
                 if order.status in (Order.Status.PROCESSING, Order.Status.COMPLETED) or payment_succeeded:
