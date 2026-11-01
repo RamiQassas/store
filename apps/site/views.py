@@ -5904,6 +5904,13 @@ def control_orders_list(request):
                 pass
 
     total_count = base_qs.count()
+    refund_pending_qs = base_qs.filter(
+        Q(metadata__refund_status='pending') | Q(metadata__refund_requested=True)
+    ).exclude(
+        Q(metadata__refund_status__in=['approved', 'rejected']) |
+        Q(status__in=[Order.Status.REFUNDED, Order.Status.CANCELLED])
+    )
+    refund_pending_count = refund_pending_qs.count()
     pending_count = base_qs.filter(status=Order.Status.PENDING).count()
     processing_count = base_qs.filter(status=Order.Status.PROCESSING).count()
     completed_count = base_qs.filter(status=Order.Status.COMPLETED).count()
@@ -5912,8 +5919,9 @@ def control_orders_list(request):
 
     status_counts = {
         'all': total_count,
-        'pending': pending_count,
+        'refund_pending': refund_pending_count,
         'processing': processing_count,
+        'pending': pending_count,
         'completed': completed_count,
         'cancelled': cancelled_count,
     }
@@ -5932,7 +5940,14 @@ def control_orders_list(request):
             Q(api_order_id__icontains=q) | 
             Q(shipping_phone__icontains=q)
         )
-    if status:
+    if status == 'refund_pending':
+        orders = orders.filter(
+            Q(metadata__refund_status='pending') | Q(metadata__refund_requested=True)
+        ).exclude(
+            Q(metadata__refund_status__in=['approved', 'rejected']) |
+            Q(status__in=[Order.Status.REFUNDED, Order.Status.CANCELLED])
+        )
+    elif status:
         orders = orders.filter(status=status)
 
     if request.GET.get("export") == "excel":
@@ -5958,6 +5973,7 @@ def control_orders_list(request):
         "current_status": status,
         "order_status_choices": Order.Status.choices,
         "status_counts": status_counts,
+        "refund_pending_count": refund_pending_count,
         "total_revenue": total_revenue,
         "total_count": total_count,
     })

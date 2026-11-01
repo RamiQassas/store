@@ -265,6 +265,20 @@ class Order(TimeStampedModel):
         return results
 
     @property
+    def is_refund_pending(self):
+        meta = self.metadata if isinstance(self.metadata, dict) else {}
+        return (
+            (meta.get("refund_status") == "pending" or meta.get("refund_requested") is True)
+            and meta.get("refund_status") not in ("approved", "rejected")
+            and self.status not in (self.Status.REFUNDED, self.Status.CANCELLED)
+        )
+
+    @property
+    def refund_reason_text(self):
+        meta = self.metadata if isinstance(self.metadata, dict) else {}
+        return meta.get("refund_reason") or meta.get("reason") or ""
+
+    @property
     def gateway_reference_id(self):
         meta = self.metadata if isinstance(self.metadata, dict) else {}
         return (

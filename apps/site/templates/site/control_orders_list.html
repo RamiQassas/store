@@ -1,655 +1,654 @@
 {% extends "site/control_base.html" %}
 {% load static site_tags %}
 
-{% block title %}إدارة ومعالجة الطلبات | Raqamiyat Control{% endblock %}
+{% block title %}إدارة الطلبات | لوحة التحكم{% endblock %}
 
 {% block extra_head %}
 {{ block.super }}
 <style>
-    .order-stat-card {
-        background: linear-gradient(145deg, rgba(15, 23, 42, 0.75) 0%, rgba(6, 11, 24, 0.85) 100%);
-        border: 1px solid rgba(255, 255, 255, 0.07);
-        border-radius: 20px;
-        padding: 1.25rem 1.5rem;
+    .order-kpi-card {
+        background: linear-gradient(135deg, rgba(15, 23, 42, 0.75) 0%, rgba(10, 16, 31, 0.9) 100%);
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        border-radius: 16px;
+        padding: 1rem 1.25rem;
         position: relative;
         overflow: hidden;
-        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        transition: all 0.25s ease;
+        text-decoration: none !important;
+        display: block;
     }
-    .order-stat-card:hover {
+    .order-kpi-card:hover {
         transform: translateY(-2px);
-        border-color: rgba(6, 182, 212, 0.3);
-        box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.5);
+        border-color: rgba(6, 182, 212, 0.35);
+        box-shadow: 0 8px 20px -4px rgba(0, 0, 0, 0.4);
     }
-    .order-stat-card::before {
-        content: '';
-        position: absolute;
-        top: 0;
-        right: 0;
-        width: 80px;
-        height: 80px;
-        background: radial-gradient(circle, rgba(6, 182, 212, 0.1) 0%, transparent 70%);
-        pointer-events: none;
+    .order-kpi-card.active {
+        border-color: rgba(6, 182, 212, 0.5);
+        background: linear-gradient(135deg, rgba(6, 182, 212, 0.12) 0%, rgba(15, 23, 42, 0.9) 100%);
+        box-shadow: 0 0 15px rgba(6, 182, 212, 0.2);
+    }
+    .order-kpi-card.alert-card {
+        border-color: rgba(244, 63, 94, 0.4);
+        background: linear-gradient(135deg, rgba(244, 63, 94, 0.12) 0%, rgba(15, 23, 42, 0.9) 100%);
+    }
+    .order-kpi-card.alert-card:hover {
+        border-color: rgba(244, 63, 94, 0.7);
+        box-shadow: 0 8px 20px -4px rgba(244, 63, 94, 0.3);
     }
 
-    .filter-pill {
+    .filter-tab {
         display: inline-flex;
         align-items: center;
         gap: 0.5rem;
-        padding: 0.45rem 0.95rem;
+        padding: 0.5rem 1rem;
         border-radius: 12px;
         font-size: 0.75rem;
         font-weight: 700;
         white-space: nowrap;
         transition: all 0.2s ease;
-        border: 1px solid rgba(255, 255, 255, 0.06);
-        background: rgba(15, 23, 42, 0.6);
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        background: rgba(15, 23, 42, 0.7);
         color: #94a3b8;
         text-decoration: none !important;
     }
-    .filter-pill:hover {
-        background: rgba(255, 255, 255, 0.06);
-        color: #f8fafc;
-        border-color: rgba(255, 255, 255, 0.12);
-    }
-    .filter-pill.active {
-        background: linear-gradient(135deg, rgba(6, 182, 212, 0.2) 0%, rgba(6, 182, 212, 0.08) 100%);
-        border-color: rgba(6, 182, 212, 0.4);
-        color: #22d3ee;
-        box-shadow: 0 4px 12px rgba(6, 182, 212, 0.15);
-    }
-    .filter-pill .pill-count {
-        font-size: 0.7rem;
-        padding: 0.1rem 0.45rem;
-        border-radius: 8px;
+    .filter-tab:hover {
         background: rgba(255, 255, 255, 0.08);
-        font-family: monospace;
+        color: #f8fafc;
+        border-color: rgba(255, 255, 255, 0.15);
     }
-    .filter-pill.active .pill-count {
-        background: rgba(6, 182, 212, 0.25);
-        color: #fff;
+    .filter-tab.active {
+        background: linear-gradient(135deg, rgba(6, 182, 212, 0.22) 0%, rgba(6, 182, 212, 0.08) 100%);
+        border-color: rgba(6, 182, 212, 0.5);
+        color: #22d3ee;
+        box-shadow: 0 4px 14px rgba(6, 182, 212, 0.2);
+    }
+    .filter-tab.alert-tab {
+        border-color: rgba(244, 63, 94, 0.35);
+        color: #fda4af;
+    }
+    .filter-tab.alert-tab.active {
+        background: linear-gradient(135deg, rgba(244, 63, 94, 0.25) 0%, rgba(244, 63, 94, 0.08) 100%);
+        border-color: rgba(244, 63, 94, 0.6);
+        color: #fb7185;
+        box-shadow: 0 4px 14px rgba(244, 63, 94, 0.2);
     }
 
-    .status-glow-badge {
+    .status-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+        padding: 4px 9px;
+        border-radius: 8px;
+        font-size: 11px;
+        font-weight: 800;
+        white-space: nowrap;
+    }
+    .status-badge.completed {
+        background: rgba(16, 185, 129, 0.12);
+        color: #34d399;
+        border: 1px solid rgba(16, 185, 129, 0.3);
+    }
+    .status-badge.processing {
+        background: rgba(245, 158, 11, 0.12);
+        color: #fbbf24;
+        border: 1px solid rgba(245, 158, 11, 0.3);
+    }
+    .status-badge.pending {
+        background: rgba(14, 165, 233, 0.12);
+        color: #38bdf8;
+        border: 1px solid rgba(14, 165, 233, 0.3);
+    }
+    .status-badge.cancelled,
+    .status-badge.refunded {
+        background: rgba(244, 63, 94, 0.12);
+        color: #fb7185;
+        border: 1px solid rgba(244, 63, 94, 0.3);
+    }
+
+    .clean-meta-tag {
         display: inline-flex;
         align-items: center;
         gap: 6px;
-        padding: 4px 10px;
-        border-radius: 10px;
+        padding: 3px 8px;
+        border-radius: 8px;
+        background: rgba(30, 41, 59, 0.7);
+        border: 1px solid rgba(255, 255, 255, 0.08);
         font-size: 11px;
-        font-weight: 800;
-        letter-spacing: 0.02em;
-        white-space: nowrap;
-    }
-    .status-glow-badge.completed {
-        background: rgba(16, 185, 129, 0.12);
-        color: #34d399;
-        border: 1px solid rgba(16, 185, 129, 0.25);
-    }
-    .status-glow-badge.processing {
-        background: rgba(245, 158, 11, 0.12);
-        color: #fbbf24;
-        border: 1px solid rgba(245, 158, 11, 0.25);
-    }
-    .status-glow-badge.pending {
-        background: rgba(14, 165, 233, 0.12);
-        color: #38bdf8;
-        border: 1px solid rgba(14, 165, 233, 0.25);
-    }
-    .status-glow-badge.cancelled,
-    .status-glow-badge.refunded {
-        background: rgba(244, 63, 94, 0.12);
-        color: #fb7185;
-        border: 1px solid rgba(244, 63, 94, 0.25);
-    }
-
-    .meta-chip {
-        display: inline-flex;
-        align-items: center;
-        gap: 4px;
-        padding: 2px 8px;
-        border-radius: 6px;
-        background: rgba(255, 255, 255, 0.03);
-        border: 1px solid rgba(255, 255, 255, 0.06);
-        font-size: 10px;
         max-width: 100%;
-    }
-    .meta-chip:hover {
-        border-color: rgba(6, 182, 212, 0.3);
-        background: rgba(6, 182, 212, 0.04);
-    }
-
-    .table-order-row {
-        transition: background-color 0.15s ease;
-        border-bottom: 1px solid rgba(255, 255, 255, 0.04);
-    }
-    .table-order-row:hover {
-        background-color: rgba(255, 255, 255, 0.02);
-    }
-    
-    .sticky-actions-col {
-        position: sticky;
-        left: 0;
-        z-index: 20;
-        background: #090e1a;
-        box-shadow: -8px 0 16px -2px rgba(0, 0, 0, 0.75);
-    }
-    .table-order-row:hover .sticky-actions-col {
-        background: #0f182c;
-    }
-    thead th.sticky-actions-col {
-        background: #050a15;
     }
 </style>
 {% endblock %}
 
-{% block control_content %}
-<!-- Breadcrumb -->
-<nav class="breadcrumb mb-4">
-    <a href="{% url 'control_dashboard' %}" class="breadcrumb-item text-slate-400 hover:text-cyan">الرئيسية</a>
-    <span class="breadcrumb-item active text-slate-200">إدارة الطلبات</span>
-</nav>
+{% block content %}
+<div class="space-y-6">
 
-<!-- Page Header -->
-<div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
-    <div>
-        <div class="flex items-center gap-2 mb-1">
-            <span class="w-2.5 h-2.5 rounded-full bg-cyan animate-pulse"></span>
-            <span class="eyebrow text-cyan font-mono text-[10px] tracking-widest uppercase">نظام إدارة التجارة والطلبات / Order Ops</span>
+    <!-- Header & Quick Control Bar -->
+    <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-4 bg-slate-900/60 border border-white/5 rounded-2xl p-4 lg:p-6 backdrop-blur-md">
+        <div>
+            <div class="flex items-center gap-3">
+                <div class="w-10 h-10 rounded-xl bg-cyan/10 border border-cyan/30 flex items-center justify-center text-cyan">
+                    <i class="fas fa-shopping-bag text-lg"></i>
+                </div>
+                <div>
+                    <h1 class="text-xl lg:text-2xl font-black text-white flex items-center gap-2">
+                        <span>إدارة وتتبع الطلبات</span>
+                        <span class="text-xs px-2.5 py-0.5 rounded-full bg-cyan/15 text-cyan border border-cyan/30 font-mono font-bold">{{ total_count }} طلب</span>
+                    </h1>
+                    <p class="text-xs text-slate-400 mt-0.5">لوحة موحدة لمتابعة حالات الدفع، فواتير المزود، ومعالجة طلبات العملاء والاسترداد فورياً</p>
+                </div>
+            </div>
         </div>
-        <h1 class="text-2xl sm:text-3xl font-black text-white tracking-tight">إدارة ومعالجة الطلبات</h1>
-        <p class="text-slate-400 text-xs sm:text-sm mt-1">متابعة تنفيذ الخدمات، مراجعة المدخلات، ومزامنة ردود المزودين لحظياً.</p>
+
+        <!-- Action Buttons -->
+        <div class="flex flex-wrap items-center gap-2">
+            <!-- Manual Sync Button -->
+            <button type="button" onclick="triggerManualSync()" id="manual-sync-btn" class="px-3.5 py-2 rounded-xl bg-slate-800/80 hover:bg-slate-700/80 border border-white/10 text-slate-200 text-xs font-bold transition flex items-center gap-2 shadow-sm" title="فحص حالات الطلبات المعروضة مباشرة من المزود">
+                <i class="fas fa-sync-alt" id="manual-sync-icon"></i>
+                <span id="manual-sync-text">مزامنة المعروض الآن</span>
+            </button>
+
+            <!-- Sync Old Orders -->
+            <button type="button" onclick="triggerSyncOldOrders()" id="sync-old-orders-btn" class="px-3.5 py-2 rounded-xl bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/30 text-amber-300 text-xs font-bold transition flex items-center gap-2 shadow-sm" title="فحص ومزامنة الطلبات العالقة مع المزود">
+                <i class="fas fa-history" id="sync-old-orders-icon"></i>
+                <span id="sync-old-orders-text">فحص الطلبات العالقة</span>
+            </button>
+
+            <!-- Export Excel -->
+            <a href="?{% if current_status %}status={{ current_status }}&{% endif %}{% if query %}q={{ query }}&{% endif %}export=excel" class="px-3.5 py-2 rounded-xl bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/30 text-emerald-300 text-xs font-bold transition flex items-center gap-2 shadow-sm">
+                <i class="fas fa-file-excel"></i>
+                <span>تصدير Excel</span>
+            </a>
+        </div>
     </div>
-    
-    <div class="flex items-center gap-2.5 shrink-0 flex-wrap">
-        <!-- Dedicated Button to Sync All Old/Pending Orders with Provider -->
-        <button type="button" id="sync-old-orders-btn" onclick="triggerSyncOldOrders()" class="px-4 py-2.5 rounded-xl bg-gradient-to-r from-amber-500/20 to-amber-600/20 border border-amber-500/40 hover:border-amber-400 hover:bg-amber-500/30 text-amber-300 hover:text-white font-black text-xs transition flex items-center gap-2 shadow-lg shadow-amber-500/10 cursor-pointer" title="فحص وتحديث حالات كافة الطلبات القديمة غير المكتملة بناءً على رد المزود">
-            <i class="fas fa-history text-amber-400" id="sync-old-orders-icon"></i>
-            <span id="sync-old-orders-text">تحديث الطلبات القديمة من المزود</span>
-        </button>
 
-        <button type="button" id="manual-sync-btn" onclick="triggerManualSync()" class="px-3.5 py-2.5 rounded-xl bg-cyan-500/10 border border-cyan-500/30 hover:border-cyan-500 hover:bg-cyan-500/20 text-cyan-400 font-bold text-xs transition flex items-center gap-2 shadow-lg shadow-cyan-500/5 cursor-pointer" title="فحص ومزامنة حالات الطلبات المعروضة حالياً مع المزودات فوراً">
-            <i class="fas fa-sync-alt" id="manual-sync-icon"></i>
-            <span id="manual-sync-text">مزامنة الحالات المعروضة</span>
-        </button>
+    <!-- Sync Toast Alert -->
+    <div id="sync-toast-container" class="fixed bottom-5 left-5 z-50 flex flex-col gap-2 pointer-events-none"></div>
 
-        <a href="?{% if request.GET.urlencode %}{{ request.GET.urlencode }}&{% endif %}export=excel" class="px-4 py-2.5 rounded-xl bg-slate-900/90 border border-emerald-500/30 hover:border-emerald-500 text-emerald-400 hover:bg-emerald-500/10 font-bold text-xs transition flex items-center gap-2 shadow-lg shadow-emerald-500/5 cursor-pointer">
-            <i class="fas fa-file-excel text-emerald-400"></i>
-            <span>تصدير Excel</span>
+    <!-- KPI Summary Cards -->
+    <div class="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-3">
+        <!-- All Orders -->
+        <a href="?{% if query %}q={{ query }}{% endif %}" class="order-kpi-card {% if not current_status %}active{% endif %}">
+            <div class="text-[11px] font-bold text-slate-400">إجمالي الطلبات</div>
+            <div class="text-xl font-black text-white font-mono mt-1">{{ total_count }}</div>
+            <div class="text-[10px] text-slate-500 mt-1">كافة الحالات المسجلة</div>
         </a>
-        <a href="{% url 'control_orders_list' %}" class="px-3 py-2.5 rounded-xl bg-slate-900 border border-white/10 hover:border-white/20 text-slate-300 hover:text-white text-xs transition flex items-center gap-1.5" title="إعادة تحميل الصفحة">
-            <i class="fas fa-redo text-slate-400"></i>
+
+        <!-- Refund Requests Needing Approval (Highlighted with Alert) -->
+        <a href="?status=refund_pending{% if query %}&q={{ query }}{% endif %}" class="order-kpi-card {% if refund_pending_count > 0 %}alert-card{% endif %} {% if current_status == 'refund_pending' %}active{% endif %}">
+            <div class="flex items-center justify-between">
+                <span class="text-[11px] font-bold text-rose-400">تحتاج موافقة استرداد</span>
+                {% if refund_pending_count > 0 %}
+                <span class="relative flex h-2 w-2">
+                    <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-rose-400 opacity-75"></span>
+                    <span class="relative inline-flex rounded-full h-2 w-2 bg-rose-500"></span>
+                </span>
+                {% endif %}
+            </div>
+            <div class="text-xl font-black text-rose-300 font-mono mt-1">{{ refund_pending_count|default:"0" }}</div>
+            <div class="text-[10px] text-rose-400/80 mt-1">طلبات استرداد معلقة</div>
         </a>
-    </div>
-</div>
 
-<!-- KPI / Summary Metrics Cards -->
-<div class="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-8">
-    <!-- Total Orders -->
-    <div class="order-stat-card">
-        <div class="flex items-center justify-between mb-2">
-            <span class="text-[11px] font-black uppercase tracking-wider text-slate-400">إجمالي الطلبات</span>
-            <div class="w-8 h-8 rounded-xl bg-cyan/10 border border-cyan/20 flex items-center justify-center text-cyan text-xs">
-                <i class="fas fa-shopping-bag"></i>
-            </div>
-        </div>
-        <div class="text-xl sm:text-2xl font-black text-white font-mono">{{ status_counts.all|default:total_count|default:"0" }}</div>
-        <div class="text-[10px] text-slate-500 mt-1 flex items-center gap-1 font-bold">
-            <i class="fas fa-layer-group text-cyan"></i>
-            <span>كافة الطلبات المسجلة</span>
-        </div>
-    </div>
+        <!-- Processing -->
+        <a href="?status=processing{% if query %}&q={{ query }}{% endif %}" class="order-kpi-card {% if current_status == 'processing' %}active{% endif %}">
+            <div class="text-[11px] font-bold text-amber-400">قيد المعالجة والتنفيذ</div>
+            <div class="text-xl font-black text-amber-300 font-mono mt-1">{{ status_counts.processing|default:"0" }}</div>
+            <div class="text-[10px] text-amber-400/80 mt-1">مدفوعة وبانتظار الإنجاز</div>
+        </a>
 
-    <!-- Processing / Wait -->
-    <div class="order-stat-card">
-        <div class="flex items-center justify-between mb-2">
-            <span class="text-[11px] font-black uppercase tracking-wider text-amber-400">قيد التنفيذ والمتابعة</span>
-            <div class="w-8 h-8 rounded-xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-center text-amber-400 text-xs">
-                <i class="fas fa-clock fa-spin"></i>
-            </div>
-        </div>
-        <div class="text-xl sm:text-2xl font-black text-amber-400 font-mono">{{ status_counts.processing|add:status_counts.pending|default:"0" }}</div>
-        <div class="text-[10px] text-amber-500/80 mt-1 flex items-center gap-1 font-bold">
-            <span class="w-1.5 h-1.5 rounded-full bg-amber-400 animate-ping"></span>
-            <span>بانتظار الاكتمال أو رد المزود</span>
+        <!-- Pending Payment -->
+        <a href="?status=pending{% if query %}&q={{ query }}{% endif %}" class="order-kpi-card {% if current_status == 'pending' %}active{% endif %}">
+            <div class="text-[11px] font-bold text-sky-400">بانتظار السداد</div>
+            <div class="text-xl font-black text-sky-300 font-mono mt-1">{{ status_counts.pending|default:"0" }}</div>
+            <div class="text-[10px] text-sky-400/80 mt-1">فواتير لم تسدد بعد</div>
+        </a>
+
+        <!-- Completed -->
+        <a href="?status=completed{% if query %}&q={{ query }}{% endif %}" class="order-kpi-card {% if current_status == 'completed' %}active{% endif %}">
+            <div class="text-[11px] font-bold text-emerald-400">مكتملة ومسلمة</div>
+            <div class="text-xl font-black text-emerald-300 font-mono mt-1">{{ status_counts.completed|default:"0" }}</div>
+            <div class="text-[10px] text-emerald-400/80 mt-1">تم تسليمها للعميل</div>
+        </a>
+
+        <!-- Total Revenue -->
+        <div class="order-kpi-card">
+            <div class="text-[11px] font-bold text-teal-400">إجمالي المبيعات المكتملة</div>
+            <div class="text-lg font-black text-teal-200 font-mono mt-1 truncate">{% currency_format total_revenue %}</div>
+            <div class="text-[10px] text-teal-500 mt-1">إيرادات الطلبات المنجزة</div>
         </div>
     </div>
 
-    <!-- Completed -->
-    <div class="order-stat-card">
-        <div class="flex items-center justify-between mb-2">
-            <span class="text-[11px] font-black uppercase tracking-wider text-emerald-400">المكتملة بنجاح</span>
-            <div class="w-8 h-8 rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-400 text-xs">
-                <i class="fas fa-check-double"></i>
-            </div>
-        </div>
-        <div class="text-xl sm:text-2xl font-black text-emerald-400 font-mono">{{ status_counts.completed|default:"0" }}</div>
-        <div class="text-[10px] text-emerald-500/80 mt-1 flex items-center gap-1 font-bold">
-            <i class="fas fa-shield-check text-emerald-400"></i>
-            <span>تم تسليمها للمستخدمين</span>
-        </div>
-    </div>
-
-    <!-- Revenue Volume -->
-    <div class="order-stat-card">
-        <div class="flex items-center justify-between mb-2">
-            <span class="text-[11px] font-black uppercase tracking-wider text-cyan">حجم المبيعات المكتملة</span>
-            <div class="w-8 h-8 rounded-xl bg-cyan/10 border border-cyan/20 flex items-center justify-center text-cyan text-xs">
-                <i class="fas fa-chart-line"></i>
-            </div>
-        </div>
-        <div class="text-lg sm:text-xl font-black text-white font-mono">{% currency_format total_revenue %}</div>
-        <div class="text-[10px] text-slate-500 mt-1 flex items-center gap-1 font-bold">
-            <i class="fas fa-coins text-cyan"></i>
-            <span>صافي المبيعات المحققة</span>
-        </div>
-    </div>
-</div>
-
-<!-- Main Management Panel -->
-<div class="glass-panel p-4 sm:p-6 rounded-3xl border border-white/5 space-y-6">
-    
-    <!-- Controls Toolbar (Search + Status Tabs) -->
-    <div class="flex flex-col xl:flex-row items-stretch xl:items-center justify-between gap-4 pb-4 border-b border-white/5">
+    <!-- Toolbar: Search Bar + Status Tabs -->
+    <div class="flex flex-col lg:flex-row items-stretch lg:items-center justify-between gap-3 pb-2 border-b border-white/5">
         
-        <!-- Search Input Form -->
-        <form method="get" class="w-full xl:max-w-md relative flex items-center">
+        <!-- Search Input -->
+        <form method="get" class="w-full lg:max-w-md relative flex items-center">
             {% if current_status %}
             <input type="hidden" name="status" value="{{ current_status }}">
             {% endif %}
-            <i class="fas fa-search absolute right-4 text-slate-400 text-xs pointer-events-none"></i>
-            <input type="text" name="q" value="{{ query|default:'' }}" placeholder="بحث برقم الطلب، البريد، اسم العميل، معرف API..." class="w-full pr-11 pl-10 py-2.5 bg-slate-900/90 border border-white/10 focus:border-cyan rounded-xl text-xs text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-cyan/20 transition">
-            
+            <i class="fas fa-search absolute right-3.5 text-slate-400 text-xs pointer-events-none"></i>
+            <input type="text" name="q" value="{{ query|default:'' }}" placeholder="ابحث برقم الطلب، اسم العميل، الهاتف، أو آيدي الحساب..." class="w-full pr-10 pl-9 py-2.5 bg-slate-900/90 border border-white/10 focus:border-cyan rounded-xl text-xs text-white placeholder-slate-500 focus:outline-none focus:ring-1 focus:ring-cyan transition shadow-inner">
             {% if query %}
-            <a href="?{% if current_status %}status={{ current_status }}{% endif %}" class="absolute left-3 text-slate-400 hover:text-rose-400 text-xs transition" title="مسح البحث">
+            <a href="?{% if current_status %}status={{ current_status }}{% endif %}" class="absolute left-3 text-slate-400 hover:text-rose-400 text-xs transition" title="إلغاء البحث">
                 <i class="fas fa-times"></i>
             </a>
             {% endif %}
         </form>
 
-        <!-- Status Filter Pills -->
-        <div class="flex items-center gap-1.5 overflow-x-auto pb-2 xl:pb-0 scrollbar-none w-full xl:w-auto">
-            <a href="?{% if query %}q={{ query }}{% endif %}" class="filter-pill {% if not current_status %}active{% endif %}">
+        <!-- Status Filter Tabs -->
+        <div class="flex items-center gap-1.5 overflow-x-auto pb-2 lg:pb-0 scrollbar-none">
+            <a href="?{% if query %}q={{ query }}{% endif %}" class="filter-tab {% if not current_status %}active{% endif %}">
                 <span>الكل</span>
-                <span class="pill-count">{{ status_counts.all|default:total_count|default:"0" }}</span>
+                <span class="px-1.5 py-0.2 rounded bg-white/10 text-[10px] font-mono">{{ status_counts.all|default:total_count }}</span>
             </a>
-            
-            {% for val, label in order_status_choices %}
-            <a href="?status={{ val }}{% if query %}&q={{ query }}{% endif %}" class="filter-pill {% if current_status == val %}active{% endif %}">
-                <span>{{ label }}</span>
-                {% if val == 'pending' and status_counts.pending %}
-                <span class="pill-count text-sky-400">{{ status_counts.pending }}</span>
-                {% elif val == 'processing' and status_counts.processing %}
-                <span class="pill-count text-amber-400">{{ status_counts.processing }}</span>
-                {% elif val == 'completed' and status_counts.completed %}
-                <span class="pill-count text-emerald-400">{{ status_counts.completed }}</span>
-                {% elif val == 'cancelled' and status_counts.cancelled %}
-                <span class="pill-count text-rose-400">{{ status_counts.cancelled }}</span>
+
+            <!-- Refund Pending Filter Tab -->
+            <a href="?status=refund_pending{% if query %}&q={{ query }}{% endif %}" class="filter-tab alert-tab {% if current_status == 'refund_pending' %}active{% endif %}">
+                <i class="fas fa-undo-alt text-[10px]"></i>
+                <span>موافقة استرداد</span>
+                {% if refund_pending_count > 0 %}
+                <span class="px-1.5 py-0.2 rounded bg-rose-500/30 text-rose-200 text-[10px] font-mono font-bold">{{ refund_pending_count }}</span>
+                {% else %}
+                <span class="px-1.5 py-0.2 rounded bg-white/10 text-[10px] font-mono">0</span>
                 {% endif %}
             </a>
-            {% endfor %}
+
+            <a href="?status=processing{% if query %}&q={{ query }}{% endif %}" class="filter-tab {% if current_status == 'processing' %}active{% endif %}">
+                <i class="fas fa-spinner text-[10px]"></i>
+                <span>قيد المعالجة</span>
+                <span class="px-1.5 py-0.2 rounded bg-amber-500/20 text-amber-300 text-[10px] font-mono font-bold">{{ status_counts.processing|default:"0" }}</span>
+            </a>
+
+            <a href="?status=pending{% if query %}&q={{ query }}{% endif %}" class="filter-tab {% if current_status == 'pending' %}active{% endif %}">
+                <i class="fas fa-clock text-[10px]"></i>
+                <span>بانتظار السداد</span>
+                <span class="px-1.5 py-0.2 rounded bg-sky-500/20 text-sky-300 text-[10px] font-mono font-bold">{{ status_counts.pending|default:"0" }}</span>
+            </a>
+
+            <a href="?status=completed{% if query %}&q={{ query }}{% endif %}" class="filter-tab {% if current_status == 'completed' %}active{% endif %}">
+                <i class="fas fa-check-circle text-[10px]"></i>
+                <span>مكتملة</span>
+                <span class="px-1.5 py-0.2 rounded bg-emerald-500/20 text-emerald-300 text-[10px] font-mono font-bold">{{ status_counts.completed|default:"0" }}</span>
+            </a>
+
+            <a href="?status=cancelled{% if query %}&q={{ query }}{% endif %}" class="filter-tab {% if current_status == 'cancelled' %}active{% endif %}">
+                <i class="fas fa-times-circle text-[10px]"></i>
+                <span>ملغاة ومستردة</span>
+                <span class="px-1.5 py-0.2 rounded bg-rose-500/20 text-rose-300 text-[10px] font-mono font-bold">{{ status_counts.cancelled|default:"0" }}</span>
+            </a>
         </div>
     </div>
 
-    <!-- Mobile Cards View (Visible on Mobile Only - Prevents Horizontal Scrolling) -->
-    <div class="block md:hidden space-y-3 mb-6">
+    <!-- ========================================== -->
+    <!-- MOBILE CARDS VIEW (Clean & No Horizontal Scroll) -->
+    <!-- ========================================== -->
+    <div class="block lg:hidden space-y-3.5">
         {% for order in orders %}
-        <div class="p-4 rounded-2xl bg-slate-900/90 border border-white/5 space-y-3 shadow-lg" id="mobile-order-card-{{ order.id }}">
-            <!-- Header: Order #, Status, Date -->
-            <div class="flex items-center justify-between gap-2 border-b border-white/5 pb-2.5">
+        <div class="bg-slate-900/95 border {% if order.is_refund_pending %}border-rose-500/50 shadow-rose-950/20 shadow-lg{% else %}border-white/10{% endif %} rounded-2xl p-4 space-y-3 shadow-md" id="mobile-order-card-{{ order.id }}">
+            
+            <!-- Top Row: Order Number + Status + Date -->
+            <div class="flex items-center justify-between gap-2 pb-2.5 border-b border-white/5">
                 <div class="flex items-center gap-1.5">
-                    <a href="{% url 'control_order_detail' order.id %}" class="font-black text-cyan hover:underline font-mono text-sm">#{{ order.number }}</a>
-                    <button type="button" onclick="copyToClipboard('{{ order.number }}', this)" class="text-slate-500 hover:text-cyan p-0.5">
+                    <a href="{% url 'control_order_detail' order.id %}" class="text-sm font-black text-cyan hover:underline font-mono">
+                        #{{ order.number }}
+                    </a>
+                    <button type="button" onclick="copyToClipboard('{{ order.number }}', this)" class="text-slate-500 hover:text-cyan p-1 transition" title="نسخ رقم الطلب">
                         <i class="far fa-copy text-xs"></i>
                     </button>
                 </div>
-                <div class="flex items-center gap-1.5">
-                    <span class="status-glow-badge {{ order.status }} text-[10px] py-0.5 px-2">
+                <div class="flex items-center gap-2">
+                    <span class="status-badge {{ order.status }} text-[10px]">
+                        {% if order.status == 'completed' %}
+                        <i class="fas fa-check-circle"></i>
+                        {% elif order.status == 'processing' %}
+                        <i class="fas fa-circle-notch fa-spin"></i>
+                        {% elif order.status == 'pending' %}
+                        <i class="fas fa-clock"></i>
+                        {% else %}
+                        <i class="fas fa-times-circle"></i>
+                        {% endif %}
                         <span>{{ order.get_status_display }}</span>
                     </span>
-                    <span class="text-[10px] text-slate-500 font-mono">{{ order.created_at|date:"m/d H:i" }}</span>
+                    <span class="text-[10px] text-slate-400 font-mono">{{ order.created_at|date:"m/d H:i" }}</span>
                 </div>
             </div>
 
-            <!-- Customer -->
-            <div class="flex items-center justify-between text-xs">
+            <!-- Refund Request Alert Banner if pending -->
+            {% if order.is_refund_pending %}
+            <div class="p-2.5 rounded-xl bg-rose-500/15 border border-rose-500/30 flex items-start justify-between gap-2">
+                <div class="text-xs">
+                    <div class="font-bold text-rose-300 flex items-center gap-1.5">
+                        <i class="fas fa-exclamation-triangle"></i>
+                        <span>طلب استرداد بانتظار الموافقة</span>
+                    </div>
+                    {% if order.refund_reason_text %}
+                    <div class="text-[11px] text-rose-200/90 mt-0.5">سبب العميل: "{{ order.refund_reason_text }}"</div>
+                    {% endif %}
+                </div>
+                <a href="{% url 'control_order_detail' order.id %}#refund-action" class="shrink-0 px-2.5 py-1 rounded-lg bg-rose-500 text-white font-bold text-[10px] hover:bg-rose-600 transition shadow">
+                    مراجعة الطلب
+                </a>
+            </div>
+            {% endif %}
+
+            <!-- Customer & Contact -->
+            <div class="flex items-center justify-between text-xs bg-slate-800/40 p-2.5 rounded-xl border border-white/5">
                 <div class="flex items-center gap-2 min-w-0">
-                    <div class="w-7 h-7 rounded-lg bg-cyan/15 text-cyan flex items-center justify-center font-bold text-xs shrink-0">
+                    <div class="w-8 h-8 rounded-lg bg-cyan/15 text-cyan border border-cyan/30 flex items-center justify-center font-black text-xs shrink-0">
                         {{ order.customer.email|slice:":1"|upper }}
                     </div>
-                    <div class="min-w-0 truncate">
-                        <div class="font-bold text-white truncate">{{ order.customer.get_full_name|default:order.customer.username }}</div>
+                    <div class="min-w-0">
+                        <div class="font-bold text-white truncate text-xs">{{ order.customer.get_full_name|default:order.customer.username }}</div>
                         <div class="text-[10px] text-slate-400 font-mono truncate">{{ order.customer.email }}</div>
                     </div>
                 </div>
+
                 {% if order.shipping_phone %}
-                <a href="tel:{{ order.shipping_phone }}" class="px-2 py-1 rounded-lg bg-slate-800 text-slate-300 text-[10px] font-mono shrink-0 flex items-center gap-1">
-                    <i class="fas fa-phone text-[9px] text-cyan"></i> {{ order.shipping_phone }}
-                </a>
+                <div class="flex items-center gap-1 shrink-0">
+                    <a href="https://wa.me/{{ order.shipping_phone|slugify }}" target="_blank" class="w-7 h-7 rounded-lg bg-emerald-500/20 text-emerald-300 hover:bg-emerald-500/30 border border-emerald-500/30 flex items-center justify-center transition" title="محادثة واتساب">
+                        <i class="fab fa-whatsapp text-xs"></i>
+                    </a>
+                    <a href="tel:{{ order.shipping_phone }}" class="w-7 h-7 rounded-lg bg-sky-500/20 text-sky-300 hover:bg-sky-500/30 border border-sky-500/30 flex items-center justify-center transition" title="اتصال">
+                        <i class="fas fa-phone-alt text-[10px]"></i>
+                    </a>
+                </div>
                 {% endif %}
             </div>
 
-            <!-- Product / Variant -->
+            <!-- Product & Variant -->
             {% with item=order.items.first %}
-            <div class="p-2.5 rounded-xl bg-slate-950/60 border border-white/5 flex items-center justify-between gap-2 text-xs">
-                <div class="min-w-0 truncate">
-                    <span class="font-bold text-slate-200 block truncate">{{ item.variant.product.name }}</span>
-                    <span class="text-[10px] text-cyan font-bold">{{ item.variant.name }} <span class="text-slate-400">× {{ item.quantity }}</span></span>
+            <div class="flex items-center gap-3">
+                <div class="w-10 h-10 rounded-xl bg-slate-800 border border-white/10 flex items-center justify-center text-slate-400 shrink-0 overflow-hidden">
+                    {% if item.variant.product.thumbnail %}
+                    <img src="{{ item.variant.product.thumbnail.url }}" alt="{{ item.variant.product.name }}" class="w-full h-full object-cover">
+                    {% else %}
+                    <i class="fas fa-cube text-sm"></i>
+                    {% endif %}
+                </div>
+                <div class="min-w-0 flex-grow">
+                    <div class="font-bold text-white text-xs truncate">{{ item.variant.product.name|default:"منتج رقمي" }}</div>
+                    <div class="flex items-center gap-2 mt-1">
+                        <span class="text-[11px] font-bold text-cyan">{{ item.variant.name }}</span>
+                        <span class="px-1.5 py-0.5 rounded bg-white/5 text-[10px] text-slate-400 font-mono font-bold">الكمية: {{ item.quantity }}</span>
+                    </div>
                 </div>
                 <div class="text-left shrink-0">
-                    <div class="font-black text-white font-mono text-sm">{% currency_format order.total_amount %}</div>
+                    <div class="font-black text-white text-sm font-mono">{% currency_format order.total_amount %}</div>
                 </div>
             </div>
             {% endwith %}
 
-            <!-- Payment Method & Provider Invoice Link -->
-            <div class="flex flex-wrap items-center justify-between gap-2 pt-1 text-xs">
+            <!-- Player ID & Inputs Chips -->
+            {% if order.formatted_metadata %}
+            <div class="p-2.5 rounded-xl bg-slate-950/60 border border-white/5 space-y-1.5">
+                <div class="text-[10px] font-bold text-slate-400 flex items-center gap-1">
+                    <i class="fas fa-id-badge text-cyan"></i>
+                    <span>بيانات الحساب / اللاعب المدخلة:</span>
+                </div>
+                <div class="flex flex-wrap gap-1.5">
+                    {% for meta in order.formatted_metadata %}
+                    <div class="clean-meta-tag text-slate-200">
+                        <span class="text-slate-400 font-bold">{{ meta.label }}:</span>
+                        <span class="font-mono text-cyan font-bold select-all">{{ meta.value }}</span>
+                        <button type="button" onclick="copyToClipboard('{{ meta.value|escapejs }}', this)" class="text-slate-400 hover:text-white p-0.5" title="نسخ">
+                            <i class="far fa-copy text-[10px]"></i>
+                        </button>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- Payment Method & Invoice -->
+            <div class="flex items-center justify-between gap-2 pt-2 border-t border-white/5 text-xs">
                 <div class="flex items-center gap-1.5 flex-wrap">
-                    <span class="inline-flex items-center gap-1 text-[10px] px-2 py-0.5 rounded-md font-bold border {% if order.payment_gateway_charge_info %}bg-emerald-500/10 text-emerald-400 border-emerald-500/20{% else %}bg-cyan-500/10 text-cyan-400 border-cyan-500/20{% endif %}">
-                        <i class="fas {% if order.payment_gateway_charge_info %}fa-credit-card{% else %}fa-wallet{% endif %} text-[9px]"></i>
-                        {{ order.payment_method_display }}
+                    <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg font-bold border text-[11px] {% if order.payment_gateway_charge_info %}bg-emerald-500/10 text-emerald-400 border-emerald-500/20{% else %}bg-cyan-500/10 text-cyan-400 border-cyan-500/20{% endif %}">
+                        <i class="fas {% if order.payment_gateway_charge_info %}fa-credit-card{% else %}fa-wallet{% endif %} text-[10px]"></i>
+                        <span>{{ order.payment_method_display }}</span>
                     </span>
                     {% if order.payment_gateway_charge_info %}
-                    <span class="text-[10px] font-mono font-bold text-emerald-400">{{ order.payment_gateway_charge_info.amount }} {{ order.payment_gateway_charge_info.currency }}</span>
+                    <span class="text-[11px] font-mono text-emerald-300 font-bold">{{ order.payment_gateway_charge_info.amount }} {{ order.payment_gateway_charge_info.currency }}</span>
                     {% endif %}
                 </div>
 
                 {% if order.gateway_invoice_url %}
-                <a href="{{ order.gateway_invoice_url }}" target="_blank" class="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-teal-500/15 hover:bg-teal-500/25 border border-teal-500/40 text-[10px] font-bold text-teal-300 transition">
-                    <i class="fas fa-external-link-alt text-[8px]"></i>
+                <a href="{{ order.gateway_invoice_url }}" target="_blank" rel="noopener noreferrer" class="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-teal-500/15 hover:bg-teal-500/25 border border-teal-500/30 text-[11px] font-bold text-teal-300 transition shrink-0">
+                    <i class="fas fa-file-invoice text-[10px]"></i>
                     <span>فاتورة المزود ↗</span>
                 </a>
                 {% endif %}
             </div>
 
-            <!-- Customer Input Metadata Chips -->
-            {% if order.formatted_metadata %}
-            <div class="flex flex-wrap gap-1.5 pt-1">
-                {% for meta in order.formatted_metadata %}
-                <div class="meta-chip text-slate-300" title="{{ meta.label }}: {{ meta.value }}">
-                    <span class="text-slate-500 font-bold shrink-0">{{ meta.label }}:</span>
-                    <span class="font-mono text-cyan-200 truncate max-w-[120px]">{{ meta.value }}</span>
-                    <button type="button" onclick="copyToClipboard('{{ meta.value|escapejs }}', this)" class="text-slate-500 hover:text-cyan p-0.5">
-                        <i class="far fa-copy text-[8px]"></i>
-                    </button>
-                </div>
-                {% endfor %}
-            </div>
-            {% endif %}
-
-            <!-- Mobile Actions Bar (Big & Easy to Tap) -->
-            <div class="grid grid-cols-3 gap-2 pt-2 border-t border-white/5">
-                <a href="{% url 'control_order_detail' order.id %}" class="col-span-2 py-2.5 rounded-xl bg-gradient-to-r from-cyan-500 to-cyan-400 text-slate-950 font-black text-xs text-center flex items-center justify-center gap-1.5 shadow-md shadow-cyan-500/15">
-                    <i class="fas fa-sliders-h text-[10px]"></i>
-                    <span>معالجة الطلب</span>
+            <!-- Card Bottom Buttons -->
+            <div class="flex items-center gap-2 pt-1">
+                <a href="{% url 'control_order_detail' order.id %}" class="flex-grow py-2.5 px-3 rounded-xl bg-cyan/15 hover:bg-cyan/25 border border-cyan/30 text-cyan font-bold text-xs text-center transition flex items-center justify-center gap-1.5">
+                    <i class="fas fa-sliders-h text-xs"></i>
+                    <span>معالجة وإدارة الطلب</span>
                 </a>
-                <div class="flex items-center gap-1.5">
-                    {% if order.status == 'pending' or order.status == 'processing' or order.api_order_id or order.api_order_uuid %}
-                    <button type="button" onclick="syncSingleOrderRow('{{ order.id }}', this)" class="flex-1 py-2.5 rounded-xl bg-sky-500/10 border border-sky-500/25 text-sky-400 flex items-center justify-center" title="مزامنة المزود">
-                        <i class="fas fa-sync-alt text-xs"></i>
-                    </button>
-                    {% endif %}
-                    <a href="{% url 'dashboard_order_invoice' order.id %}" target="_blank" class="flex-1 py-2.5 rounded-xl bg-slate-800 border border-white/10 text-slate-400 hover:text-cyan flex items-center justify-center" title="الفاتورة">
-                        <i class="fas fa-print text-xs"></i>
-                    </a>
-                </div>
+                <button type="button" onclick="syncSingleOrderRow('{{ order.id }}', this)" class="p-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 border border-white/10 text-slate-300 transition" title="تحديث من المزود">
+                    <i class="fas fa-sync-alt text-xs"></i>
+                </button>
             </div>
+
         </div>
         {% empty %}
-        <div class="p-8 text-center bg-slate-900/60 rounded-2xl border border-white/5">
-            <p class="text-xs text-slate-400">لا توجد طلبات مطابقة.</p>
+        <div class="text-center py-12 bg-slate-900/50 border border-white/5 rounded-2xl p-6">
+            <div class="w-12 h-12 rounded-2xl bg-slate-800/80 text-slate-400 flex items-center justify-center mx-auto mb-3">
+                <i class="fas fa-inbox text-xl"></i>
+            </div>
+            <div class="text-white font-bold text-sm">لا توجد طلبات تطابق الفلتر الحالي</div>
+            <p class="text-slate-400 text-xs mt-1">جرّب اختيار فلتر آخر أو تفريغ خانة البحث</p>
         </div>
         {% endfor %}
     </div>
 
-    <!-- Orders Table Container (Desktop / Tablet) -->
-    <div class="hidden md:block overflow-x-auto rounded-2xl border border-white/5">
-        <table class="w-full text-right border-collapse min-w-[950px]">
-            <thead>
-                <tr class="bg-slate-950/70 text-slate-400 text-[11px] font-black uppercase tracking-wider border-b border-white/5">
-                    <th class="py-3.5 px-4 min-w-[140px]">رقم وتاريخ الطلب</th>
-                    <th class="py-3.5 px-4 min-w-[170px]">العميل المستفيد</th>
-                    <th class="py-3.5 px-4 min-w-[250px]">الخدمة / الباقة والمدخلات</th>
-                    <th class="py-3.5 px-4 min-w-[110px]">المبلغ الإجمالي</th>
-                    <th class="py-3.5 px-4 min-w-[120px]">الحالة الحالية</th>
-                    <th class="py-3.5 px-4 min-w-[140px] text-left sticky-actions-col">الإجراءات والتحكم</th>
-                </tr>
-            </thead>
-            <tbody class="divide-y divide-white/5 text-xs">
-                {% for order in orders %}
-                <tr class="table-order-row" id="order-row-{{ order.id }}" data-order-id="{{ order.id }}" data-order-number="{{ order.number }}" data-order-status="{{ order.status }}">
-                    <!-- Order Number & Date -->
-                    <td class="py-3.5 px-4 align-top">
-                        <div class="flex items-center gap-1.5">
-                            <a href="{% url 'control_order_detail' order.id %}" class="font-black text-cyan hover:underline font-mono text-sm" title="فتح ومعالجة الطلب">#{{ order.number }}</a>
-                            <button type="button" onclick="copyToClipboard('{{ order.number }}', this)" title="نسخ رقم الطلب" class="text-slate-500 hover:text-cyan p-1 transition cursor-pointer">
-                                <i class="far fa-copy text-[11px]"></i>
-                            </button>
-                        </div>
-                        <div class="text-[10px] text-slate-400 font-mono mt-1 flex items-center gap-1">
-                            <i class="far fa-calendar-alt text-slate-500"></i>
-                            <span>{{ order.created_at|date:"Y-m-d H:i" }}</span>
-                        </div>
-                        <div class="mt-2 flex flex-wrap items-center gap-1.5">
-                            <a href="{% url 'control_order_detail' order.id %}" class="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-cyan-500/15 hover:bg-cyan-500/25 border border-cyan-500/30 text-[10px] font-black text-cyan transition cursor-pointer shadow-sm">
-                                <i class="fas fa-sliders-h text-[9px]"></i>
-                                <span>معالجة الطلب</span>
-                            </a>
-                            {% if order.metadata.refund_requested %}
-                                {% if order.metadata.refund_status == 'pending' %}
-                                <a href="{% url 'control_order_detail' order.id %}" class="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg bg-rose-500/20 border border-rose-500/40 text-[9px] font-black text-rose-300 animate-pulse" title="طلب العميل استرداد الأموال: {{ order.metadata.refund_reason }}">
-                                    <i class="fas fa-undo text-[8px]"></i> طلب استرداد
+    <!-- ========================================== -->
+    <!-- DESKTOP TABLE VIEW (Modern SaaS Layout)   -->
+    <!-- ========================================== -->
+    <div class="hidden lg:block bg-slate-900/80 border border-white/10 rounded-2xl overflow-hidden shadow-xl backdrop-blur-md">
+        <div class="overflow-x-auto scrollbar-thin">
+            <table class="w-full text-right border-collapse">
+                <thead>
+                    <tr class="bg-slate-950/70 border-b border-white/10 text-[11px] font-black text-slate-400 uppercase tracking-wider">
+                        <th class="py-3.5 px-4">رقم الطلب والوقت</th>
+                        <th class="py-3.5 px-4">العميل والتواصل</th>
+                        <th class="py-3.5 px-4">المنتج والخدمة</th>
+                        <th class="py-3.5 px-4">بيانات الحساب / اللاعب</th>
+                        <th class="py-3.5 px-4">طريقة ومبلغ السداد</th>
+                        <th class="py-3.5 px-4">حالة الطلب</th>
+                        <th class="py-3.5 px-4 text-left">إجراءات</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-white/5 text-xs">
+                    {% for order in orders %}
+                    <tr class="hover:bg-slate-800/40 transition duration-150 {% if order.is_refund_pending %}bg-rose-950/20 border-r-2 border-r-rose-500{% endif %}" id="order-row-{{ order.id }}" data-order-id="{{ order.id }}" data-order-status="{{ order.status }}">
+                        
+                        <!-- Order # & Time -->
+                        <td class="py-4 px-4 align-top">
+                            <div class="flex items-center gap-1.5">
+                                <a href="{% url 'control_order_detail' order.id %}" class="font-black text-cyan hover:underline font-mono text-sm tracking-tight">
+                                    #{{ order.number }}
                                 </a>
-                                {% elif order.metadata.refund_status == 'approved' %}
-                                <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg bg-emerald-500/15 border border-emerald-500/30 text-[9px] font-black text-emerald-400">
-                                    <i class="fas fa-check text-[8px]"></i> مسترد
-                                </span>
-                                {% endif %}
-                            {% endif %}
-                            {% if order.is_app_order %}
-                            <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg bg-emerald-500/15 border border-emerald-500/30 text-[9px] font-black text-emerald-400" title="تم إنشاء الطلب عبر تطبيق أندرويد رقميات">
-                                <i class="fas fa-mobile-screen-button text-[8px]"></i> تطبيق رقميات
-                            </span>
-                            {% else %}
-                            <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg bg-slate-800 border border-white/5 text-[9px] font-bold text-slate-400" title="تم إنشاء الطلب عبر متصفح ويب">
-                                <i class="fas fa-globe text-[8px]"></i> متصفح ويب
-                            </span>
-                            {% endif %}
-                            {% if order.api_order_id %}
-                            <span class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-sky-500/10 border border-sky-500/20 text-[9px] font-mono text-sky-300" title="معرف الطلب لدى المزود">
-                                <i class="fas fa-plug text-[8px]"></i> #{{ order.api_order_id }}
-                            </span>
-                            {% endif %}
-                        </div>
-                    </td>
-
-                    <!-- Customer -->
-                    <td class="py-3.5 px-4 align-top">
-                        <div class="flex items-start gap-2.5">
-                            <div class="w-8 h-8 rounded-xl bg-gradient-to-br from-cyan/20 to-blue-600/20 border border-cyan/30 flex items-center justify-center text-cyan font-black text-xs shrink-0 mt-0.5">
-                                {{ order.customer.email|slice:":1"|upper }}
+                                <button type="button" onclick="copyToClipboard('{{ order.number }}', this)" class="text-slate-500 hover:text-cyan p-0.5 transition" title="نسخ رقم الطلب">
+                                    <i class="far fa-copy text-[10px]"></i>
+                                </button>
                             </div>
-                            <div class="min-w-0 flex-grow">
-                                <div class="font-bold text-white truncate max-w-[160px]" title="{{ order.customer.get_full_name|default:order.customer.username }}">
-                                    {{ order.customer.get_full_name|default:order.customer.username }}
+                            <div class="text-[11px] text-slate-400 font-mono mt-1">
+                                {{ order.created_at|date:"Y-m-d H:i" }}
+                            </div>
+                            {% if order.is_refund_pending %}
+                            <div class="mt-1.5 inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-rose-500/20 text-rose-300 border border-rose-500/40 text-[10px] font-bold animate-pulse">
+                                <i class="fas fa-undo-alt text-[9px]"></i>
+                                <span>طلب استرداد معلق</span>
+                            </div>
+                            {% endif %}
+                        </td>
+
+                        <!-- Customer & Contact -->
+                        <td class="py-4 px-4 align-top">
+                            <div class="flex items-start gap-2.5">
+                                <div class="w-8 h-8 rounded-xl bg-cyan/15 border border-cyan/30 flex items-center justify-center text-cyan font-black text-xs shrink-0 mt-0.5">
+                                    {{ order.customer.email|slice:":1"|upper }}
                                 </div>
-                                <div class="text-[10px] text-slate-400 font-mono truncate max-w-[160px] flex items-center gap-1 mt-0.5" title="{{ order.customer.email }}">
-                                    <span>{{ order.customer.email }}</span>
-                                    <button type="button" onclick="copyToClipboard('{{ order.customer.email|escapejs }}', this)" class="text-slate-600 hover:text-cyan transition cursor-pointer">
+                                <div class="min-w-0">
+                                    <div class="font-bold text-white truncate max-w-[170px]" title="{{ order.customer.get_full_name|default:order.customer.username }}">
+                                        {{ order.customer.get_full_name|default:order.customer.username }}
+                                    </div>
+                                    <div class="text-[11px] text-slate-400 font-mono truncate max-w-[170px] flex items-center gap-1 mt-0.5" title="{{ order.customer.email }}">
+                                        <span>{{ order.customer.email }}</span>
+                                        <button type="button" onclick="copyToClipboard('{{ order.customer.email|escapejs }}', this)" class="text-slate-500 hover:text-cyan transition" title="نسخ البريد">
+                                            <i class="far fa-copy text-[9px]"></i>
+                                        </button>
+                                    </div>
+                                    {% if order.shipping_phone %}
+                                    <div class="flex items-center gap-1.5 mt-1">
+                                        <a href="https://wa.me/{{ order.shipping_phone|slugify }}" target="_blank" class="text-emerald-400 hover:text-emerald-300 text-[10px] font-mono flex items-center gap-1 transition" title="محادثة واتساب">
+                                            <i class="fab fa-whatsapp"></i>
+                                            <span>{{ order.shipping_phone }}</span>
+                                        </a>
+                                        <button type="button" onclick="copyToClipboard('{{ order.shipping_phone|escapejs }}', this)" class="text-slate-500 hover:text-cyan transition" title="نسخ الهاتف">
+                                            <i class="far fa-copy text-[9px]"></i>
+                                        </button>
+                                    </div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </td>
+
+                        <!-- Product & Variant -->
+                        <td class="py-4 px-4 align-top">
+                            {% with item=order.items.first %}
+                            <div class="flex items-start gap-2.5">
+                                <div class="w-9 h-9 rounded-xl bg-slate-800 border border-white/10 flex items-center justify-center text-slate-400 shrink-0 overflow-hidden mt-0.5">
+                                    {% if item.variant.product.thumbnail %}
+                                    <img src="{{ item.variant.product.thumbnail.url }}" alt="{{ item.variant.product.name }}" class="w-full h-full object-cover">
+                                    {% else %}
+                                    <i class="fas fa-cube text-xs"></i>
+                                    {% endif %}
+                                </div>
+                                <div class="min-w-0">
+                                    <div class="font-bold text-white truncate max-w-[200px]" title="{{ item.variant.product.name }}">
+                                        {{ item.variant.product.name|default:"منتج رقمي" }}
+                                    </div>
+                                    <div class="flex items-center gap-2 mt-1">
+                                        <span class="text-[11px] font-bold text-cyan">{{ item.variant.name }}</span>
+                                        <span class="px-1.5 py-0.2 rounded bg-white/5 text-[10px] text-slate-400 font-mono font-bold">× {{ item.quantity }}</span>
+                                    </div>
+                                </div>
+                            </div>
+                            {% endwith %}
+                        </td>
+
+                        <!-- Inputs / Player ID -->
+                        <td class="py-4 px-4 align-top">
+                            {% if order.formatted_metadata %}
+                            <div class="flex flex-col gap-1.5 max-w-[220px]">
+                                {% for meta in order.formatted_metadata %}
+                                <div class="clean-meta-tag text-slate-200">
+                                    <span class="text-slate-400 font-bold shrink-0">{{ meta.label }}:</span>
+                                    <span class="font-mono text-cyan font-bold truncate select-all">{{ meta.value }}</span>
+                                    <button type="button" onclick="copyToClipboard('{{ meta.value|escapejs }}', this)" class="text-slate-500 hover:text-white p-0.5 transition shrink-0" title="نسخ">
                                         <i class="far fa-copy text-[9px]"></i>
                                     </button>
                                 </div>
-                                {% if order.shipping_phone %}
-                                <div class="text-[9px] text-slate-500 font-mono mt-0.5">
-                                    <i class="fas fa-phone text-[8px] ml-0.5"></i> {{ order.shipping_phone }}
-                                </div>
+                                {% endfor %}
+                            </div>
+                            {% else %}
+                            <span class="text-slate-500 text-[11px] italic">لا توجد حقول مدخلة</span>
+                            {% endif %}
+                        </td>
+
+                        <!-- Payment & Amount -->
+                        <td class="py-4 px-4 align-top">
+                            <div class="font-black text-white text-sm font-mono">
+                                {% currency_format order.total_amount %}
+                            </div>
+                            <div class="mt-1.5 flex flex-col gap-1 items-start">
+                                <span class="inline-flex items-center gap-1 text-[10px] px-2 py-0.5 rounded font-bold border {% if order.payment_gateway_charge_info %}bg-emerald-500/10 text-emerald-400 border-emerald-500/20{% else %}bg-cyan-500/10 text-cyan-400 border-cyan-500/20{% endif %}">
+                                    <i class="fas {% if order.payment_gateway_charge_info %}fa-credit-card{% else %}fa-wallet{% endif %} text-[9px]"></i>
+                                    <span>{{ order.payment_method_display }}</span>
+                                </span>
+                                {% if order.payment_gateway_charge_info %}
+                                <span class="text-[10px] font-mono text-emerald-300 font-bold">
+                                    {{ order.payment_gateway_charge_info.amount }} {{ order.payment_gateway_charge_info.currency }}
+                                </span>
+                                {% endif %}
+
+                                <!-- Provider Invoice Link Button -->
+                                {% if order.gateway_invoice_url %}
+                                <a href="{{ order.gateway_invoice_url }}" target="_blank" rel="noopener noreferrer" class="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-teal-500/15 hover:bg-teal-500/25 border border-teal-500/30 text-[10px] font-bold text-teal-300 transition" title="عرض فاتورة الدفع لدى المزود مباشرة">
+                                    <i class="fas fa-external-link-alt text-[8px]"></i>
+                                    <span>فاتورة المزود ↗</span>
+                                </a>
                                 {% endif %}
                             </div>
-                        </div>
-                    </td>
+                        </td>
 
-                    <!-- Product & Variant & Metadata -->
-                    <td class="py-3.5 px-4 align-top">
-                        {% with item=order.items.first %}
-                        <div class="flex items-start gap-2.5">
-                            <div class="w-8 h-8 rounded-lg bg-slate-900 border border-white/10 flex items-center justify-center text-slate-400 shrink-0 overflow-hidden mt-0.5">
-                                {% if item.variant.product.thumbnail %}
-                                <img src="{{ item.variant.product.thumbnail.url }}" class="w-full h-full object-cover">
+                        <!-- Status Badge -->
+                        <td class="py-4 px-4 align-top">
+                            <span id="order-status-badge-{{ order.id }}" class="status-badge {{ order.status }}">
+                                {% if order.status == 'completed' %}
+                                <i class="fas fa-check-circle"></i>
+                                {% elif order.status == 'processing' %}
+                                <i class="fas fa-circle-notch fa-spin"></i>
+                                {% elif order.status == 'pending' %}
+                                <i class="fas fa-clock"></i>
                                 {% else %}
-                                <i class="fas fa-cube text-xs"></i>
+                                <i class="fas fa-times-circle"></i>
                                 {% endif %}
-                            </div>
-                            <div class="min-w-0 flex-grow">
-                                <div class="font-bold text-slate-200 truncate max-w-[220px]" title="{{ item.variant.product.name }}">
-                                    {{ item.variant.product.name }}
-                                </div>
-                                <div class="flex items-center gap-2 mt-0.5">
-                                    <span class="text-[10px] font-bold text-cyan">{{ item.variant.name }}</span>
-                                    <span class="px-1.5 py-0.2 rounded bg-white/5 text-[9px] text-slate-400 font-mono">× {{ item.quantity }}</span>
-                                </div>
-                            </div>
-                        </div>
-                        {% endwith %}
+                                <span>{{ order.get_status_display }}</span>
+                            </span>
+                        </td>
 
-                        <!-- Customer Input Metadata Chips -->
-                        {% if order.formatted_metadata %}
-                        <div class="mt-2 flex flex-wrap gap-1.5">
-                            {% for meta in order.formatted_metadata %}
-                            <div class="meta-chip text-slate-300 group/meta" title="{{ meta.label }}: {{ meta.value }}">
-                                <span class="text-slate-500 font-bold shrink-0">{{ meta.label }}:</span>
-                                <span class="font-mono text-cyan-200 truncate max-w-[120px]">{{ meta.value }}</span>
-                                <button type="button" onclick="copyToClipboard('{{ meta.value|escapejs }}', this)" class="text-slate-500 hover:text-cyan cursor-pointer mr-0.5">
-                                    <i class="far fa-copy text-[9px]"></i>
+                        <!-- Actions -->
+                        <td class="py-4 px-4 align-top text-left">
+                            <div class="flex items-center justify-end gap-1.5">
+                                <a href="{% url 'control_order_detail' order.id %}" class="px-3 py-1.5 rounded-xl bg-cyan/15 hover:bg-cyan/25 border border-cyan/30 text-cyan text-xs font-bold transition flex items-center gap-1.5 shadow-sm">
+                                    <span>معالجة الطلب</span>
+                                    <i class="fas fa-chevron-left text-[10px]"></i>
+                                </a>
+                                <button type="button" onclick="syncSingleOrderRow('{{ order.id }}', this)" class="w-8 h-8 rounded-xl bg-slate-800/80 hover:bg-slate-700 border border-white/10 text-slate-300 flex items-center justify-center transition shadow-sm" title="مزامنة وتحديث حالة الطلب من المزود">
+                                    <i class="fas fa-sync-alt text-xs"></i>
                                 </button>
                             </div>
-                            {% endfor %}
-                        </div>
-                        {% endif %}
-                    </td>
+                        </td>
 
-                    <!-- Total Amount -->
-                    <td class="py-3.5 px-4 align-top">
-                        <div class="font-black text-white text-sm font-mono tracking-tight">
-                            {% currency_format order.total_amount %}
-                        </div>
-                        <div class="mt-1 flex flex-col gap-1">
-                            <span class="inline-flex items-center gap-1 text-[9px] px-2 py-0.5 rounded font-bold border {% if order.payment_gateway_charge_info %}bg-emerald-500/10 text-emerald-400 border-emerald-500/20{% else %}bg-cyan-500/10 text-cyan-400 border-cyan-500/20{% endif %} self-start">
-                                <i class="fas {% if order.payment_gateway_charge_info %}fa-credit-card{% else %}fa-wallet{% endif %} text-[8px]"></i>
-                                {{ order.payment_method_display }}
-                            </span>
-                            {% if order.payment_gateway_charge_info %}
-                            <div class="text-[9px] font-mono text-emerald-300 font-bold">
-                                {{ order.payment_gateway_charge_info.amount }} {{ order.payment_gateway_charge_info.currency }}
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="7" class="py-12 text-center text-slate-400">
+                            <div class="w-12 h-12 rounded-2xl bg-slate-800/80 text-slate-400 flex items-center justify-center mx-auto mb-3">
+                                <i class="fas fa-inbox text-xl"></i>
                             </div>
-                            {% endif %}
-                            {% if order.gateway_invoice_url %}
-                            <a href="{{ order.gateway_invoice_url }}" target="_blank" class="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-teal-500/15 hover:bg-teal-500/25 border border-teal-500/30 text-[9px] font-bold text-teal-300 transition self-start" title="عرض فاتورة الدفع لدى المزود">
-                                <i class="fas fa-external-link-alt text-[8px]"></i>
-                                <span>فاتورة المزود ↗</span>
-                            </a>
-                            {% endif %}
-                        </div>
-                        {% if order.coupon %}
-                        <div class="text-[9px] text-rose-400 font-mono mt-0.5">
-                            كوبون: {{ order.coupon.code }}
-                        </div>
-                        {% endif %}
-                    </td>
-
-                    <!-- Status -->
-                    <td class="py-3.5 px-4 align-top">
-                        <span id="order-status-badge-{{ order.id }}" class="status-glow-badge {{ order.status }}">
-                            {% if order.status == 'completed' %}
-                            <i class="fas fa-check-circle text-emerald-400"></i>
-                            {% elif order.status == 'processing' %}
-                            <i class="fas fa-circle-notch fa-spin text-amber-400"></i>
-                            {% elif order.status == 'pending' %}
-                            <i class="fas fa-clock text-sky-400"></i>
-                            {% else %}
-                            <i class="fas fa-times-circle text-rose-400"></i>
-                            {% endif %}
-                            <span>{{ order.get_status_display }}</span>
-                        </span>
-                        {% if order.fulfillment_data.error_code %}
-                        <div class="mt-1.5 flex flex-col gap-0.5">
-                            <span class="px-2 py-0.5 rounded-md bg-rose-500/20 text-rose-300 font-mono font-black text-[10px] border border-rose-500/30 inline-flex items-center gap-1 self-start" title="{{ order.fulfillment_data.admin_error_reason|default:'خطأ من المزود' }}">
-                                <i class="fas fa-exclamation-triangle text-[9px]"></i>
-                                {{ order.fulfillment_data.error_code }}
-                            </span>
-                            {% if order.fulfillment_data.admin_error_reason %}
-                            <span class="text-[10px] text-slate-400 truncate max-w-[140px] font-bold mt-0.5" title="{{ order.fulfillment_data.admin_error_reason }}">
-                                {{ order.fulfillment_data.admin_error_reason }}
-                            </span>
-                            {% endif %}
-                        </div>
-                        {% endif %}
-                    </td>
-
-                    <!-- Actions (Sticky on Left) -->
-                    <td class="py-3.5 px-4 align-top text-left sticky-actions-col">
-                        <div class="flex items-center justify-end gap-1.5 whitespace-nowrap">
-                            {% if order.status == 'pending' or order.status == 'processing' or order.api_order_id or order.api_order_uuid %}
-                            <button type="button" onclick="syncSingleOrderRow('{{ order.id }}', this)" class="p-1.5 rounded-xl bg-sky-500/10 border border-sky-500/25 hover:border-sky-400 text-sky-400 hover:text-white hover:bg-sky-500 transition inline-flex items-center justify-center cursor-pointer shadow-sm" title="فحص ومزامنة حالة هذا الطلب من المزود فوراً">
-                                <i class="fas fa-sync-alt text-xs"></i>
-                            </button>
-                            {% endif %}
-                            <a href="{% url 'control_order_detail' order.id %}" class="px-3.5 py-1.5 rounded-xl bg-gradient-to-r from-cyan-500 to-cyan-400 hover:brightness-110 text-slate-950 font-black text-[11px] transition inline-flex items-center gap-1.5 shadow-md shadow-cyan-500/10 cursor-pointer">
-                                <i class="fas fa-sliders-h text-[10px]"></i>
-                                <span>معالجة الطلب</span>
-                            </a>
-                            <a href="{% url 'dashboard_order_invoice' order.id %}" target="_blank" class="p-1.5 rounded-xl bg-slate-900 border border-white/10 hover:border-cyan text-slate-400 hover:text-cyan transition inline-flex items-center justify-center cursor-pointer" title="معاينة الفاتورة">
-                                <i class="fas fa-print text-xs"></i>
-                            </a>
-                        </div>
-                    </td>
-                </tr>
-                {% empty %}
-                <tr>
-                    <td colspan="6" class="py-16 px-4 text-center">
-                        <div class="w-16 h-16 rounded-3xl bg-slate-900/80 border border-white/10 flex items-center justify-center mx-auto mb-4 text-slate-600 text-2xl">
-                            <i class="fas fa-receipt"></i>
-                        </div>
-                        <h3 class="text-base font-bold text-white mb-1">لا توجد طلبات مطابقة</h3>
-                        <p class="text-xs text-slate-400 max-w-sm mx-auto mb-4">لم يتم العثور على أي طلبات في هذا القسم أو باستخدام معايير البحث الحالية.</p>
-                        {% if query or current_status %}
-                        <a href="{% url 'control_orders_list' %}" class="px-4 py-2 rounded-xl bg-slate-900 border border-white/10 text-cyan text-xs font-bold hover:bg-slate-800 transition inline-flex items-center gap-1.5">
-                            <i class="fas fa-times"></i> مسح معايير الفلترة والبحث
-                        </a>
-                        {% endif %}
-                    </td>
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
+                            <div class="text-white font-bold text-sm">لا توجد طلبات تطابق الفلتر الحالي</div>
+                            <p class="text-slate-500 text-xs mt-1">جرّب اختيار فلتر آخر أو تفريغ خانة البحث</p>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
     </div>
 
     <!-- Pagination -->
     {% if orders.has_other_pages %}
-    <div class="flex flex-col sm:flex-row items-center justify-between gap-4 pt-4 border-t border-white/5">
-        <div class="text-xs text-slate-400 font-mono">
-            صفحة <strong class="text-white">{{ orders.number }}</strong> من <strong class="text-white">{{ orders.paginator.num_pages }}</strong> 
-            (إجمالي {{ orders.paginator.count }} طلب)
+    <div class="flex flex-col sm:flex-row items-center justify-between gap-3 pt-3 border-t border-white/5">
+        <div class="text-xs text-slate-400">
+            عرض صفحة <span class="font-bold text-white font-mono">{{ orders.number }}</span> من إجمالي <span class="font-bold text-white font-mono">{{ orders.paginator.num_pages }}</span> صفحة
         </div>
-
-        <div class="flex items-center gap-1.5">
+        <div class="flex items-center gap-1">
             {% if orders.has_previous %}
-            <a href="?page={{ orders.previous_page_number }}{% if current_status %}&status={{ current_status }}{% endif %}{% if query %}&q={{ query }}{% endif %}" class="px-3 py-1.5 rounded-lg bg-slate-900 border border-white/10 text-slate-300 hover:text-white hover:border-cyan text-xs font-bold transition flex items-center gap-1">
-                <i class="fas fa-chevron-right text-[10px]"></i> السابق
+            <a href="?page={{ orders.previous_page_number }}{% if current_status %}&status={{ current_status }}{% endif %}{% if query %}&q={{ query }}{% endif %}" class="px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 border border-white/10 text-slate-200 text-xs font-bold transition">
+                السابق
             </a>
             {% endif %}
 
-            <div class="flex items-center gap-1 px-2">
-                {% for p in orders.paginator.page_range %}
-                    {% if p >= orders.number|add:"-2" and p <= orders.number|add:"2" %}
-                        <a href="?page={{ p }}{% if current_status %}&status={{ current_status }}{% endif %}{% if query %}&q={{ query }}{% endif %}" class="w-8 h-8 rounded-lg flex items-center justify-center text-xs font-mono font-bold transition {% if orders.number == p %}bg-cyan text-slate-950 shadow-md shadow-cyan/20{% else %}bg-slate-900/80 border border-white/5 text-slate-400 hover:text-white{% endif %}">
-                            {{ p }}
-                        </a>
-                    {% endif %}
-                {% endfor %}
+            <div class="px-3 py-1.5 rounded-xl bg-slate-900 border border-cyan/30 text-cyan text-xs font-mono font-bold">
+                {{ orders.number }}
             </div>
 
             {% if orders.has_next %}
-            <a href="?page={{ orders.next_page_number }}{% if current_status %}&status={{ current_status }}{% endif %}{% if query %}&q={{ query }}{% endif %}" class="px-3 py-1.5 rounded-lg bg-slate-900 border border-white/10 text-slate-300 hover:text-white hover:border-cyan text-xs font-bold transition flex items-center gap-1">
-                التالي <i class="fas fa-chevron-left text-[10px]"></i>
+            <a href="?page={{ orders.next_page_number }}{% if current_status %}&status={{ current_status }}{% endif %}{% if query %}&q={{ query }}{% endif %}" class="px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 border border-white/10 text-slate-200 text-xs font-bold transition">
+                التالي
             </a>
             {% endif %}
         </div>
@@ -658,97 +657,88 @@
 
 </div>
 
-<!-- Live Toast Container -->
-<div id="sync-toast-container" class="fixed bottom-6 left-6 z-50 flex flex-col gap-2 pointer-events-none"></div>
-
+<!-- JavaScript for Copy, Live Sync & Background Polling -->
 <script>
 function showSyncToast(message, type = 'info') {
     const container = document.getElementById('sync-toast-container');
     if (!container) return;
-
+    
     const toast = document.createElement('div');
     const isSuccess = type === 'success';
-    const isWarning = type === 'warning' || type === 'error';
-
-    toast.className = `pointer-events-auto flex items-center gap-3 px-4 py-3 rounded-2xl border shadow-2xl backdrop-blur-md text-xs font-bold transition-all duration-300 transform translate-y-4 opacity-0 ${
-        isSuccess ? 'bg-emerald-950/90 border-emerald-500/40 text-emerald-200 shadow-emerald-500/10' :
-        isWarning ? 'bg-rose-950/90 border-rose-500/40 text-rose-200 shadow-rose-500/10' :
-        'bg-slate-900/90 border-cyan-500/40 text-cyan-200 shadow-cyan-500/10'
-    }`;
-
+    const isError = type === 'error';
     const icon = isSuccess ? 'fa-check-circle text-emerald-400' :
-                 isWarning ? 'fa-exclamation-circle text-rose-400' :
-                 'fa-sync-alt fa-spin text-cyan-400';
+                 isError ? 'fa-exclamation-circle text-rose-400' :
+                 'fa-info-circle text-sky-400';
+    const border = isSuccess ? 'border-emerald-500/40' :
+                   isError ? 'border-rose-500/40' :
+                   'border-sky-500/40';
 
-    toast.innerHTML = `
-        <i class="fas ${icon} text-sm"></i>
-        <span>${message}</span>
-    `;
-
+    toast.className = `p-3 rounded-xl bg-slate-900/95 border ${border} text-white shadow-2xl flex items-center gap-2.5 text-xs pointer-events-auto transition duration-300 transform translate-y-2 opacity-0`;
+    toast.innerHTML = `<i class="fas ${icon} text-sm"></i><span>${message}</span>`;
     container.appendChild(toast);
 
     requestAnimationFrame(() => {
-        toast.classList.remove('translate-y-4', 'opacity-0');
+        toast.classList.remove('translate-y-2', 'opacity-0');
     });
 
     setTimeout(() => {
-        toast.classList.add('translate-y-4', 'opacity-0');
-        setTimeout(() => toast.remove(), 350);
-    }, 4500);
+        toast.classList.add('opacity-0', 'translate-y-2');
+        setTimeout(() => toast.remove(), 300);
+    }, 4000);
 }
 
 function copyToClipboard(text, btn) {
-    if (!text) return;
+    if (!navigator.clipboard) return;
     navigator.clipboard.writeText(text).then(() => {
         const icon = btn.querySelector('i');
         if (icon) {
             const originalClass = icon.className;
-            icon.className = 'fas fa-check text-emerald-400';
+            icon.className = 'fas fa-check text-emerald-400 text-xs';
             setTimeout(() => {
                 icon.className = originalClass;
-            }, 1800);
+            }, 1500);
         }
+        showSyncToast('تم النسخ إلى الحافظة بنجاح: ' + text, 'success');
     }).catch(err => {
-        console.error('Failed to copy text: ', err);
+        console.error('Copy failed:', err);
     });
 }
 
 function updateOrderStatusUI(order) {
     const badge = document.getElementById(`order-status-badge-${order.id}`);
     const row = document.getElementById(`order-row-${order.id}`);
-    if (!badge || !row) return;
+    const mobileCard = document.getElementById(`mobile-order-card-${order.id}`);
 
-    const oldStatus = row.getAttribute('data-order-status');
-    if (oldStatus === order.status) return;
-
-    row.setAttribute('data-order-status', order.status);
-    badge.className = `status-glow-badge ${order.status}`;
+    if (row) {
+        row.setAttribute('data-order-status', order.status);
+    }
 
     let iconHtml = '';
     if (order.status === 'completed') {
-        iconHtml = '<i class="fas fa-check-circle text-emerald-400"></i>';
+        iconHtml = '<i class="fas fa-check-circle"></i>';
     } else if (order.status === 'processing') {
-        iconHtml = '<i class="fas fa-circle-notch fa-spin text-amber-400"></i>';
+        iconHtml = '<i class="fas fa-circle-notch fa-spin"></i>';
     } else if (order.status === 'pending') {
-        iconHtml = '<i class="fas fa-clock text-sky-400"></i>';
+        iconHtml = '<i class="fas fa-clock"></i>';
     } else {
-        iconHtml = '<i class="fas fa-times-circle text-rose-400"></i>';
+        iconHtml = '<i class="fas fa-times-circle"></i>';
     }
 
-    badge.innerHTML = `${iconHtml}<span>${order.status_display}</span>`;
+    if (badge) {
+        badge.className = `status-badge ${order.status}`;
+        badge.innerHTML = `${iconHtml} <span>${order.status_display}</span>`;
+    }
 
-    // Highlight row briefly
-    row.style.transition = 'background-color 0.4s ease';
-    row.style.backgroundColor = order.status === 'completed' ? 'rgba(16, 185, 129, 0.15)' : 'rgba(244, 63, 94, 0.15)';
-    setTimeout(() => {
-        row.style.backgroundColor = '';
-    }, 3000);
-
-    showSyncToast(`تم تحديث الطلب #${order.number}: ${order.status_display}`, order.status === 'completed' ? 'success' : 'warning');
+    if (mobileCard) {
+        const mBadge = mobileCard.querySelector('.status-badge');
+        if (mBadge) {
+            mBadge.className = `status-badge ${order.status} text-[10px]`;
+            mBadge.innerHTML = `${iconHtml} <span>${order.status_display}</span>`;
+        }
+    }
 }
 
 let isSyncing = false;
-
 async function triggerManualSync() {
     if (isSyncing) return;
     isSyncing = true;
@@ -757,14 +747,14 @@ async function triggerManualSync() {
     const icon = document.getElementById('manual-sync-icon');
     const text = document.getElementById('manual-sync-text');
 
-    if (icon) icon.className = 'fas fa-sync-alt fa-spin text-cyan-400';
+    if (icon) icon.className = 'fas fa-sync-alt fa-spin text-cyan';
     if (text) text.innerText = 'جارٍ المزامنة...';
     if (btn) btn.classList.add('opacity-75', 'pointer-events-none');
 
-    try {
-        const rows = document.querySelectorAll('tr[data-order-id]');
-        const ids = Array.from(rows).map(r => r.getAttribute('data-order-id')).filter(Boolean);
+    const rows = document.querySelectorAll('tr[data-order-id]');
+    const ids = Array.from(rows).map(r => r.getAttribute('data-order-id')).filter(Boolean);
 
+    try {
         const url = new URL("{% url 'control_orders_sync_live_ajax' %}", window.location.origin);
         ids.forEach(id => url.searchParams.append('order_ids[]', id));
 
@@ -778,7 +768,7 @@ async function triggerManualSync() {
             if (data.updated_count > 0) {
                 showSyncToast(`تم تحديث ${data.updated_count} طلب من المزود بنجاح.`, 'success');
             } else {
-                showSyncToast('تم فحص الحالات مع المزود، وجميع الطلبات محدثة.', 'info');
+                showSyncToast('كافة الطلبات المعروضة محدثة ومتطابقة مع المزود.', 'info');
             }
         }
     } catch (e) {
@@ -787,13 +777,12 @@ async function triggerManualSync() {
     } finally {
         isSyncing = false;
         if (icon) icon.className = 'fas fa-sync-alt';
-        if (text) text.innerText = 'مزامنة الحالات المعروضة';
+        if (text) text.innerText = 'مزامنة المعروض الآن';
         if (btn) btn.classList.remove('opacity-75', 'pointer-events-none');
     }
 }
 
 let isSyncingOldOrders = false;
-
 async function triggerSyncOldOrders() {
     if (isSyncingOldOrders) return;
     isSyncingOldOrders = true;
@@ -803,10 +792,10 @@ async function triggerSyncOldOrders() {
     const text = document.getElementById('sync-old-orders-text');
 
     if (icon) icon.className = 'fas fa-spinner fa-spin text-amber-300';
-    if (text) text.innerText = 'جارٍ فحص المزود...';
+    if (text) text.innerText = 'جارٍ الفحص...';
     if (btn) btn.classList.add('opacity-75', 'pointer-events-none');
 
-    showSyncToast('جارٍ فحص ومزامنة حالات كافة الطلبات القديمة غير المكتملة مع المزود الخارجي...', 'info');
+    showSyncToast('جارٍ فحص ومزامنة كافة الطلبات غير المكتملة مع المزود...', 'info');
 
     try {
         const url = "{% url 'control_orders_sync_all' %}";
@@ -818,22 +807,20 @@ async function triggerSyncOldOrders() {
         if (data.success) {
             if (data.updated > 0) {
                 showSyncToast(data.message, 'success');
-                setTimeout(() => {
-                    window.location.reload();
-                }, 1500);
+                setTimeout(() => window.location.reload(), 1500);
             } else {
                 showSyncToast(data.message, 'info');
             }
         } else {
-            showSyncToast(data.message || 'حدث خطأ أثناء فحص الطلبات مع المزود.', 'error');
+            showSyncToast(data.message || 'حدث خطأ أثناء فحص الطلبات.', 'error');
         }
     } catch (e) {
         console.error('Sync old orders error:', e);
-        showSyncToast('تعذر الاتصال بالمزود لفحص الطلبات القديمة.', 'error');
+        showSyncToast('تعذر الاتصال بالمزود.', 'error');
     } finally {
         isSyncingOldOrders = false;
-        if (icon) icon.className = 'fas fa-history text-amber-400';
-        if (text) text.innerText = 'تحديث الطلبات القديمة من المزود';
+        if (icon) icon.className = 'fas fa-history';
+        if (text) text.innerText = 'فحص الطلبات العالقة';
         if (btn) btn.classList.remove('opacity-75', 'pointer-events-none');
     }
 }
@@ -841,7 +828,7 @@ async function triggerSyncOldOrders() {
 async function syncSingleOrderRow(orderId, btn) {
     if (!orderId || !btn) return;
     const icon = btn.querySelector('i');
-    if (icon) icon.className = 'fas fa-sync-alt fa-spin text-sky-400';
+    if (icon) icon.className = 'fas fa-sync-alt fa-spin text-cyan';
     btn.disabled = true;
 
     try {
@@ -856,24 +843,23 @@ async function syncSingleOrderRow(orderId, btn) {
         if (data.success && data.orders && data.orders.length) {
             data.orders.forEach(order => updateOrderStatusUI(order));
             if (data.updated_count > 0) {
-                showSyncToast('تم تحديث حالة الطلب من المزود بنجاح.', 'success');
+                showSyncToast('تم تحديث حالة الطلب بنجاح.', 'success');
             } else {
-                showSyncToast('حالة الطلب محدثة ومطابقة لرد المزود.', 'info');
+                showSyncToast('حالة الطلب مطابقة لرد المزود.', 'info');
             }
         }
     } catch (e) {
         console.error('Sync single order error:', e);
-        showSyncToast('تعذر مزامنة هذا الطلب مع المزود.', 'error');
+        showSyncToast('تعذر مزامنة الطلب مع المزود.', 'error');
     } finally {
         if (icon) icon.className = 'fas fa-sync-alt text-xs';
         btn.disabled = false;
     }
 }
 
-// Automatic live background polling every 10 seconds for active orders
 function initLivePolling() {
     setInterval(async () => {
-        if (document.hidden) return; // Save resources when tab is inactive
+        if (document.hidden) return;
 
         const activeRows = document.querySelectorAll('tr[data-order-status="processing"], tr[data-order-status="pending"]');
         if (!activeRows.length) return;
@@ -894,9 +880,9 @@ function initLivePolling() {
                 data.orders.forEach(order => updateOrderStatusUI(order));
             }
         } catch (e) {
-            console.debug('Background order sync silent tick error:', e);
+            console.debug('Background order sync tick:', e);
         }
-    }, 10000);
+    }, 12000);
 }
 
 document.addEventListener('DOMContentLoaded', () => {
