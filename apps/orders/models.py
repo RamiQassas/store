@@ -279,17 +279,133 @@ class Order(TimeStampedModel):
     @property
     def payment_method_display(self):
         meta = self.metadata if isinstance(self.metadata, dict) else {}
-        gw = meta.get("payment_gateway") or meta.get("payment_provider")
-        if gw or meta.get("is_direct_gateway_purchase"):
-            gw_str = str(gw or "بوابة دفع").strip().lower()
-            if "paymera" in gw_str:
-                return "بيميرا (Paymera)"
-            elif "sham" in gw_str:
-                return "شام كاش (Sham Cash)"
-            elif "fmp" in gw_str:
-                return "FMP بوابة"
-            return f"بوابة دفع ({gw})"
+        gw = (
+            meta.get("payment_gateway")
+            or meta.get("payment_provider")
+            or meta.get("gateway")
+            or meta.get("provider")
+            or meta.get("payment_method")
+        )
+        gw_str = str(gw or "").strip().lower()
+        if "paymera" in gw_str or meta.get("paymera_url") or meta.get("paymera_payment_id"):
+            return "بيميرا (Paymera)"
+        elif "sham" in gw_str or meta.get("shamcash_url") or meta.get("shamcash_bill_no"):
+            return "شام كاش (Sham Cash)"
+        elif "fmp" in gw_str:
+            return "بوابة FMP"
+        elif gw and str(gw).strip() and "بوابة" not in str(gw):
+            return str(gw).strip()
+            
+        if getattr(self, "payment_method", None):
+            try:
+                if getattr(self.payment_method, "gateway", None):
+                    gw_prov = getattr(self.payment_method.gateway, "provider", "")
+                    if "sham" in gw_prov.lower():
+                        return "شام كاش (Sham Cash)"
+                    elif "paymera" in gw_prov.lower():
+                        return "بيميرا (Paymera)"
+                    if self.payment_method.gateway.name:
+                        return self.payment_method.gateway.name
+                pm_name = self.payment_method.name
+                if pm_name and "بوابة" not in pm_name:
+                    return pm_name
+            except Exception:
+                pass
+
+        if meta.get("is_direct_gateway_purchase") or meta.get("direct_gateway_purchase"):
+            try:
+                from apps.payments.models import ShamCashBillRecord
+                if ShamCashBillRecord.objects.filter(order=self).exists():
+                    return "شام كاش (Sham Cash)"
+            except Exception:
+                pass
+            return "بيميرا (Paymera)"
+
         return "محفظة رقميات"
+
+    @property
+    def gateway_invoice_url(self):
+        """
+        Returns direct invoice/payment link at provider (ShamCash or Paymera).
+        """
+        meta = self.metadata if isinstance(self.metadata, dict) else {}
+        url = (
+            meta.get("shamcash_url")
+            or meta.get("paymera_url")
+            or meta.get("payment_url")
+            or meta.get("invoice_url")
+        )
+        if url:
+            return url
+        try:
+            from apps.payments.models import ShamCashBillRecord
+            rec = ShamCashBillRecord.objects.filter(order=self).order_by("-created_at").first()
+            if rec and rec.payment_url:
+                return rec.payment_url
+        except Exception:
+            pass
+        return None
+
+    @property
+    def gateway_info_summary(self):
+        """
+        Returns structured dictionary of gateway provider details.
+        """
+        meta = self.metadata if isinstance(self.metadata, dict) else {}
+        prov = meta.get("payment_provider") or meta.get("payment_gateway")
+        gw_id = meta.get("gateway_payment_id") or meta.get("shamcash_bill_no") or meta.get("paymera_payment_id")
+        tran_id = meta.get("tran_id") or meta.get("transaction_id") or meta.get("rrn") or meta.get("gateway_rrn")
+        amt = meta.get("gateway_charge_amount") or meta.get("syp_amount")
+        curr = meta.get("gateway_charge_currency") or ("SYP" if meta.get("syp_amount") else "USD")
+        status_name = meta.get("gateway_payment_status") or meta.get("payment_status")
+
+        invoice_url = self.gateway_invoice_url
+
+        try:
+            from apps.payments.models import ShamCashBillRecord
+            rec = ShamCashBillRecord.objects.filter(order=self).order_by("-created_at").first()
+            if rec:
+                if not gw_id:
+                    gw_id = rec.bill_no
+                if not tran_id and rec.tran_id:
+                    tran_id = rec.tran_id
+                if not amt:
+                    amt = rec.amount
+                if not curr:
+                    curr = rec.currency_code
+                if not status_name:
+                    status_name = rec.status_name
+                if not invoice_url and rec.payment_url:
+                    invoice_url = rec.payment_url
+                if not prov:
+                    prov = "sham_cash"
+        except Exception:
+            pass
+
+        if not gw_id and not invoice_url and not prov and not meta.get("is_direct_gateway_purchase"):
+            return None
+
+        display_status = status_name
+        if str(status_name).lower() in ("a", "accepted", "paid", "4"):
+            display_status = "مدفوع بنجاح (Paid)"
+        elif str(status_name).lower() in ("pending", "1"):
+            display_status = "بانتظار السداد (Pending)"
+        elif str(status_name).lower() in ("refund", "refunded", "2"):
+            display_status = "مسترد (Refunded)"
+        elif str(status_name).lower() in ("expired", "3", "5", "failed"):
+            display_status = "منتهي / ملغي"
+
+        return {
+            "provider": prov or "gateway",
+            "provider_name": self.payment_method_display,
+            "invoice_url": invoice_url,
+            "payment_id": gw_id,
+            "tran_id": tran_id,
+            "amount": amt,
+            "currency": curr,
+            "status": display_status or ("مدفوع" if meta.get("is_paid") else "بانتظار التأكيد"),
+            "is_paid": bool(meta.get("is_paid") or meta.get("gateway_payment_confirmed")),
+        }
 
     @property
     def payment_gateway_charge_info(self):

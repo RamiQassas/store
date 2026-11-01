@@ -842,6 +842,35 @@
         }, 5000);</script>
         {% endif %}
 
+        {% if SYSTEM_UPDATE.has_update and user.role == 'super_admin' or SYSTEM_UPDATE.has_update and user.is_superuser %}
+        <div class="mb-6 p-4 rounded-2xl bg-gradient-to-r from-emerald-950 via-slate-900 to-teal-950 border-2 border-emerald-500/40 shadow-xl shadow-emerald-950/40 flex flex-col sm:flex-row items-center justify-between gap-3 text-right">
+            <div class="flex items-center gap-3">
+                <span class="flex h-3.5 w-3.5 relative shrink-0">
+                    <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                    <span class="relative inline-flex rounded-full h-3.5 w-3.5 bg-emerald-500"></span>
+                </span>
+                <div>
+                    <span class="text-xs font-black text-white">🚀 يتوفر تحديث جديد للنظام من Master!</span>
+                    <span class="text-[11px] text-slate-400 mr-2">الإصدار المتوفر: <code class="font-mono text-emerald-300 font-bold bg-emerald-500/10 px-1.5 py-0.5 rounded">{{ SYSTEM_UPDATE.short_remote_sha }}</code></span>
+                </div>
+            </div>
+            <div class="flex items-center gap-2 shrink-0">
+                <form method="POST" action="{% url 'control_system_updates' %}">
+                    {% csrf_token %}
+                    <input type="hidden" name="action" value="update_latest">
+                    <input type="hidden" name="next" value="{{ request.path }}">
+                    <button type="submit" class="px-4 py-2 bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-slate-950 font-black text-xs rounded-xl shadow-md transition-all flex items-center gap-1.5 cursor-pointer" onclick="return confirm('هل تريد بالتأكيد تطبيق التحديث فوراً إلى أحدث إصدار من Master؟');">
+                        <i class="fas fa-bolt"></i>
+                        <span>تطبيق التحديث فوراً (Master)</span>
+                    </button>
+                </form>
+                <a href="{% url 'control_system_updates' %}" class="px-3 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-bold rounded-xl transition-all">
+                    إدارة التحديثات
+                </a>
+            </div>
+        </div>
+        {% endif %}
+
         {% block control_content %}{% endblock %}
     </main>
 </div>

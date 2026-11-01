@@ -4617,6 +4617,8 @@ def control_order_detail(request, pk):
         "readable_fulfillment": readable_ff,
         "is_shamcash": is_shamcash,
         "is_paymera": is_paymera,
+        "gateway_info": order.gateway_info_summary,
+        "gateway_invoice_url": order.gateway_invoice_url,
         "gateway_bill_no": meta.get("shamcash_bill_no") or gw_payment_id,
         "gateway_payment_id": gw_payment_id or meta.get("paymera_payment_id") or "",
         "gateway_rrn": meta.get("gateway_rrn") or meta.get("rrn") or "",
@@ -11323,20 +11325,19 @@ def control_system_updates(request):
 
         elif action == "update_latest":
             try:
-                # Resume auto deploy and clear cached remote SHA
-                cache.delete("auto_deploy_paused")
+                from apps.common.auto_deploy import apply_git_update
                 cache.delete("github_remote_master_sha")
-                
-                cmd = "git config --global --add safe.directory '*' && git fetch origin master && git reset --hard origin/master && python manage.py migrate --noinput && python manage.py collectstatic --noinput && python manage.py setup_flagship_storefront"
-                proc = subprocess.run(cmd, shell=True, cwd=str(settings.BASE_DIR), capture_output=True, text=True, timeout=240)
-                if proc.returncode == 0:
-                    messages.success(request, "تم تحديث النظام بنجاح إلى أحدث إصدار من Master. جاري إعادة تشغيل الخادم فوراً لتطبيق التغييرات...")
-                    from apps.common.auto_deploy import restart_process_soon
-                    restart_process_soon()
+                cache.delete("system_update_status_summary")
+                success, output = apply_git_update()
+                if success:
+                    messages.success(request, "تم تحديث النظام وتطبيقه بنجاح إلى أحدث إصدار من Master! جاري إعادة تشغيل الخادم لتطبيق التغييرات...")
                 else:
-                    messages.error(request, f"فشل التحديث إلى Master: {proc.stderr[:300]}")
+                    messages.error(request, f"فشل التحديث إلى Master: {output[:300]}")
             except Exception as e:
                 messages.error(request, f"حدث خطأ أثناء التحديث: {str(e)}")
+            next_url = request.POST.get("next")
+            if next_url and next_url.startswith("/"):
+                return redirect(next_url)
             return redirect("control_system_updates")
 
         elif action == "restart_server":
@@ -11348,14 +11349,18 @@ def control_system_updates(request):
                 messages.error(request, f"حدث خطأ أثناء إعادة التشغيل: {str(e)}")
             return redirect("control_system_updates")
 
-        elif action == "toggle_pause":
-            is_paused = cache.get("auto_deploy_paused", False)
-            if is_paused:
-                cache.delete("auto_deploy_paused")
-                messages.success(request, "تم استئناف خدمة التحديث التلقائي بنجاح.")
+        elif action in ("toggle_auto_deploy", "toggle_pause"):
+            from apps.common.auto_deploy import is_auto_deploy_enabled, set_auto_deploy_enabled
+            current_status = is_auto_deploy_enabled()
+            new_status = not current_status
+            set_auto_deploy_enabled(new_status)
+            if new_status:
+                messages.success(request, "تم تشغيل ميزة التحديث التلقائي الفوري بنجاح. سيتم فحص وتطبيق أي تحديث جديد على Master فوراً.")
             else:
-                cache.set("auto_deploy_paused", True, None)
-                messages.warning(request, "تم إيقاف خدمة التحديث التلقائي مؤقتاً.")
+                messages.warning(request, "تم إيقاف ميزة التحديث التلقائي الفوري. لن يتم تطبيق أي تحديث إلا يدوياً عبر زر التحديث.")
+            next_url = request.POST.get("next")
+            if next_url and next_url.startswith("/"):
+                return redirect(next_url)
             return redirect("control_system_updates")
 
     # Read current state
@@ -11400,8 +11405,10 @@ def control_system_updates(request):
         cache.delete("github_remote_master_sha")
         messages.info(request, "تم تحديث بيانات الاتصال بـ GitHub مباشرة.")
 
+    from apps.common.auto_deploy import is_auto_deploy_enabled
     remote_sha = get_remote_commit_sha(bypass_cache=bypass_cache)
-    is_paused = cache.get("auto_deploy_paused", False)
+    auto_deploy_enabled = is_auto_deploy_enabled()
+    is_paused = not auto_deploy_enabled
 
     if remote_sha and current_hash:
         is_up_to_date = bool(remote_sha.strip().lower() == current_hash.strip().lower())
@@ -11414,9 +11421,11 @@ def control_system_updates(request):
         "remote_sha": remote_sha,
         "short_remote_sha": remote_sha[:7] if remote_sha else "",
         "is_up_to_date": is_up_to_date,
+        "has_update": bool(remote_sha and current_hash and not is_up_to_date),
         "has_remote": bool(remote_sha),
         "commits": commits,
         "is_paused": is_paused,
+        "auto_deploy_enabled": auto_deploy_enabled,
     }
     return render(request, "site/control_system_updates.html", context)
 

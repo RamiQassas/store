@@ -177,21 +177,21 @@
                 </button>
             </form>
 
-            <!-- Toggle Auto-Deploy Pause / Active -->
+            <!-- Toggle Auto-Deploy On / Off Button -->
             <form method="POST">
                 {% csrf_token %}
-                <input type="hidden" name="action" value="toggle_pause">
-                {% if is_paused %}
-                <button type="submit" class="px-4 py-2.5 bg-slate-800 border border-amber-500/40 hover:bg-slate-700 text-amber-300 font-black text-xs rounded-xl flex items-center gap-2 shadow-lg transition-all" title="اضغط لتفعيل التحديث التلقائي الفوري من GitHub بدون تدخل">
-                    <span class="w-2 h-2 rounded-full bg-amber-400"></span>
-                    <i class="fas fa-play"></i>
-                    <span>تفعيل التحديث التلقائي (غير مفعل حالياً)</span>
+                <input type="hidden" name="action" value="toggle_auto_deploy">
+                {% if auto_deploy_enabled %}
+                <button type="submit" class="px-4 py-2.5 bg-emerald-500/15 border border-emerald-500/40 hover:bg-emerald-500/25 text-emerald-300 font-black text-xs rounded-xl flex items-center gap-2 shadow-lg transition-all" title="اضغط لإطفاء ميزة التحديث التلقائي الفوري">
+                    <span class="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse"></span>
+                    <i class="fas fa-toggle-on text-emerald-400 text-base"></i>
+                    <span>ميزة التحديث التلقائي: شغالة (مفعلة)</span>
                 </button>
                 {% else %}
-                <button type="submit" class="px-4 py-2.5 bg-gradient-to-r from-emerald-500/20 to-teal-500/20 border border-emerald-500/40 hover:border-emerald-400 text-emerald-300 font-black text-xs rounded-xl flex items-center gap-2 shadow-lg shadow-emerald-500/10 transition-all" title="التحديث التلقائي يعمل: أي تحديث يصل إلى GitHub يتم تطبيقه فوراً دون تدخل أو تأكيد">
-                    <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
-                    <i class="fas fa-bolt text-amber-400"></i>
-                    <span>التحديث التلقائي نشط (Auto-Sync ON)</span>
+                <button type="submit" class="px-4 py-2.5 bg-slate-800 border border-amber-500/40 hover:bg-slate-700 text-amber-300 font-black text-xs rounded-xl flex items-center gap-2 shadow-lg transition-all" title="اضغط لتشغيل ميزة التحديث التلقائي الفوري">
+                    <span class="w-2.5 h-2.5 rounded-full bg-amber-400"></span>
+                    <i class="fas fa-toggle-off text-slate-400 text-base"></i>
+                    <span>ميزة التحديث التلقائي: مطفأة (معطلة)</span>
                 </button>
                 {% endif %}
             </form>
@@ -208,16 +208,83 @@
         </div>
     </div>
 
-    <!-- Alert / Notice if Paused -->
-    {% if is_paused %}
-    <div class="p-4 rounded-2xl bg-amber-500/10 border border-amber-500/25 text-amber-200 text-xs flex items-center gap-3">
-        <i class="fas fa-exclamation-triangle text-amber-400 text-lg flex-shrink-0"></i>
-        <div>
-            <span class="font-black">التحديث التلقائي متوقف مؤقتاً (Auto-Deploy Paused):</span>
-            النظام يعمل الآن على إصدار محدد يدوياً. لن يقوم الخادم بسحب التحديثات تلقائياً حتى تقوم باستئناف التحديث التلقائي أو الترقية لأحدث إصدار.
+    <!-- Prominent Update Available Banner -->
+    {% if not is_up_to_date and short_remote_sha %}
+    <div class="p-5 md:p-6 rounded-2xl bg-gradient-to-r from-emerald-950/90 via-slate-900/95 to-teal-950/90 border-2 border-emerald-500/60 shadow-2xl shadow-emerald-500/20 flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div class="flex items-start gap-4">
+            <div class="w-12 h-12 rounded-2xl bg-emerald-500/20 border border-emerald-500/40 text-emerald-400 flex items-center justify-center text-2xl shrink-0 shadow-lg shadow-emerald-500/20">
+                <i class="fas fa-cloud-arrow-down"></i>
+            </div>
+            <div>
+                <div class="flex items-center gap-2">
+                    <span class="px-2.5 py-0.5 rounded-full bg-emerald-500/20 border border-emerald-500/40 text-emerald-300 text-[10px] font-black uppercase tracking-wider">
+                        تحديث متاح الآن
+                    </span>
+                    <span class="text-xs text-slate-400">إصدار أحدث متوفر في مستودع Master</span>
+                </div>
+                <h2 class="text-base md:text-lg font-black text-white mt-1">يتوفر تحديث جديد للنظام من Master</h2>
+                <div class="flex items-center gap-3 mt-1.5 text-xs">
+                    <span class="text-slate-400">الإصدار الحالي: <code class="font-mono text-slate-300 font-bold bg-white/5 px-2 py-0.5 rounded">{{ short_current_hash|default:"N/A" }}</code></span>
+                    <i class="fas fa-arrow-left text-emerald-400 text-[10px]"></i>
+                    <span class="text-slate-400">الإصدار الأحدث: <code class="font-mono text-emerald-300 font-bold bg-emerald-500/10 border border-emerald-500/30 px-2 py-0.5 rounded">{{ short_remote_sha }}</code></span>
+                </div>
+            </div>
         </div>
+
+        <form method="POST" onsubmit="return confirm('هل تريد بالتأكيد تطبيق التحديث فوراً إلى أحدث إصدار من Master؟ سيتم سحب أحدث كود وتطبيق الترحيلات وإعادة تشغيل الخادم.');" class="shrink-0">
+            {% csrf_token %}
+            <input type="hidden" name="action" value="update_latest">
+            <button type="submit" class="w-full md:w-auto px-6 py-3.5 bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-slate-950 font-black text-sm rounded-xl shadow-xl shadow-emerald-500/30 flex items-center justify-center gap-2 transition-all transform hover:scale-[1.02] active:scale-[0.98] cursor-pointer">
+                <i class="fas fa-bolt text-amber-950"></i>
+                <span>تطبيق التحديث فوراً إلى أحدث إصدار (Master)</span>
+            </button>
+        </form>
     </div>
     {% endif %}
+
+    <!-- Feature Switch Card: Auto-Deploy Feature Control -->
+    <div class="updates-card border {% if auto_deploy_enabled %}border-emerald-500/30 bg-emerald-950/20{% else %}border-amber-500/30 bg-amber-950/15{% endif %}">
+        <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
+            <div class="flex items-start gap-3.5">
+                <div class="w-12 h-12 rounded-2xl {% if auto_deploy_enabled %}bg-emerald-500/10 text-emerald-400 border border-emerald-500/30{% else %}bg-amber-500/10 text-amber-400 border border-amber-500/30{% endif %} flex items-center justify-center text-xl shrink-0">
+                    <i class="fas fa-robot"></i>
+                </div>
+                <div>
+                    <div class="flex items-center gap-2">
+                        <h3 class="text-sm font-black text-white">ميزة التحديث التلقائي الفوري إلى Master</h3>
+                        {% if auto_deploy_enabled %}
+                        <span class="px-2 py-0.5 rounded-md bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 text-[10px] font-black">شغالة ومفعلة</span>
+                        {% else %}
+                        <span class="px-2 py-0.5 rounded-md bg-amber-500/20 text-amber-300 border border-amber-500/40 text-[10px] font-black">مطفأة ومعطلة</span>
+                        {% endif %}
+                    </div>
+                    <p class="text-xs text-slate-300 mt-1 max-w-2xl leading-relaxed">
+                        {% if auto_deploy_enabled %}
+                        الميزة تعمل حالياً: يقوم النظام بمراقبة مستودع <strong>Master</strong> بشكل دائم، وعند توفر أي تحديث جديد يتم تطبيقه فوراً وتلقائياً على النظام بدون الحاجة لأي تدخل منك.
+                        {% else %}
+                        الميزة مطفأة حالياً: لن يتم تحديث النظام تلقائياً عند توفر إصدار جديد. يمكنك التحكم يدوياً والضغط على زر <strong>تطبيق التحديث فوراً</strong> في الوقت الذي يناسبك.
+                        {% endif %}
+                    </p>
+                </div>
+            </div>
+
+            <form method="POST">
+                {% csrf_token %}
+                <input type="hidden" name="action" value="toggle_auto_deploy">
+                {% if auto_deploy_enabled %}
+                <button type="submit" class="px-5 py-2.5 bg-rose-500/15 hover:bg-rose-500/25 border border-rose-500/40 text-rose-300 font-bold text-xs rounded-xl flex items-center gap-2 transition-all cursor-pointer">
+                    <i class="fas fa-power-off"></i>
+                    <span>إطفاء ميزة التحديث التلقائي</span>
+                </button>
+                {% else %}
+                <button type="submit" class="px-5 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white font-black text-xs rounded-xl shadow-lg shadow-emerald-900/30 flex items-center gap-2 transition-all cursor-pointer">
+                    <i class="fas fa-play"></i>
+                    <span>تشغيل ميزة التحديث التلقائي</span>
+                </button>
+                {% endif %}
+            </form>
+        </div>
+    </div>
 
     <!-- Top Status Cards -->
     <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">

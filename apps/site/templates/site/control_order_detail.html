@@ -324,6 +324,106 @@
 </div>
 {% endif %}
 
+
+<!-- Top Quick Processing & Provider Invoice Dossier Card (Mobile & Desktop Quick Access) -->
+<div class="mb-6 p-4 sm:p-5 rounded-2xl bg-gradient-to-r from-slate-900 via-slate-900 to-slate-950 border border-white/10 shadow-xl space-y-4">
+    <!-- Top Row: Status + Quick Action Buttons (Immediate access on mobile without scrolling!) -->
+    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-3.5 border-b border-white/5">
+        <div class="flex items-center gap-3">
+            <span class="status-glow-badge {{ order.status }} text-xs py-1 px-3">
+                {% if order.status == 'completed' %}
+                <i class="fas fa-check-circle text-emerald-400"></i>
+                {% elif order.status == 'processing' %}
+                <i class="fas fa-circle-notch fa-spin text-amber-400"></i>
+                {% elif order.status == 'pending' %}
+                <i class="fas fa-clock text-sky-400"></i>
+                {% else %}
+                <i class="fas fa-times-circle text-rose-400"></i>
+                {% endif %}
+                <span class="font-black text-sm">{{ order.get_status_display }}</span>
+            </span>
+            <span class="text-xs text-slate-400 font-mono">الإجمالي: <strong class="text-white font-mono text-sm">{% currency_format order.total_amount %}</strong></span>
+        </div>
+
+        <!-- Quick Status Change Buttons -->
+        <div class="flex items-center flex-wrap gap-2">
+            {% if order.status != 'completed' %}
+            <form method="post" onsubmit="return confirm('هل تريد تأكيد إكمال وتسليم هذا الطلب الآن؟');" class="inline">
+                {% csrf_token %}
+                <input type="hidden" name="action" value="update_status">
+                <input type="hidden" name="status" value="completed">
+                <input type="hidden" name="admin_note" value="تم تأكيد إكمال وتسليم الطلب للعميل">
+                <button type="submit" class="px-3.5 py-2 bg-emerald-600 hover:bg-emerald-500 text-white font-black text-xs rounded-xl shadow-md transition flex items-center gap-1.5 cursor-pointer">
+                    <i class="fas fa-check-circle"></i>
+                    <span>إكمال وتسليم الطلب</span>
+                </button>
+            </form>
+            {% endif %}
+
+            {% if order.status != 'processing' %}
+            <form method="post" class="inline">
+                {% csrf_token %}
+                <input type="hidden" name="action" value="update_status">
+                <input type="hidden" name="status" value="processing">
+                <input type="hidden" name="admin_note" value="جاري تجهيز ومعالجة الطلب">
+                <button type="submit" class="px-3.5 py-2 bg-amber-600/80 hover:bg-amber-600 text-white font-black text-xs rounded-xl shadow-md transition flex items-center gap-1.5 cursor-pointer">
+                    <i class="fas fa-spinner"></i>
+                    <span>قيد المعالجة</span>
+                </button>
+            </form>
+            {% endif %}
+
+            {% if order.status != 'cancelled' and order.status != 'refunded' %}
+            <button type="button" onclick="document.getElementById('status-update-section').scrollIntoView({behavior: 'smooth'})" class="px-3 py-2 bg-slate-800 hover:bg-rose-950/80 hover:border-rose-500/40 border border-white/10 text-rose-300 font-bold text-xs rounded-xl transition flex items-center gap-1.5 cursor-pointer">
+                <i class="fas fa-undo"></i>
+                <span>خيارات الإلغاء والاسترداد</span>
+            </button>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Provider Payment & Invoice Row -->
+    <div class="p-3.5 rounded-xl bg-slate-950/70 border border-white/5 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs">
+        <div class="flex items-center gap-3">
+            <div class="w-10 h-10 rounded-xl bg-teal-500/10 border border-teal-500/20 text-teal-400 flex items-center justify-center text-lg shrink-0">
+                <i class="fas fa-receipt"></i>
+            </div>
+            <div>
+                <div class="flex items-center gap-2">
+                    <span class="font-black text-white text-xs">{{ order.payment_method_display }}</span>
+                    {% if order.gateway_info_summary.status %}
+                    <span class="px-2 py-0.5 rounded bg-emerald-500/15 border border-emerald-500/30 text-emerald-300 text-[10px] font-bold">
+                        {{ order.gateway_info_summary.status }}
+                    </span>
+                    {% endif %}
+                </div>
+                <div class="flex items-center gap-2 mt-1 text-[11px] text-slate-400 font-mono flex-wrap">
+                    {% if gateway_bill_no %}
+                    <span>رقم الفاتورة: <strong class="text-slate-200">{{ gateway_bill_no }}</strong></span>
+                    {% endif %}
+                    {% if order.payment_gateway_charge_info %}
+                    <span class="text-slate-500">•</span>
+                    <span>المبلغ المسدد: <strong class="text-emerald-300">{{ order.payment_gateway_charge_info.amount }} {{ order.payment_gateway_charge_info.currency }}</strong></span>
+                    {% endif %}
+                    {% if gateway_rrn %}
+                    <span class="text-slate-500">•</span>
+                    <span>RRN: <strong class="text-slate-300">{{ gateway_rrn }}</strong></span>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        {% if order.gateway_invoice_url %}
+        <div class="shrink-0">
+            <a href="{{ order.gateway_invoice_url }}" target="_blank" class="w-full sm:w-auto px-4 py-2.5 bg-gradient-to-r from-teal-500 to-emerald-500 hover:from-teal-400 hover:to-emerald-400 text-slate-950 font-black text-xs rounded-xl shadow-lg shadow-teal-500/20 inline-flex items-center justify-center gap-2 transition cursor-pointer">
+                <i class="fas fa-external-link-alt"></i>
+                <span>عرض الفاتورة الأصلية لدى المزود ↗</span>
+            </a>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
 <!-- Main Grid Layout -->
 <div class="order-detail-grid">
     
@@ -628,7 +728,7 @@
     <div class="space-y-6">
         
         <!-- Sidebar Card 1: Update Status Form -->
-        <div class="detail-card border-cyan/30 shadow-lg shadow-cyan/5">
+        <div id="status-update-section" class="detail-card border-cyan/30 shadow-lg shadow-cyan/5">
             <div class="detail-header bg-cyan-500/[0.03]">
                 <div class="flex items-center gap-2">
                     <i class="fas fa-sliders-h text-cyan text-sm"></i>
@@ -847,16 +947,19 @@
         {% endif %}
 
         {% if order.api_order_id or order.api_order_uuid or order.items.all %}
-        <!-- Sidebar Card 2: Alkasr API Integration Info -->
-        <div class="detail-card border-sky-500/25 bg-sky-950/10">
-            <div class="detail-header border-sky-500/15">
-                <div class="flex items-center gap-2">
-                    <i class="fas fa-plug text-sky-400 text-sm"></i>
-                    <h3 class="text-sm font-black text-sky-400">مزود الخدمة الخارجي (Alkasr)</h3>
-                </div>
-            </div>
+        <!-- Collapsible Developer Details Accordion (Hides technical jargon by default) -->
+        <details class="detail-card border-slate-700/60 bg-slate-950/40 rounded-2xl group/dev overflow-hidden">
+            <summary class="p-4 cursor-pointer flex items-center justify-between text-xs font-bold text-slate-300 hover:text-white transition select-none">
+                <span class="flex items-center gap-2">
+                    <i class="fas fa-code text-cyan text-sm"></i>
+                    <span>التفاصيل البرمجية والفنية (للمطورين والربط التقني)</span>
+                </span>
+                <span class="text-[11px] text-slate-500 font-mono group-open/dev:rotate-180 transition-transform">
+                    <i class="fas fa-chevron-down"></i>
+                </span>
+            </summary>
 
-            <div class="detail-body space-y-3">
+            <div class="p-4 pt-2 border-t border-white/5 space-y-3">
                 <div class="field-box">
                     <span class="text-[10px] font-black uppercase text-slate-500 block mb-1">رقم الطلب لدى المزود (ID)</span>
                     <div class="flex items-center justify-between gap-2">
@@ -932,7 +1035,7 @@
                     </button>
                 </form>
             </div>
-        </div>
+        </details>
         {% endif %}
 
         <!-- Sidebar Card 3: Price Adjustment -->

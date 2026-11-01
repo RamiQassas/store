@@ -290,8 +290,119 @@
         </div>
     </div>
 
-    <!-- Orders Table Container -->
-    <div class="overflow-x-auto rounded-2xl border border-white/5">
+    <!-- Mobile Cards View (Visible on Mobile Only - Prevents Horizontal Scrolling) -->
+    <div class="block md:hidden space-y-3 mb-6">
+        {% for order in orders %}
+        <div class="p-4 rounded-2xl bg-slate-900/90 border border-white/5 space-y-3 shadow-lg" id="mobile-order-card-{{ order.id }}">
+            <!-- Header: Order #, Status, Date -->
+            <div class="flex items-center justify-between gap-2 border-b border-white/5 pb-2.5">
+                <div class="flex items-center gap-1.5">
+                    <a href="{% url 'control_order_detail' order.id %}" class="font-black text-cyan hover:underline font-mono text-sm">#{{ order.number }}</a>
+                    <button type="button" onclick="copyToClipboard('{{ order.number }}', this)" class="text-slate-500 hover:text-cyan p-0.5">
+                        <i class="far fa-copy text-xs"></i>
+                    </button>
+                </div>
+                <div class="flex items-center gap-1.5">
+                    <span class="status-glow-badge {{ order.status }} text-[10px] py-0.5 px-2">
+                        <span>{{ order.get_status_display }}</span>
+                    </span>
+                    <span class="text-[10px] text-slate-500 font-mono">{{ order.created_at|date:"m/d H:i" }}</span>
+                </div>
+            </div>
+
+            <!-- Customer -->
+            <div class="flex items-center justify-between text-xs">
+                <div class="flex items-center gap-2 min-w-0">
+                    <div class="w-7 h-7 rounded-lg bg-cyan/15 text-cyan flex items-center justify-center font-bold text-xs shrink-0">
+                        {{ order.customer.email|slice:":1"|upper }}
+                    </div>
+                    <div class="min-w-0 truncate">
+                        <div class="font-bold text-white truncate">{{ order.customer.get_full_name|default:order.customer.username }}</div>
+                        <div class="text-[10px] text-slate-400 font-mono truncate">{{ order.customer.email }}</div>
+                    </div>
+                </div>
+                {% if order.shipping_phone %}
+                <a href="tel:{{ order.shipping_phone }}" class="px-2 py-1 rounded-lg bg-slate-800 text-slate-300 text-[10px] font-mono shrink-0 flex items-center gap-1">
+                    <i class="fas fa-phone text-[9px] text-cyan"></i> {{ order.shipping_phone }}
+                </a>
+                {% endif %}
+            </div>
+
+            <!-- Product / Variant -->
+            {% with item=order.items.first %}
+            <div class="p-2.5 rounded-xl bg-slate-950/60 border border-white/5 flex items-center justify-between gap-2 text-xs">
+                <div class="min-w-0 truncate">
+                    <span class="font-bold text-slate-200 block truncate">{{ item.variant.product.name }}</span>
+                    <span class="text-[10px] text-cyan font-bold">{{ item.variant.name }} <span class="text-slate-400">× {{ item.quantity }}</span></span>
+                </div>
+                <div class="text-left shrink-0">
+                    <div class="font-black text-white font-mono text-sm">{% currency_format order.total_amount %}</div>
+                </div>
+            </div>
+            {% endwith %}
+
+            <!-- Payment Method & Provider Invoice Link -->
+            <div class="flex flex-wrap items-center justify-between gap-2 pt-1 text-xs">
+                <div class="flex items-center gap-1.5 flex-wrap">
+                    <span class="inline-flex items-center gap-1 text-[10px] px-2 py-0.5 rounded-md font-bold border {% if order.payment_gateway_charge_info %}bg-emerald-500/10 text-emerald-400 border-emerald-500/20{% else %}bg-cyan-500/10 text-cyan-400 border-cyan-500/20{% endif %}">
+                        <i class="fas {% if order.payment_gateway_charge_info %}fa-credit-card{% else %}fa-wallet{% endif %} text-[9px]"></i>
+                        {{ order.payment_method_display }}
+                    </span>
+                    {% if order.payment_gateway_charge_info %}
+                    <span class="text-[10px] font-mono font-bold text-emerald-400">{{ order.payment_gateway_charge_info.amount }} {{ order.payment_gateway_charge_info.currency }}</span>
+                    {% endif %}
+                </div>
+
+                {% if order.gateway_invoice_url %}
+                <a href="{{ order.gateway_invoice_url }}" target="_blank" class="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-teal-500/15 hover:bg-teal-500/25 border border-teal-500/40 text-[10px] font-bold text-teal-300 transition">
+                    <i class="fas fa-external-link-alt text-[8px]"></i>
+                    <span>فاتورة المزود ↗</span>
+                </a>
+                {% endif %}
+            </div>
+
+            <!-- Customer Input Metadata Chips -->
+            {% if order.formatted_metadata %}
+            <div class="flex flex-wrap gap-1.5 pt-1">
+                {% for meta in order.formatted_metadata %}
+                <div class="meta-chip text-slate-300" title="{{ meta.label }}: {{ meta.value }}">
+                    <span class="text-slate-500 font-bold shrink-0">{{ meta.label }}:</span>
+                    <span class="font-mono text-cyan-200 truncate max-w-[120px]">{{ meta.value }}</span>
+                    <button type="button" onclick="copyToClipboard('{{ meta.value|escapejs }}', this)" class="text-slate-500 hover:text-cyan p-0.5">
+                        <i class="far fa-copy text-[8px]"></i>
+                    </button>
+                </div>
+                {% endfor %}
+            </div>
+            {% endif %}
+
+            <!-- Mobile Actions Bar (Big & Easy to Tap) -->
+            <div class="grid grid-cols-3 gap-2 pt-2 border-t border-white/5">
+                <a href="{% url 'control_order_detail' order.id %}" class="col-span-2 py-2.5 rounded-xl bg-gradient-to-r from-cyan-500 to-cyan-400 text-slate-950 font-black text-xs text-center flex items-center justify-center gap-1.5 shadow-md shadow-cyan-500/15">
+                    <i class="fas fa-sliders-h text-[10px]"></i>
+                    <span>معالجة الطلب</span>
+                </a>
+                <div class="flex items-center gap-1.5">
+                    {% if order.status == 'pending' or order.status == 'processing' or order.api_order_id or order.api_order_uuid %}
+                    <button type="button" onclick="syncSingleOrderRow('{{ order.id }}', this)" class="flex-1 py-2.5 rounded-xl bg-sky-500/10 border border-sky-500/25 text-sky-400 flex items-center justify-center" title="مزامنة المزود">
+                        <i class="fas fa-sync-alt text-xs"></i>
+                    </button>
+                    {% endif %}
+                    <a href="{% url 'dashboard_order_invoice' order.id %}" target="_blank" class="flex-1 py-2.5 rounded-xl bg-slate-800 border border-white/10 text-slate-400 hover:text-cyan flex items-center justify-center" title="الفاتورة">
+                        <i class="fas fa-print text-xs"></i>
+                    </a>
+                </div>
+            </div>
+        </div>
+        {% empty %}
+        <div class="p-8 text-center bg-slate-900/60 rounded-2xl border border-white/5">
+            <p class="text-xs text-slate-400">لا توجد طلبات مطابقة.</p>
+        </div>
+        {% endfor %}
+    </div>
+
+    <!-- Orders Table Container (Desktop / Tablet) -->
+    <div class="hidden md:block overflow-x-auto rounded-2xl border border-white/5">
         <table class="w-full text-right border-collapse min-w-[950px]">
             <thead>
                 <tr class="bg-slate-950/70 text-slate-400 text-[11px] font-black uppercase tracking-wider border-b border-white/5">
@@ -420,15 +531,21 @@
                         <div class="font-black text-white text-sm font-mono tracking-tight">
                             {% currency_format order.total_amount %}
                         </div>
-                        <div class="mt-1">
-                            <span class="inline-flex items-center gap-1 text-[9px] px-2 py-0.5 rounded font-bold border {% if order.payment_gateway_charge_info %}bg-emerald-500/10 text-emerald-400 border-emerald-500/20{% else %}bg-cyan-500/10 text-cyan-400 border-cyan-500/20{% endif %}">
+                        <div class="mt-1 flex flex-col gap-1">
+                            <span class="inline-flex items-center gap-1 text-[9px] px-2 py-0.5 rounded font-bold border {% if order.payment_gateway_charge_info %}bg-emerald-500/10 text-emerald-400 border-emerald-500/20{% else %}bg-cyan-500/10 text-cyan-400 border-cyan-500/20{% endif %} self-start">
                                 <i class="fas {% if order.payment_gateway_charge_info %}fa-credit-card{% else %}fa-wallet{% endif %} text-[8px]"></i>
                                 {{ order.payment_method_display }}
                             </span>
                             {% if order.payment_gateway_charge_info %}
-                            <div class="text-[9px] font-mono text-emerald-300 font-bold mt-0.5">
+                            <div class="text-[9px] font-mono text-emerald-300 font-bold">
                                 {{ order.payment_gateway_charge_info.amount }} {{ order.payment_gateway_charge_info.currency }}
                             </div>
+                            {% endif %}
+                            {% if order.gateway_invoice_url %}
+                            <a href="{{ order.gateway_invoice_url }}" target="_blank" class="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-teal-500/15 hover:bg-teal-500/25 border border-teal-500/30 text-[9px] font-bold text-teal-300 transition self-start" title="عرض فاتورة الدفع لدى المزود">
+                                <i class="fas fa-external-link-alt text-[8px]"></i>
+                                <span>فاتورة المزود ↗</span>
+                            </a>
                             {% endif %}
                         </div>
                         {% if order.coupon %}

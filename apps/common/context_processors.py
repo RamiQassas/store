@@ -104,5 +104,11 @@ def common_context(request):
     if user and user.is_authenticated:
         context["UNREAD_NOTIFICATIONS_COUNT"] = Notification.objects.filter(user=user, is_read=False).count()
         context["RECENT_NOTIFICATIONS"] = Notification.objects.filter(user=user).order_by("-created_at")[:10]
-        
+        if getattr(user, "is_superuser", False) or getattr(user, "role", "") == "super_admin":
+            try:
+                from apps.common.auto_deploy import check_update_status
+                context["SYSTEM_UPDATE"] = check_update_status(bypass_cache=False)
+            except Exception:
+                context["SYSTEM_UPDATE"] = {}
+
     return context

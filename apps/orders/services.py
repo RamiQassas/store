@@ -1276,10 +1276,11 @@ def finalize_paid_gateway_order(order, gateway_data=None):
                         prod.is_out_of_stock = True
                     prod.save(update_fields=["quantity", "is_out_of_stock"])
 
-            locked_order.status = Order.Status.COMPLETED
+            # Set status to PROCESSING (paid, pending preparation & fulfillment) - NOT COMPLETED!
+            locked_order.status = Order.Status.PROCESSING
             fulfillment = dict(locked_order.fulfillment_data or {})
-            fulfillment["حالة الطلب"] = "تم سداد وتأكيد قيمة الطلب بنجاح عبر بوابة الدفع، وحالة الطلب مكتمل."
-            fulfillment["notes"] = "تم تأكيد السداد وإكمال الطلب بنجاح."
+            fulfillment["حالة السداد"] = "تم سداد وتأكيد قيمة الطلب بنجاح عبر بوابة الدفع الإلكترونية، الطلب قيد التجهيز والمعالجة."
+            fulfillment["notes"] = "تم استلام الدفعة بنجاح، جاري تجهيز الطلب للتسليم."
             locked_order.fulfillment_data = fulfillment
             locked_order.save(update_fields=["status", "fulfillment_data", "metadata", "updated_at"])
 
@@ -1449,11 +1450,20 @@ def finalize_paid_gateway_order(order, gateway_data=None):
                     category="order_update",
                     priority="high"
                 )
+            elif locked_order.status == Order.Status.COMPLETED:
+                notify_user(
+                    user=customer,
+                    title="تم تنفيذ وتسليم طلبك بنجاح 🎉",
+                    body=f"تم تسليم طلبك رقم {locked_order.number} بنجاح. شكراً لتسوقك معنا!",
+                    action_url=f"/dashboard/orders/{locked_order.id}/",
+                    category="order_update",
+                    priority="high"
+                )
             else:
                 notify_user(
                     user=customer,
-                    title="تم تأكيد طلبك بنجاح",
-                    body=f"تم استلام دفعتك للطلب رقم {locked_order.number} بنجاح وجاري تنفيذه.",
+                    title="تم استلام دفعتك بنجاح ✅",
+                    body=f"تم استلام دفعتك للطلب رقم {locked_order.number} بنجاح، والطلب الآن قيد المعالجة والتجهيز.",
                     action_url=f"/dashboard/orders/{locked_order.id}/",
                     category="order_update",
                     priority="high"
