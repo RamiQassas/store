@@ -423,7 +423,12 @@ def clean_fulfillment_items(fulfillment):
         "api_error", "alkasr", "api_order_id",
         "ملاحظات وبيانات التنفيذ", "image_url",
         "all_server_responses", "ردود السيرفر", "error_code",
-        "admin_error_reason", "admin_error_tip", "admin_error_raw", "admin_cancel_reason"
+        "admin_error_reason", "admin_error_tip", "admin_error_raw", "admin_cancel_reason",
+        "currency_places", "gateway_currency", "selected_currency", "displayed_unit_price",
+        "is_paid", "exchange_rate", "base_usd_amount", "payment_gateway", "payment_provider",
+        "gateway_charge_amount", "gateway_payment_status", "gateway_charge_currency",
+        "gateway_payment_confirmed", "shamcash_url", "shamcash_bill_no", "paymera_payment_id",
+        "notes", "حالة الطلب", "user_email", "provider", "cart_checkout", "is_direct_gateway_purchase"
     }
 
     delivery_val = extract_clean_text(fulfillment.get("بيانات التسليم والأكواد") or fulfillment.get("keys") or fulfillment.get("كود التفعيل / البطاقة"))
@@ -557,3 +562,11 @@ def category_display_image(category):
     return "/media/categories/raqamiyat_category_brand.jpg"
 
 
+
+@register.filter(name="intcomma_fmt")
+def intcomma_fmt(value):
+    try:
+        val = int(round(float(value)))
+        return f"{val:,}"
+    except (ValueError, TypeError):
+        return value

@@ -724,7 +724,7 @@
     if (!scValEl) return;
     if (activeShamCashCurrency === 'SYP') {
       const sypTotal = Math.round(totalBaseUsd * sypExchangeRate);
-      scValEl.textContent = sypTotal.toLocaleString('en-US') + ' ل.س (سعر الصرف: ' + Math.round(sypExchangeRate).toLocaleString('en-US') + ' ل.س/$)';
+      scValEl.textContent = sypTotal.toLocaleString('en-US') + ' ل.س';
     } else {
       scValEl.textContent = '$' + totalBaseUsd.toFixed(2) + ' USD';
     }

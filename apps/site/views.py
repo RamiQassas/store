@@ -5487,17 +5487,22 @@ def control_products_list(request):
             image_choice = request.POST.get("image_choice", "official")
             use_official_emblem = (image_choice == "official") or (request.POST.get("use_official_emblem") == "1")
 
-            if store:
-                qs = Product.all_objects.filter(store=store)
-            else:
-                qs = Product.all_objects.filter(store__isnull=True)
-            if apply_to == "category" and category_id:
-                qs = qs.filter(category_id=category_id)
-            elif apply_to == "selected" and product_ids:
-                qs = qs.filter(id__in=product_ids)
+            if apply_to == "selected" and product_ids:
+                qs = Product.all_objects.filter(id__in=product_ids)
+            elif apply_to == "category" and category_id:
+                qs = Product.all_objects.filter(category_id=category_id)
+                if store:
+                    qs = qs.filter(store=store)
             elif apply_to == "missing_only":
                 from django.db.models import Q
-                qs = qs.filter(Q(image__isnull=True) | Q(image=""))
+                qs = Product.all_objects.filter(Q(image__isnull=True) | Q(image=""))
+                if store:
+                    qs = qs.filter(store=store)
+            else:
+                if store:
+                    qs = Product.all_objects.filter(store=store)
+                else:
+                    qs = Product.all_objects.all()
 
             # Ensure default media file physically exists on disk
             target_dir = os.path.join(settings.MEDIA_ROOT, "products", "main")

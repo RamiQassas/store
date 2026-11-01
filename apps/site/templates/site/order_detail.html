@@ -6,7 +6,7 @@
 {% block content %}
 <div class="rq-dash-container" style="max-width: 1020px;">
 
-  <!-- 1. Compact Header & Quick Actions -->
+  <!-- 1. Header & Quick Actions -->
   <div style="display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 1rem; margin-bottom: 1.35rem;">
     <div>
       <div style="display: flex; align-items: center; gap: 0.6rem; margin-bottom: 0.25rem;">
@@ -17,11 +17,13 @@
           الطلب <span style="font-family: monospace; color: var(--rq-primary);">#{{ order.number }}</span>
         </h1>
         {% if order.status == 'completed' or order.metadata.is_paid %}
-        <span class="rq-status-pill rq-status-completed">مكتمل ✓</span>
+        <span class="rq-status-pill rq-status-completed">مكتمل ومسلّم ✓</span>
         {% elif order.status == 'processing' %}
-        <span class="rq-status-pill rq-status-processing">قيد المعالجة</span>
+        <span class="rq-status-pill rq-status-processing">قيد التجهيز 📦</span>
         {% elif order.status == 'pending' %}
-        <span class="rq-status-pill rq-status-pending">بانتظار الدفع</span>
+        <span class="rq-status-pill rq-status-pending">بانتظار السداد ⏳</span>
+        {% elif order.status == 'refunded' %}
+        <span class="rq-status-pill rq-status-processing" style="background: rgba(147, 51, 234, 0.12); color: #9333ea; border-color: rgba(147, 51, 234, 0.3);">مسترد ↩</span>
         {% else %}
         {% if "المستخدم" in order.admin_note %}
         <span class="rq-status-pill rq-status-cancelled" style="background: rgba(245, 158, 11, 0.15); color: #f59e0b; border: 1px solid rgba(245, 158, 11, 0.35);"><i class="fas fa-ban ml-1"></i> ملغي من المستخدم</span>
@@ -31,7 +33,7 @@
         {% endif %}
       </div>
       <span style="font-size: 0.8rem; color: var(--rq-text-muted);">
-        تاريخ الطلب: {{ order.created_at|date:"Y-m-d H:i" }}
+        تاريخ ووقت الطلب: {{ order.created_at|date:"Y-m-d H:i" }}
       </span>
     </div>
 
@@ -57,28 +59,85 @@
     </div>
   </div>
 
-  <!-- 2. Visual 3-Step Order Progress Tracker -->
+  <!-- 2. Status Summary & Stage Banner (اسفل حالة الطلب) -->
+  <div style="background: var(--rq-surface-card); border: 1px solid var(--rq-border); border-radius: 14px; padding: 1.1rem 1.35rem; margin-bottom: 1.5rem; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 1rem; box-shadow: var(--rq-shadow-xs);">
+    <div style="display: flex; align-items: center; gap: 0.85rem;">
+      <div style="width: 44px; height: 44px; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 1.25rem;
+        {% if order.status == 'completed' or order.metadata.is_paid %}background: #ecfdf5; color: #059669;
+        {% elif order.status == 'processing' %}background: #eff6ff; color: #2563eb;
+        {% elif order.status == 'pending' %}background: #fffbeb; color: #d97706;
+        {% elif order.status == 'cancelled' %}background: #fef2f2; color: #dc2626;
+        {% elif order.status == 'refunded' %}background: #faf5ff; color: #9333ea;
+        {% else %}background: #f1f5f9; color: #475569;{% endif %}">
+        {% if order.status == 'completed' or order.metadata.is_paid %}<i class="fas fa-check-circle"></i>
+        {% elif order.status == 'processing' %}<i class="fas fa-box-open"></i>
+        {% elif order.status == 'pending' %}<i class="fas fa-clock"></i>
+        {% elif order.status == 'cancelled' %}<i class="fas fa-ban"></i>
+        {% elif order.status == 'refunded' %}<i class="fas fa-undo"></i>
+        {% else %}<i class="fas fa-info-circle"></i>{% endif %}
+      </div>
+      <div>
+        <div style="font-size: 0.98rem; font-weight: 900; color: var(--rq-navy);">
+          {% if order.status == 'completed' or order.metadata.is_paid %}
+            تم تأكيد السداد وإكمال الطلب بنجاح ✓
+          {% elif order.status == 'processing' %}
+            طلبك قيد التجهيز والإعداد للشحن والتسليم 📦
+          {% elif order.status == 'pending' %}
+            الطلب قيد الانتظار والتحقق من السداد ⏳
+          {% elif order.status == 'cancelled' %}
+            تم إلغاء هذا الطلب
+          {% elif order.status == 'refunded' %}
+            تم استرداد كامل المبلغ بنجاح ↩
+          {% else %}
+            {{ order.get_status_display }}
+          {% endif %}
+        </div>
+        <div style="font-size: 0.8rem; color: var(--rq-text-secondary); margin-top: 3px;">
+          {% if order.status == 'completed' or order.metadata.is_paid %}
+            تم استلام المبلغ وتأكيد السداد وتجهيز الطلب بنجاح. شكراً لتسوقك من منصة رقميات!
+          {% elif order.status == 'processing' %}
+            تم تأكيد السداد بنجاح وجارٍ الآن إعداد الطلب وتجهيزه للتسليم لشركة الشحن والتوصيل.
+          {% elif order.status == 'pending' %}
+            بانتظار استكمال تأكيد الدفع عبر بوابة السداد. سيتم تحديث حالة طلبك فورياً بمجرد إتمام السداد.
+          {% elif order.status == 'cancelled' %}
+            تم إلغاء عملية الطلب ولم يتم احتساب أو خصم أي مبالغ.
+          {% elif order.status == 'refunded' %}
+            تمت إعادة أموال هذا الطلب مباشرة إلى وسيلة الدفع التي استخدمتها.
+          {% else %}
+            متابعة فورية ومباشرة لحالة طلبك.
+          {% endif %}
+        </div>
+      </div>
+    </div>
+    <div style="font-size: 0.82rem; color: var(--rq-text-muted); display: flex; flex-direction: column; gap: 0.25rem;">
+      <div><strong style="color: var(--rq-navy);">رقم الطلب:</strong> <span class="font-mono text-primary font-bold">#{{ order.number }}</span></div>
+      <div><strong style="color: var(--rq-navy);">وقت وتاريخ الدفع:</strong> {{ order.created_at|date:"Y-m-d H:i" }}</div>
+    </div>
+  </div>
+
+  <!-- 3. Visual 3-Step Order Progress Tracker -->
   {% if order.status != 'cancelled' and order.status != 'refunded' %}
   <div class="rq-step-bar" style="margin-bottom: 1.5rem;">
     <div class="rq-step-item done">
       <span class="rq-step-dot"><i class="fas fa-check text-[10px]"></i></span>
-      <span>تم الاستلام</span>
+      <span>تم استلام وسداد الطلب</span>
     </div>
-    <div class="rq-step-line {% if order.status == 'processing' or order.status == 'completed' %}done{% endif %}"></div>
-    <div class="rq-step-item {% if order.status == 'completed' %}done{% elif order.status == 'processing' %}active{% endif %}">
+    <div class="rq-step-line {% if order.status == 'processing' or order.status == 'completed' or order.metadata.is_paid %}done{% endif %}"></div>
+    <div class="rq-step-item {% if order.status == 'completed' %}done{% elif order.status == 'processing' or order.metadata.is_paid %}active{% endif %}">
       <span class="rq-step-dot">{% if order.status == 'completed' %}<i class="fas fa-check text-[10px]"></i>{% else %}2{% endif %}</span>
-      <span>قيد التنفيذ</span>
+      <span>قيد التجهيز والشحن</span>
     </div>
     <div class="rq-step-line {% if order.status == 'completed' %}done{% endif %}"></div>
     <div class="rq-step-item {% if order.status == 'completed' %}done{% endif %}">
       <span class="rq-step-dot">{% if order.status == 'completed' %}<i class="fas fa-check text-[10px]"></i>{% else %}3{% endif %}</span>
-      <span>مكتمل ومسلم</span>
+      <span>مكتمل ومسلّم للعميل</span>
     </div>
   </div>
   {% endif %}
 
-  <!-- 3. Digital Keys & Fulfillment Vault (1-Click Copy) -->
-  {% if order.fulfillment_data %}
+  <!-- 4. Digital Activation Codes / Delivery Items (Shown only if actual digital codes exist) -->
+  {% with clean_items=order.fulfillment_data|clean_fulfillment_items %}
+  {% if clean_items %}
   <div class="rq-keys-shelf" style="margin-bottom: 1.5rem;">
     <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.9rem;">
       <div style="display: flex; align-items: center; gap: 0.6rem;">
@@ -86,16 +145,15 @@
           <i class="fas fa-key"></i>
         </div>
         <div>
-          <h3 style="font-size: 0.98rem; font-weight: 900; color: var(--rq-navy); margin: 0;">بيانات تجهيز وشحن الطلب</h3>
-          <span style="font-size: 0.74rem; color: #059669; font-weight: 600;">معلومات وتفاصيل الشحنة والتجهيز</span>
+          <h3 style="font-size: 0.98rem; font-weight: 900; color: var(--rq-navy); margin: 0;">بيانات التسليم والرموز</h3>
+          <span style="font-size: 0.74rem; color: #059669; font-weight: 600;">كود التفعيل / تفاصيل التسليم</span>
         </div>
       </div>
       <span class="rq-status-pill rq-status-completed">جاهز ✓</span>
     </div>
 
     <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 0.75rem;">
-      {% for key, val in order.fulfillment_data.items %}
-      {% if key != 'api_provider' and key != 'api_status' and key != 'api_last_response' and key != 'api_refunded' and key != 'response' and key != 'api_response' and key != 'api_error' and key != 'alkasr' %}
+      {% for key, val in clean_items %}
       <div class="rq-key-code-box" style="padding: 0.8rem 1rem;">
         <div style="min-width: 0;">
           <span style="font-size: 0.68rem; font-weight: 800; color: var(--rq-text-muted); text-transform: uppercase; display: block;">{{ key }}</span>
@@ -106,42 +164,19 @@
           <span>نسخ</span>
         </button>
       </div>
-      {% endif %}
-      {% endfor %}
-    </div>
-  </div>
-  {% endif %}
-
-  <!-- 4. Live Server Response (If Any) -->
-  {% with responses=order.get_server_responses %}
-  {% if responses %}
-  <div style="background: var(--rq-primary-soft); border: 1px solid rgba(37, 99, 235, 0.2); border-radius: 14px; padding: 1.15rem 1.35rem; margin-bottom: 1.5rem;">
-    <div style="font-size: 0.86rem; font-weight: 800; color: var(--rq-primary); margin-bottom: 0.65rem; display: flex; align-items: center; gap: 0.4rem;">
-      <i class="fas fa-bolt"></i>
-      <span>تأكيد تجهيز الطلب والشحن</span>
-    </div>
-    <div style="display: flex; flex-direction: column; gap: 0.5rem;">
-      {% for res in responses %}
-      <div style="background: var(--rq-surface-card); border: 1px solid var(--rq-border); border-radius: 10px; padding: 0.75rem 1rem; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 0.5rem;">
-        <div style="font-size: 0.82rem; color: var(--rq-navy);">
-          {% if res.account_name %}<div><strong>الحساب:</strong> {{ res.account_name }}</div>{% endif %}
-          {% if res.package_info %}<div style="color: var(--rq-text-secondary);">{{ res.package_info }}</div>{% endif %}
-          {% if res.status_msg %}<div style="color: var(--rq-text-muted); font-size: 0.76rem;">{{ res.status_msg }}</div>{% endif %}
-        </div>
-        <span class="rq-status-pill rq-status-completed">تم التجهيز ✓</span>
-      </div>
       {% endfor %}
     </div>
   </div>
   {% endif %}
   {% endwith %}
 
-  <!-- 5. Clean 2-Column Order Content -->
-  <div style="display: grid; grid-template-columns: 1fr; gap: 1.5rem;" class="lg:grid-cols-[1fr_320px]">
+  <!-- 5. 2-Column Content: Details + Payment Receipt -->
+  <div style="display: grid; grid-template-columns: 1fr; gap: 1.5rem;" class="lg:grid-cols-[1fr_340px]">
 
-    <!-- Right Column (RTL): Items & Submitted Details -->
+    <!-- Right Column (RTL): Order Items & Shipping Address -->
     <div style="display: flex; flex-direction: column; gap: 1.25rem;">
 
+      <!-- Products in Order -->
       <div style="background: var(--rq-surface-card); border: 1px solid var(--rq-border); border-radius: 16px; padding: 1.35rem; box-shadow: var(--rq-shadow-xs);">
         <h3 style="font-size: 0.96rem; font-weight: 900; color: var(--rq-navy); margin: 0 0 1rem; display: flex; align-items: center; gap: 0.45rem;">
           <i class="fas fa-box" style="color: var(--rq-primary);"></i>
@@ -175,33 +210,21 @@
           {% endfor %}
         </div>
 
-        {% if order.metadata %}
-        <div style="margin-top: 1.15rem; padding-top: 1rem; border-top: 1px solid var(--rq-border);">
-          <div style="font-size: 0.8rem; font-weight: 800; color: var(--rq-navy); margin-bottom: 0.5rem;">بيانات الطلب الإضافية:</div>
-          <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 0.5rem;">
-            {% for mkey, mval in order.metadata.items %}
-            {% if mkey != 'provider' and mkey != 'api_order_id' and mkey != 'alkasr' and mkey != 'gateway_payment_id' and mkey != 'paymera_payment_id' and mkey != 'shamcash_bill_no' and mkey != 'is_direct_gateway_purchase' and mkey != 'cart_checkout' %}
-            <div style="padding: 0.5rem 0.75rem; background: var(--rq-bg-body); border-radius: 8px; border: 1px solid var(--rq-border); font-size: 0.76rem;">
-              <span style="color: var(--rq-text-muted); display: block; font-size: 0.68rem;">{{ mkey }}</span>
-              <strong style="color: var(--rq-navy); font-family: monospace;">{{ mval }}</strong>
-            </div>
-            {% endif %}
-            {% endfor %}
-          </div>
-        </div>
-        {% endif %}
-
         {% if order.shipping_name or order.shipping_address %}
         <div style="margin-top: 1.15rem; padding-top: 1rem; border-top: 1px solid var(--rq-border);">
-          <div style="font-size: 0.8rem; font-weight: 800; color: var(--rq-navy); margin-bottom: 0.4rem;">عنوان التوصيل والشحن:</div>
-          <div style="font-size: 0.84rem; color: var(--rq-text-secondary); line-height: 1.6;">
-            <div style="font-weight: 700;">{{ order.shipping_name }} — {{ order.shipping_phone }}</div>
-            <div style="color: var(--rq-text-muted);">{{ order.shipping_address }}</div>
+          <div style="font-size: 0.82rem; font-weight: 800; color: var(--rq-navy); margin-bottom: 0.45rem; display: flex; align-items: center; gap: 0.4rem;">
+            <i class="fas fa-truck" style="color: var(--rq-primary);"></i>
+            <span>عنوان التوصيل والشحن:</span>
+          </div>
+          <div style="font-size: 0.84rem; color: var(--rq-text-secondary); line-height: 1.6; background: var(--rq-bg-body); padding: 0.75rem 1rem; border-radius: 10px; border: 1px solid var(--rq-border);">
+            <div style="font-weight: 700; color: var(--rq-navy);">{{ order.shipping_name }} {% if order.shipping_phone %}— <span class="font-mono text-primary">{{ order.shipping_phone }}</span>{% endif %}</div>
+            {% if order.shipping_address %}<div style="color: var(--rq-text-muted); margin-top: 2px;">{{ order.shipping_address }}</div>{% endif %}
           </div>
         </div>
         {% endif %}
       </div>
 
+      <!-- Order Timeline Logs -->
       {% if order.logs.all %}
       <div style="background: var(--rq-surface-card); border: 1px solid var(--rq-border); border-radius: 16px; padding: 1.35rem; box-shadow: var(--rq-shadow-xs);">
         <h3 style="font-size: 0.94rem; font-weight: 900; color: var(--rq-navy); margin: 0 0 0.85rem; display: flex; align-items: center; gap: 0.45rem;">
@@ -224,16 +247,97 @@
 
     </div>
 
-    <!-- Left Column (RTL): Compact Receipt & Support -->
+    <!-- Left Column (RTL): Standard Payment Summary & Actions -->
     <div style="display: flex; flex-direction: column; gap: 1.25rem;">
 
       <div style="background: var(--rq-surface-card); border: 1px solid var(--rq-border); border-radius: 16px; padding: 1.35rem; box-shadow: var(--rq-shadow-xs);">
-        <h4 style="font-size: 0.95rem; font-weight: 900; color: var(--rq-navy); margin: 0 0 1rem;">ملخص الدفع</h4>
+        <h4 style="font-size: 0.95rem; font-weight: 900; color: var(--rq-navy); margin: 0 0 1rem; display: flex; align-items: center; gap: 0.45rem;">
+          <i class="fas fa-receipt" style="color: var(--rq-primary);"></i>
+          <span>بيانات الدفع والعملية</span>
+        </h4>
 
-        <div style="display: flex; flex-direction: column; gap: 0.6rem; font-size: 0.84rem;">
-          <div style="display: flex; justify-content: space-between; color: var(--rq-text-secondary);">
-            <span>المجموع الفرعي:</span>
-            <span class="tabular-nums font-mono" style="color: var(--rq-navy); font-weight: 700;">{% format_price order.subtotal|default:order.total_amount %}</span>
+        <!-- Standard Payment Fields -->
+        <div style="display: flex; flex-direction: column; gap: 0.7rem; font-size: 0.84rem;">
+
+          <!-- Order Status -->
+          <div style="display: flex; justify-content: space-between; align-items: center;">
+            <span style="color: var(--rq-text-secondary);">حالة الطلب:</span>
+            <span style="font-weight: 800;
+              {% if order.status == 'completed' or order.metadata.is_paid %}color: #059669;
+              {% elif order.status == 'processing' %}color: #2563eb;
+              {% elif order.status == 'pending' %}color: #d97706;
+              {% elif order.status == 'cancelled' %}color: #dc2626;
+              {% else %}color: var(--rq-navy);{% endif %}">
+              {% if order.status == 'completed' or order.metadata.is_paid %}مكتمل ومسلّم ✓
+              {% elif order.status == 'processing' %}قيد التجهيز 📦
+              {% elif order.status == 'pending' %}بانتظار السداد ⏳
+              {% elif order.status == 'cancelled' %}ملغي ✕
+              {% elif order.status == 'refunded' %}مسترد ↩
+              {% else %}{{ order.get_status_display }}{% endif %}
+            </span>
+          </div>
+
+          <!-- Payment Status -->
+          <div style="display: flex; justify-content: space-between; align-items: center;">
+            <span style="color: var(--rq-text-secondary);">حالة الدفع:</span>
+            {% if order.status == 'completed' or order.status == 'processing' or order.metadata.is_paid %}
+            <span style="font-weight: 800; color: #059669;"><i class="fas fa-check-circle ml-1"></i> مدفوع ومؤكد بنجاح</span>
+            {% elif order.status == 'pending' %}
+            <span style="font-weight: 800; color: #d97706;"><i class="fas fa-clock ml-1"></i> بانتظار السداد</span>
+            {% elif order.status == 'refunded' %}
+            <span style="font-weight: 800; color: #9333ea;"><i class="fas fa-undo ml-1"></i> تم الاسترداد</span>
+            {% else %}
+            <span style="font-weight: 800; color: #dc2626;"><i class="fas fa-ban ml-1"></i> {{ order.get_status_display }}</span>
+            {% endif %}
+          </div>
+
+          <!-- Payment Method -->
+          <div style="display: flex; justify-content: space-between; align-items: center;">
+            <span style="color: var(--rq-text-secondary);">طريقة الدفع:</span>
+            {% if order.metadata.payment_provider == 'sham_cash' or order.metadata.payment_gateway == 'sham_cash' %}
+            <span style="font-weight: 800; color: #0d9488;"><i class="fas fa-bolt ml-1"></i> شام كاش (ShamCash)</span>
+            {% elif order.metadata.payment_provider == 'paymera' or order.metadata.payment_gateway == 'paymera' %}
+            <span style="font-weight: 800; color: #4f46e5;"><i class="fas fa-credit-card ml-1"></i> بيميرا (Paymera)</span>
+            {% elif order.payment_method %}
+            <span style="font-weight: 800; color: var(--rq-navy);">{{ order.get_payment_method_display }}</span>
+            {% else %}
+            <span style="font-weight: 800; color: var(--rq-primary);"><i class="fas fa-wallet ml-1"></i> محفظة رقميات</span>
+            {% endif %}
+          </div>
+
+          <!-- Amount Paid in USD -->
+          <div style="display: flex; justify-content: space-between; align-items: center;">
+            <span style="color: var(--rq-text-secondary);">المبلغ بالدولار:</span>
+            <span class="tabular-nums font-mono" style="font-weight: 800; color: var(--rq-navy);">${{ order.total_amount|floatformat:2 }} USD</span>
+          </div>
+
+          <!-- Amount Paid in SYP (If ShamCash Syrian Pounds) -->
+          {% if order.metadata.gateway_charge_currency == 'SYP' and order.metadata.gateway_charge_amount %}
+          <div style="display: flex; justify-content: space-between; align-items: center; color: #0d9488; font-weight: 800; padding: 0.5rem 0.6rem; background: rgba(13, 148, 136, 0.08); border-radius: 8px; border: 1px solid rgba(13, 148, 136, 0.2);">
+            <span>المبلغ المدفوع بالليرة:</span>
+            <span class="tabular-nums font-mono" style="font-size: 0.95rem;">{{ order.metadata.gateway_charge_amount|intcomma_fmt }} ل.س</span>
+          </div>
+          {% endif %}
+
+          <!-- Payment Date & Time -->
+          <div style="display: flex; justify-content: space-between; align-items: center;">
+            <span style="color: var(--rq-text-secondary);">وقت وتاريخ الدفع:</span>
+            <span class="font-mono" style="font-size: 0.78rem; color: var(--rq-text-muted);">{{ order.created_at|date:"Y-m-d H:i" }}</span>
+          </div>
+
+          <!-- Gateway Reference / Bill No -->
+          {% with ref_no=order.metadata.gateway_payment_id|default:order.metadata.shamcash_bill_no|default:order.metadata.paymera_payment_id %}
+          {% if ref_no %}
+          <div style="display: flex; justify-content: space-between; align-items: center; padding-top: 0.4rem; border-top: 1px solid var(--rq-border);">
+            <span style="color: var(--rq-text-secondary); font-size: 0.78rem;">رقم عملية الدفع:</span>
+            <span class="font-mono text-xs font-bold" style="color: var(--rq-navy); max-width: 180px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="{{ ref_no }}">{{ ref_no }}</span>
+          </div>
+          {% endif %}
+          {% endwith %}
+
+          <div style="display: flex; justify-content: space-between; align-items: center;">
+            <span style="color: var(--rq-text-secondary); font-size: 0.78rem;">رقم الطلب:</span>
+            <span class="font-mono text-xs font-bold text-primary">#{{ order.number }}</span>
           </div>
 
           {% if order.discount_amount and order.discount_amount > 0 %}
@@ -243,19 +347,14 @@
           </div>
           {% endif %}
 
-          <div style="display: flex; justify-content: space-between; padding-top: 0.65rem; border-top: 1px solid var(--rq-border); font-size: 1rem; font-weight: 900; color: var(--rq-navy);">
+          <div style="display: flex; justify-content: space-between; padding-top: 0.75rem; border-top: 1px solid var(--rq-border); font-size: 1rem; font-weight: 900; color: var(--rq-navy);">
             <span>الإجمالي:</span>
-            <span class="tabular-nums font-mono" style="color: var(--rq-primary); font-size: 1.2rem;">{% format_price order.total_amount %}</span>
+            <span class="tabular-nums font-mono" style="color: var(--rq-primary); font-size: 1.25rem;">{% format_price order.total_amount %}</span>
           </div>
         </div>
 
-        <div style="margin-top: 1rem; padding-top: 0.85rem; border-top: 1px solid var(--rq-border); display: flex; align-items: center; justify-content: space-between; font-size: 0.8rem;">
-          <span style="color: var(--rq-text-muted);">وسيلة الدفع:</span>
-          <span style="font-weight: 800; color: #059669;"><i class="fas fa-check-circle ml-1"></i>{{ order.get_payment_method_display|default:'المحفظة' }}</span>
-        </div>
-
         <!-- Refund Request Section -->
-        <div style="margin-top: 1rem; padding-top: 0.85rem; border-top: 1px solid var(--rq-border);">
+        <div style="margin-top: 1.15rem; padding-top: 0.85rem; border-top: 1px solid var(--rq-border);">
           {% if order.metadata.refund_requested %}
             {% if order.metadata.refund_status == 'approved' %}
             <div style="padding: 0.75rem; background: rgba(16, 185, 129, 0.1); border: 1px solid rgba(16, 185, 129, 0.25); border-radius: 12px; font-size: 0.8rem; color: #10b981;">
