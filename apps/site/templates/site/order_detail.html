@@ -326,14 +326,12 @@
           </div>
 
           <!-- Gateway Reference / Bill No -->
-          {% with ref_no=order.metadata.gateway_payment_id|default:order.metadata.shamcash_bill_no|default:order.metadata.paymera_payment_id %}
-          {% if ref_no %}
+          {% if order.gateway_reference_id %}
           <div style="display: flex; justify-content: space-between; align-items: center; padding-top: 0.4rem; border-top: 1px solid var(--rq-border);">
             <span style="color: var(--rq-text-secondary); font-size: 0.78rem;">رقم عملية الدفع:</span>
-            <span class="font-mono text-xs font-bold" style="color: var(--rq-navy); max-width: 180px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="{{ ref_no }}">{{ ref_no }}</span>
+            <span class="font-mono text-xs font-bold" style="color: var(--rq-navy); max-width: 180px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="{{ order.gateway_reference_id }}">{{ order.gateway_reference_id }}</span>
           </div>
           {% endif %}
-          {% endwith %}
 
           <div style="display: flex; justify-content: space-between; align-items: center;">
             <span style="color: var(--rq-text-secondary); font-size: 0.78rem;">رقم الطلب:</span>

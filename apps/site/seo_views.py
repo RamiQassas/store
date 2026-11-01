@@ -136,8 +136,14 @@ def custom_404_view(request, exception=None):
 
 def custom_500_view(request):
     """
-    Renders a graceful 500 error page.
+    Renders a graceful 500 error page and notifies admins.
     """
+    try:
+        from apps.common.middleware import record_server_error_and_notify
+        record_server_error_and_notify(request, status_code=500)
+    except Exception:
+        pass
+
     return render(request, "500.html", {
         "status_code": 500,
     }, status=500)

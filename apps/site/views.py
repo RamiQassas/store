@@ -1854,6 +1854,14 @@ def get_category_with_descendants_ids(category_id):
     """
     if not category_id:
         return set()
+    category_id_str = str(category_id).strip()
+    if category_id_str.lower() in ("all", "none", "null", "undefined", ""):
+        return set()
+    import uuid
+    try:
+        uuid.UUID(category_id_str)
+    except (ValueError, TypeError):
+        return set()
     
     all_pairs = Category.objects.filter(is_active=True, is_publicly_visible=True).values_list("id", "parent_id")
     children_map = {}
@@ -2147,6 +2155,16 @@ def stores_directory(request):
 def catalog(request):
     store = getattr(request, "store", None)
     cat_id = request.GET.get("category")
+    if cat_id:
+        cat_id_clean = str(cat_id).strip().lower()
+        if cat_id_clean in ("all", "none", "null", "undefined", ""):
+            cat_id = None
+        else:
+            import uuid
+            try:
+                uuid.UUID(str(cat_id).strip())
+            except (ValueError, TypeError):
+                cat_id = None
     q = request.GET.get("q", "").strip()
     sort = request.GET.get("sort", "newest")
     cols = request.GET.get("cols", "2")
@@ -5597,6 +5615,16 @@ def control_products_list(request):
     base_prod_qs = products
     products = products.select_related('category').prefetch_related('variants').order_by('sort_order', 'name')
     cat_id = request.GET.get('category')
+    if cat_id:
+        cat_id_clean = str(cat_id).strip().lower()
+        if cat_id_clean in ("all", "none", "null", "undefined", ""):
+            cat_id = None
+        else:
+            import uuid
+            try:
+                uuid.UUID(str(cat_id).strip())
+            except (ValueError, TypeError):
+                cat_id = None
     active_category = None
     if cat_id:
         active_category = base_cat_qs.filter(id=cat_id).first()

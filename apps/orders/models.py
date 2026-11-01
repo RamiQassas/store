@@ -265,6 +265,18 @@ class Order(TimeStampedModel):
         return results
 
     @property
+    def gateway_reference_id(self):
+        meta = self.metadata if isinstance(self.metadata, dict) else {}
+        return (
+            meta.get("gateway_payment_id")
+            or meta.get("shamcash_bill_no")
+            or meta.get("paymera_payment_id")
+            or meta.get("bill_no")
+            or meta.get("tran_id")
+            or None
+        )
+
+    @property
     def payment_method_display(self):
         meta = self.metadata if isinstance(self.metadata, dict) else {}
         gw = meta.get("payment_gateway") or meta.get("payment_provider")

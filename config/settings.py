@@ -231,6 +231,7 @@ MIDDLEWARE = [
     "django.contrib.messages.middleware.MessageMiddleware",
     "apps.accounts.middleware.AccountStatusMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
+    "apps.common.middleware.ServerErrorNotificationMiddleware",
 ]
 
 ROOT_URLCONF = "config.urls"
