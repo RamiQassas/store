@@ -2530,6 +2530,7 @@ def v3_security_triggers_view(request):
     return render(request, "site/v3/v3_security_triggers.html", {"sp_verified": sp_verified})
 
 def product_detail(request, pk):
+    from decimal import Decimal, ROUND_HALF_UP
     from django.http import Http404
     import uuid
     clean_pk = str(pk).strip()
