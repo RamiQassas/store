@@ -205,7 +205,7 @@ class Order(TimeStampedModel):
             Order.objects.filter(pk=self.pk).update(fulfillment_data=ff_data)
 
     def formatted_metadata(self):
-        """Returns a list of dicts with 'label' and 'value' for metadata."""
+        """Returns a list of dicts with 'label' and 'value' for customer input metadata only."""
         if not self.metadata or not isinstance(self.metadata, dict):
             return []
             
@@ -220,15 +220,31 @@ class Order(TimeStampedModel):
             
         fields = schema.get("fields", []) if isinstance(schema, dict) else []
         
-        # Create a mapping of field key to label
+        # Create a mapping of field key to human label
         label_map = {}
         for f in fields:
             if isinstance(f, dict):
                 lbl = f.get("label", "")
                 fid = f.get("name") or f.get("id") or f.get("key") or lbl
                 if fid:
-                    label_map[fid] = lbl
+                    label_map[str(fid).strip()] = str(lbl).strip() if lbl else str(fid).strip()
         
+        # If the product defines explicit form schema fields, strictly return ONLY those fields!
+        if label_map:
+            for key, lbl in label_map.items():
+                if key in self.metadata and self.metadata[key] not in (None, "") and not isinstance(self.metadata[key], (dict, list)):
+                    results.append({"label": lbl, "value": self.metadata[key]})
+            if results:
+                return results
+
+        # Fallback if no schema is defined:
+        # Strictly exclude all technical/internal/gateway/refund/calculation keys:
+        SYSTEM_KEY_PREFIXES = (
+            "api", "paymera", "shamcash", "gateway", "payment", "refund", "alkasr",
+            "tafa3ol", "checkout", "stripe", "direct_", "is_", "has_", "csrf", "session",
+            "cookie", "cart", "external", "raw_", "ff_", "provider", "order_", "exchange",
+            "base_", "currency_", "selected_", "displayed_"
+        )
         EXCLUDED_KEYS = {
             "api_provider", "api_status", "api_last_response", "api_refunded",
             "response", "api_response", "api_error", "alkasr", "provider",
@@ -240,26 +256,49 @@ class Order(TimeStampedModel):
             "payment_method", "client_secret", "payment_status", "order_channel",
             "paymera_url", "paymera_payment_id", "syp_amount", "paymera",
             "gateway_charge_amount", "gateway_charge_currency", "tafa3ol",
-            "notes", "admin_notes", "price_adjustment_reason"
+            "notes", "admin_notes", "price_adjustment_reason", "is_paid",
+            "exchange_rate", "base_usd_amount", "currency_places", "selected_currency",
+            "displayed_unit_price", "shamcash_url", "shamcash_bill_no", "shamcash_refunded",
+            "shamcash_refund_actor", "shamcash_refund_reason", "shamcash_refund_tran_id",
+            "shamcash_refund_timestamp", "refund_reason", "refund_status", "refund_requested",
+            "refund_approved_at", "refund_approved_by", "refund_requested_at",
+            "refund_rejection_reason", "gateway_currency", "bill_no", "tran_id",
+            "gateway_payment_confirmed", "paymera_otp", "actor", "timestamp"
         }
+        COMMON_LABELS = {
+            "player_id": "آيدي اللاعب",
+            "playerid": "آيدي اللاعب",
+            "player_name": "اسم اللاعب",
+            "account_id": "معرف الحساب",
+            "user_id": "معرف المستخدم",
+            "server": "السيرفر",
+            "server_id": "معرف السيرفر",
+            "zone": "المنطقة / الزون",
+            "zone_id": "معرف المنطقة (Zone ID)",
+            "character_name": "اسم الشخصية",
+            "username": "اسم المستخدم",
+            "whatsapp": "رقم الواتساب",
+            "phone": "رقم الهاتف",
+            "email": "البريد الإلكتروني",
+            "link": "الرابط",
+            "url": "الرابط",
+            "profile_url": "رابط الحساب",
+            "national_id": "الرقم الوطني",
+        }
+
         for key, val in self.metadata.items():
             if val is None or val == "" or isinstance(val, (dict, list)):
                 continue
-            k_lower = str(key).lower().strip()
-            v_lower = str(val).lower().strip()
+            k_str = str(key).strip()
+            k_lower = k_str.lower()
             if (
                 k_lower in EXCLUDED_KEYS
-                or k_lower.startswith(("api_", "paymera", "gateway_", "payment_"))
-                or v_lower in ("alkasr", "paymera")
+                or any(k_lower.startswith(p) for p in SYSTEM_KEY_PREFIXES)
+                or (any(k_lower.endswith(s) for s in ("_id", "_key", "_token", "_url", "_secret", "_status", "_at", "_by", "_code", "_rate", "_actor", "_reason", "_timestamp"))
+                    and k_lower not in ("player_id", "server_id", "zone_id", "account_id", "user_id"))
             ):
                 continue
-            label = label_map.get(key, key)
-            l_lower = str(label).lower().strip()
-            if (
-                l_lower in EXCLUDED_KEYS
-                or l_lower.startswith(("api", "paymera", "gateway", "payment"))
-            ):
-                continue
+            label = label_map.get(k_str) or COMMON_LABELS.get(k_lower, k_str)
             results.append({"label": label, "value": val})
                 
         return results
@@ -274,9 +313,44 @@ class Order(TimeStampedModel):
         )
 
     @property
+    def is_refund_approved(self):
+        meta = self.metadata if isinstance(self.metadata, dict) else {}
+        return (
+            meta.get("refund_status") == "approved"
+            or meta.get("shamcash_refunded") is True
+            or meta.get("paymera_refunded") is True
+            or self.status == self.Status.REFUNDED
+        )
+
+    @property
     def refund_reason_text(self):
         meta = self.metadata if isinstance(self.metadata, dict) else {}
-        return meta.get("refund_reason") or meta.get("reason") or ""
+        return meta.get("refund_reason") or meta.get("shamcash_refund_reason") or meta.get("reason") or ""
+
+    @property
+    def refund_details(self):
+        """Returns structured human-friendly refund details."""
+        meta = self.metadata if isinstance(self.metadata, dict) else {}
+        if not (meta.get("refund_requested") or meta.get("refund_status") or self.status == self.Status.REFUNDED or meta.get("shamcash_refunded") or meta.get("paymera_refunded")):
+            return None
+        
+        status_val = meta.get("refund_status") or ("approved" if (self.status == self.Status.REFUNDED or meta.get("shamcash_refunded")) else "pending")
+        status_display_map = {
+            "pending": "بانتظار قرار الإدارة",
+            "approved": "تمت الموافقة واسترداد المبلغ للعميل",
+            "rejected": "مرفوض من الإدارة",
+        }
+        return {
+            "status": status_val,
+            "status_display": status_display_map.get(status_val, status_val),
+            "reason": meta.get("refund_reason") or meta.get("shamcash_refund_reason") or "طلب استرداد من العميل",
+            "requested_at": meta.get("refund_requested_at"),
+            "approved_at": meta.get("refund_approved_at"),
+            "approved_by": meta.get("refund_approved_by") or meta.get("shamcash_refund_actor"),
+            "rejection_reason": meta.get("refund_rejection_reason"),
+            "gateway_tran_id": meta.get("shamcash_refund_tran_id") or meta.get("paymera_refund_tran_id"),
+            "is_gateway_refunded": bool(meta.get("shamcash_refunded") or meta.get("paymera_refunded")),
+        }
 
     @property
     def gateway_reference_id(self):

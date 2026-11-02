@@ -4611,6 +4611,9 @@ def control_order_detail(request, pk):
     is_shamcash = provider == "sham_cash" or bool(meta.get("shamcash_bill_no")) or gw_payment_id.startswith("ORD-")
     is_paymera = provider == "paymera" or bool(meta.get("paymera_payment_id")) or (bool(gw_payment_id) and not is_shamcash)
 
+    charge_amount_syp = meta.get("syp_amount") or meta.get("gateway_charge_amount")
+    exchange_rate = meta.get("exchange_rate")
+
     ctx = {
         "order": order,
         "mapped_metadata": order.formatted_metadata(),
@@ -4622,11 +4625,19 @@ def control_order_detail(request, pk):
         "gateway_bill_no": meta.get("shamcash_bill_no") or gw_payment_id,
         "gateway_payment_id": gw_payment_id or meta.get("paymera_payment_id") or "",
         "gateway_rrn": meta.get("gateway_rrn") or meta.get("rrn") or "",
+        "charge_amount_syp": charge_amount_syp,
+        "exchange_rate": exchange_rate,
         "refund_requested": meta.get("refund_requested", False),
         "refund_reason": meta.get("refund_reason", ""),
         "refund_status": meta.get("refund_status", "pending"),
         "refund_requested_at": meta.get("refund_requested_at", ""),
         "refund_rejection_reason": meta.get("refund_rejection_reason", ""),
+        "refund_approved_at": meta.get("refund_approved_at", ""),
+        "refund_approved_by": meta.get("refund_approved_by", ""),
+        "shamcash_refunded": meta.get("shamcash_refunded", False),
+        "shamcash_refund_tran_id": meta.get("shamcash_refund_tran_id", ""),
+        "shamcash_refund_timestamp": meta.get("shamcash_refund_timestamp", ""),
+        "shamcash_refund_reason": meta.get("shamcash_refund_reason", ""),
     }
     return render(request, "site/control_order_detail.html", ctx)
 
