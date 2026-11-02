@@ -672,8 +672,9 @@
                     </div>
                 </div>
                 <div class="clean-card-body">
-                    <form method="post" action="{% url 'control_order_status_update' order.id %}" class="space-y-3">
+                    <form method="post" class="space-y-3">
                         {% csrf_token %}
+                        <input type="hidden" name="action" value="update_status">
                         
                         <div>
                             <label class="field-label">الحالة الجديدة للطلب</label>
