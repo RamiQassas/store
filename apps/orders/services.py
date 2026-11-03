@@ -1112,6 +1112,118 @@ def create_pending_gateway_order(
     return order
 
 
+def create_pending_gateway_cart_order(
+    customer,
+    cart_items,
+    shipping_name=None,
+    shipping_phone=None,
+    shipping_address=None,
+    gateway_code="sham_cash",
+    gateway_currency="USD",
+    metadata=None,
+):
+    """
+    Creates an Order in PENDING status for direct payment of all items in the shopping cart through an electronic gateway.
+    Does NOT debit the user's wallet.
+    """
+    if customer.restriction_purchases:
+        raise ValueError("حسابك مقيد من عمليات الشراء.")
+
+    if not cart_items:
+        raise ValueError("سلة المشتريات فارغة.")
+
+    from decimal import ROUND_HALF_UP, Decimal
+    from apps.catalog.models import ProductVariant, Product
+    from apps.common.tenant_utils import bypass_tenant_filter, get_current_store
+
+    order_store = None
+    validated_items = []
+    total_amount = Decimal("0.00")
+    fulfillment_data = {}
+
+    for idx, item in enumerate(cart_items, start=1):
+        v_id = item["variant_id"]
+        qty = int(item.get("quantity") or 1)
+        if qty < 1:
+            qty = 1
+
+        with bypass_tenant_filter():
+            variant = (
+                ProductVariant.all_objects
+                .select_related("product")
+                .filter(id=v_id, is_active=True, is_temporarily_disabled=False, product__is_active=True)
+                .first()
+            )
+        if not variant:
+            raise ValueError(f"المنتج '{item.get('name', 'العنصر')}' غير متوفر حالياً في المخزون.")
+
+        product = variant.product
+        if product.is_out_of_stock or not product.is_active:
+            raise ValueError(f"المنتج '{product.name}' غير متوفر حالياً (نفد المخزون).")
+
+        if not order_store:
+            order_store = getattr(product, "store", None)
+
+        server_unit_price = variant.get_price_for_user(customer) if (customer and customer.is_authenticated) else variant.price
+        if not server_unit_price or server_unit_price <= Decimal("0.00"):
+            server_unit_price = Decimal(str(variant.price or "0.00"))
+        unit_price = server_unit_price.quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
+        item_total = (unit_price * Decimal(qty)).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
+        total_amount += item_total
+
+        item_meta = dict(item.get("metadata") or {})
+        for k, v in item_meta.items():
+            fulfillment_data[f"item_{idx}_{k}"] = v
+
+        validated_items.append({
+            "variant": variant,
+            "quantity": qty,
+            "unit_price": unit_price,
+            "unit_cost": variant.cost or Decimal("0.00"),
+            "total_price": item_total,
+        })
+
+    order_meta = dict(metadata or {})
+    order_meta["payment_gateway"] = gateway_code
+    order_meta["is_direct_gateway_purchase"] = True
+    order_meta["gateway_currency"] = gateway_currency
+    order_meta["selected_currency"] = gateway_currency
+    order_meta["is_cart_order"] = True
+    order_meta["items_count"] = len(validated_items)
+
+    with transaction.atomic():
+        order = Order.objects.create(
+            customer=customer,
+            store=order_store or get_current_store(),
+            number=next_order_number(),
+            status=Order.Status.PENDING,
+            total_amount=total_amount,
+            original_total=total_amount,
+            fulfillment_data=fulfillment_data,
+            metadata=order_meta,
+            shipping_name=shipping_name or "",
+            shipping_phone=shipping_phone or "",
+            shipping_address=shipping_address or "",
+        )
+        for vi in validated_items:
+            OrderItem.objects.create(
+                order=order,
+                variant=vi["variant"],
+                quantity=vi["quantity"],
+                unit_price=vi["unit_price"],
+                unit_cost=vi["unit_cost"],
+                total_price=vi["total_price"],
+            )
+        OrderLog.objects.create(
+            order=order,
+            status=Order.Status.PENDING,
+            note=f"تم إنشاء طلب سلة المشتريات (#{order.number}) بانتظار إتمام الدفع عبر بوابة {gateway_code}.",
+            created_by=customer,
+        )
+
+    return order
+
+
 def finalize_paid_gateway_order(order, gateway_data=None):
     """
     Finalizes an Order after payment gateway confirmation.
@@ -1147,7 +1259,64 @@ def finalize_paid_gateway_order(order, gateway_data=None):
                 meta["gateway_rrn"] = str(gateway_data.get("rrn"))
         locked_order.metadata = meta
 
-        item = locked_order.items.select_related("variant", "variant__product").first()
+        all_items = list(locked_order.items.select_related("variant", "variant__product").all())
+        if not all_items:
+            locked_order.status = Order.Status.PROCESSING
+            locked_order.save(update_fields=["status", "metadata", "updated_at"])
+            return locked_order
+
+        # Multi-item cart order handling
+        if len(all_items) > 1:
+            all_completed = True
+            fulfillment = dict(locked_order.fulfillment_data or {})
+            for idx, itm in enumerate(all_items, start=1):
+                var = itm.variant
+                qty = itm.quantity
+                if var.delivery_type == "keys":
+                    key_ids = list(ProductKey.objects.filter(variant=var, is_used=False).values_list("id", flat=True)[:qty])
+                    if len(key_ids) >= qty:
+                        locked_keys = list(ProductKey.objects.filter(id__in=key_ids, is_used=False).select_for_update())
+                        for k in locked_keys:
+                            k.is_used = True
+                            k.used_by = locked_order.customer
+                            k.used_at = timezone.now()
+                            k.order = locked_order
+                            k.save(update_fields=["is_used", "used_by", "used_at", "order"])
+                        fulfillment[f"keys_{idx}_{var.name}"] = [k.key_code for k in locked_keys]
+                    else:
+                        all_completed = False
+                elif getattr(var.product, "product_type", "") == "physical":
+                    if getattr(var.product, "track_inventory", False):
+                        prod = var.product
+                        prod.quantity = max(0, prod.quantity - qty)
+                        if prod.quantity <= 0:
+                            prod.is_out_of_stock = True
+                        prod.save(update_fields=["quantity", "is_out_of_stock"])
+                    all_completed = False
+                else:
+                    all_completed = False
+
+            locked_order.status = Order.Status.COMPLETED if all_completed else Order.Status.PROCESSING
+            fulfillment["حالة السداد"] = "تم تأكيد سداد قيمة السلة بالكامل عبر بوابة الدفع الإلكتروني بنجاح."
+            locked_order.fulfillment_data = fulfillment
+            locked_order.save(update_fields=["status", "fulfillment_data", "metadata", "updated_at"])
+
+            Invoice.objects.get_or_create(
+                order=locked_order,
+                defaults={
+                    "invoice_number": locked_order.number.replace("ORD", "INV", 1),
+                    "total_amount": locked_order.total_amount,
+                }
+            )
+            OrderLog.objects.create(
+                order=locked_order,
+                status=locked_order.status,
+                note=f"تم استلام وتأكيد سداد قيمة السلة ({locked_order.total_amount} $) عبر بوابة {locked_order.metadata.get('payment_gateway', 'الدفع')}.",
+                created_by=None,
+            )
+            return locked_order
+
+        item = all_items[0]
         if not item or not item.variant:
             locked_order.status = Order.Status.PROCESSING
             locked_order.save(update_fields=["status", "metadata", "updated_at"])
@@ -1974,4 +2143,159 @@ def auto_cancel_expired_pending_orders(max_minutes: int = 5) -> dict:
 
     return stats
 
+
+def process_deposit_refund_to_gateway(deposit, actor=None, reason=None, otp=None) -> tuple[bool, str]:
+    """
+    Safely refunds an approved/completed deposit back to the original gateway
+    (ShamCash, Paymera, or manual) and atomically debits the customer's wallet.
+    Verifies that the customer's wallet balance has sufficient funds to reverse the deposit.
+    """
+    from decimal import Decimal
+    from django.db import transaction
+    from django.utils import timezone
+    from apps.notifications.services import notify_user, notify_staff
+    from apps.wallets.services import get_or_create_wallet, debit_wallet
+    from apps.payments.models import ShamCashBillRecord, ShamCashRefundRecord
+    from apps.payments.shamcash import ShamCashClient, ShamCashError
+
+    meta = dict(deposit.metadata or {})
+
+    # 1. Validation: check if already refunded
+    if meta.get("refunded") or meta.get("refund_status") == "approved":
+        return False, "تم استرداد هذا الإيداع مسبقاً."
+
+    # 2. Check customer wallet balance
+    wallet = get_or_create_wallet(deposit.user)
+    refund_wallet_amount = Decimal(str(deposit.wallet_amount or deposit.final_amount or deposit.amount))
+    if wallet.available_balance < refund_wallet_amount:
+        return False, f"رصيد محفظة العميل الحالي ({wallet.available_balance:,.2f} {wallet.currency.code}) غير كافٍ لاسترداد هذا الإيداع بقيمة ({refund_wallet_amount:,.2f} {wallet.currency.code})."
+
+    provider = ""
+    if deposit.payment_method:
+        provider = (getattr(deposit.payment_method, "gateway_provider", "") or "").lower()
+    if not provider:
+        provider = (meta.get("payment_provider") or "").lower()
+
+    # Determine gateway
+    is_shamcash = False
+    bill_no = None
+    shamcash_bill = deposit.shamcash_bills.first() if hasattr(deposit, "shamcash_bills") else None
+    if shamcash_bill:
+        bill_no = shamcash_bill.bill_no
+        is_shamcash = True
+    elif meta.get("shamcash_bill_no"):
+        bill_no = meta.get("shamcash_bill_no")
+        is_shamcash = True
+    elif provider == "sham_cash":
+        is_shamcash = True
+        bill_no = deposit.gateway_payment_id or deposit.transaction_id
+
+    is_paymera = False
+    paymera_payment_id = None
+    if provider == "paymera" or meta.get("paymera_payment_id") or (deposit.gateway_payment_id and not str(deposit.gateway_payment_id).startswith("DEP-") and not is_shamcash):
+        is_paymera = True
+        paymera_payment_id = meta.get("paymera_payment_id") or deposit.gateway_payment_id
+
+    refund_tx_id = None
+    raw_refund_res = {}
+
+    # Execute Gateway Refund
+    if is_shamcash and bill_no:
+        try:
+            client = ShamCashClient()
+            refund_amount = Decimal(str(deposit.amount)).quantize(Decimal("0.01"))
+            refund_note = f"Deposit refund #{deposit.transaction_id}: {reason or 'Customer deposit refund'}"[:100]
+            idempotency_key = f"depref_{deposit.id.hex[:12]}_{int(timezone.now().timestamp())}"
+            refund_res = client.refund_bill(
+                bill_no=bill_no,
+                amount=refund_amount,
+                note=refund_note,
+                idempotency_key=idempotency_key
+            )
+            refund_tx_id = refund_res.get("tranId") if isinstance(refund_res, dict) else None
+            raw_refund_res = refund_res
+        except ShamCashError as exc:
+            return False, f"فشلت عملية استرداد شام كاش: {exc.message} (كود: {exc.error_code})"
+        except Exception as exc:
+            return False, f"حدث خطأ أثناء الاتصال بشام كاش: {exc}"
+
+    elif is_paymera and paymera_payment_id:
+        try:
+            from apps.payments.gateways import gateway_for
+            from apps.payments.paymera import PaymeraError
+            gw = gateway_for("paymera")
+            client = gw.get_client()
+            reversal_res = client.cancel_payment(payment_id=paymera_payment_id, lang="ar", otp=otp)
+            refund_tx_id = reversal_res.get("payment_id") or paymera_payment_id
+            raw_refund_res = reversal_res
+        except PaymeraError as exc:
+            return False, f"فشلت عملية استرداد بيميرا: {exc}"
+        except Exception as exc:
+            return False, f"حدث خطأ أثناء الاتصال ببيميرا: {exc}"
+
+    # Atomic DB Update & Wallet Debit
+    with transaction.atomic():
+        # Debit customer wallet
+        debit_wallet(
+            wallet_id=wallet.id,
+            amount=refund_wallet_amount,
+            reference=f"deposit_refund:{deposit.id}",
+            description=f"استرداد مبلغ الإيداع #{deposit.transaction_id} إلى بوابة الدفع",
+            created_by=actor,
+            source="deposit_refund",
+            metadata={
+                "deposit_id": str(deposit.id),
+                "transaction_id": deposit.transaction_id,
+                "gateway_refund_tx": str(refund_tx_id or ""),
+                "reason": reason or "",
+            }
+        )
+
+        meta["refunded"] = True
+        meta["refund_status"] = "approved"
+        meta["refund_approved_at"] = timezone.now().isoformat()
+        meta["refund_approved_by"] = getattr(actor, "email", str(actor)) if actor else "نظام"
+        meta["refund_reason"] = reason or meta.get("refund_reason", "")
+        meta["refund_gateway_tx_id"] = refund_tx_id
+        meta["refund_raw_res"] = raw_refund_res
+        deposit.metadata = meta
+        deposit.admin_note = (deposit.admin_note or "") + f"\n[استرداد إيداع]: تمت الموافقة وإعادة المبلغ للبوابة في {timezone.now().strftime('%Y-%m-%d %H:%M')}. المرجع: {refund_tx_id or '---'}. المشرف: {getattr(actor, 'email', 'نظام')}."
+        deposit.save(update_fields=["metadata", "admin_note", "updated_at"])
+
+        if is_shamcash and bill_no:
+            try:
+                ShamCashRefundRecord.objects.create(
+                    bill=shamcash_bill if shamcash_bill else ShamCashBillRecord.objects.filter(bill_no=bill_no).first(),
+                    bill_no=bill_no,
+                    amount=Decimal(str(deposit.amount)),
+                    idempotency_key=f"depref_{deposit.id.hex[:12]}_{int(timezone.now().timestamp())}",
+                    tran_id=refund_tx_id if isinstance(refund_tx_id, int) else None,
+                    note=reason or "استرداد إيداع",
+                    status="success",
+                    created_by=actor if (actor and getattr(actor, "is_authenticated", False)) else None,
+                    raw_response=raw_refund_res,
+                )
+            except Exception:
+                pass
+
+    # Send notifications
+    try:
+        notify_user(
+            user=deposit.user,
+            title="تمت الموافقة على استرداد الإيداع",
+            body=f"تمت الموافقة على طلب استرداد إيداعك بقيمة {deposit.amount} {deposit.currency.code} وإعادة المبلغ إلى حسابك لدى بوابة الدفع.",
+            action_url="/dashboard/deposits/",
+            category="financial",
+            priority="high",
+        )
+        notify_staff(
+            title="تم استرداد إيداع بنجاح",
+            body=f"تمت الموافقة على استرداد إيداع العميل {deposit.user.email} بقيمة {deposit.amount} {deposit.currency.code}.",
+            action_url="/control/orders/?status=refund_pending",
+            category="financial",
+        )
+    except Exception:
+        pass
+
+    return True, f"تم استرداد الإيداع بنجاح بقيمة {deposit.amount} {deposit.currency.code} وإعادة المبلغ إلى بوابة الدفع وخصم الرصيد من محفظة العميل."
 

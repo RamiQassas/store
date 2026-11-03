@@ -20,15 +20,21 @@ class OrdersConfig(AppConfig):
 
                 def _run_order_sync():
                     from apps.orders.sync_service import sync_pending_orders_batch
+                    from django.core.cache import cache
                     while True:
                         try:
-                            time.sleep(8)
+                            time.sleep(30)
+                            # Distributed lock: only one worker processes order status sync at a time
+                            lock_acquired = cache.add("order_sync_daemon_lock", "active", timeout=60)
+                            if not lock_acquired:
+                                continue
                             connection.close()
-                            sync_pending_orders_batch(limit=30)
+                            sync_pending_orders_batch(limit=15)
                         except Exception as exc:
                             logger.error("OrderSyncDaemon error: %s", exc)
                         finally:
                             try:
+                                cache.delete("order_sync_daemon_lock")
                                 connection.close()
                             except Exception:
                                 pass

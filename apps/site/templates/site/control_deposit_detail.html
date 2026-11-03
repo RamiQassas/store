@@ -75,6 +75,51 @@
 {% endblock %}
 
 {% block control_content %}
+
+    {% if deposit.metadata.refund_requested %}
+    <div class="mb-6 p-5 rounded-2xl bg-gradient-to-r from-rose-950/60 to-slate-900 border border-rose-500/50 shadow-xl">
+        <div class="flex items-center justify-between pb-3 border-b border-rose-500/30 mb-3">
+            <div class="flex items-center gap-2">
+                <i class="fas fa-exclamation-triangle text-rose-400"></i>
+                <h4 class="font-bold text-rose-200 text-sm">طلب استرداد مقدم من العميل</h4>
+            </div>
+            {% if deposit.metadata.refund_status == 'pending' %}
+            <span class="px-2 py-0.5 rounded bg-rose-500/20 text-rose-300 text-xs font-bold border border-rose-500/30">بانتظار القرار</span>
+            {% elif deposit.metadata.refund_status == 'approved' or deposit.metadata.refunded %}
+            <span class="px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-300 text-xs font-bold border border-emerald-500/30">تمت الموافقة والاسترداد</span>
+            {% elif deposit.metadata.refund_status == 'rejected' %}
+            <span class="px-2 py-0.5 rounded bg-slate-500/20 text-slate-300 text-xs font-bold">تم الرفض</span>
+            {% endif %}
+        </div>
+        <p class="text-xs text-rose-100 mb-3">
+            <span class="font-bold">سبب طلب الاسترداد:</span> "{{ deposit.metadata.refund_reason|default:'لم يذكر' }}"
+        </p>
+
+        {% if deposit.metadata.refund_status == 'pending' %}
+        <div class="flex items-center gap-3">
+            <form method="post" action="{% url 'control_deposit_refund_action' deposit.id %}" onsubmit="return confirm('هل تريد الموافقة على استرداد هذا الإيداع وإعادة الأموال فورياً إلى بوابة الدفع؟');">
+                {% csrf_token %}
+                <input type="hidden" name="action" value="approve">
+                <button type="submit" class="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs flex items-center gap-2 transition shadow cursor-pointer">
+                    <i class="fas fa-check-circle"></i>
+                    <span>موافقة على الاسترداد للبوابة</span>
+                </button>
+            </form>
+
+            <form method="post" action="{% url 'control_deposit_refund_action' deposit.id %}" onsubmit="var r = prompt('سبب رفض الاسترداد:'); if(!r) return false; this.reject_reason.value = r; return true;">
+                {% csrf_token %}
+                <input type="hidden" name="action" value="reject">
+                <input type="hidden" name="reject_reason" value="">
+                <button type="submit" class="px-4 py-2 rounded-xl bg-rose-700 hover:bg-rose-600 text-white font-bold text-xs flex items-center gap-2 transition shadow cursor-pointer">
+                    <i class="fas fa-times-circle"></i>
+                    <span>رفض الاسترداد</span>
+                </button>
+            </form>
+        </div>
+        {% endif %}
+    </div>
+    {% endif %}
+
 <div class="flex justify-between items-center mb-10 reveal">
     <div>
         <span class="eyebrow">Financial Verification Engine</span>

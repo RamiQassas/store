@@ -282,7 +282,87 @@
     <!-- MOBILE CARDS VIEW (Clean & No Horizontal Scroll) -->
     <!-- ========================================== -->
     <div class="block lg:hidden space-y-3.5">
-        {% for order in orders %}
+        
+    {% if deposit_refund_requests %}
+    <!-- Deposit Refund Requests Needing Admin Approval -->
+    <div class="mb-6 p-4 md:p-5 rounded-2xl bg-gradient-to-br from-rose-950/40 via-slate-900/90 to-purple-950/30 border border-rose-500/40 shadow-xl shadow-rose-950/20">
+        <div class="flex items-center justify-between pb-3 border-b border-rose-500/20 mb-4">
+            <div class="flex items-center gap-2.5">
+                <span class="flex h-3 w-3 relative">
+                    <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-rose-400 opacity-75"></span>
+                    <span class="relative inline-flex rounded-full h-3 w-3 bg-rose-500"></span>
+                </span>
+                <h3 class="font-black text-rose-200 text-sm md:text-base flex items-center gap-2">
+                    <i class="fas fa-hand-holding-usd text-rose-400"></i>
+                    <span>طلبات استرداد الإيداعات المقدمة من العملاء</span>
+                    <span class="px-2 py-0.5 rounded-full bg-rose-500/30 text-rose-200 text-xs font-mono font-bold">{{ deposit_refund_requests|length }}</span>
+                </h3>
+            </div>
+            <span class="text-[11px] text-rose-300/80 font-medium hidden sm:inline">
+                <i class="fas fa-shield-alt ml-1"></i> تعود الأموال تلقائياً لنفس بوابة الدفع ويتم خصم الرصيد من المحفظة
+            </span>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-3.5">
+            {% for dep in deposit_refund_requests %}
+            <div class="bg-slate-900/90 border border-rose-500/30 hover:border-rose-500/60 rounded-xl p-3.5 space-y-3 transition shadow-sm">
+                <div class="flex items-center justify-between gap-2">
+                    <div class="flex items-center gap-2">
+                        <span class="px-2 py-0.5 rounded-md bg-rose-500/20 text-rose-300 text-xs font-mono font-bold">
+                            {{ dep.transaction_id }}
+                        </span>
+                        <span class="text-xs font-bold text-white">{{ dep.payment_method.name }}</span>
+                    </div>
+                    <span class="text-[11px] text-slate-400 font-mono">{{ dep.created_at|date:"Y-m-d H:i" }}</span>
+                </div>
+
+                <div class="flex items-center justify-between bg-white/[0.03] p-2.5 rounded-lg border border-white/5">
+                    <div>
+                        <div class="text-[11px] text-slate-400">العميل:</div>
+                        <div class="text-xs font-bold text-slate-200 font-mono">{{ dep.user.email }}</div>
+                    </div>
+                    <div class="text-left">
+                        <div class="text-[11px] text-slate-400">مبلغ الإيداع:</div>
+                        <div class="text-sm font-black text-emerald-400 font-mono">{{ dep.amount }} {{ dep.currency.code }}</div>
+                    </div>
+                </div>
+
+                {% if dep.metadata.refund_reason %}
+                <div class="text-xs bg-rose-500/10 border border-rose-500/20 p-2.5 rounded-lg text-rose-200">
+                    <span class="font-bold text-rose-300">سبب طلب العميل:</span> "{{ dep.metadata.refund_reason }}"
+                </div>
+                {% endif %}
+
+                <!-- Actions: Approve or Reject -->
+                <div class="flex items-center gap-2 pt-1">
+                    <form method="post" action="{% url 'control_deposit_refund_action' dep.id %}" onsubmit="return confirm('هل أنت متأكد من الموافقة على استرداد هذا الإيداع؟ سيتم فورياً إرجاع المبلغ لبوابة الدفع ({{ dep.payment_method.name }}) وخصم الرصيد من محفظة العميل.');" class="flex-1">
+                        {% csrf_token %}
+                        <input type="hidden" name="action" value="approve">
+                        <input type="hidden" name="next" value="{{ request.get_full_path }}">
+                        <button type="submit" class="w-full py-1.5 px-3 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs flex items-center justify-center gap-1.5 transition shadow cursor-pointer">
+                            <i class="fas fa-check-circle"></i>
+                            <span>موافقة وإعادة للبوابة</span>
+                        </button>
+                    </form>
+
+                    <form method="post" action="{% url 'control_deposit_refund_action' dep.id %}" onsubmit="var r = prompt('يرجى كتابة سبب رفض طلب الاسترداد لإبلاغ العميل:'); if(r === null || !r.trim()){ return false; } this.reject_reason.value = r; return true;" class="flex-1">
+                        {% csrf_token %}
+                        <input type="hidden" name="action" value="reject">
+                        <input type="hidden" name="reject_reason" value="">
+                        <input type="hidden" name="next" value="{{ request.get_full_path }}">
+                        <button type="submit" class="w-full py-1.5 px-3 rounded-lg bg-slate-800 hover:bg-rose-900/60 border border-rose-500/30 text-rose-300 hover:text-rose-100 font-bold text-xs flex items-center justify-center gap-1.5 transition cursor-pointer">
+                            <i class="fas fa-times-circle"></i>
+                            <span>رفض الاسترداد</span>
+                        </button>
+                    </form>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
+
+{% for order in orders %}
         <div class="bg-slate-900/95 border {% if order.is_refund_pending %}border-rose-500/50 shadow-rose-950/20 shadow-lg{% else %}border-white/10{% endif %} rounded-2xl p-4 space-y-3 shadow-md" id="mobile-order-card-{{ order.id }}">
             
             <!-- Top Row: Order Number + Status + Date -->

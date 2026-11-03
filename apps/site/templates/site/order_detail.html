@@ -38,7 +38,7 @@
     </div>
 
     <div style="display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap;">
-      {% if order.status == 'pending' %}
+      {% if order.status == 'pending' and not order.is_paid %}
       <form method="post" onsubmit="return confirm('هل تريد إلغاء هذا الطلب المعلق؟');" style="margin: 0;">
         {% csrf_token %}
         <input type="hidden" name="action" value="cancel_order">

@@ -165,9 +165,9 @@ def check_update_status(bypass_cache=False):
 def restart_process_soon():
     def _exit():
         time.sleep(1)
-        logger.info("🔄 [AUTO-DEPLOY] Reloading server workers and updating timestamps...")
+        logger.info("🔄 [AUTO-DEPLOY] Gracefully reloading server workers...")
         try:
-            # 1. Touch wsgi.py and asgi.py to signal reloaders
+            # 1. Touch wsgi.py and asgi.py to signal WSGI reloaders
             for f in ["wsgi.py", "asgi.py"]:
                 target_path = os.path.join(str(settings.BASE_DIR), "config", f)
                 if os.path.exists(target_path):
@@ -176,25 +176,17 @@ def restart_process_soon():
             logger.debug(f"Touch wsgi/asgi error: {e}")
 
         try:
-            # 2. Try sending HUP signal to Gunicorn processes
-            subprocess.run(["pkill", "-HUP", "-f", "gunicorn"], timeout=2)
+            # 2. Graceful reload signal (SIGHUP) to Gunicorn master to replace workers cleanly
+            subprocess.run(["pkill", "-HUP", "-f", "gunicorn"], timeout=3)
         except Exception:
             pass
 
         try:
-            # 3. Try systemctl or supervisor reload
-            subprocess.run(["systemctl", "restart", "gunicorn"], timeout=3)
+            # 3. If running under systemd supervisor
+            subprocess.run(["systemctl", "reload", "gunicorn"], timeout=3)
         except Exception:
             pass
 
-        try:
-            # 4. In Docker / container environment
-            subprocess.run(["sh", "-c", "kill -9 1"], timeout=2)
-        except Exception:
-            pass
-
-        import os
-        os._exit(0)
     threading.Thread(target=_exit, daemon=True).start()
 
 
@@ -202,9 +194,15 @@ def apply_git_update():
     """
     Immediately fetches and applies latest changes from origin/master,
     runs migrations, collects static files, seeds essential data, and reloads server.
+    Uses distributed lock to prevent multiple workers from running git reset concurrently.
     """
-    logger.info("🚀 [AUTO-DEPLOY] Applying updates from origin/master...")
     from django.core.cache import cache
+    lock_acquired = cache.add("auto_deploy_exec_lock", "locked", timeout=180)
+    if not lock_acquired:
+        logger.info("🚀 [AUTO-DEPLOY] Update already being applied by another worker.")
+        return False, "Update already in progress"
+
+    logger.info("🚀 [AUTO-DEPLOY] Applying updates from origin/master...")
     cache.delete("github_remote_master_sha")
     cache.delete("system_update_status_summary")
 
@@ -223,6 +221,7 @@ def apply_git_update():
         logger.error(f"❌ [AUTO-DEPLOY] Failed to apply update: {e}")
         output = str(e)
 
+    cache.delete("auto_deploy_exec_lock")
     if success:
         restart_process_soon()
     return success, output

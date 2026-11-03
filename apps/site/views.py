@@ -1012,7 +1012,7 @@ def order_detail(request, pk):
     
     # Allow customer to cancel unpaid pending order
     if request.method == "POST" and request.POST.get("action") == "cancel_order":
-        if order.status == Order.Status.PENDING:
+        if order.status == Order.Status.PENDING and not order.is_paid:
             order.status = Order.Status.CANCELLED
             order.admin_note = "تم إلغاء الطلب المعلق من قبل العميل."
             order.save(update_fields=["status", "admin_note", "updated_at"])
@@ -3782,6 +3782,132 @@ def control_deposit_detail(request, pk):
         
     return render(request, "site/control_deposit_detail.html", {"deposit": deposit})
 
+@login_required
+def dashboard_deposit_refund_request(request, pk):
+    """
+    Allows a customer to request a refund for an approved/completed deposit.
+    Verifies that the customer has sufficient wallet balance to cover the deposit reversal.
+    """
+    from decimal import Decimal
+    from apps.payments.models import DepositRequest
+    from apps.wallets.services import get_or_create_wallet
+    from apps.notifications.services import notify_staff
+
+    if request.method != "POST":
+        return redirect("dashboard_deposits")
+
+    deposit = get_object_or_404(DepositRequest, pk=pk, user=request.user)
+
+    if deposit.status != DepositRequest.Status.COMPLETED:
+        messages.error(request, "لا يمكن طلب استرداد إيداع غير مكتمل.")
+        return redirect("dashboard_deposits")
+
+    meta = dict(deposit.metadata or {})
+    if meta.get("refunded") or meta.get("refund_status") == "approved":
+        messages.error(request, "تمت الموافقة على استرداد هذا الإيداع مسبقاً.")
+        return redirect("dashboard_deposits")
+
+    if meta.get("refund_requested") and meta.get("refund_status") == "pending":
+        messages.info(request, "طلب استرداد هذا الإيداع قيد المراجعة بالفعل من قبل الإدارة.")
+        return redirect("dashboard_deposits")
+
+    reason = request.POST.get("refund_reason", "").strip()
+    if not reason:
+        messages.error(request, "يرجى توضيح سبب طلب استرداد الإيداع.")
+        return redirect("dashboard_deposits")
+
+    wallet = get_or_create_wallet(request.user)
+    refund_wallet_amount = Decimal(str(deposit.wallet_amount or deposit.final_amount or deposit.amount))
+    if wallet.available_balance < refund_wallet_amount:
+        messages.error(
+            request,
+            f"عذراً، رصيدك المتاح حالياً في المحفظة ({wallet.available_balance:,.2f} {wallet.currency.code}) أقل من مبلغ الإيداع المطلوب استرداده ({refund_wallet_amount:,.2f} {wallet.currency.code})."
+        )
+        return redirect("dashboard_deposits")
+
+    meta["refund_requested"] = True
+    meta["refund_status"] = "pending"
+    meta["refund_reason"] = reason
+    meta["refund_requested_at"] = timezone.now().isoformat()
+    deposit.metadata = meta
+    deposit.save(update_fields=["metadata", "updated_at"])
+
+    try:
+        notify_staff(
+            title="طلب استرداد إيداع جديد",
+            body=f"قدم العميل {request.user.email} طلب استرداد إيداع بقيمة {deposit.amount} {deposit.currency.code}. السبب: {reason}",
+            action_url="/control/orders/?status=refund_pending",
+            category="financial",
+            priority="high",
+        )
+    except Exception:
+        pass
+
+    messages.success(request, "تم تقديم طلب استرداد الإيداع بنجاح. ستتم مراجعته من قبل الإدارة وإعادة الأموال إلى نفس البوابة التي أودعت بها.")
+    return redirect("dashboard_deposits")
+
+
+@finance_required
+def control_deposit_refund_action(request, pk):
+    """
+    Admin action to Approve or Reject a customer deposit refund request.
+    On approval: triggers real-time refund to original gateway (ShamCash, Paymera, etc.)
+    and debits customer wallet.
+    """
+    from apps.payments.models import DepositRequest
+    from apps.orders.services import process_deposit_refund_to_gateway
+    from apps.notifications.services import notify_user
+
+    if request.method != "POST":
+        return redirect("control_orders")
+
+    deposit = get_object_or_404(DepositRequest, pk=pk)
+    action = request.POST.get("action", "").strip()
+    next_url = request.POST.get("next") or request.META.get("HTTP_REFERER") or "/control/orders/?status=refund_pending"
+
+    if action == "approve":
+        otp = request.POST.get("otp", "").strip() or None
+        reason = request.POST.get("refund_reason") or deposit.metadata.get("refund_reason", "")
+        success, message = process_deposit_refund_to_gateway(
+            deposit=deposit,
+            actor=request.user,
+            reason=reason,
+            otp=otp
+        )
+        if success:
+            messages.success(request, message)
+        else:
+            messages.error(request, message)
+
+    elif action == "reject":
+        reject_reason = request.POST.get("reject_reason", "").strip() or "تم رفض طلب الاسترداد من قبل الإدارة."
+        meta = dict(deposit.metadata or {})
+        meta["refund_status"] = "rejected"
+        meta["refund_rejected_at"] = timezone.now().isoformat()
+        meta["refund_rejected_by"] = getattr(request.user, "email", str(request.user))
+        meta["refund_reject_reason"] = reject_reason
+        deposit.metadata = meta
+        deposit.admin_note = (deposit.admin_note or "") + f"\n[رفض استرداد إيداع]: تم الرفض في {timezone.now().strftime('%Y-%m-%d %H:%M')} بواسطة {getattr(request.user, 'email', 'مشرف')}. السبب: {reject_reason}."
+        deposit.save(update_fields=["metadata", "admin_note", "updated_at"])
+
+        try:
+            notify_user(
+                user=deposit.user,
+                title="تم رفض طلب استرداد الإيداع",
+                body=f"نأسف، تم رفض طلب استرداد الإيداع بقيمة {deposit.amount} {deposit.currency.code}. السبب: {reject_reason}",
+                action_url="/dashboard/deposits/",
+                category="financial",
+                priority="high",
+            )
+        except Exception:
+            pass
+
+        messages.info(request, f"تم رفض طلب استرداد الإيداع للعملية #{deposit.transaction_id}.")
+    else:
+        messages.error(request, "إجراء غير صالح.")
+
+    return redirect(next_url)
+
 @finance_required
 def control_withdrawal_detail(request, pk):
     qs = WithdrawalRequest.objects.select_related('user', 'payment_method')
@@ -5964,7 +6090,14 @@ def control_orders_list(request):
         Q(metadata__refund_status__in=['approved', 'rejected']) |
         Q(status__in=[Order.Status.REFUNDED, Order.Status.CANCELLED])
     )
-    refund_pending_count = refund_pending_qs.count()
+    from apps.payments.models import DepositRequest
+    deposit_refund_pending_qs = DepositRequest.objects.filter(
+        status=DepositRequest.Status.COMPLETED,
+        metadata__refund_requested=True,
+        metadata__refund_status='pending'
+    ).select_related('user', 'currency', 'payment_method').order_by('-updated_at')
+    deposit_refund_pending_count = deposit_refund_pending_qs.count()
+    refund_pending_count = refund_pending_qs.count() + deposit_refund_pending_count
     pending_count = base_qs.filter(status=Order.Status.PENDING).count()
     processing_count = base_qs.filter(status=Order.Status.PROCESSING).count()
     completed_count = base_qs.filter(status=Order.Status.COMPLETED).count()
@@ -6028,6 +6161,8 @@ def control_orders_list(request):
         "order_status_choices": Order.Status.choices,
         "status_counts": status_counts,
         "refund_pending_count": refund_pending_count,
+        "deposit_refund_requests": deposit_refund_pending_qs,
+        "deposit_refund_pending_count": deposit_refund_pending_count,
         "total_revenue": total_revenue,
         "total_count": total_count,
     })
@@ -11723,10 +11858,82 @@ def control_compliance_dashboard(request):
 # --- SESSION CART & CHECKOUT VIEWS ---
 # ==========================================
 
+def get_active_gateway_methods(store=None):
+    """Return list of active payment gateways with friendly Arabic names and logos."""
+    gateway_methods = []
+    from apps.payments.models import PaymentGatewayIntegration, PaymentMethod
+    from apps.common.tenant_utils import bypass_tenant_filter
+    seen_gw_ids = set()
+    seen_providers = set()
+
+    with bypass_tenant_filter():
+        all_active_gateways = list(PaymentGatewayIntegration.all_objects.filter(is_active=True))
+        if store:
+            store_gws = [g for g in all_active_gateways if g.store_id == store.id]
+            global_gws = [g for g in all_active_gateways if not g.store_id]
+            gateways_to_evaluate = store_gws + global_gws
+        else:
+            gateways_to_evaluate = [g for g in all_active_gateways if not g.store_id]
+            if not gateways_to_evaluate:
+                gateways_to_evaluate = all_active_gateways
+
+        for gw in gateways_to_evaluate:
+            if gw.id in seen_gw_ids or gw.provider in seen_providers:
+                continue
+            seen_gw_ids.add(gw.id)
+            seen_providers.add(gw.provider)
+
+            pm = PaymentMethod.all_objects.filter(gateway=gw, is_active=True).first()
+
+            if gw.provider in ("sham_cash", "shamcash"):
+                default_gw_name = "شام كاش"
+            elif gw.provider in ("paymera", "direct_paymera"):
+                default_gw_name = "بيميرا"
+            else:
+                default_gw_name = gw.get_provider_display() or gw.name
+
+            gw_name = (
+                default_gw_name
+                if (not gw.name or any(ch in gw.name for ch in ['\ufffd', '?']))
+                else gw.name
+            )
+
+            gw_logo = ""
+            if gw.logo:
+                try: gw_logo = gw.logo.url
+                except Exception: pass
+            if not gw_logo and getattr(gw, "logo_url", None):
+                gw_logo = gw.logo_url
+            if not gw_logo and pm and pm.logo:
+                try: gw_logo = pm.logo.url
+                except Exception: pass
+
+            if not gw_logo:
+                if gw.provider in ("sham_cash", "shamcash"):
+                    gw_logo = "/static/site/img/brands/shamcash.svg"
+                elif gw.provider in ("paymera", "direct_paymera"):
+                    gw_logo = "/media/payment-methods/logos/paymera.png"
+
+            gateway_methods.append({
+                "id": f"gateway:{gw.id}",
+                "code": "sham_cash" if gw.provider in ("sham_cash", "shamcash") else ("paymera" if gw.provider in ("paymera", "direct_paymera") else gw.provider),
+                "name": gw_name,
+                "provider_name": gw.get_provider_display(),
+                "logo": gw_logo,
+            })
+    return gateway_methods
+
+
 def cart_view(request):
     """Render the dedicated shopping cart & checkout summary page."""
     from apps.site.context_processors import _build_cart_context
+    from apps.common.models import Currency
     cart_ctx = _build_cart_context(request)
+    store = getattr(request, "store", None)
+    cart_ctx["gateway_methods"] = get_active_gateway_methods(store=store)
+    syp_curr = Currency.all_objects.filter(code="SYP", is_active=True).first()
+    cart_ctx["syp_rate"] = float(syp_curr.buy_rate) if (syp_curr and syp_curr.buy_rate) else 15000.0
+    cart_ctx["has_physical_items"] = any(item.get("product_type") == "physical" for item in cart_ctx.get("cart_items", []))
     return render(request, "site/cart.html", cart_ctx)
 
 
@@ -11907,12 +12114,17 @@ def cart_remove_view(request):
 
 @login_required
 def cart_checkout_view(request):
-    """Process checkout for items in the session cart with balance & duplicate-click protection."""
+    """Process checkout for items in the session cart with support for:
+    1. Raqamiyat Wallet (محفظة رقميات)
+    2. Sham Cash (شام كاش)
+    3. Paymera (بيميرا)
+    4. Other active electronic payment gateways.
+    """
     if request.method != "POST":
         return redirect("cart_detail")
 
     from apps.site.context_processors import _build_cart_context
-    from apps.orders.services import create_order
+    from apps.orders.services import create_order, create_pending_gateway_order, create_pending_gateway_cart_order
     import time as _time
 
     cart_ctx = _build_cart_context(request)
@@ -11923,10 +12135,10 @@ def cart_checkout_view(request):
         messages.error(request, "سلة المشتريات فارغة.")
         return redirect("catalog")
 
-    # Duplicate click protection (4-second cooldown)
+    # Duplicate click protection (3-second cooldown)
     now_ts = _time.time()
     last_checkout_ts = float(request.session.get("last_cart_checkout_ts", 0))
-    if (now_ts - last_checkout_ts) < 4.0:
+    if (now_ts - last_checkout_ts) < 3.0:
         messages.warning(request, "جاري معالجة طلبك بالفعل، يرجى عدم الضغط المتكرر.")
         return redirect("dashboard_orders")
 
@@ -11934,41 +12146,134 @@ def cart_checkout_view(request):
     shipping_phone = (request.POST.get("shipping_phone") or "").strip()
     shipping_address = (request.POST.get("shipping_address") or "").strip()
 
-    needs_shipping = any(item["product_type"] == "physical" for item in cart_items)
+    needs_shipping = any(item.get("product_type") == "physical" for item in cart_items)
     if needs_shipping and not (shipping_name and shipping_phone and shipping_address):
-        messages.error(request, "يرجى إدخال الاسم ورقم الهاتف وعنوان التوصيل للمنتجات المادية في السلة.")
+        messages.error(request, "يرجى إدخال بيانات الشحن والتوصيل (الاسم، رقم الهاتف، العنوان بالتفصيل) للمنتجات المادية.")
         return redirect("cart_detail")
 
-    wallet = getattr(request.user, "wallet", None)
-    if not wallet or wallet.available_balance < cart_total:
-        missing = cart_total - (wallet.available_balance if wallet else Decimal("0.00"))
-        messages.error(request, f"رصيد المحفظة غير كافٍ لإتمام شراء السلة. المبلغ المتبقي المطلوب: {missing:,.2f} $.")
-        return redirect("cart_detail")
+    payment_method = (request.POST.get("payment_method") or "wallet").strip()
+    is_direct_gateway = (payment_method != "wallet")
 
     request.session["last_cart_checkout_ts"] = now_ts
-    created_orders = []
-    try:
-        for item in cart_items:
-            order = create_order(
-                customer=request.user,
-                variant_id=item["variant_id"],
-                quantity=item["quantity"],
-                metadata=item.get("metadata") or {},
-                shipping_name=shipping_name,
-                shipping_phone=shipping_phone,
-                shipping_address=shipping_address,
-            )
-            created_orders.append(order)
 
-        request.session["rq_cart"] = {}
-        request.session.modified = True
-        messages.success(request, f"تم تأكيد وإنشاء {len(created_orders)} طلب بنجاح!")
-        if len(created_orders) == 1:
-            return redirect(f"{reverse('dashboard_order_detail', kwargs={'pk': created_orders[0].id})}?new=1")
-        return redirect("dashboard_orders")
-    except Exception as e:
-        messages.error(request, f"تعذر إتمام الطلب: {str(e)}")
-        return redirect("cart_detail")
+    if is_direct_gateway:
+        from apps.payments.models import PaymentGatewayIntegration, PaymentMethod
+        from apps.common.tenant_utils import bypass_tenant_filter
+        from apps.payments.gateways import gateway_for, PaymentGatewayError
+
+        selected_gateway = None
+        with bypass_tenant_filter():
+            if payment_method.startswith("gateway:"):
+                gw_val = payment_method.split(":", 1)[1]
+                selected_gateway = (
+                    PaymentGatewayIntegration.all_objects.filter(pk=gw_val, is_active=True).first()
+                    or PaymentGatewayIntegration.all_objects.filter(provider=gw_val, is_active=True).first()
+                )
+            elif payment_method.startswith("method:"):
+                pm_id = payment_method.split(":", 1)[1]
+                pm = PaymentMethod.all_objects.filter(pk=pm_id, is_active=True).first()
+                if pm and pm.gateway and pm.gateway.is_active:
+                    selected_gateway = pm.gateway
+            else:
+                selected_gateway = (
+                    PaymentGatewayIntegration.all_objects.filter(provider=payment_method, is_active=True).first()
+                    or PaymentGatewayIntegration.all_objects.filter(pk=payment_method, is_active=True).first()
+                )
+                if not selected_gateway:
+                    if payment_method in ("paymera", "direct_paymera"):
+                        selected_gateway = PaymentGatewayIntegration.all_objects.filter(provider=PaymentGatewayIntegration.Provider.PAYMERA, is_active=True).first()
+                    elif payment_method in ("sham_cash", "shamcash", "direct_sham_cash"):
+                        selected_gateway = PaymentGatewayIntegration.all_objects.filter(provider=PaymentGatewayIntegration.Provider.SHAM_CASH, is_active=True).first()
+
+        if not selected_gateway:
+            messages.error(request, "بوابة الدفع الإلكتروني المحددة غير مفعلة حالياً.")
+            return redirect("cart_detail")
+
+        gateway_curr = (request.POST.get("gateway_currency") or request.POST.get("shamcash_currency") or "USD").strip().upper()
+        if gateway_curr not in ("USD", "SYP"):
+            gateway_curr = "USD"
+
+        try:
+            if len(cart_items) == 1:
+                item = cart_items[0]
+                order_metadata = dict(item.get("metadata") or {})
+                order_metadata["gateway_currency"] = gateway_curr
+                order_metadata["selected_currency"] = gateway_curr
+                order = create_pending_gateway_order(
+                    customer=request.user,
+                    variant_id=item["variant_id"],
+                    quantity=item["quantity"],
+                    fulfillment_data=order_metadata,
+                    shipping_name=shipping_name,
+                    shipping_phone=shipping_phone,
+                    shipping_address=shipping_address,
+                    gateway_code=selected_gateway.provider,
+                    exact_unit_price=item.get("unit_price"),
+                )
+            else:
+                order = create_pending_gateway_cart_order(
+                    customer=request.user,
+                    cart_items=cart_items,
+                    shipping_name=shipping_name,
+                    shipping_phone=shipping_phone,
+                    shipping_address=shipping_address,
+                    gateway_code=selected_gateway.provider,
+                    gateway_currency=gateway_curr,
+                )
+
+            gw_instance = gateway_for(selected_gateway)
+            gw_res = gw_instance.create_order_payment(order, request=request)
+            payment_url = gw_res.get("url")
+            if not payment_url:
+                raise PaymentGatewayError("لم يتم استلام رابط الدفع من بوابة الدفع، يرجى المحاولة لاحقاً.")
+
+            request.session["rq_cart"] = {}
+            request.session.modified = True
+
+            if request.headers.get('x-requested-with') == 'XMLHttpRequest' or request.POST.get('ajax') == '1':
+                return JsonResponse({"success": True, "redirect_url": payment_url, "order_id": str(order.id)})
+            return redirect(payment_url)
+
+        except Exception as e:
+            if request.headers.get('x-requested-with') == 'XMLHttpRequest' or request.POST.get('ajax') == '1':
+                return JsonResponse({"success": False, "error": str(e)}, status=400)
+            messages.error(request, f"خطأ في معالجة بوابة الدفع: {str(e)}")
+            return redirect("cart_detail")
+
+    else:
+        wallet = getattr(request.user, "wallet", None)
+        if not wallet or wallet.available_balance < cart_total:
+            missing = cart_total - (wallet.available_balance if wallet else Decimal("0.00"))
+            messages.error(
+                request,
+                f"رصيد محفظتك غير كافٍ ({wallet.available_balance if wallet else 0:,.2f} $). "
+                f"المبلغ المتبقي المطلوب: {missing:,.2f} $. يمكنك اختيار شام كاش أو بيميرا للدفع المباشر."
+            )
+            return redirect("cart_detail")
+
+        created_orders = []
+        try:
+            for item in cart_items:
+                order = create_order(
+                    customer=request.user,
+                    variant_id=item["variant_id"],
+                    quantity=item["quantity"],
+                    metadata=item.get("metadata") or {},
+                    shipping_name=shipping_name,
+                    shipping_phone=shipping_phone,
+                    shipping_address=shipping_address,
+                )
+                created_orders.append(order)
+
+            request.session["rq_cart"] = {}
+            request.session.modified = True
+            messages.success(request, f"تم تأكيد وشراء {len(created_orders)} طلب بنجاح وخصم المبلغ من محفظتك!")
+            if len(created_orders) == 1:
+                return redirect(f"{reverse('dashboard_order_detail', kwargs={'pk': created_orders[0].id})}?new=1")
+            return redirect("dashboard_orders")
+        except Exception as e:
+            messages.error(request, f"تعذر إتمام الطلب: {str(e)}")
+            return redirect("cart_detail")
 
 
 @admin_required

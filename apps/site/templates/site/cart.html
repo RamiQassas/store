@@ -107,28 +107,156 @@
         {% if user.is_authenticated %}
         <form action="{% url 'cart_checkout' %}" method="post" id="cart-checkout-form">
           {% csrf_token %}
+          <input type="hidden" name="payment_method" id="selected-cart-payment-method" value="wallet">
+          <input type="hidden" name="gateway_currency" id="selected-cart-gateway-currency" value="USD">
+          <input type="hidden" name="shamcash_currency" id="selected-cart-shamcash-currency" value="USD">
 
-          <div class="rq-form-group">
-            <label class="rq-label" style="font-size: 0.78rem;">اسم المستلم (للأجهزة والشحن):</label>
-            <input type="text" name="shipping_name" class="rq-input" value="{{ user.display_name|default:'' }}" placeholder="الاسم الكامل">
+          {% if has_physical_items %}
+          <div style="background: rgba(59, 130, 246, 0.05); border: 1px solid rgba(59, 130, 246, 0.2); border-radius: 12px; padding: 0.85rem; margin-bottom: 1rem;">
+            <div style="font-size: 0.8rem; font-weight: 800; color: var(--rq-primary-light); margin-bottom: 0.6rem; display: flex; align-items: center; gap: 0.4rem;">
+              <i class="fas fa-truck"></i> بيانات الشحن والتوصيل (منتج مادي)
+            </div>
+            <div class="rq-form-group mb-2">
+              <label class="rq-label" style="font-size: 0.75rem;">اسم المستلم:</label>
+              <input type="text" name="shipping_name" class="rq-input" value="{{ user.display_name|default:'' }}" placeholder="الاسم الكامل" required>
+            </div>
+            <div class="rq-form-group mb-2">
+              <label class="rq-label" style="font-size: 0.75rem;">رقم الهاتف للتواصل:</label>
+              <input type="tel" name="shipping_phone" class="rq-input" value="{{ user.phone_number|default:'' }}" placeholder="09xxxxxxxx" required>
+            </div>
+            <div class="rq-form-group mb-0">
+              <label class="rq-label" style="font-size: 0.75rem;">عنوان التوصيل والشحن بالتفصيل:</label>
+              <input type="text" name="shipping_address" class="rq-input" placeholder="المحافظة - المنطقة - الحي - تفاصيل العنوان" required>
+            </div>
           </div>
-          <div class="rq-form-group">
-            <label class="rq-label" style="font-size: 0.78rem;">رقم الهاتف للتواصل:</label>
-            <input type="tel" name="shipping_phone" class="rq-input" value="{{ user.phone_number|default:'' }}" placeholder="09xxxxxxxx">
-          </div>
-          <div class="rq-form-group">
-            <label class="rq-label" style="font-size: 0.78rem;">عنوان التوصيل والشحن بالتفصيل (المحافظة - المنطقة - العنوان):</label>
-            <input type="text" name="shipping_address" class="rq-input" placeholder="المحافظة - المنطقة - العنوان">
+          {% endif %}
+
+          <!-- Payment Methods Selection (محفظة رقميات، شام كاش، بيميرا) -->
+          <div style="margin-bottom: 1.25rem;">
+            <label class="rq-label" style="font-size: 0.82rem; margin-bottom: 0.5rem; display: block; font-weight: 800; color: var(--rq-navy);">
+              اختر طريقة الدفع:
+            </label>
+            <div style="display: flex; flex-direction: column; gap: 0.5rem;">
+
+              <!-- 1. محفظة رقميات (Raqamiyat Wallet) -->
+              <div class="cart-pm-card selected" id="cart-pm-wallet" onclick="selectCartPaymentMethod('wallet', 'wallet', this)"
+                   style="border: 2px solid var(--rq-primary); background: var(--rq-primary-soft); border-radius: 12px; padding: 0.85rem 1rem; cursor: pointer; transition: all 0.2s ease;">
+                <div style="display: flex; align-items: center; justify-content: space-between;">
+                  <div style="display: flex; align-items: center; gap: 0.55rem;">
+                    <div style="width: 32px; height: 32px; border-radius: 8px; background: rgba(59, 130, 246, 0.15); display: flex; align-items: center; justify-content: center; color: var(--rq-primary-light);">
+                      <i class="fas fa-wallet"></i>
+                    </div>
+                    <div>
+                      <span style="font-size: 0.88rem; font-weight: 900; color: var(--rq-navy); display: block;">محفظة رقميات</span>
+                      <span style="font-size: 0.73rem; color: var(--rq-text-muted);">
+                        رصيدك المتاح: <strong class="font-mono text-cyan-600">{% format_price user.wallet.available_balance %}</strong>
+                      </span>
+                    </div>
+                  </div>
+                  <span class="cart-pm-radio" style="width: 18px; height: 18px; border-radius: 50%; border: 2px solid var(--rq-primary); background: var(--rq-primary); display: flex; align-items: center; justify-content: center;">
+                    <span style="width: 6px; height: 6px; border-radius: 50%; background: #ffffff;"></span>
+                  </span>
+                </div>
+              </div>
+
+              <!-- 2. شام كاش (Sham Cash) -->
+              {% for gw in gateway_methods %}
+              {% if gw.code == 'sham_cash' %}
+              <div class="cart-pm-card" id="cart-pm-sham_cash" data-gw-id="{{ gw.id }}" data-gw-code="{{ gw.code }}" onclick="selectCartPaymentMethod('{{ gw.id }}', '{{ gw.code }}', this)"
+                   style="border: 1.5px solid var(--rq-border); background: var(--rq-surface-card); border-radius: 12px; padding: 0.85rem 1rem; cursor: pointer; transition: all 0.2s ease;">
+                <div style="display: flex; align-items: center; justify-content: space-between;">
+                  <div style="display: flex; align-items: center; gap: 0.55rem;">
+                    <div style="width: 32px; height: 32px; border-radius: 8px; background: rgba(13, 148, 136, 0.12); display: flex; align-items: center; justify-content: center; overflow: hidden;">
+                      {% if gw.logo %}
+                      <img src="{{ gw.logo }}" alt="شام كاش" style="max-height: 22px; max-width: 22px; object-fit: contain;">
+                      {% else %}
+                      <i class="fas fa-bolt" style="color: #0d9488;"></i>
+                      {% endif %}
+                    </div>
+                    <div>
+                      <span style="font-size: 0.88rem; font-weight: 900; color: var(--rq-navy); display: block;">شام كاش (Sham Cash)</span>
+                      <span style="font-size: 0.73rem; color: #0d9488; font-weight: 700;">⚡ دفع إلكتروني فوري (ليرة سورية / دولار)</span>
+                    </div>
+                  </div>
+                  <span class="cart-pm-radio" style="width: 18px; height: 18px; border-radius: 50%; border: 2px solid var(--rq-border-strong); background: transparent; display: flex; align-items: center; justify-content: center;"></span>
+                </div>
+              </div>
+              {% endif %}
+              {% endfor %}
+
+              <!-- 3. بيميرا (Paymera) -->
+              {% for gw in gateway_methods %}
+              {% if gw.code == 'paymera' %}
+              <div class="cart-pm-card" id="cart-pm-paymera" data-gw-id="{{ gw.id }}" data-gw-code="{{ gw.code }}" onclick="selectCartPaymentMethod('{{ gw.id }}', '{{ gw.code }}', this)"
+                   style="border: 1.5px solid var(--rq-border); background: var(--rq-surface-card); border-radius: 12px; padding: 0.85rem 1rem; cursor: pointer; transition: all 0.2s ease;">
+                <div style="display: flex; align-items: center; justify-content: space-between;">
+                  <div style="display: flex; align-items: center; gap: 0.55rem;">
+                    <div style="width: 32px; height: 32px; border-radius: 8px; background: rgba(79, 70, 229, 0.12); display: flex; align-items: center; justify-content: center; overflow: hidden;">
+                      {% if gw.logo %}
+                      <img src="{{ gw.logo }}" alt="بيميرا" style="max-height: 20px; max-width: 20px; object-fit: contain;">
+                      {% else %}
+                      <i class="fas fa-credit-card" style="color: #4f46e5;"></i>
+                      {% endif %}
+                    </div>
+                    <div>
+                      <span style="font-size: 0.88rem; font-weight: 900; color: var(--rq-navy); display: block;">بيميرا (Paymera)</span>
+                      <span style="font-size: 0.73rem; color: var(--rq-text-muted); font-weight: 700;">دفع إلكتروني وبطاقات بنكية</span>
+                    </div>
+                  </div>
+                  <span class="cart-pm-radio" style="width: 18px; height: 18px; border-radius: 50%; border: 2px solid var(--rq-border-strong); background: transparent; display: flex; align-items: center; justify-content: center;"></span>
+                </div>
+              </div>
+              {% endif %}
+              {% endfor %}
+
+              <!-- 4. أي بوابات دفع أخرى مفعلة -->
+              {% for gw in gateway_methods %}
+              {% if gw.code != 'sham_cash' and gw.code != 'paymera' %}
+              <div class="cart-pm-card" id="cart-pm-{{ gw.code }}" data-gw-id="{{ gw.id }}" data-gw-code="{{ gw.code }}" onclick="selectCartPaymentMethod('{{ gw.id }}', '{{ gw.code }}', this)"
+                   style="border: 1.5px solid var(--rq-border); background: var(--rq-surface-card); border-radius: 12px; padding: 0.85rem 1rem; cursor: pointer; transition: all 0.2s ease;">
+                <div style="display: flex; align-items: center; justify-content: space-between;">
+                  <div style="display: flex; align-items: center; gap: 0.55rem;">
+                    <div style="width: 32px; height: 32px; border-radius: 8px; background: rgba(100, 116, 139, 0.12); display: flex; align-items: center; justify-content: center; overflow: hidden;">
+                      {% if gw.logo %}
+                      <img src="{{ gw.logo }}" alt="{{ gw.name }}" style="max-height: 20px; max-width: 20px; object-fit: contain;">
+                      {% else %}
+                      <i class="fas fa-credit-card" style="color: #64748b;"></i>
+                      {% endif %}
+                    </div>
+                    <div>
+                      <span style="font-size: 0.88rem; font-weight: 900; color: var(--rq-navy); display: block;">{{ gw.name }}</span>
+                      <span style="font-size: 0.73rem; color: var(--rq-text-muted);">بوابة دفع إلكترونية</span>
+                    </div>
+                  </div>
+                  <span class="cart-pm-radio" style="width: 18px; height: 18px; border-radius: 50%; border: 2px solid var(--rq-border-strong); background: transparent; display: flex; align-items: center; justify-content: center;"></span>
+                </div>
+              </div>
+              {% endif %}
+              {% endfor %}
+
+            </div>
+
+            <!-- ShamCash Live Currency Switcher in Cart (USD / SYP) -->
+            <div id="cart-shamcash-currency-box" style="display: none; margin-top: 0.75rem; padding: 0.75rem 0.9rem; border-radius: 12px; background: rgba(13, 148, 136, 0.08); border: 1.5px solid rgba(13, 148, 136, 0.3);">
+              <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 0.4rem; margin-bottom: 0.35rem;">
+                <span style="font-size: 0.76rem; font-weight: 800; color: #0d9488;">
+                  <i class="fas fa-coins ml-1"></i> العملة المحصلة في شام كاش:
+                </span>
+                <div style="display: flex; gap: 0.3rem;">
+                  <button type="button" class="cart-sc-curr-btn" data-curr="USD" onclick="setCartShamCashCurrency('USD', this)" style="padding: 0.2rem 0.65rem; border-radius: 7px; border: 2px solid #0d9488; background: rgba(13, 148, 136, 0.12); color: #0d9488; font-size: 0.75rem; font-weight: 900; cursor: pointer;">USD ($)</button>
+                  <button type="button" class="cart-sc-curr-btn" data-curr="SYP" onclick="setCartShamCashCurrency('SYP', this)" style="padding: 0.2rem 0.65rem; border-radius: 7px; border: 1.5px solid var(--rq-border-strong); background: #ffffff; color: var(--rq-text-secondary); font-size: 0.75rem; font-weight: 800; cursor: pointer;">ليرة سورية (SYP)</button>
+                </div>
+              </div>
+              <div style="font-size: 0.74rem; color: var(--rq-text-secondary); font-weight: 700; border-top: 1px dashed rgba(13, 148, 136, 0.25); padding-top: 0.35rem;">
+                المبلغ المطلوب في شام كاش: <strong id="cart-sc-calc-val" style="color: #0d9488; font-family: monospace; font-size: 0.85rem;">$0.00</strong>
+              </div>
+            </div>
+
           </div>
 
-          <div style="background: var(--rq-bg-elevated); border: 1px solid var(--rq-border); border-radius: 10px; padding: 0.75rem; margin-bottom: 1rem; font-size: 0.8rem; display: flex; align-items: center; justify-content: space-between;">
-            <span style="color: var(--rq-text-secondary); font-weight: 700;">رصيد محفظتك المتاح:</span>
-            <strong class="font-mono tabular-nums" style="color: var(--rq-accent);">{% format_price user.wallet.available_balance %}</strong>
-          </div>
-
-          <button type="submit" class="rq-pdp-buy-now" id="cart-checkout-btn">
-            <i class="fas fa-check-circle"></i>
-            <span>تأكيد وإتمام الشراء الآن</span>
+          <button type="submit" class="rq-pdp-buy-now" id="cart-checkout-btn" style="height: 50px; font-size: 0.98rem; font-weight: 900; border-radius: 14px; background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);">
+            <i class="fas fa-check-circle ml-1"></i>
+            <span id="cart-checkout-btn-text">تأكيد وشراء من المحفظة</span>
           </button>
         </form>
         {% else %}
@@ -163,11 +291,90 @@
 </div>
 
 <script>
+  var cartTotalUsd = parseFloat("{{ cart_total }}") || 0.0;
+  var sypRate = parseFloat("{{ syp_rate|default:15000.0 }}") || 15000.0;
+
+  function selectCartPaymentMethod(id, code, el) {
+    document.getElementById('selected-cart-payment-method').value = id;
+    
+    // Update active styles
+    document.querySelectorAll('.cart-pm-card').forEach(function(card) {
+      card.style.borderColor = 'var(--rq-border)';
+      card.style.background = 'var(--rq-surface-card)';
+      var ring = card.querySelector('.cart-pm-radio');
+      if (ring) {
+        ring.style.borderColor = 'var(--rq-border-strong)';
+        ring.style.background = 'transparent';
+        ring.innerHTML = '';
+      }
+    });
+
+    el.style.borderColor = (code === 'sham_cash') ? '#0d9488' : (code === 'paymera' ? '#4f46e5' : 'var(--rq-primary)');
+    el.style.background = (code === 'sham_cash') ? 'rgba(13, 148, 136, 0.08)' : (code === 'paymera' ? 'rgba(79, 70, 229, 0.08)' : 'var(--rq-primary-soft)');
+    
+    var activeRing = el.querySelector('.cart-pm-radio');
+    if (activeRing) {
+      var activeColor = (code === 'sham_cash') ? '#0d9488' : (code === 'paymera' ? '#4f46e5' : 'var(--rq-primary)');
+      activeRing.style.borderColor = activeColor;
+      activeRing.style.background = activeColor;
+      activeRing.innerHTML = '<span style="width: 6px; height: 6px; border-radius: 50%; background: #ffffff;"></span>';
+    }
+
+    var scBox = document.getElementById('cart-shamcash-currency-box');
+    var btnText = document.getElementById('cart-checkout-btn-text');
+    var submitBtn = document.getElementById('cart-checkout-btn');
+
+    if (code === 'sham_cash') {
+      if (scBox) scBox.style.display = 'block';
+      updateCartShamCashPreview();
+      if (btnText) btnText.textContent = 'المتابعة للدفع عبر شام كاش';
+      if (submitBtn) submitBtn.style.background = 'linear-gradient(135deg, #0d9488 0%, #0f766e 100%)';
+    } else if (code === 'paymera') {
+      if (scBox) scBox.style.display = 'none';
+      if (btnText) btnText.textContent = 'المتابعة للدفع عبر بيميرا';
+      if (submitBtn) submitBtn.style.background = 'linear-gradient(135deg, #4f46e5 0%, #4338ca 100%)';
+    } else if (code === 'wallet') {
+      if (scBox) scBox.style.display = 'none';
+      if (btnText) btnText.textContent = 'تأكيد وشراء من المحفظة';
+      if (submitBtn) submitBtn.style.background = 'linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%)';
+    } else {
+      if (scBox) scBox.style.display = 'none';
+      if (btnText) btnText.textContent = 'المتابعة للدفع الإلكتروني';
+      if (submitBtn) submitBtn.style.background = 'linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%)';
+    }
+  }
+
+  function setCartShamCashCurrency(curr, btn) {
+    document.getElementById('selected-cart-gateway-currency').value = curr;
+    document.getElementById('selected-cart-shamcash-currency').value = curr;
+    document.querySelectorAll('.cart-sc-curr-btn').forEach(function(b) {
+      b.style.border = '1.5px solid var(--rq-border-strong)';
+      b.style.background = '#ffffff';
+      b.style.color = 'var(--rq-text-secondary)';
+    });
+    btn.style.border = '2px solid #0d9488';
+    btn.style.background = 'rgba(13, 148, 136, 0.12)';
+    btn.style.color = '#0d9488';
+    updateCartShamCashPreview();
+  }
+
+  function updateCartShamCashPreview() {
+    var curr = document.getElementById('selected-cart-shamcash-currency').value || 'USD';
+    var valEl = document.getElementById('cart-sc-calc-val');
+    if (!valEl) return;
+    if (curr === 'SYP') {
+      var sypTotal = Math.round(cartTotalUsd * sypRate);
+      valEl.textContent = sypTotal.toLocaleString('en-US') + ' ليرة سورية (SYP)';
+    } else {
+      valEl.textContent = '$' + cartTotalUsd.toFixed(2) + ' USD';
+    }
+  }
+
   document.getElementById('cart-checkout-form')?.addEventListener('submit', function() {
     var btn = document.getElementById('cart-checkout-btn');
     if (btn) {
       btn.disabled = true;
-      btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> <span>جاري تنفيذ الطلب...</span>';
+      btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> <span>جاري معالجة الطلب...</span>';
     }
   });
 </script>

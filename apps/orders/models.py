@@ -142,6 +142,23 @@ class Order(TimeStampedModel):
         return False
 
     @property
+    def is_paid(self):
+        if self.status in [
+            self.Status.PROCESSING,
+            self.Status.SHIPPED,
+            self.Status.DELIVERED,
+            self.Status.COMPLETED,
+            self.Status.REFUNDED,
+        ]:
+            return True
+        meta = self.metadata if isinstance(self.metadata, dict) else {}
+        if meta.get('is_paid') or meta.get('gateway_payment_confirmed') or meta.get('gateway_payment_id'):
+            return True
+        if meta.get('shamcash_bill_no') and (meta.get('shamcash_refunded') or meta.get('is_paid') or meta.get('status') == 'paid'):
+            return True
+        return False
+
+    @property
     def platform_badge(self):
         if self.is_app_order:
             return {"type": "app", "label": "تطبيق رقميات", "icon": "fa-mobile-screen-button"}
