@@ -30,6 +30,51 @@ class DomainRedirectMiddleware:
         return self.get_response(request)
 
 
+def is_scanner_or_exploit_probe(request, path, exc_msg):
+    """Detects automated bot scanners, exploit probes, and malicious crawler requests."""
+    path_lower = str(path or "").lower()
+    meta = getattr(request, "META", {})
+    ua = meta.get("HTTP_USER_AGENT", "").lower()
+    
+    # Common exploit / scanner file extensions
+    SUSPICIOUS_EXTENSIONS = (
+        ".php", ".asp", ".aspx", ".jsp", ".cgi", ".env", ".git", ".yaml", ".yml",
+        ".bak", ".sql", ".tar", ".gz", ".rar", ".zip", ".ini", ".conf", ".cfg"
+    )
+    if any(path_lower.endswith(ext) or (ext + "/") in path_lower or (ext + "?") in path_lower for ext in SUSPICIOUS_EXTENSIONS):
+        return True
+
+    # Suspicious probe paths
+    SUSPICIOUS_PATHS = (
+        "wp-", "wordpress", "phpmyadmin", "pma", "cgi-bin", "boaform", "hnap",
+        "actuator", "solr", "setup.cgi", "console", "telescope", "debug",
+        ".well-known", "autodiscover", "owa", "exchange", "invoker", "jmx-console"
+    )
+    if any(sp in path_lower for sp in SUSPICIOUS_PATHS):
+        return True
+
+    # Exploit payloads / SQL injection / XSS / Traversal patterns in query string or path
+    query_str = meta.get("QUERY_STRING", "").lower()
+    combined = f"{path_lower}?{query_str}"
+    EXPLOIT_PATTERNS = (
+        "../", "..\\", "%2e%2e", "<script", "%3cscript", "union+select", "select+",
+        "information_schema", "benchmark(", "sleep(", "waitfor+delay", "order+by+",
+        "etc/passwd", "win.ini", "eval(", "base64_decode"
+    )
+    if any(ep in combined for ep in EXPLOIT_PATTERNS):
+        return True
+
+    # Known scanner / bot user agents
+    SCANNER_AGENTS = (
+        "sqlmap", "nikto", "nmap", "masscan", "zgrab", "gobuster", "dirbuster",
+        "wprecon", "wpscan", "openvas", "nessus", "metasploit", "acunetix",
+        "python-requests", "go-http-client", "curl/"
+    )
+    if any(sa in ua for sa in SCANNER_AGENTS):
+        return True
+
+    return False
+
 def record_server_error_and_notify(request, exception=None, status_code=500):
     """
     Creates an in-app high-priority notification for admins and records a SystemAuditLog
@@ -50,13 +95,29 @@ def record_server_error_and_notify(request, exception=None, status_code=500):
 
         exc_msg = str(exception) if exception else "خطأ غير متوقع في الخادم (500 Internal Server Error)"
 
-        # Throttle: max 1 notification per unique error path every 60 seconds (safe hashed key)
+        # Check if this is an automated bot probe or exploit scan
+        if is_scanner_or_exploit_probe(request, path, exc_msg):
+            # Log silently in SystemAuditLog without emailing or spamming the admin
+            try:
+                from apps.common.models import SystemAuditLog
+                SystemAuditLog.objects.create(
+                    actor=None,
+                    action_type="bot_scan_blocked",
+                    description=f"رصد محاولة فحص آلي/اختراق مشبوهة على [{method} {path}] من IP: {ip}",
+                    ip_address=ip if (ip and len(ip) <= 45) else None,
+                    reason=exc_msg[:500]
+                )
+            except Exception:
+                pass
+            return
+
+        # Throttle: max 1 in-app notification per 5 minutes for identical path/error
         import hashlib
         raw_key_seed = f"{path}_{method}_{exc_msg[:50]}".encode("utf-8")
         throttle_key = f"err_notify_{hashlib.md5(raw_key_seed).hexdigest()}"
         if cache.get(throttle_key):
             return
-        cache.set(throttle_key, True, 60)
+        cache.set(throttle_key, True, 300)
 
         # 1. Permanent Audit Log in Control Panel
         try:
@@ -114,38 +175,42 @@ def record_server_error_and_notify(request, exception=None, status_code=500):
                 except Exception as ex_adm:
                     logger.warning("Failed to notify admin %s: %s", getattr(adm, "email", adm), ex_adm)
 
-            # Direct Instant Email Alert to Superusers
-            superusers = admins.filter(is_superuser=True)
-            for su in superusers:
-                if getattr(su, "email", None):
-                    try:
-                        email_html = f"""
-                        <div dir="rtl" style="font-family: 'Segoe UI', Tahoma, Arial, sans-serif; max-width: 600px; margin: 0 auto; background: #0f172a; color: #f8fafc; padding: 25px; border-radius: 16px; border: 1px solid #ef4444;">
-                            <h2 style="color: #ef4444; margin-top: 0; font-size: 20px;">⚠️ تنبيه رصد خطأ 500 في موقع رقميات</h2>
-                            <p style="color: #94a3b8; font-size: 13px; line-height: 1.6;">تم رصد حدوث خطأ خادم داخلي (500 Server Error) عند محاولة أحد المستخدمين الوصول إلى الرابط أدناه:</p>
-                            <div style="background: #1e293b; padding: 18px; border-radius: 12px; margin: 15px 0; font-size: 13px; line-height: 1.8;">
-                                <div><strong>المسار:</strong> <span style="color: #38bdf8; font-family: monospace;">{method} {full_url}</span></div>
-                                <div><strong>المستخدم:</strong> {user_str}</div>
-                                <div><strong>عنوان IP:</strong> {ip or 'غير معروف'}</div>
-                                <div><strong>توقيت الخطأ:</strong> {timezone.now().strftime('%Y-%m-%d %H:%M:%S')}</div>
-                                <div style="margin-top: 12px; padding-top: 12px; border-top: 1px solid #334155;">
-                                    <strong style="color: #f87171;">رسالة الخطأ البرمجي:</strong>
-                                    <pre style="background: #090d16; color: #fda4af; padding: 12px; border-radius: 8px; overflow-x: auto; font-family: monospace; font-size: 11px; white-space: pre-wrap; margin-top: 6px;">{exc_msg}</pre>
+            # Direct Instant Email Alert to Superusers (strictly throttled: max 1 email per hour)
+            email_throttle_key = "admin_500_email_hourly_throttle"
+            can_send_email = not bool(cache.get(email_throttle_key))
+            if can_send_email:
+                cache.set(email_throttle_key, True, 3600)  # 1 hour throttle
+                superusers = admins.filter(is_superuser=True)
+                for su in superusers:
+                    if getattr(su, "email", None):
+                        try:
+                            email_html = f"""
+                            <div dir="rtl" style="font-family: 'Segoe UI', Tahoma, Arial, sans-serif; max-width: 600px; margin: 0 auto; background: #0f172a; color: #f8fafc; padding: 25px; border-radius: 16px; border: 1px solid #ef4444;">
+                                <h2 style="color: #ef4444; margin-top: 0; font-size: 20px;">⚠️ تنبيه رصد خطأ 500 في موقع رقميات</h2>
+                                <p style="color: #94a3b8; font-size: 13px; line-height: 1.6;">تم رصد حدوث خطأ خادم داخلي (500 Server Error) عند محاولة أحد المستخدمين الوصول إلى الرابط أدناه:</p>
+                                <div style="background: #1e293b; padding: 18px; border-radius: 12px; margin: 15px 0; font-size: 13px; line-height: 1.8;">
+                                    <div><strong>المسار:</strong> <span style="color: #38bdf8; font-family: monospace;">{method} {full_url}</span></div>
+                                    <div><strong>المستخدم:</strong> {user_str}</div>
+                                    <div><strong>عنوان IP:</strong> {ip or 'غير معروف'}</div>
+                                    <div><strong>توقيت الخطأ:</strong> {timezone.now().strftime('%Y-%m-%d %H:%M:%S')}</div>
+                                    <div style="margin-top: 12px; padding-top: 12px; border-top: 1px solid #334155;">
+                                        <strong style="color: #f87171;">رسالة الخطأ البرمجي:</strong>
+                                        <pre style="background: #090d16; color: #fda4af; padding: 12px; border-radius: 8px; overflow-x: auto; font-family: monospace; font-size: 11px; white-space: pre-wrap; margin-top: 6px;">{exc_msg}</pre>
+                                    </div>
+                                </div>
+                                <div style="text-align: center; margin-top: 25px;">
+                                    <a href="https://raqamiyatapp.com/control/" style="display: inline-block; background: #06b6d4; color: #0f172a; font-weight: bold; padding: 10px 22px; border-radius: 10px; text-decoration: none; font-size: 13px;">فتح لوحة التحكم للإشراف</a>
                                 </div>
                             </div>
-                            <div style="text-align: center; margin-top: 25px;">
-                                <a href="https://raqamiyatapp.com/control/" style="display: inline-block; background: #06b6d4; color: #0f172a; font-weight: bold; padding: 10px 22px; border-radius: 10px; text-decoration: none; font-size: 13px;">فتح لوحة التحكم للإشراف</a>
-                            </div>
-                        </div>
-                        """
-                        send_brevo_email(
-                            to_email=su.email,
-                            to_name=su.get_full_name() or "Admin",
-                            subject=title,
-                            html_content=email_html
-                        )
-                    except Exception as ex_mail:
-                        logger.warning("Failed to send 500 error email to %s: %s", su.email, ex_mail)
+                            """
+                            send_brevo_email(
+                                to_email=su.email,
+                                to_name=su.get_full_name() or "Admin",
+                                subject=title,
+                                html_content=email_html
+                            )
+                        except Exception as ex_mail:
+                            logger.warning("Failed to send 500 error email to %s: %s", su.email, ex_mail)
         except Exception as e:
             logger.warning("Failed to dispatch 500 error notifications: %s", e)
 

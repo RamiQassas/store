@@ -112,6 +112,38 @@
     </div>
 </div>
 
+{# ══ DELETE EMPTY CATEGORIES MODAL ══ #}
+<div id="cat-delete-empty-modal" style="display:none;position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,0.85);backdrop-filter:blur(8px);align-items:center;justify-content:center;padding:1rem;">
+    <div style="background:#0f172a;border:1.5px solid rgba(244,63,94,0.4);border-radius:1.25rem;padding:1.75rem;max-width:30rem;width:100%;box-shadow:0 30px 60px rgba(0,0,0,0.6);">
+        <div style="display:flex;align-items:center;gap:.75rem;margin-bottom:1rem;">
+            <div style="width:2.75rem;height:2.75rem;border-radius:50%;background:rgba(244,63,94,0.15);display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+                <i class="fas fa-trash-alt" style="color:#f43f5e;font-size:1.1rem;"></i>
+            </div>
+            <div>
+                <h3 style="font-size:1rem;font-weight:900;color:#fff;margin:0;">حذف الأقسام الفارغة</h3>
+                <p style="font-size:.75rem;color:#94a3b8;margin:.25rem 0 0 0;">تنظيف المتجر وإزالة الأقسام التي لا تحوي أي منتجات</p>
+            </div>
+        </div>
+        
+        <div id="delete-empty-preview-area" style="background:rgba(15,23,42,0.8);border:1px solid rgba(255,255,255,0.08);border-radius:.875rem;padding:1rem;margin-bottom:1.25rem;font-size:.8rem;color:#cbd5e1;line-height:1.6;">
+            <div style="display:flex;align-items:center;gap:.5rem;color:#94a3b8;">
+                <i class="fas fa-spinner fa-spin text-cyan"></i> جاري فحص الأقسام الفارغة...
+            </div>
+        </div>
+
+        <div style="background:rgba(244,63,94,0.08);border:1px solid rgba(244,63,94,0.2);border-radius:.75rem;padding:.75rem 1rem;font-size:.75rem;color:#fca5a5;margin-bottom:1.25rem;">
+            ⚠️ سيتم فقط حذف الأقسام الخالية تماماً من المنتجات. لن يتأثر أي قسم يحتوي على منتجات.
+        </div>
+
+        <div style="display:flex;justify-content:flex-end;gap:.75rem;">
+            <button onclick="closeDeleteEmptyCategoriesModal()" style="padding:.5rem 1rem;border-radius:.75rem;font-size:.75rem;font-weight:700;color:#94a3b8;background:rgba(255,255,255,0.05);border:none;cursor:pointer;">إلغاء</button>
+            <button onclick="confirmDeleteEmptyCategories()" id="cat-delete-empty-confirm-btn" style="padding:.5rem 1.25rem;border-radius:.75rem;font-size:.75rem;font-weight:900;color:#fff;background:#e11d48;border:none;cursor:pointer;display:none;align-items:center;gap:.4rem;">
+                <i class="fas fa-trash-alt"></i> تأكيد الحذف الآن
+            </button>
+        </div>
+    </div>
+</div>
+
 {# ══ BULK AI BRANDING PROGRESS MODAL ══ #}
 <div id="bulk-branding-modal" style="display:none;position:fixed;inset:0;z-index:99999;background:rgba(0,0,0,0.85);backdrop-filter:blur(8px);align-items:center;justify-content:center;padding:1rem;">
     <div style="background:#0b1329;border:1.5px solid rgba(168,85,247,0.4);border-radius:1.5rem;padding:2rem;max-width:32rem;width:100%;box-shadow:0 25px 60px rgba(0,0,0,0.8);text-align:center;">
@@ -163,23 +195,27 @@
         <h1 class="text-2xl font-black">تصنيفات المنتجات</h1>
         <p class="text-muted text-xs mt-1">اسحب البطاقات لتغيير الترتيب · اسحب فوق بطاقة أخرى لدمجهما · انقر الأيقونات للتعديل السريع</p>
     </div>
-    <div class="flex flex-wrap gap-3 items-center">
+    <div class="flex flex-wrap gap-2.5 items-center">
         <span class="text-xs text-slate-500 bg-slate-800 px-3 py-1.5 rounded-lg border border-white/5">
             <i class="fas fa-layer-group ml-1 text-cyan"></i> {{ categories|length }} قسم
         </span>
-        <button type="button" onclick="startBulkAiCategoryBranding('all')" class="btn btn-outline btn-sm border-purple-500/40 text-purple-400 hover:bg-purple-500 hover:text-white font-bold transition flex items-center gap-1.5 shadow-sm" title="البحث وجلب الأيقونات والشعارات لجميع الأقسام والتصنيفات من الإنترنت">
+        <button type="button" onclick="openDeleteEmptyCategoriesModal()" class="btn btn-outline btn-sm border-rose-500/50 text-rose-400 hover:bg-rose-500 hover:text-white font-bold transition flex items-center gap-1.5 shadow-sm" title="فحص وإزالة الأقسام الفارغة التي لا تحوي أي منتجات لتنظيم المتجر">
+            <i class="fas fa-trash-alt text-rose-400"></i>
+            <span>حذف الأقسام الفارغة</span>
+        </button>
+        <button type="button" onclick="startBulkAiCategoryBranding('all')" class="btn btn-outline btn-sm border-purple-500/50 text-purple-300 hover:bg-purple-600 hover:text-white font-bold transition flex items-center gap-1.5 shadow-sm" title="توحيد وتوليد صور احترافية لجميع الأقسام بتصميم متناسق وهوية رقمية عالية الجودة">
             <i class="fas fa-wand-magic-sparkles text-purple-400"></i>
-            <span>توليد صور لجميع الأقسام</span>
+            <span>توحيد صور الأقسام</span>
         </button>
         <button type="button" onclick="startBulkAiCategoryBranding('missing')" class="btn btn-outline btn-sm border-amber-500/40 text-amber-400 hover:bg-amber-500 hover:text-slate-950 font-bold transition flex items-center gap-1.5 shadow-sm" title="توليد الصور فقط للأقسام التي لا تملك صورة حالياً">
             <i class="fas fa-image text-amber-400"></i>
-            <span>توليد للأقسام بدون صور فقط</span>
+            <span>صور للأقسام الفارغة فقط</span>
         </button>
         <a href="{% url 'control_category_create' %}" class="btn btn-primary btn-sm">
-            <i class="fas fa-plus ml-2"></i> إضافة قسم جديد
+            <i class="fas fa-plus ml-1.5"></i> إضافة قسم جديد
         </a>
         <a href="{% url 'control_products_list' %}" class="btn btn-outline btn-sm">
-            <i class="fas fa-box ml-2"></i> جميع المنتجات
+            <i class="fas fa-box ml-1.5"></i> جميع المنتجات
         </a>
     </div>
 </div>
@@ -689,6 +725,84 @@ window.generateSingleCategoryAiImage = function(catId, btnEl) {
             btnEl.innerHTML = originalHtml;
         }
         showToast('خطأ في الاتصال: ' + err, true);
+    });
+};
+
+/* ── Delete Empty Categories Management ── */
+window.openDeleteEmptyCategoriesModal = function() {
+    var modal = document.getElementById('cat-delete-empty-modal');
+    var preview = document.getElementById('delete-empty-preview-area');
+    var confirmBtn = document.getElementById('cat-delete-empty-confirm-btn');
+    
+    modal.style.display = 'flex';
+    preview.innerHTML = '<div style="display:flex;align-items:center;gap:.5rem;color:#94a3b8;"><i class="fas fa-spinner fa-spin text-cyan"></i> جاري فحص الأقسام الفارغة في المتجر...</div>';
+    confirmBtn.style.display = 'none';
+
+    fetch('/control/categories/delete-empty-ajax/', {
+        method: 'GET',
+        headers: {
+            'X-Requested-With': 'XMLHttpRequest'
+        }
+    })
+    .then(function(res) { return res.json(); })
+    .then(function(data) {
+        if (data.status === 'preview') {
+            if (data.empty_count === 0) {
+                preview.innerHTML = '<div style="color:#10b981;font-weight:bold;text-align:center;padding:0.5rem;"><i class="fas fa-check-circle text-lg ml-1"></i> ممتاز! لا توجد أي أقسام فارغة، كافة الأقسام تحتوي على منتجات.</div>';
+                confirmBtn.style.display = 'none';
+            } else {
+                var listHtml = data.empty_names.map(function(n) {
+                    return '<span style="display:inline-block;background:rgba(244,63,94,0.12);border:1px solid rgba(244,63,94,0.25);color:#fca5a5;padding:.2rem .55rem;border-radius:.5rem;font-size:.75rem;margin:.25rem;">' + n + '</span>';
+                }).join(' ');
+                preview.innerHTML = '<div><div style="font-weight:900;color:#f87171;margin-bottom:.6rem;display:flex;align-items:center;gap:.4rem;"><i class="fas fa-circle-exclamation"></i> تم العثور على ' + data.empty_count + ' قسم بدون منتجات:</div><div style="max-height:140px;overflow-y:auto;padding-right:0.25rem;">' + listHtml + '</div></div>';
+                confirmBtn.style.display = 'inline-flex';
+                confirmBtn.innerHTML = '<i class="fas fa-trash-alt ml-1"></i> تأكيد حذف ' + data.empty_count + ' قسم فارغ';
+            }
+        } else {
+            preview.innerHTML = '<div style="color:#ef4444;">' + (data.message || 'حدث خطأ في جلب الأقسام') + '</div>';
+        }
+    })
+    .catch(function(err) {
+        preview.innerHTML = '<div style="color:#ef4444;">تعذر الاتصال بالسيرفر: ' + err + '</div>';
+    });
+};
+
+window.closeDeleteEmptyCategoriesModal = function() {
+    var modal = document.getElementById('cat-delete-empty-modal');
+    if (modal) modal.style.display = 'none';
+};
+
+window.confirmDeleteEmptyCategories = function() {
+    var confirmBtn = document.getElementById('cat-delete-empty-confirm-btn');
+    var preview = document.getElementById('delete-empty-preview-area');
+    confirmBtn.disabled = true;
+    confirmBtn.innerHTML = '<i class="fas fa-spinner fa-spin ml-1"></i> جاري تنظيف الأقسام...';
+
+    fetch('/control/categories/delete-empty-ajax/', {
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': getCsrf(),
+            'X-Requested-With': 'XMLHttpRequest'
+        }
+    })
+    .then(function(res) { return res.json(); })
+    .then(function(data) {
+        if (data.status === 'success') {
+            preview.innerHTML = '<div style="color:#10b981;font-weight:900;text-align:center;padding:0.75rem;"><i class="fas fa-circle-check text-xl mb-2 block"></i> ' + data.message + '</div>';
+            confirmBtn.style.display = 'none';
+            setTimeout(function() {
+                location.reload();
+            }, 1200);
+        } else {
+            alert(data.message || 'فشلت عملية الحذف');
+            confirmBtn.disabled = false;
+            confirmBtn.innerHTML = '<i class="fas fa-trash-alt ml-1"></i> إعادة المحاولة';
+        }
+    })
+    .catch(function(err) {
+        alert('حدث خطأ أثناء التنفيذ: ' + err);
+        confirmBtn.disabled = false;
+        confirmBtn.innerHTML = '<i class="fas fa-trash-alt ml-1"></i> إعادة المحاولة';
     });
 };
 

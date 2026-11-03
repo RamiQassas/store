@@ -353,6 +353,49 @@ class Order(TimeStampedModel):
         }
 
     @property
+    def payment_currency_summary(self):
+        """Returns clean, formatted payment currency & conversion details."""
+        meta = self.metadata if isinstance(self.metadata, dict) else {}
+        
+        amt = meta.get("syp_amount") or meta.get("gateway_charge_amount")
+        curr = (meta.get("selected_currency") or meta.get("gateway_charge_currency") or ("SYP" if meta.get("syp_amount") else None) or "").upper()
+        
+        rate_val = meta.get("exchange_rate")
+        try:
+            rate_float = float(rate_val) if rate_val else None
+        except (ValueError, TypeError):
+            rate_float = None
+
+        base_usd = meta.get("base_usd_amount") or self.total_amount
+        try:
+            usd_float = float(base_usd) if base_usd else None
+        except (ValueError, TypeError):
+            usd_float = None
+
+        syp_val = meta.get("syp_amount") or (amt if curr == "SYP" else None)
+        try:
+            syp_float = float(syp_val) if syp_val else None
+        except (ValueError, TypeError):
+            syp_float = None
+
+        if not syp_float and usd_float and rate_float:
+            syp_float = usd_float * rate_float
+
+        if not usd_float and syp_float and rate_float and rate_float > 0:
+            usd_float = syp_float / rate_float
+
+        is_syp = (curr == "SYP") or (meta.get("syp_amount") is not None) or ("sham" in str(self.payment_method_display).lower())
+
+        return {
+            "is_syp": is_syp,
+            "currency": "SYP" if is_syp else (curr or "USD"),
+            "syp_amount": f"{syp_float:,.0f}" if syp_float else None,
+            "usd_amount": f"{usd_float:.2f}" if usd_float else f"{self.total_amount}",
+            "exchange_rate": f"{rate_float:,.0f}" if rate_float else (str(rate_val) if rate_val else None),
+            "raw_amount": amt or self.total_amount,
+        }
+
+    @property
     def gateway_reference_id(self):
         meta = self.metadata if isinstance(self.metadata, dict) else {}
         return (
@@ -361,6 +404,12 @@ class Order(TimeStampedModel):
             or meta.get("paymera_payment_id")
             or meta.get("bill_no")
             or meta.get("tran_id")
+            or meta.get("payment_id")
+            or meta.get("transaction_id")
+            or meta.get("checkout_session_id")
+            or meta.get("external_id")
+            or meta.get("provider_order_id")
+            or self.api_order_id
             or None
         )
 

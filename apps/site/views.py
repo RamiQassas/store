@@ -2809,7 +2809,10 @@ def product_detail(request, pk):
         shipping_name = ""
         shipping_phone = ""
         shipping_address = ""
-        if product.product_type == "physical" and not product.form_schema.get("fields"):
+        schema_fields = []
+        if isinstance(getattr(product, "form_schema", None), dict):
+            schema_fields = product.form_schema.get("fields") or []
+        if product.product_type == "physical" and not schema_fields:
             shipping_name = request.POST.get("shipping_name", "").strip()
             shipping_phone = request.POST.get("shipping_phone", "").strip()
             shipping_address = request.POST.get("shipping_address", "").strip()
@@ -4622,7 +4625,21 @@ def control_order_detail(request, pk):
         "is_paymera": is_paymera,
         "gateway_info": order.gateway_info_summary,
         "gateway_invoice_url": order.gateway_invoice_url,
-        "gateway_bill_no": meta.get("shamcash_bill_no") or gw_payment_id,
+        "gateway_bill_no": (
+            meta.get("shamcash_bill_no")
+            or meta.get("bill_no")
+            or meta.get("gateway_payment_id")
+            or meta.get("paymera_payment_id")
+            or meta.get("payment_id")
+            or meta.get("transaction_id")
+            or meta.get("tran_id")
+            or meta.get("checkout_session_id")
+            or meta.get("external_id")
+            or meta.get("provider_order_id")
+            or order.gateway_reference_id
+            or ""
+        ),
+        "payment_summary": order.payment_currency_summary,
         "gateway_payment_id": gw_payment_id or meta.get("paymera_payment_id") or "",
         "gateway_rrn": meta.get("gateway_rrn") or meta.get("rrn") or "",
         "charge_amount_syp": charge_amount_syp,
@@ -5423,15 +5440,41 @@ def control_category_merge_ajax(request, pk, target_pk):
 @support_required
 def control_delete_empty_categories_ajax(request):
     """Delete all categories that have zero products. Safe: only removes empty ones without products."""
-    if request.method != "POST":
-        return JsonResponse({"status": "error"}, status=405)
     try:
         from django.db.models import Count
-        empty_cats = Category.objects.annotate(p_count=Count('products'), c_count=Count('children')).filter(p_count=0, c_count=0)
+        store = getattr(request, "store", None)
+        if store:
+            qs = Category.all_objects.filter(store=store)
+        else:
+            qs = Category.all_objects.filter(store__isnull=True)
+            if not qs.exists():
+                qs = Category.all_objects.all()
+
+        empty_cats = qs.annotate(p_count=Count('products'), c_count=Count('children')).filter(p_count=0, c_count=0)
+
+        if request.method == "GET":
+            names = list(empty_cats.values_list("name", flat=True))
+            return JsonResponse({
+                "status": "preview",
+                "empty_count": len(names),
+                "empty_names": names[:30]
+            })
+
+        if request.method != "POST":
+            return JsonResponse({"status": "error", "message": "طريقة غير مدعومة"}, status=405)
+
         names = list(empty_cats.values_list("name", flat=True))
         count = empty_cats.count()
+        if count == 0:
+            return JsonResponse({"status": "warning", "deleted_count": 0, "message": "لا توجد أي أقسام فارغة حالياً."})
+
         empty_cats.delete()
-        return JsonResponse({"status": "success", "deleted_count": count, "deleted_names": names})
+        return JsonResponse({
+            "status": "success",
+            "deleted_count": count,
+            "deleted_names": names,
+            "message": f"تم بنجاح حذف {count} قسم فارغ."
+        })
     except Exception as e:
         return JsonResponse({"status": "error", "message": str(e)}, status=400)
 

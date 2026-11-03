@@ -142,8 +142,12 @@
                     </span>
                     {% endif %}
                 </div>
-                <div class="text-[11px] text-slate-400 font-mono mt-0.5">
-                    تاريخ الطلب: {{ order.created_at|date:"Y-m-d H:i" }}
+                <div class="flex items-center gap-3 text-[11px] text-slate-400 font-mono mt-0.5 flex-wrap">
+                    <span>التاريخ: {{ order.created_at|date:"Y-m-d H:i" }}</span>
+                    {% if payment_summary.is_syp and payment_summary.syp_amount %}
+                    <span class="text-slate-500">•</span>
+                    <span>المبلغ المسدد: <strong class="text-emerald-300 font-black">{{ payment_summary.syp_amount }} ل.س</strong> (ما يعادل {{ payment_summary.usd_amount }}$)</span>
+                    {% endif %}
                 </div>
             </div>
         </div>
@@ -280,6 +284,92 @@
         <!-- ============================================== -->
         <div class="space-y-4">
 
+            <!-- Card: Physical Products Shipping Details (If physical order) -->
+            {% if order.has_physical_products or order.shipping_name or order.shipping_phone or order.shipping_address %}
+            <div class="clean-card border-amber-500/30 bg-gradient-to-br from-slate-900/95 to-amber-950/20 shadow-lg shadow-amber-950/10">
+                <div class="clean-card-header border-amber-500/20">
+                    <div class="flex items-center gap-2.5">
+                        <div class="w-8 h-8 rounded-xl bg-amber-500/15 border border-amber-500/30 flex items-center justify-center text-amber-400 text-xs">
+                            <i class="fas fa-shipping-fast"></i>
+                        </div>
+                        <div>
+                            <h3 class="text-sm font-black text-white">بيانات الشحن والتوصيل للعميل (منتج مادي)</h3>
+                            <span class="text-[10px] text-amber-300 font-mono">البيانات التي أدخلها المشتري لشحن واستلام المنتج المادي</span>
+                        </div>
+                    </div>
+                    <span class="px-2.5 py-0.5 rounded-lg bg-amber-500/20 text-amber-300 border border-amber-500/40 text-[10px] font-bold">
+                        طلب منتج مادي
+                    </span>
+                </div>
+
+                <div class="clean-card-body space-y-3">
+                    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5">
+                        <!-- Recipient Name -->
+                        <div class="field-box">
+                            <span class="field-label text-amber-300">اسم المستلم بالكامل</span>
+                            <div class="flex items-center justify-between gap-1">
+                                <span class="text-xs font-black text-white truncate">{{ order.shipping_name|default:order.customer.get_full_name|default:"---" }}</span>
+                                {% if order.shipping_name or order.customer.get_full_name %}
+                                <button type="button" onclick="copyToClipboard('{{ order.shipping_name|default:order.customer.get_full_name|escapejs }}', this)" class="text-slate-400 hover:text-cyan p-1 transition" title="نسخ الاسم">
+                                    <i class="far fa-copy text-xs"></i>
+                                </button>
+                                {% endif %}
+                            </div>
+                        </div>
+
+                        <!-- Phone Number with direct WhatsApp & Call -->
+                        <div class="field-box">
+                            <span class="field-label text-amber-300">رقم هاتف الشحن والتواصل</span>
+                            <div class="flex items-center justify-between gap-1.5">
+                                <span class="text-xs font-mono font-bold text-white">{{ order.shipping_phone|default:order.customer.phone|default:"---" }}</span>
+                                {% if order.shipping_phone or order.customer.phone %}
+                                {% with ph=order.shipping_phone|default:order.customer.phone %}
+                                <div class="flex items-center gap-1">
+                                    <a href="https://wa.me/{{ ph|slugify }}" target="_blank" class="w-6 h-6 rounded bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300 flex items-center justify-center transition" title="واتساب">
+                                        <i class="fab fa-whatsapp text-xs"></i>
+                                    </a>
+                                    <a href="tel:{{ ph }}" class="w-6 h-6 rounded bg-sky-500/20 hover:bg-sky-500/30 text-sky-300 flex items-center justify-center transition" title="اتصال">
+                                        <i class="fas fa-phone-alt text-[10px]"></i>
+                                    </a>
+                                    <button type="button" onclick="copyToClipboard('{{ ph|escapejs }}', this)" class="w-6 h-6 rounded bg-slate-800 text-slate-400 hover:text-cyan flex items-center justify-center transition" title="نسخ">
+                                        <i class="far fa-copy text-[10px]"></i>
+                                    </button>
+                                </div>
+                                {% endwith %}
+                                {% endif %}
+                            </div>
+                        </div>
+
+                        <!-- Full Delivery Address -->
+                        <div class="field-box sm:col-span-2 lg:col-span-1">
+                            <span class="field-label text-amber-300">عنوان التوصيل (المحافظة / المدينة / العنوان)</span>
+                            <div class="flex items-center justify-between gap-1">
+                                <span class="text-xs font-bold text-white truncate max-w-[200px]" title="{{ order.shipping_address }}">{{ order.shipping_address|default:"---" }}</span>
+                                {% if order.shipping_address %}
+                                <button type="button" onclick="copyToClipboard('{{ order.shipping_address|escapejs }}', this)" class="text-slate-400 hover:text-cyan p-1 transition" title="نسخ العنوان">
+                                    <i class="far fa-copy text-xs"></i>
+                                </button>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+
+                    {% if order.shipping_address %}
+                    <div class="p-2.5 rounded-xl bg-slate-950/70 border border-white/5 flex items-center justify-between text-xs">
+                        <span class="text-slate-300 flex items-center gap-1.5">
+                            <i class="fas fa-map-marker-alt text-amber-400"></i>
+                            <span>العنوان الكامل: <strong class="text-white">{{ order.shipping_address }}</strong></span>
+                        </span>
+                        <a href="https://www.google.com/maps/search/?api=1&query={{ order.shipping_address|urlencode }}" target="_blank" class="text-cyan hover:underline text-[11px] font-bold shrink-0 flex items-center gap-1">
+                            <span>عرض في خرائط جوجل</span>
+                            <i class="fas fa-external-link-alt text-[9px]"></i>
+                        </a>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+            {% endif %}
+
             <!-- Card 1: Items & Financial Breakdown -->
             <div class="clean-card">
                 <div class="clean-card-header">
@@ -342,13 +432,18 @@
                         
                         <div class="flex justify-between items-center">
                             <span class="font-black text-white text-xs sm:text-sm">المبلغ الإجمالي النهائي:</span>
-                            <span class="font-black text-cyan text-xl font-mono tracking-tight">{% currency_format order.total_amount %}</span>
+                            <div class="text-left">
+                                <span class="font-black text-cyan text-xl font-mono tracking-tight">{% currency_format order.total_amount %}</span>
+                                {% if payment_summary.is_syp and payment_summary.syp_amount %}
+                                <div class="text-xs font-mono font-bold text-emerald-400">({{ payment_summary.syp_amount }} ليرة سورية)</div>
+                                {% endif %}
+                            </div>
                         </div>
                     </div>
                 </div>
             </div>
 
-            <!-- Card 2: Customer Inputs (Player ID, Server, Link, etc.) -->
+            <!-- Card 2: Customer Inputs (Player ID, Server, Link, etc. for digital products) -->
             <div class="clean-card">
                 <div class="clean-card-header">
                     <div class="flex items-center gap-2.5">
@@ -356,7 +451,7 @@
                             <i class="fas fa-id-badge"></i>
                         </div>
                         <div>
-                            <h3 class="text-sm font-black text-white">البيانات المدخلة من العميل</h3>
+                            <h3 class="text-sm font-black text-white">البيانات المدخلة من العميل (الخدمات الرقمية)</h3>
                             <span class="text-[10px] text-slate-400 font-mono">آيدي اللاعب، الحساب، أو رابط الخدمة المطلوبة</span>
                         </div>
                     </div>
@@ -393,16 +488,16 @@
                         {% endfor %}
                     </div>
                     {% else %}
-                    <div class="p-6 text-center bg-slate-950/40 rounded-xl border border-dashed border-white/10">
-                        <i class="fas fa-info-circle text-slate-500 text-lg mb-1.5"></i>
-                        <p class="text-slate-400 font-bold text-xs">لا يتطلب هذا المنتج أو الباقة إدخال آيدي أو حقول مخصصة من العميل.</p>
+                    <div class="p-5 text-center bg-slate-950/40 rounded-xl border border-dashed border-white/10">
+                        <i class="fas fa-info-circle text-slate-500 text-base mb-1"></i>
+                        <p class="text-slate-400 font-bold text-xs">لا يتطلب هذا المنتج إدخال آيدي أو حقول مخصصة إضافية من العميل.</p>
                     </div>
                     {% endif %}
                 </div>
             </div>
 
             <!-- Card 3: Dedicated Electronic Payment Gateway Dossier -->
-            <div class="clean-card border-teal-500/20 bg-gradient-to-br from-slate-900/90 to-teal-950/10">
+            <div class="clean-card border-teal-500/25 bg-gradient-to-br from-slate-900/95 to-teal-950/15 shadow-lg">
                 <div class="clean-card-header border-teal-500/20">
                     <div class="flex items-center gap-2.5">
                         <div class="w-8 h-8 rounded-xl bg-teal-500/15 border border-teal-500/30 flex items-center justify-center text-teal-400 text-xs">
@@ -417,14 +512,62 @@
                     {% if gateway_invoice_url %}
                     <a href="{{ gateway_invoice_url }}" target="_blank" rel="noopener noreferrer" class="px-3 py-1.5 rounded-xl bg-teal-500 text-slate-950 hover:bg-teal-400 text-xs font-black transition flex items-center gap-1.5 shadow-md shadow-teal-500/20">
                         <i class="fas fa-external-link-alt text-[10px]"></i>
-                        <span>فتح الفاتورة الأصلية ↗</span>
+                        <span>عرض الفاتورة لدى المزود ↗</span>
                     </a>
                     {% endif %}
                 </div>
 
                 <div class="clean-card-body space-y-3">
+                    
+                    <!-- Currency, Amount & Conversion Hero Box -->
+                    <div class="p-3.5 rounded-xl bg-slate-950/80 border border-teal-500/20 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                        <div>
+                            <span class="field-label text-teal-300">المبلغ المسدد والعملة المدفوعة</span>
+                            <div class="flex items-baseline gap-2 mt-0.5 flex-wrap">
+                                {% if payment_summary.is_syp %}
+                                <span class="text-2xl font-black text-emerald-300 font-mono">{{ payment_summary.syp_amount }} ل.س</span>
+                                <span class="text-xs font-bold text-slate-300 font-mono">(يعادل {{ payment_summary.usd_amount }}$)</span>
+                                {% else %}
+                                <span class="text-2xl font-black text-emerald-300 font-mono">{{ payment_summary.usd_amount }}$</span>
+                                {% if payment_summary.syp_amount %}
+                                <span class="text-xs font-bold text-slate-300 font-mono">(يعادل {{ payment_summary.syp_amount }} ل.س)</span>
+                                {% endif %}
+                                {% endif %}
+                            </div>
+                            {% if payment_summary.exchange_rate %}
+                            <div class="text-[11px] text-slate-400 font-mono mt-1">
+                                سعر الصرف المعتمد: 1$ = <strong class="text-teal-300">{{ payment_summary.exchange_rate }}</strong> ليرة سورية
+                            </div>
+                            {% endif %}
+                        </div>
+
+                        <!-- Provider Invoice Direct Link -->
+                        {% if gateway_invoice_url %}
+                        <div class="shrink-0">
+                            <a href="{{ gateway_invoice_url }}" target="_blank" rel="noopener noreferrer" class="px-3.5 py-2 rounded-xl bg-teal-500 hover:bg-teal-400 text-slate-950 font-black text-xs transition flex items-center gap-1.5 shadow">
+                                <i class="fas fa-receipt"></i>
+                                <span>فتح رابط فاتورة المزود</span>
+                            </a>
+                        </div>
+                        {% endif %}
+                    </div>
+
+                    <!-- Gateway Specific Key-Value Tracking Details -->
                     <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5 text-xs">
-                        <!-- Method -->
+                        <!-- Invoice / Bill Number with Gateway -->
+                        <div class="field-box sm:col-span-2 lg:col-span-1">
+                            <span class="field-label text-teal-300">رقم الفاتورة / المرجع لدى المزود</span>
+                            <div class="flex items-center justify-between gap-1">
+                                <span class="font-mono font-black text-teal-200 truncate select-all text-xs">
+                                    {{ gateway_bill_no|default:order.gateway_reference_id|default:order.number }}
+                                </span>
+                                <button type="button" onclick="copyToClipboard('{{ gateway_bill_no|default:order.gateway_reference_id|default:order.number }}', this)" class="text-slate-400 hover:text-teal-300 p-1 transition" title="نسخ رقم الفاتورة لمطابقته مع المزود">
+                                    <i class="far fa-copy text-xs"></i>
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Payment Method -->
                         <div class="field-box">
                             <span class="field-label">وسيلة وطريقة الدفع</span>
                             <span class="font-bold text-white flex items-center gap-1.5">
@@ -435,11 +578,11 @@
 
                         <!-- Status -->
                         <div class="field-box">
-                            <span class="field-label">حالة السداد في البوابة</span>
+                            <span class="field-label">حالة السداد لدى المزود</span>
                             {% if order.status == 'completed' or order.status == 'processing' or order.payment_gateway_charge_info %}
                             <span class="font-bold text-emerald-400 flex items-center gap-1">
                                 <i class="fas fa-check-circle text-xs"></i>
-                                <span>تم تأكيد واستلام السداد بنجاح</span>
+                                <span>تم استلام وتأكيد السداد بنجاح</span>
                             </span>
                             {% elif order.status == 'pending' %}
                             <span class="font-bold text-amber-400 flex items-center gap-1">
@@ -453,44 +596,7 @@
                             {% endif %}
                         </div>
 
-                        <!-- Bill No -->
-                        {% if gateway_bill_no %}
-                        <div class="field-box sm:col-span-2 lg:col-span-1">
-                            <span class="field-label">رقم الفاتورة لدى المزود</span>
-                            <div class="flex items-center justify-between gap-1">
-                                <span class="font-mono font-bold text-teal-200 truncate select-all">{{ gateway_bill_no }}</span>
-                                <button type="button" onclick="copyToClipboard('{{ gateway_bill_no }}', this)" class="text-slate-400 hover:text-teal-300 p-1 transition" title="نسخ">
-                                    <i class="far fa-copy text-xs"></i>
-                                </button>
-                            </div>
-                        </div>
-                        {% endif %}
-
-                        <!-- Amount in SYP/Currency -->
-                        {% if charge_amount_syp or order.payment_gateway_charge_info %}
-                        <div class="field-box">
-                            <span class="field-label">المبلغ المخصوم فعلياً</span>
-                            <span class="font-mono font-black text-emerald-300 text-sm">
-                                {% if charge_amount_syp %}
-                                {{ charge_amount_syp }} ل.س
-                                {% elif order.payment_gateway_charge_info %}
-                                {{ order.payment_gateway_charge_info.amount }} {{ order.payment_gateway_charge_info.currency }}
-                                {% endif %}
-                            </span>
-                        </div>
-                        {% endif %}
-
-                        <!-- Exchange Rate -->
-                        {% if exchange_rate %}
-                        <div class="field-box">
-                            <span class="field-label">سعر الصرف المعتمد</span>
-                            <span class="font-mono font-bold text-slate-200">
-                                1$ = {{ exchange_rate }} ل.س
-                            </span>
-                        </div>
-                        {% endif %}
-
-                        <!-- RRN -->
+                        <!-- Bank RRN if exists -->
                         {% if gateway_rrn %}
                         <div class="field-box">
                             <span class="field-label">معرف المعاملة البنكية (RRN)</span>
@@ -752,7 +858,12 @@
             <span class="status-badge-lg {{ order.status }} text-[11px] py-1 px-2.5">
                 {{ order.get_status_display }}
             </span>
-            <span class="text-xs font-mono font-bold text-white truncate">{% currency_format order.total_amount %}</span>
+            <div class="min-w-0">
+                <span class="text-xs font-mono font-black text-white truncate block">{% currency_format order.total_amount %}</span>
+                {% if payment_summary.is_syp and payment_summary.syp_amount %}
+                <span class="text-[10px] font-mono text-emerald-400 font-bold block truncate">{{ payment_summary.syp_amount }} ل.س</span>
+                {% endif %}
+            </div>
         </div>
 
         <div class="flex items-center gap-1.5 shrink-0">
