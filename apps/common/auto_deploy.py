@@ -165,9 +165,9 @@ def check_update_status(bypass_cache=False):
 def restart_process_soon():
     def _exit():
         time.sleep(1.5)
-        logger.info("🔄 [AUTO-DEPLOY] Gracefully reloading server workers...")
+        logger.info("🔄 [AUTO-DEPLOY] Reloading server workers (Daphne ASGI / Gunicorn)...")
 
-        # 1. Touch wsgi.py and asgi.py
+        # 1. Touch wsgi.py and asgi.py to signal file watchers
         try:
             for f in ["wsgi.py", "asgi.py"]:
                 target_path = os.path.join(str(settings.BASE_DIR), "config", f)
@@ -176,33 +176,36 @@ def restart_process_soon():
         except Exception as e:
             logger.debug(f"Touch wsgi/asgi error: {e}")
 
-        # 2. Send SIGHUP to Gunicorn parent master process (os.getppid())
+        # 2. If running Daphne ASGI (as configured in Dockerfile/docker-compose), kill daphne
+        # Docker's restart: always will immediately restart the web container with a fresh git pull!
+        try:
+            subprocess.run(["pkill", "-f", "daphne"], timeout=3)
+        except Exception:
+            pass
+
+        # 3. If running Gunicorn, signal master or reload systemd
         try:
             import signal
             ppid = os.getppid()
             if ppid > 1:
                 os.kill(ppid, signal.SIGHUP)
-                logger.info(f"🔄 [AUTO-DEPLOY] Sent SIGHUP to Gunicorn master (PPID: {ppid})")
-        except Exception as e_hup:
-            logger.debug(f"Signal SIGHUP error: {e_hup}")
-
-        # 3. Try pkill / systemctl reload
+        except Exception:
+            pass
         try:
             subprocess.run(["pkill", "-HUP", "-f", "gunicorn"], timeout=3)
         except Exception:
             pass
         try:
-            subprocess.run(["systemctl", "reload", "gunicorn"], timeout=3)
+            subprocess.run(["systemctl", "reload-or-restart", "gunicorn"], timeout=3)
         except Exception:
             pass
 
-        # 4. Gracefully exit THIS worker if not PID 1
-        # Gunicorn master will immediately fork a brand new worker with fresh code from disk!
-        current_pid = os.getpid()
-        if current_pid > 1:
-            logger.info(f"🔄 [AUTO-DEPLOY] Worker {current_pid} recycling itself to reload code...")
+        # 4. Exit this process so Docker or Process Supervisor immediately spawns a clean new process
+        try:
             time.sleep(1)
             os._exit(0)
+        except Exception:
+            pass
 
     threading.Thread(target=_exit, daemon=True).start()
 
