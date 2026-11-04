@@ -164,10 +164,11 @@ def check_update_status(bypass_cache=False):
 
 def restart_process_soon():
     def _exit():
-        time.sleep(1)
+        time.sleep(1.5)
         logger.info("🔄 [AUTO-DEPLOY] Gracefully reloading server workers...")
+
+        # 1. Touch wsgi.py and asgi.py
         try:
-            # 1. Touch wsgi.py and asgi.py to signal WSGI reloaders
             for f in ["wsgi.py", "asgi.py"]:
                 target_path = os.path.join(str(settings.BASE_DIR), "config", f)
                 if os.path.exists(target_path):
@@ -175,17 +176,33 @@ def restart_process_soon():
         except Exception as e:
             logger.debug(f"Touch wsgi/asgi error: {e}")
 
+        # 2. Send SIGHUP to Gunicorn parent master process (os.getppid())
         try:
-            # 2. Graceful reload signal (SIGHUP) to Gunicorn master to replace workers cleanly
+            import signal
+            ppid = os.getppid()
+            if ppid > 1:
+                os.kill(ppid, signal.SIGHUP)
+                logger.info(f"🔄 [AUTO-DEPLOY] Sent SIGHUP to Gunicorn master (PPID: {ppid})")
+        except Exception as e_hup:
+            logger.debug(f"Signal SIGHUP error: {e_hup}")
+
+        # 3. Try pkill / systemctl reload
+        try:
             subprocess.run(["pkill", "-HUP", "-f", "gunicorn"], timeout=3)
         except Exception:
             pass
-
         try:
-            # 3. If running under systemd supervisor
             subprocess.run(["systemctl", "reload", "gunicorn"], timeout=3)
         except Exception:
             pass
+
+        # 4. Gracefully exit THIS worker if not PID 1
+        # Gunicorn master will immediately fork a brand new worker with fresh code from disk!
+        current_pid = os.getpid()
+        if current_pid > 1:
+            logger.info(f"🔄 [AUTO-DEPLOY] Worker {current_pid} recycling itself to reload code...")
+            time.sleep(1)
+            os._exit(0)
 
     threading.Thread(target=_exit, daemon=True).start()
 
