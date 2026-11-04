@@ -50,7 +50,7 @@ def get_client_ip(request):
     return meta.get("REMOTE_ADDR", "unknown")
 
 
-def report_security_intrusion(request, attack_category, matched_detail):
+def report_security_intrusion(request, attack_category, matched_detail, is_critical=False):
     """
     Collects forensic telemetry, creates a high-priority SystemAuditLog entry,
     creates in-app admin alert, and dispatches an instant email to the owner.
@@ -139,11 +139,26 @@ def report_security_intrusion(request, attack_category, matched_detail):
             except Exception as e_notif:
                 logger.warning(f"Failed to create intrusion in-app notification: {e_notif}")
 
-        # 3. Direct Email Alert to Owner (Throttled: 1 email per 5 minutes per IP to avoid inbox flooding)
-        email_throttle_key = f"sec_email_alert_{hashlib.md5(f'{ip}_{attack_category}'.encode()).hexdigest()}"
-        can_send_email = not bool(cache.get(email_throttle_key))
+        # 2.5 Track repeat attacks per IP
+        ip_attack_count_key = f"sec_ip_atk_cnt_{hashlib.md5(ip.encode()).hexdigest()}"
+        attack_count = cache.get(ip_attack_count_key, 0) + 1
+        cache.set(ip_attack_count_key, attack_count, 600)
+
+        # 3. Direct Email Alert to Owner
+        # Only email on critical threats (SQLi/RCE) OR persistent attackers (>= 4 attacks in 10 mins).
+        # Routine internet scanner bots (dump.sql, .git, etc.) are blocked and logged silently.
+        should_send_email = is_critical or (attack_count >= 4)
+        global_email_throttle_key = "sec_global_email_alert_throttle"
+        email_ip_throttle_key = f"sec_email_alert_{hashlib.md5(f'{ip}_{attack_category}'.encode()).hexdigest()}"
+
+        can_send_email = (
+            should_send_email
+            and not bool(cache.get(global_email_throttle_key))
+            and not bool(cache.get(email_ip_throttle_key))
+        )
         if can_send_email:
-            cache.set(email_throttle_key, True, 300)
+            cache.set(global_email_throttle_key, True, 900)  # 15 minutes global throttle
+            cache.set(email_ip_throttle_key, True, 1800)     # 30 minutes per IP/category
 
             def _send_intrusion_email():
                 try:
@@ -235,7 +250,7 @@ class SecurityIntrusionDetectionMiddleware:
         )
         for sf in SENSITIVE_FILES:
             if sf in path:
-                report_security_intrusion(request, "محاولة سرقة ملفات الإعدادات والبيانات الحساسة", f"طلب المسار الحساس: {path}")
+                report_security_intrusion(request, "محاولة استكشاف ملفات حساسة (ماسح آلي)", f"طلب المسار الحساس: {path}", is_critical=False)
                 return HttpResponseForbidden("Access Denied: Unauthorized security probe detected and logged.")
 
         # 2. Known Web Shells, CMS & Vulnerability Exploits
@@ -246,7 +261,7 @@ class SecurityIntrusionDetectionMiddleware:
         )
         for ep in EXPLOIT_PATHS:
             if ep in path:
-                report_security_intrusion(request, "محاولة استغلال مسارات أو ملفات اختراق خارجية", f"محاولة طلب: {path}")
+                report_security_intrusion(request, "محاولة استكشاف مسارات اختراق خارجية (ماسح آلي)", f"محاولة طلب: {path}", is_critical=False)
                 return HttpResponseForbidden("Access Denied: Malicious probe detected and logged.")
 
         # 3. Path Traversal & Local File Inclusion (LFI)
@@ -255,7 +270,7 @@ class SecurityIntrusionDetectionMiddleware:
         )
         for tp in TRAVERSAL_PATTERNS:
             if tp in combined:
-                report_security_intrusion(request, "محاولة اختراق تخطي المسارات (Directory Traversal / LFI)", f"النمط المرصود: {tp} في الرابط {combined}")
+                report_security_intrusion(request, "محاولة اختراق تخطي المسارات (Directory Traversal / LFI)", f"النمط المرصود: {tp} في الرابط {combined}", is_critical=True)
                 return HttpResponseForbidden("Access Denied: Path traversal detected and logged.")
 
         # 4. SQL Injection Attack Signatures
@@ -266,7 +281,7 @@ class SecurityIntrusionDetectionMiddleware:
         )
         for sqli in SQLI_PATTERNS:
             if sqli in combined:
-                report_security_intrusion(request, "محاولة حقن قواعد البيانات (SQL Injection Attack)", f"الرمز المرصود: {sqli} في {combined}")
+                report_security_intrusion(request, "محاولة حقن قواعد البيانات (SQL Injection Attack)", f"الرمز المرصود: {sqli} في {combined}", is_critical=True)
                 return HttpResponseForbidden("Access Denied: SQL injection detected and logged.")
 
         # 5. Remote Command Execution / Log4j
