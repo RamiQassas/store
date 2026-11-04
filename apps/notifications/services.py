@@ -88,10 +88,14 @@ def notify_user(user, title, body, action_url=None, image_url=None, category='sy
         send_in_app = settings_obj.in_app_promotions
         send_push = settings_obj.push_promotions
         send_email = settings_obj.email_promotions
-    else: # system
+    elif category in ('security', 'system', 'admin'):
         send_in_app = True
-        send_push = True
-        send_email = True
+        send_push = False
+        send_email = False
+    else:
+        send_in_app = True
+        send_push = False
+        send_email = False
 
     # 3. Create In-App Notification
     if send_in_app:

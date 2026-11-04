@@ -1,7 +1,7 @@
 import logging
-import threading
 import json
 import re
+import hashlib
 from django.http import HttpResponsePermanentRedirect, HttpResponseForbidden, Http404
 from django.core.exceptions import PermissionDenied, ObjectDoesNotExist
 from django.core.cache import cache
@@ -53,8 +53,8 @@ def get_client_ip(request):
 def report_security_intrusion(request, attack_category, matched_detail, is_critical=False):
     """
     Collects forensic telemetry, creates a high-priority SystemAuditLog entry,
-    creates in-app admin alert, and dispatches an instant email to the owner.
-    Guaranteed non-blocking: dispatches email asynchronously in a background thread.
+    and records an in-app admin notification in the control panel.
+    Strictly NO emails are sent to personal inboxes for automated internet scans.
     """
     try:
         ip = get_client_ip(request)
@@ -63,13 +63,12 @@ def report_security_intrusion(request, attack_category, matched_detail, is_criti
         meta = getattr(request, "META", {})
         ua = meta.get("HTTP_USER_AGENT", "غير معروف")
         query_string = meta.get("QUERY_STRING", "")
-        full_url = request.get_full_path() if hasattr(request, "get_full_path") else path
         now_str = timezone.now().strftime("%Y-%m-%d %H:%M:%S")
 
         user = getattr(request, "user", None)
         user_str = f"{user.email} (ID: {user.id})" if (user and user.is_authenticated) else "زائر مجهول (Anonymous / External Attacker)"
 
-        # 1. Permanent Audit Log with full forensics
+        # 1. Permanent Audit Log in Control Panel (/control/audit-logs/)
         forensics = {
             "ip": ip,
             "method": method,
@@ -96,15 +95,13 @@ def report_security_intrusion(request, attack_category, matched_detail, is_criti
         except Exception as e_log:
             logger.warning(f"Could not write SystemAuditLog for intrusion: {e_log}")
 
-        # 2. In-App Notification (Throttled: 1 per 3 minutes per IP)
-        import hashlib
+        # 2. In-App Notification in Control Panel (Throttled: 1 per 30 minutes per IP/category)
         throttle_key_app = f"sec_inapp_alert_{hashlib.md5(f'{ip}_{attack_category}'.encode()).hexdigest()}"
         if not cache.get(throttle_key_app):
-            cache.set(throttle_key_app, True, 180)
+            cache.set(throttle_key_app, True, 1800)
             try:
                 from django.contrib.auth import get_user_model
                 from apps.notifications.models import Notification
-                from apps.notifications.services import notify_user
 
                 User = get_user_model()
                 admins = User.objects.filter(
@@ -125,101 +122,19 @@ def report_security_intrusion(request, attack_category, matched_detail, is_criti
 
                 for adm in admins:
                     try:
-                        notify_user(
+                        Notification.objects.create(
                             user=adm,
                             title=notif_title,
                             body=notif_body,
                             action_url="/control/audit-logs/",
-                            category="security",
-                            priority=Notification.Priority.URGENT,
+                            channel=Notification.Channel.IN_APP,
+                            priority=Notification.Priority.HIGH,
                             metadata=forensics
                         )
                     except Exception:
                         pass
             except Exception as e_notif:
                 logger.warning(f"Failed to create intrusion in-app notification: {e_notif}")
-
-        # 2.5 Track repeat attacks per IP
-        ip_attack_count_key = f"sec_ip_atk_cnt_{hashlib.md5(ip.encode()).hexdigest()}"
-        attack_count = cache.get(ip_attack_count_key, 0) + 1
-        cache.set(ip_attack_count_key, attack_count, 600)
-
-        # 3. Direct Email Alert to Owner
-        # Only email on critical threats (SQLi/RCE) OR persistent attackers (>= 4 attacks in 10 mins).
-        # Routine internet scanner bots (dump.sql, .git, etc.) are blocked and logged silently.
-        should_send_email = is_critical or (attack_count >= 4)
-        global_email_throttle_key = "sec_global_email_alert_throttle"
-        email_ip_throttle_key = f"sec_email_alert_{hashlib.md5(f'{ip}_{attack_category}'.encode()).hexdigest()}"
-
-        can_send_email = (
-            should_send_email
-            and not bool(cache.get(global_email_throttle_key))
-            and not bool(cache.get(email_ip_throttle_key))
-        )
-        if can_send_email:
-            cache.set(global_email_throttle_key, True, 900)  # 15 minutes global throttle
-            cache.set(email_ip_throttle_key, True, 1800)     # 30 minutes per IP/category
-
-            def _send_intrusion_email():
-                try:
-                    from apps.accounts.services import send_brevo_email
-                    from django.contrib.auth import get_user_model
-                    User = get_user_model()
-                    superusers = User.objects.filter(is_superuser=True, is_active=True)
-                    recipient_emails = [su.email for su in superusers if getattr(su, "email", None)]
-                    if "ramiqassas2002@gmail.com" not in recipient_emails:
-                        recipient_emails.append("ramiqassas2002@gmail.com")
-
-                    email_html = f"""
-                    <div dir="rtl" style="font-family: 'Segoe UI', Tahoma, Arial, sans-serif; max-width: 650px; margin: 0 auto; background: #0b132b; color: #f8fafc; padding: 25px; border-radius: 16px; border: 2px solid #ef4444; box-shadow: 0 10px 30px rgba(239,68,68,0.2);">
-                        <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 15px; border-bottom: 1px solid #1e293b; padding-bottom: 15px;">
-                            <span style="font-size: 28px;">🚨</span>
-                            <div>
-                                <h2 style="color: #ef4444; margin: 0; font-size: 20px;">إنذار أمني فوري: تم رصد وحظر محاولة اختراق</h2>
-                                <span style="font-size: 12px; color: #94a3b8;">نظام الحماية الذكي في موقع رقميات (Raqamiyat Security Barrier)</span>
-                            </div>
-                        </div>
-
-                        <p style="color: #cbd5e1; font-size: 14px; line-height: 1.6;">
-                            تم اعتراض وحظر محاولة وصول خبيثة مشبوهة تستهدف استكشاف أو استغلال ثغرات في الموقع. إليك التفاصيل الجنائية الكاملة للعملية:
-                        </p>
-
-                        <div style="background: #1c2541; padding: 18px; border-radius: 12px; margin: 15px 0; font-size: 13px; line-height: 1.9; border: 1px solid #334155;">
-                            <div><strong style="color: #f87171;">تصنيف التهديد:</strong> <span style="background: rgba(239,68,68,0.2); color: #fca5a5; padding: 2px 8px; border-radius: 6px; font-weight: bold;">{attack_category}</span></div>
-                            <div><strong style="color: #38bdf8;">عنوان IP المهاجم:</strong> <code style="background: #090d16; color: #38bdf8; padding: 2px 6px; border-radius: 4px; font-family: monospace;">{ip}</code></div>
-                            <div><strong>المسار المستهدف:</strong> <code style="color: #fbbf24; font-family: monospace;">{method} {full_url}</code></div>
-                            <div><strong>المستخدم:</strong> {user_str}</div>
-                            <div><strong>توقيت الرصد:</strong> {now_str}</div>
-                            <div><strong>أداة / متصفح المهاجم (User-Agent):</strong> <div style="color: #94a3b8; font-family: monospace; font-size: 11px; word-break: break-all; margin-top: 2px;">{ua}</div></div>
-                            <div style="margin-top: 10px; padding-top: 10px; border-top: 1px dashed #334155;">
-                                <strong style="color: #fca5a5;">النمط / الحمولة المرصودة:</strong>
-                                <pre style="background: #090d16; color: #f87171; padding: 10px; border-radius: 6px; overflow-x: auto; font-family: monospace; font-size: 12px; margin-top: 5px; white-space: pre-wrap;">{matched_detail}</pre>
-                            </div>
-                        </div>
-
-                        <div style="background: rgba(16, 185, 129, 0.1); border: 1px solid rgba(16, 185, 129, 0.3); border-radius: 10px; padding: 12px; font-size: 12px; color: #6ee7b7; margin-bottom: 20px;">
-                            🛡️ <strong>إجراء الحماية المتخذ:</strong> تم صد الطلب فوراً برمز الاستجابة 403 Forbidden وإلغاء تنفيذ أي أوامر أو استعلامات برمجية، وتوثيق سجل الهجوم في قاعدة البيانات.
-                        </div>
-
-                        <div style="text-align: center;">
-                            <a href="https://raqamiyatapp.com/control/audit-logs/" style="display: inline-block; background: #ef4444; color: #ffffff; font-weight: bold; padding: 10px 24px; border-radius: 10px; text-decoration: none; font-size: 13px;">فتح سجل التدقيق الأمني في لوحة التحكم</a>
-                        </div>
-                    </div>
-                    """
-                    for email in recipient_emails:
-                        try:
-                            send_brevo_email(
-                                to_email=email,
-                                to_name="مدير نظام رقميات",
-                                subject=f"🚨 إنذار أمني فوري: تم رصد وحظر محاولة اختراق [{attack_category}]",
-                                html_content=email_html
-                            )
-                        except Exception as ex_mail:
-                            logger.warning(f"Failed to send intrusion email to {email}: {ex_mail}")
-                except Exception as e_th:
-                    logger.error(f"Error in intrusion email worker thread: {e_th}")
-
-            threading.Thread(target=_send_intrusion_email, daemon=True).start()
 
     except Exception as e_main:
         logger.error(f"Error in report_security_intrusion: {e_main}")
@@ -230,17 +145,30 @@ class SecurityIntrusionDetectionMiddleware:
     Real-time Web Application Security & Intrusion Detection Middleware.
     Inspects incoming requests for malicious payloads (SQLi, Path Traversal,
     Exploit Probes, Remote Code Execution, Suspicious Scanner User-Agents).
-    Logs full forensic telemetry and immediately alerts the site owner.
+    Automatically bans attacker IPs for 24 hours in cache and drops malicious traffic with 403 Forbidden.
     """
     def __init__(self, get_response):
         self.get_response = get_response
 
     def __call__(self, request):
+        ip = get_client_ip(request)
+        ban_key = f"sec_banned_ip_{hashlib.md5(ip.encode()).hexdigest()}"
+
+        # Fast drop: If this IP is already banned for probing, drop immediately with zero DB overhead
+        if cache.get(ban_key):
+            return HttpResponseForbidden("Access Denied.")
+
         path = str(request.path or "").lower()
         meta = getattr(request, "META", {})
         query_str = meta.get("QUERY_STRING", "").lower()
         combined = f"{path}?{query_str}"
         ua = meta.get("HTTP_USER_AGENT", "").lower()
+
+        def block_and_ban(category, detail, is_critical=False):
+            # Ban attacker IP for 24 hours in cache
+            cache.set(ban_key, True, 86400)
+            report_security_intrusion(request, category, detail, is_critical=is_critical)
+            return HttpResponseForbidden("Access Denied: Malicious probe detected and blocked.")
 
         # 1. Sensitive Configuration & Secret Files Probing
         SENSITIVE_FILES = (
@@ -250,8 +178,7 @@ class SecurityIntrusionDetectionMiddleware:
         )
         for sf in SENSITIVE_FILES:
             if sf in path:
-                report_security_intrusion(request, "محاولة استكشاف ملفات حساسة (ماسح آلي)", f"طلب المسار الحساس: {path}", is_critical=False)
-                return HttpResponseForbidden("Access Denied: Unauthorized security probe detected and logged.")
+                return block_and_ban("محاولة استكشاف ملفات حساسة (ماسح آلي)", f"طلب المسار الحساس: {path}", is_critical=False)
 
         # 2. Known Web Shells, CMS & Vulnerability Exploits
         EXPLOIT_PATHS = (
@@ -261,8 +188,7 @@ class SecurityIntrusionDetectionMiddleware:
         )
         for ep in EXPLOIT_PATHS:
             if ep in path:
-                report_security_intrusion(request, "محاولة استكشاف مسارات اختراق خارجية (ماسح آلي)", f"محاولة طلب: {path}", is_critical=False)
-                return HttpResponseForbidden("Access Denied: Malicious probe detected and logged.")
+                return block_and_ban("محاولة استكشاف مسارات اختراق خارجية (ماسح آلي)", f"محاولة طلب: {path}", is_critical=False)
 
         # 3. Path Traversal & Local File Inclusion (LFI)
         TRAVERSAL_PATTERNS = (
@@ -270,8 +196,7 @@ class SecurityIntrusionDetectionMiddleware:
         )
         for tp in TRAVERSAL_PATTERNS:
             if tp in combined:
-                report_security_intrusion(request, "محاولة اختراق تخطي المسارات (Directory Traversal / LFI)", f"النمط المرصود: {tp} في الرابط {combined}", is_critical=True)
-                return HttpResponseForbidden("Access Denied: Path traversal detected and logged.")
+                return block_and_ban("محاولة اختراق تخطي المسارات (Directory Traversal / LFI)", f"النمط المرصود: {tp} في الرابط {combined}", is_critical=True)
 
         # 4. SQL Injection Attack Signatures
         SQLI_PATTERNS = (
@@ -281,8 +206,7 @@ class SecurityIntrusionDetectionMiddleware:
         )
         for sqli in SQLI_PATTERNS:
             if sqli in combined:
-                report_security_intrusion(request, "محاولة حقن قواعد البيانات (SQL Injection Attack)", f"الرمز المرصود: {sqli} في {combined}", is_critical=True)
-                return HttpResponseForbidden("Access Denied: SQL injection detected and logged.")
+                return block_and_ban("محاولة حقن قواعد البيانات (SQL Injection Attack)", f"الرمز المرصود: {sqli} في {combined}", is_critical=True)
 
         # 5. Remote Command Execution / Log4j
         RCE_PATTERNS = (
@@ -290,8 +214,7 @@ class SecurityIntrusionDetectionMiddleware:
         )
         for rce in RCE_PATTERNS:
             if rce in combined:
-                report_security_intrusion(request, "محاولة تنفيذ أوامر عن بعد (Remote Code Execution / RCE)", f"الحمولة المرصودة: {rce} في {combined}")
-                return HttpResponseForbidden("Access Denied: Command injection detected and logged.")
+                return block_and_ban("محاولة تنفيذ أوامر عن بعد (Remote Code Execution / RCE)", f"الحمولة المرصودة: {rce} في {combined}", is_critical=True)
 
         # 6. Malicious Automated Vulnerability Scanner User-Agents
         SCANNER_AGENTS = (
@@ -300,8 +223,7 @@ class SecurityIntrusionDetectionMiddleware:
         )
         for sa in SCANNER_AGENTS:
             if sa in ua:
-                report_security_intrusion(request, "أداة فحص واختراق آلية محظورة (Security Scanner Bot)", f"اسم الأداة: {ua}")
-                return HttpResponseForbidden("Access Denied: Automated vulnerability scanner blocked.")
+                return block_and_ban("أداة فحص واختراق آلية محظورة (Security Scanner Bot)", f"اسم الأداة: {ua}", is_critical=False)
 
         return self.get_response(request)
 
@@ -355,7 +277,7 @@ def is_scanner_or_exploit_probe(request, path, exc_msg):
 def record_server_error_and_notify(request, exception=None, status_code=500):
     """
     Creates an in-app high-priority notification for admins and records a SystemAuditLog
-    whenever a genuine unhandled 500 error occurs. Dispatches emails asynchronously.
+    whenever a genuine unhandled 500 error occurs. No emails are sent to avoid inbox spam.
     """
     try:
         path = getattr(request, "path", "unknown")
@@ -370,7 +292,6 @@ def record_server_error_and_notify(request, exception=None, status_code=500):
         if is_scanner_or_exploit_probe(request, path, exc_msg):
             return
 
-        import hashlib
         raw_key_seed = f"{path}_{method}_{exc_msg[:50]}".encode("utf-8")
         throttle_key = f"err_notify_{hashlib.md5(raw_key_seed).hexdigest()}"
         if cache.get(throttle_key):
@@ -390,11 +311,10 @@ def record_server_error_and_notify(request, exception=None, status_code=500):
         except Exception as e:
             logger.warning(f"Failed to create SystemAuditLog for 500 error: {e}")
 
-        # 2. Multi-channel Notification for Admins
+        # 2. In-App Notification for Admins in Control Panel
         try:
             from django.contrib.auth import get_user_model
             from apps.notifications.models import Notification
-            from apps.notifications.services import notify_user
             
             User = get_user_model()
             admins = User.objects.filter(
@@ -414,13 +334,13 @@ def record_server_error_and_notify(request, exception=None, status_code=500):
 
             for adm in admins:
                 try:
-                    notify_user(
+                    Notification.objects.create(
                         user=adm,
                         title=title,
                         body=body,
                         action_url=path if path.startswith("/") else "/control/",
-                        category="system",
-                        priority=Notification.Priority.URGENT,
+                        channel=Notification.Channel.IN_APP,
+                        priority=Notification.Priority.HIGH,
                         metadata={
                             "path": path,
                             "method": method,
@@ -432,48 +352,6 @@ def record_server_error_and_notify(request, exception=None, status_code=500):
                 except Exception as ex_adm:
                     logger.warning(f"Failed to notify admin {getattr(adm, 'email', adm)}: {ex_adm}")
 
-            # Asynchronous email dispatch to avoid worker blocking
-            email_throttle_key = "admin_500_email_hourly_throttle"
-            can_send_email = not bool(cache.get(email_throttle_key))
-            if can_send_email:
-                cache.set(email_throttle_key, True, 3600)
-                superusers = list(admins.filter(is_superuser=True))
-
-                def _send_500_email():
-                    from apps.accounts.services import send_brevo_email
-                    for su in superusers:
-                        if getattr(su, "email", None):
-                            try:
-                                email_html = f"""
-                                <div dir="rtl" style="font-family: 'Segoe UI', Tahoma, Arial, sans-serif; max-width: 600px; margin: 0 auto; background: #0f172a; color: #f8fafc; padding: 25px; border-radius: 16px; border: 1px solid #ef4444;">
-                                    <h2 style="color: #ef4444; margin-top: 0; font-size: 20px;">⚠️ تنبيه رصد خطأ 500 في موقع رقميات</h2>
-                                    <p style="color: #94a3b8; font-size: 13px; line-height: 1.6;">تم رصد حدوث خطأ خادم داخلي (500 Server Error) عند محاولة أحد المستخدمين الوصول إلى الرابط أدناه:</p>
-                                    <div style="background: #1e293b; padding: 18px; border-radius: 12px; margin: 15px 0; font-size: 13px; line-height: 1.8;">
-                                        <div><strong>المسار:</strong> <span style="color: #38bdf8; font-family: monospace;">{method} {full_url}</span></div>
-                                        <div><strong>المستخدم:</strong> {user_str}</div>
-                                        <div><strong>عنوان IP:</strong> {ip}</div>
-                                        <div><strong>توقيت الخطأ:</strong> {timezone.now().strftime('%Y-%m-%d %H:%M:%S')}</div>
-                                        <div style="margin-top: 12px; padding-top: 12px; border-top: 1px solid #334155;">
-                                            <strong style="color: #f87171;">رسالة الخطأ البرمجي:</strong>
-                                            <pre style="background: #090d16; color: #fda4af; padding: 12px; border-radius: 8px; overflow-x: auto; font-family: monospace; font-size: 11px; white-space: pre-wrap; margin-top: 6px;">{exc_msg}</pre>
-                                        </div>
-                                    </div>
-                                    <div style="text-align: center; margin-top: 25px;">
-                                        <a href="https://raqamiyatapp.com/control/" style="display: inline-block; background: #06b6d4; color: #0f172a; font-weight: bold; padding: 10px 22px; border-radius: 10px; text-decoration: none; font-size: 13px;">فتح لوحة التحكم للإشراف</a>
-                                    </div>
-                                </div>
-                                """
-                                send_brevo_email(
-                                    to_email=su.email,
-                                    to_name=su.get_full_name() or "Admin",
-                                    subject=title,
-                                    html_content=email_html
-                                )
-                            except Exception as ex_mail:
-                                logger.warning(f"Failed to send 500 error email to {su.email}: {ex_mail}")
-
-                threading.Thread(target=_send_500_email, daemon=True).start()
-
         except Exception as e:
             logger.warning(f"Failed to dispatch 500 error notifications: {e}")
 
@@ -483,7 +361,7 @@ def record_server_error_and_notify(request, exception=None, status_code=500):
 
 class ServerErrorNotificationMiddleware:
     """
-    Middleware that intercepts exceptions and notifies administrators in real-time.
+    Middleware that intercepts exceptions and notifies administrators in real-time in the control panel.
     Safely ignores normal HTTP 403, 404, and expected model lookups.
     """
     def __init__(self, get_response):
