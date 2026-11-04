@@ -192,8 +192,9 @@ def notify_staff(title, body, action_url=None, category='admin_new_support', rol
                 metadata=metadata or {}
             )
             
-            # Send Email if enabled
-            if settings_obj.admin_email_notifications:
+            # Send Email if enabled (Strictly suppressed for security/system/provider alerts to protect owner inbox)
+            suppressed_email_categories = ('security', 'system', 'admin_security', 'intrusion', 'admin_provider_alert')
+            if settings_obj.admin_email_notifications and category not in suppressed_email_categories:
                 try:
                     from apps.accounts.services import send_brevo_email
                     html_content = f"""

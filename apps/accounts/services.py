@@ -41,6 +41,18 @@ def send_brevo_email(to_email, to_name, subject, html_content, text_content=None
     attachments: list of dicts with keys: name, content (base64), type
     Example: [{"name": "backup.zip", "content": "<base64str>", "type": "application/zip"}]
     """
+    # ── HARD GLOBAL SUPPRESSION: Block all security, intrusion, hacking & 500 alert emails ──
+    BLOCKED_EMAIL_KEYWORDS = (
+        "اختراق", "هجوم", "هجمات", "إنذار أمني", "تم صد", "محاولة اختراق",
+        "تنبيه أمني", "security intrusion", "attack blocked", "scanner bot",
+        "تنبيه رصد خطأ 500", "خطأ 500 في موقع رقميات", "مشبوه", "تهديد أمني",
+        "حظر عنوان ip", "ip ban", "security alert", "intrusion detected"
+    )
+    subj_lower = str(subject or "").lower()
+    if any(kw in subj_lower for kw in BLOCKED_EMAIL_KEYWORDS):
+        logger.info(f"🛡️ [SECURITY EMAIL BLOCKED] Blocked email with subject '{subject}' to {to_email}. Forensics logged in Control Panel.")
+        return True
+
     if not settings.BREVO_API_KEY:
         logger.warning("BREVO_API_KEY is not set. Trying Django mail fallback...")
         return _send_django_fallback_email(to_email, to_name, subject, html_content, text_content)
