@@ -12,13 +12,13 @@ class CommonConfig(AppConfig):
                 return
             import sys
             import os
-            # Avoid starting poller during manage.py tasks, tests, audits, or celery workers
+            # Avoid starting poller during short-lived CLI tasks, tests, or migrations
             cmd_line = " ".join(sys.argv).lower()
-            if any(term in cmd_line for term in ["manage.py", "celery", "test", "audit", "pytest", "-c", "scratch"]):
+            skip_terms = ["migrate", "collectstatic", "makemigrations", "pytest", "test", "audit", "createsuperuser", "shell", "-c", "scratch"]
+            if any(f" {st}" in f" {cmd_line}" or cmd_line.endswith(st) for st in skip_terms):
                 return
             
-            from apps.common.auto_deploy import is_auto_deploy_enabled, start_auto_deploy_background_thread
-            if is_auto_deploy_enabled():
-                start_auto_deploy_background_thread()
+            from apps.common.auto_deploy import start_auto_deploy_background_thread
+            start_auto_deploy_background_thread()
         except Exception:
             pass

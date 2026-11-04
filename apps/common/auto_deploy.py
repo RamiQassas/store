@@ -227,13 +227,33 @@ def apply_git_update():
     output = ""
     py_bin = sys.executable or "python"
     try:
-        cmd = f"git config --global --add safe.directory '*' && git fetch origin master && git reset --hard origin/master && \"{py_bin}\" manage.py migrate --noinput && \"{py_bin}\" manage.py collectstatic --noinput && \"{py_bin}\" manage.py setup_flagship_storefront"
-        proc = subprocess.run(cmd, shell=True, cwd=str(settings.BASE_DIR), capture_output=True, text=True, timeout=240)
-        logger.info(f"🚀 [AUTO-DEPLOY] Output: {proc.stdout[:300]}")
-        if proc.stderr:
-            logger.warning(f"🚀 [AUTO-DEPLOY] Stderr: {proc.stderr[:300]}")
-        success = (proc.returncode == 0)
+        # Step 1: Git fetch & reset hard (Core code update)
+        git_cmd = "git config --global --add safe.directory '*' && git fetch origin master && git reset --hard origin/master"
+        proc = subprocess.run(git_cmd, shell=True, cwd=str(settings.BASE_DIR), capture_output=True, text=True, timeout=90)
+        logger.info(f"🚀 [AUTO-DEPLOY] Git Reset Output: {proc.stdout[:200]}")
+
+        git_success = (proc.returncode == 0)
+        if not git_success:
+            # Fallback with explicit HTTPS repository URL
+            fallback_cmd = "git fetch https://github.com/RamiQassas/store.git master && git reset --hard FETCH_HEAD"
+            proc_fb = subprocess.run(fallback_cmd, shell=True, cwd=str(settings.BASE_DIR), capture_output=True, text=True, timeout=90)
+            git_success = (proc_fb.returncode == 0)
+            proc = proc_fb
+
+        success = git_success
         output = (proc.stdout or "") + "\n[STDERR]\n" + (proc.stderr or "")
+
+        if git_success:
+            # Step 2: Post-update migrations and static files (non-fatal if long)
+            try:
+                subprocess.run(f'\"{py_bin}\" manage.py migrate --noinput', shell=True, cwd=str(settings.BASE_DIR), capture_output=True, text=True, timeout=90)
+            except Exception as e_mig:
+                logger.warning(f"Auto-deploy migrate notice: {e_mig}")
+            try:
+                subprocess.run(f'\"{py_bin}\" manage.py collectstatic --noinput', shell=True, cwd=str(settings.BASE_DIR), capture_output=True, text=True, timeout=90)
+            except Exception as e_cs:
+                logger.warning(f"Auto-deploy collectstatic notice: {e_cs}")
+
     except Exception as e:
         logger.error(f"❌ [AUTO-DEPLOY] Failed to apply update: {e}")
         output = str(e)
@@ -262,14 +282,17 @@ def auto_deploy_poller():
 
             now_ts = time.time()
             if remote_sha and local_sha and remote_sha.strip().lower() != local_sha.strip().lower():
-                if remote_sha == last_synced_sha and (now_ts - last_sync_time) < 300:
+                if remote_sha == last_synced_sha and (now_ts - last_sync_time) < 180:
                     time.sleep(15)
                     continue
 
-                last_synced_sha = remote_sha
-                last_sync_time = now_ts
-                logger.info(f"🚀 [AUTO-DEPLOY] New commit detected on Master ({remote_sha[:7]}). Applying update immediately to server...")
-                apply_git_update()
+                logger.info(f"🚀 [AUTO-DEPLOY] New commit detected on Master ({remote_sha[:7]} != {local_sha[:7]}). Applying update immediately to server...")
+                update_ok, update_msg = apply_git_update()
+                if update_ok:
+                    last_synced_sha = remote_sha
+                    last_sync_time = now_ts
+                else:
+                    logger.warning(f"🚀 [AUTO-DEPLOY] Update failed, will retry: {update_msg[:150]}")
         except Exception as e:
             logger.debug(f"Auto deploy loop exception: {e}")
 
