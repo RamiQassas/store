@@ -29,8 +29,8 @@
   <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@500;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
 
-  <!-- Dual-Theme Design System Stylesheet -->
-  <link rel="stylesheet" href="{% static 'site/css/app.css' %}?v=20261023_mobile_v15">
+  <!-- Apple Spatial Glass Design System Stylesheet -->
+  <link rel="stylesheet" href="{% static 'site/css/app.css' %}?v=20261106_apple_glass_v1">
 
   {% if STORE_CUSTOM_CSS %}
   <style>{{ STORE_CUSTOM_CSS|safe }}</style>
@@ -40,6 +40,16 @@
   {% block extra_head %}{% endblock %}
 </head>
 <body class="{% if '/control/' in request.path or '/admin/' in request.path %}admin-page{% else %}storefront-page{% endif %}">
+
+  <!-- Ambient Apple Spatial Lighting Orbs -->
+  <div class="rq-ambient-canvas" aria-hidden="true">
+    <div class="rq-ambient-orb rq-ambient-orb--1"></div>
+    <div class="rq-ambient-orb rq-ambient-orb--2"></div>
+    <div class="rq-ambient-orb rq-ambient-orb--3"></div>
+  </div>
+
+  <!-- Apple Dynamic Island / Glass Toast Container -->
+  <div id="rqToastStack" class="rq-toast-stack" aria-live="polite"></div>
 
   {% if not '/control/' in request.path and not '/admin/' in request.path %}
   <!-- ====================================================================
@@ -686,6 +696,23 @@
       }
     }
 
+    function showGlassToast(message, isError) {
+      var stack = document.getElementById('rqToastStack');
+      if (!stack) return;
+      var toast = document.createElement('div');
+      toast.className = 'rq-glass-toast';
+      var iconStyle = isError ? 'background: linear-gradient(135deg, #ef4444, #dc2626); box-shadow: 0 0 12px rgba(239,68,68,0.5);' : '';
+      var iconClass = isError ? 'fa-exclamation' : 'fa-check';
+      toast.innerHTML = '<span class="rq-glass-toast-icon" style="' + iconStyle + '"><i class="fas ' + iconClass + '"></i></span><span>' + message + '</span>';
+      stack.appendChild(toast);
+      setTimeout(function() {
+        toast.style.transition = 'opacity 0.3s ease, transform 0.3s ease';
+        toast.style.opacity = '0';
+        toast.style.transform = 'translateY(-12px) scale(0.92)';
+        setTimeout(function() { toast.remove(); }, 320);
+      }, 2400);
+    }
+
     function addToCartAjax(productId, variantId, quantity, btnEl) {
       var csrfInput = document.querySelector('input[name="csrfmiddlewaretoken"]');
       var csrfToken = csrfInput ? csrfInput.value : '{{ csrf_token }}';
@@ -712,17 +739,22 @@
       .then(function(data) {
         if (data.success) {
           var badge = document.getElementById('rq-header-cart-count');
-          if (badge) badge.textContent = data.cart_items_count;
+          if (badge) {
+            badge.textContent = data.cart_items_count;
+            badge.style.transform = 'scale(1.35)';
+            setTimeout(function() { badge.style.transform = ''; }, 280);
+          }
+          showGlassToast('تمت الإضافة إلى سلة المشتريات بنجاح');
           if (btnEl) {
             btnEl.innerHTML = '<i class="fas fa-check"></i>';
             setTimeout(function() {
               window.location.reload();
-            }, 350);
+            }, 420);
           } else {
             window.location.reload();
           }
         } else {
-          alert(data.error || 'تعذر إضافة المنتج إلى السلة.');
+          showGlassToast(data.error || 'تعذر إضافة المنتج إلى السلة.', true);
           if (btnEl) {
             btnEl.disabled = false;
             btnEl.innerHTML = origHtml;
@@ -730,12 +762,56 @@
         }
       })
       .catch(function() {
+        showGlassToast('حدث خطأ في الاتصال، يرجى المحاولة مجدداً.', true);
         if (btnEl) {
           btnEl.disabled = false;
           btnEl.innerHTML = origHtml;
         }
       });
     }
+
+    /* Apple Interactive Spatial Effects (Scroll Elevation, Reveal & Specular Spotlight) */
+    document.addEventListener('DOMContentLoaded', function() {
+      var header = document.querySelector('.rq-header-shell');
+      if (header) {
+        var onScroll = function() {
+          if (window.scrollY > 12) header.classList.add('is-scrolled');
+          else header.classList.remove('is-scrolled');
+        };
+        window.addEventListener('scroll', onScroll, { passive: true });
+        onScroll();
+      }
+
+      /* Scroll-Reveal Observer for Cards & Sections */
+      var revealTargets = document.querySelectorAll('.rq-product-card, .rq-cat-clean-card, .rq-dash-stat-card, .rq-trust-card, .rq-order-card, .rq-pdp-card, .panel');
+      if ('IntersectionObserver' in window && revealTargets.length > 0) {
+        var obs = new IntersectionObserver(function(entries) {
+          entries.forEach(function(entry) {
+            if (entry.isIntersecting) {
+              entry.target.classList.add('is-visible');
+              obs.unobserve(entry.target);
+            }
+          });
+        }, { threshold: 0.06, rootMargin: '0px 0px -24px 0px' });
+
+        revealTargets.forEach(function(el, idx) {
+          el.classList.add('rq-reveal');
+          el.style.transitionDelay = Math.min((idx % 6) * 45, 220) + 'ms';
+          obs.observe(el);
+        });
+      }
+
+      /* Specular Cursor Spotlight on Glass Cards (Laptop/Desktop) */
+      if (window.matchMedia('(hover: hover) and (pointer: fine)').matches) {
+        document.addEventListener('mousemove', function(e) {
+          var card = e.target.closest('.rq-product-card, .rq-cat-clean-card, .rq-dash-stat-card, .rq-trust-card');
+          if (!card) return;
+          var rect = card.getBoundingClientRect();
+          card.style.setProperty('--mouse-x', (e.clientX - rect.left) + 'px');
+          card.style.setProperty('--mouse-y', (e.clientY - rect.top) + 'px');
+        }, { passive: true });
+      }
+    });
   </script>
 
   {% block extra_scripts %}{% endblock %}

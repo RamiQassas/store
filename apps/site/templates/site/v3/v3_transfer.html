@@ -16,40 +16,43 @@
   }
   .glass-card {
     background: var(--rq-surface-card);
+    backdrop-filter: var(--rq-glass-blur);
+    -webkit-backdrop-filter: var(--rq-glass-blur);
     border: 1px solid var(--rq-border);
-    border-radius: 18px;
+    border-radius: 20px;
     padding: 1.75rem;
-    box-shadow: 0 2px 6px rgba(15, 23, 42, 0.04);
+    box-shadow: var(--rq-shadow-sm);
   }
   .limit-badge {
     background: var(--rq-bg-elevated);
     border: 1px solid var(--rq-border);
-    border-radius: 12px;
+    border-radius: 14px;
     padding: 1rem 1.15rem;
   }
   .premium-input {
     width: 100%;
     padding: 0.75rem 1rem;
-    background: var(--rq-surface-card);
+    background: var(--rq-input-bg);
     border: 1px solid var(--rq-border-strong);
-    border-radius: 10px;
+    border-radius: 12px;
     color: var(--rq-navy);
     font-weight: 700;
     transition: all 0.2s ease;
   }
   .premium-input:focus {
-    border-color: #2563eb;
+    border-color: var(--rq-primary);
     outline: none;
-    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.14);
+    box-shadow: 0 0 0 3px var(--rq-primary-glow);
   }
   .premium-input:disabled {
-    background: #f1f5f9;
-    color: #94a3b8;
+    background: var(--rq-bg-elevated);
+    color: var(--rq-text-muted);
+    opacity: 0.65;
     cursor: not-allowed;
   }
   .recipient-active-card {
-    background: #eff6ff;
-    border: 1px solid #bfdbfe;
+    background: var(--rq-primary-soft);
+    border: 1px solid rgba(59, 130, 246, 0.32);
     border-radius: 14px;
     padding: 1rem 1.15rem;
     display: none;
@@ -59,7 +62,7 @@
   .recipient-avatar {
     width: 44px;
     height: 44px;
-    background: #2563eb;
+    background: linear-gradient(135deg, #2563eb, #0ea5e9);
     color: #ffffff;
     border-radius: 50%;
     display: flex;
@@ -69,33 +72,37 @@
     font-size: 1.1rem;
   }
   .btn-premium-action {
-    background: #2563eb;
+    background: linear-gradient(135deg, #2563eb, #1d4ed8);
     color: #ffffff;
     font-weight: 800;
-    border-radius: 10px;
+    border-radius: 12px;
     padding: 0.85rem 1.25rem;
     width: 100%;
     text-align: center;
-    border: none;
+    border: 1px solid rgba(255, 255, 255, 0.16);
+    box-shadow: 0 6px 18px -3px rgba(37, 99, 235, 0.4);
     cursor: pointer;
-    transition: all 0.2s;
+    transition: all 0.22s ease;
     display: flex;
     align-items: center;
     justify-content: center;
     gap: 8px;
   }
   .btn-premium-action:hover:not(:disabled) {
-    background: #1d4ed8;
+    background: linear-gradient(135deg, #1d4ed8, #1e40af);
+    transform: translateY(-1px);
   }
   .btn-premium-action:disabled {
-    background: #cbd5e1;
-    color: #64748b;
+    background: var(--rq-bg-elevated);
+    color: var(--rq-text-muted);
+    border: 1px solid var(--rq-border);
+    box-shadow: none;
     cursor: not-allowed;
   }
   .limit-progress-bg {
     width: 100%;
     height: 8px;
-    background: #e2e8f0;
+    background: var(--rq-bg-elevated);
     border-radius: 4px;
     overflow: hidden;
     margin: 0.65rem 0;

@@ -555,8 +555,8 @@
                   <i class="fas fa-coins ml-1"></i> العملة المحصلة في تطبيق شام كاش:
                 </span>
                 <div style="display: flex; gap: 0.35rem;">
-                  <button type="button" class="sc-curr-btn" data-curr="USD" onclick="setShamCashCurrency('USD', this)" style="padding: 0.25rem 0.75rem; border-radius: 8px; border: 2px solid #0d9488; background: rgba(13, 148, 136, 0.08); color: #0d9488; font-size: 0.78rem; font-weight: 900; cursor: pointer;">USD ($)</button>
-                  <button type="button" class="sc-curr-btn" data-curr="SYP" onclick="setShamCashCurrency('SYP', this)" style="padding: 0.25rem 0.75rem; border-radius: 8px; border: 1.5px solid var(--rq-border-strong); background: #ffffff; color: var(--rq-text-secondary); font-size: 0.78rem; font-weight: 800; cursor: pointer;">ليرة سورية (SYP)</button>
+                  <button type="button" class="sc-curr-btn" data-curr="USD" onclick="setShamCashCurrency('USD', this)" style="padding: 0.25rem 0.75rem; border-radius: 8px; border: 2px solid #0d9488; background: rgba(13, 148, 136, 0.14); color: #14b8a6; font-size: 0.78rem; font-weight: 900; cursor: pointer; transition: all 0.2s ease;">USD ($)</button>
+                  <button type="button" class="sc-curr-btn" data-curr="SYP" onclick="setShamCashCurrency('SYP', this)" style="padding: 0.25rem 0.75rem; border-radius: 8px; border: 1.5px solid var(--rq-border-strong); background: var(--rq-bg-elevated); color: var(--rq-text-secondary); font-size: 0.78rem; font-weight: 800; cursor: pointer; transition: all 0.2s ease;">ليرة سورية (SYP)</button>
                 </div>
               </div>
 
@@ -786,12 +786,12 @@
     document.querySelectorAll('.sc-curr-btn').forEach(b => {
       b.style.borderColor = 'var(--rq-border-strong)';
       b.style.color = 'var(--rq-text-secondary)';
-      b.style.background = '#ffffff';
+      b.style.background = 'var(--rq-bg-elevated)';
     });
     if (btnEl) {
       btnEl.style.borderColor = '#0d9488';
-      btnEl.style.color = '#0d9488';
-      btnEl.style.background = 'rgba(13, 148, 136, 0.08)';
+      btnEl.style.color = '#14b8a6';
+      btnEl.style.background = 'rgba(13, 148, 136, 0.14)';
     }
     const qty = Math.max(1, parseInt(document.getElementById('pdp-qty-input')?.value || '1', 10) || 1);
     updateShamCashPreview(currentUnitBasePrice * qty);

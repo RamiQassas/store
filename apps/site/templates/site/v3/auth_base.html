@@ -22,25 +22,31 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@500;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
-  <link rel="stylesheet" href="{% static 'site/css/app.css' %}?v=20261023_dual_v11">
+  <link rel="stylesheet" href="{% static 'site/css/app.css' %}?v=20261106_apple_glass_v1">
 
   <style>
     .rq-auth-page {
       min-height: 100vh;
       display: flex;
       flex-direction: column;
-      background: radial-gradient(circle at 80% 10%, rgba(37, 99, 235, 0.14) 0%, transparent 40%),
-                  radial-gradient(circle at 20% 90%, rgba(16, 185, 129, 0.08) 0%, transparent 40%),
+      position: relative;
+      background: radial-gradient(circle at 80% 10%, rgba(59, 130, 246, 0.16) 0%, transparent 42%),
+                  radial-gradient(circle at 20% 90%, rgba(16, 185, 129, 0.10) 0%, transparent 42%),
                   var(--rq-bg-body);
     }
     .rq-auth-topbar {
-      padding: 1rem 1.5rem;
+      padding: 0.9rem 1.5rem;
       background: var(--rq-header-bg);
-      backdrop-filter: blur(14px);
+      backdrop-filter: var(--rq-glass-blur-heavy);
+      -webkit-backdrop-filter: var(--rq-glass-blur-heavy);
       border-bottom: 1px solid var(--rq-border);
+      box-shadow: 0 8px 28px rgba(0, 0, 0, 0.14), inset 0 -1px 0 rgba(255, 255, 255, 0.06);
       display: flex;
       align-items: center;
       justify-content: space-between;
+      position: sticky;
+      top: 0;
+      z-index: 20;
     }
     .rq-auth-main {
       flex: 1;
@@ -48,16 +54,34 @@
       align-items: center;
       justify-content: center;
       padding: 2rem 1rem;
+      position: relative;
+      z-index: 2;
     }
     .rq-auth-card {
       width: 100%;
       max-width: 470px;
       background: var(--rq-surface-card);
+      backdrop-filter: blur(32px) saturate(200%);
+      -webkit-backdrop-filter: blur(32px) saturate(200%);
       border: 1px solid var(--rq-border);
-      border-radius: 22px;
+      border-radius: 26px;
       padding: 2.25rem 2rem;
       box-shadow: var(--rq-shadow-lg);
       position: relative;
+      animation: rqAuthCardIn 0.45s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+    }
+    @keyframes rqAuthCardIn {
+      from { opacity: 0; transform: translateY(16px) scale(0.98); }
+      to { opacity: 1; transform: translateY(0) scale(1); }
+    }
+    @media (max-width: 540px) {
+      .rq-auth-topbar {
+        padding: 0.75rem 1rem;
+      }
+      .rq-auth-card {
+        padding: 1.6rem 1.25rem;
+        border-radius: 22px;
+      }
     }
     .rq-auth-input-wrap {
       position: relative;
@@ -91,6 +115,11 @@
   {% block extra_head %}{% endblock %}
 </head>
 <body class="rq-auth-page">
+  <div class="rq-ambient-canvas" aria-hidden="true">
+    <div class="rq-ambient-orb rq-ambient-orb--1"></div>
+    <div class="rq-ambient-orb rq-ambient-orb--2"></div>
+    <div class="rq-ambient-orb rq-ambient-orb--3"></div>
+  </div>
 
   <header class="rq-auth-topbar">
     <a href="{% url 'home' %}" class="rq-brand">

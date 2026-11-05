@@ -1075,3 +1075,48 @@ body.store-surface .currency-modal-close {
     grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
   }
 }
+
+/* ==========================================================================
+   APPLE SPATIAL GLASS OVERRIDE FOR MULTI-TENANT STOREFRONTS (2026)
+   ========================================================================== */
+body.store-surface header,
+body.is-customer .main-header {
+  backdrop-filter: blur(32px) saturate(200%) !important;
+  -webkit-backdrop-filter: blur(32px) saturate(200%) !important;
+  box-shadow: 0 10px 32px rgba(0, 0, 0, 0.24), inset 0 -1px 0 rgba(255, 255, 255, 0.08) !important;
+}
+
+body.store-surface .product-card,
+body.store-surface .category-card,
+body.store-surface .glass-panel,
+body.store-surface .card {
+  border-radius: 20px !important;
+  backdrop-filter: blur(26px) saturate(190%) !important;
+  -webkit-backdrop-filter: blur(26px) saturate(190%) !important;
+  box-shadow: 0 12px 32px -6px rgba(0, 0, 0, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.14) !important;
+  transition: transform 360ms cubic-bezier(0.22, 1, 0.36, 1), box-shadow 360ms cubic-bezier(0.22, 1, 0.36, 1), border-color 260ms ease !important;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  body.store-surface .product-card:hover,
+  body.store-surface .category-card:hover {
+    transform: translateY(-6px) scale(1.008) !important;
+    box-shadow: 0 20px 44px -8px rgba(0, 0, 0, 0.48), inset 0 1px 0 rgba(255, 255, 255, 0.24) !important;
+  }
+}
+
+body.store-surface .hero-section {
+  border-radius: 26px !important;
+  backdrop-filter: blur(28px) saturate(190%) !important;
+  -webkit-backdrop-filter: blur(28px) saturate(190%) !important;
+  box-shadow: 0 24px 54px -12px rgba(0, 0, 0, 0.48), inset 0 1px 0 rgba(255, 255, 255, 0.18) !important;
+}
+
+body.store-surface .btn {
+  border-radius: 14px !important;
+  transition: transform 240ms cubic-bezier(0.22, 1, 0.36, 1), box-shadow 240ms ease, filter 240ms ease !important;
+}
+
+body.store-surface .btn:active {
+  transform: scale(0.96) !important;
+}

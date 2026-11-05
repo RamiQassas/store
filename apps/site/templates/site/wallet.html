@@ -142,11 +142,11 @@
     <div class="rq-dash-stat-card">
       <div>
         <span style="font-size: 0.76rem; font-weight: 700; color: var(--rq-text-muted); display: block; margin-bottom: 0.25rem;">إجمالي السحوبات المكتملة</span>
-        <span class="tabular-nums font-mono" style="font-size: 1.3rem; font-weight: 900; color: #dc2626;">
+        <span class="tabular-nums font-mono" style="font-size: 1.3rem; font-weight: 900; color: var(--rq-danger);">
           -{% format_price total_withdrawn %}
         </span>
       </div>
-      <div style="width: 44px; height: 44px; border-radius: 12px; background: #fef2f2; color: #dc2626; display: flex; align-items: center; justify-content: center; font-size: 1.1rem;">
+      <div style="width: 44px; height: 44px; border-radius: 12px; background: var(--rq-danger-soft); color: var(--rq-danger); display: flex; align-items: center; justify-content: center; font-size: 1.1rem;">
         <i class="fas fa-arrow-up"></i>
       </div>
     </div>
@@ -165,7 +165,7 @@
   </div>
 
   <!-- 4. Detailed Financial Ledger Table -->
-  <div style="background: var(--rq-surface-card); border: 1px solid var(--rq-border); border-radius: var(--rq-radius-xl); padding: 1.5rem; box-shadow: var(--rq-shadow-xs); overflow: hidden;">
+  <div class="rq-pdp-card" style="background: var(--rq-surface-card); border: 1px solid var(--rq-border); border-radius: var(--rq-radius-xl); padding: 1.5rem; box-shadow: var(--rq-shadow-xs); overflow: hidden;">
     <div style="display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 1rem; margin-bottom: 1.25rem;">
       <div style="display: flex; align-items: center; gap: 0.6rem;">
         <i class="fas fa-list-alt" style="color: var(--rq-primary); font-size: 1.05rem;"></i>

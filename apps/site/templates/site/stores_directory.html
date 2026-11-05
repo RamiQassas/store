@@ -6,15 +6,12 @@
 {% block extra_head %}
 <style>
 /* ═══════════════════════════════════════════════════════
-   STORES DIRECTORY — MODERN BENTO SHOWCASE
+   STORES DIRECTORY — APPLE SPATIAL GLASS BENTO SHOWCASE
    ═══════════════════════════════════════════════════════ */
 .stores-page {
     min-height: 100vh;
-    padding: 3rem 0 6rem;
+    padding: 2.5rem 0 5rem;
     direction: rtl;
-    background:
-        radial-gradient(ellipse at 85% 10%, rgba(212,168,83,0.06) 0%, transparent 50%),
-        radial-gradient(ellipse at 15% 30%, rgba(124,92,191,0.05) 0%, transparent 45%);
 }
 
 .stores-wrap {
@@ -26,7 +23,7 @@
 .stores-hero {
     text-align: center;
     max-width: 720px;
-    margin: 0 auto 3.5rem;
+    margin: 0 auto 3rem;
 }
 
 .stores-badge {
@@ -34,39 +31,39 @@
     align-items: center;
     gap: 8px;
     padding: 6px 16px;
-    background: rgba(212,168,83,0.06);
-    border: 1px solid rgba(212,168,83,0.18);
+    background: var(--rq-primary-soft);
+    border: 1px solid rgba(59, 130, 246, 0.25);
     border-radius: 100px;
     font-size: 0.78rem;
     font-weight: 800;
-    color: #d4a853;
-    margin-bottom: 1.25rem;
+    color: var(--rq-primary-light);
+    margin-bottom: 1.15rem;
 }
 
 .stores-hero h1 {
-    font-size: clamp(2rem, 5vw, 3rem);
+    font-size: clamp(1.75rem, 4.5vw, 2.75rem);
     font-weight: 900;
-    color: #fff;
-    margin: 0 0 1rem;
-    line-height: 1.2;
+    color: var(--rq-navy);
+    margin: 0 0 0.85rem;
+    line-height: 1.25;
 }
 
 .stores-hero h1 span {
-    background: linear-gradient(135deg, #d4a853, #f0c674);
+    background: linear-gradient(135deg, #38bdf8, #3b82f6, #10b981);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
 }
 
 .stores-hero p {
-    font-size: 1rem;
-    color: #8a8a9e;
+    font-size: 0.96rem;
+    color: var(--rq-text-secondary);
     line-height: 1.7;
-    margin: 0 0 2rem;
+    margin: 0 0 1.85rem;
 }
 
 /* Search dock */
 .stores-search-dock {
-    max-width: 520px;
+    max-width: 540px;
     margin: 0 auto;
     position: relative;
 }
@@ -74,42 +71,45 @@
 .stores-search-dock form {
     display: flex;
     align-items: center;
-    background: rgba(18,18,26,0.85);
-    border: 1px solid rgba(255,255,255,0.07);
-    border-radius: 16px;
+    background: var(--rq-surface-card);
+    border: 1px solid var(--rq-border-strong);
+    border-radius: 18px;
     padding: 6px;
-    backdrop-filter: blur(20px);
-    transition: all 0.3s;
+    backdrop-filter: var(--rq-glass-blur);
+    -webkit-backdrop-filter: var(--rq-glass-blur);
+    box-shadow: var(--rq-shadow-sm);
+    transition: all 0.3s ease;
 }
 
 .stores-search-dock form:focus-within {
-    border-color: rgba(212,168,83,0.35);
-    box-shadow: 0 0 30px rgba(212,168,83,0.08);
+    border-color: var(--rq-primary);
+    box-shadow: 0 0 0 4px var(--rq-primary-glow), var(--rq-shadow-md);
 }
 
 .stores-search-dock input {
     flex: 1;
     background: none;
     border: none;
-    color: #fff;
-    padding: 0.8rem 1rem;
+    color: var(--rq-navy);
+    padding: 0.75rem 1rem;
     font-size: 0.9rem;
+    font-family: inherit;
     outline: none;
     min-width: 0;
 }
 
 .stores-search-dock input::placeholder {
-    color: #5e5e74;
+    color: var(--rq-text-muted);
 }
 
 .stores-search-dock button {
-    background: linear-gradient(135deg, #d4a853, #f0c674);
-    color: #0a0a0f;
+    background: linear-gradient(135deg, #2563eb, #0ea5e9);
+    color: #ffffff;
     border: none;
-    padding: 0.7rem 1.4rem;
-    border-radius: 12px;
+    padding: 0.7rem 1.35rem;
+    border-radius: 13px;
     font-weight: 800;
-    font-size: 0.82rem;
+    font-size: 0.84rem;
     cursor: pointer;
     display: flex;
     align-items: center;
@@ -118,27 +118,30 @@
 }
 
 .stores-search-dock button:hover {
-    filter: brightness(1.1);
+    filter: brightness(1.08);
     transform: scale(1.02);
 }
 
 /* Stores Grid */
 .stores-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
-    gap: 1.5rem;
-    margin-bottom: 4rem;
+    grid-template-columns: repeat(auto-fill, minmax(285px, 1fr));
+    gap: 1.35rem;
+    margin-bottom: 3.5rem;
 }
 
 .store-card {
-    background: rgba(18,18,26,0.65);
-    border: 1px solid rgba(255,255,255,0.05);
+    background: var(--rq-surface-card);
+    backdrop-filter: var(--rq-glass-blur);
+    -webkit-backdrop-filter: var(--rq-glass-blur);
+    border: 1px solid var(--rq-border);
     border-radius: 24px;
-    padding: 1.75rem;
+    padding: 1.6rem;
     display: flex;
     flex-direction: column;
     justify-content: space-between;
-    transition: all 0.35s cubic-bezier(0.4,0,0.2,1);
+    box-shadow: var(--rq-shadow-sm);
+    transition: all 0.35s cubic-bezier(0.22, 1, 0.36, 1);
     position: relative;
     overflow: hidden;
 }
@@ -150,15 +153,15 @@
     left: 0;
     right: 0;
     height: 3px;
-    background: linear-gradient(90deg, transparent, rgba(212,168,83,0.3), transparent);
+    background: linear-gradient(90deg, transparent, var(--rq-primary-light), transparent);
     opacity: 0;
     transition: opacity 0.3s;
 }
 
 .store-card:hover {
-    border-color: rgba(212,168,83,0.25);
-    transform: translateY(-5px);
-    box-shadow: 0 20px 45px rgba(0,0,0,0.4), 0 0 30px rgba(212,168,83,0.05);
+    border-color: var(--rq-border-hover);
+    transform: translateY(-6px);
+    box-shadow: var(--rq-shadow-card-hover);
 }
 
 .store-card:hover::before {
@@ -168,22 +171,22 @@
 .store-head {
     display: flex;
     align-items: center;
-    gap: 1.15rem;
-    margin-bottom: 1.25rem;
+    gap: 1rem;
+    margin-bottom: 1.15rem;
 }
 
 .store-logo-frame {
-    width: 64px;
-    height: 64px;
+    width: 62px;
+    height: 62px;
     border-radius: 18px;
-    background: rgba(255,255,255,0.03);
-    border: 1px solid rgba(255,255,255,0.07);
+    background: var(--rq-bg-elevated);
+    border: 1px solid var(--rq-border);
     display: flex;
     align-items: center;
     justify-content: center;
     overflow: hidden;
     flex-shrink: 0;
-    box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+    box-shadow: var(--rq-shadow-xs);
 }
 
 .store-logo-frame img {
@@ -199,9 +202,9 @@
 }
 
 .store-name {
-    font-size: 1.15rem;
-    font-weight: 800;
-    color: #fff;
+    font-size: 1.12rem;
+    font-weight: 900;
+    color: var(--rq-navy);
     margin: 0 0 4px;
     white-space: nowrap;
     overflow: hidden;
@@ -209,19 +212,19 @@
 }
 
 .store-verified-tag {
-    font-size: 0.7rem;
+    font-size: 0.72rem;
     font-weight: 800;
-    color: #d4a853;
+    color: var(--rq-accent);
     display: inline-flex;
     align-items: center;
     gap: 4px;
 }
 
 .store-desc {
-    font-size: 0.88rem;
-    color: #8a8a9e;
+    font-size: 0.86rem;
+    color: var(--rq-text-secondary);
     line-height: 1.65;
-    margin: 0 0 1.5rem;
+    margin: 0 0 1.35rem;
     flex: 1;
 }
 
@@ -229,11 +232,11 @@
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 0.85rem 1rem;
-    background: rgba(255,255,255,0.02);
-    border: 1px solid rgba(255,255,255,0.04);
+    padding: 0.75rem 1rem;
+    background: var(--rq-bg-elevated);
+    border: 1px solid var(--rq-border);
     border-radius: 14px;
-    margin-bottom: 1.25rem;
+    margin-bottom: 1.15rem;
 }
 
 .store-meta-item {
@@ -241,12 +244,12 @@
     align-items: center;
     gap: 6px;
     font-size: 0.75rem;
-    color: #8a8a9e;
+    color: var(--rq-text-secondary);
     font-weight: 700;
 }
 
 .store-meta-item i {
-    color: #d4a853;
+    color: var(--rq-primary-light);
     font-size: 0.8rem;
 }
 
@@ -257,9 +260,9 @@
     gap: 8px;
     padding: 0.8rem;
     border-radius: 14px;
-    background: linear-gradient(135deg, rgba(212,168,83,0.1), rgba(240,198,116,0.05));
-    border: 1px solid rgba(212,168,83,0.25);
-    color: #d4a853;
+    background: var(--rq-primary-soft);
+    border: 1px solid rgba(59, 130, 246, 0.25);
+    color: var(--rq-primary-light);
     font-weight: 800;
     font-size: 0.85rem;
     text-decoration: none;
@@ -267,63 +270,68 @@
 }
 
 .store-card:hover .store-visit-btn {
-    background: linear-gradient(135deg, #d4a853, #f0c674);
-    color: #0a0a0f;
+    background: linear-gradient(135deg, #2563eb, #0ea5e9);
+    color: #ffffff;
     border-color: transparent;
-    box-shadow: 0 6px 20px rgba(212,168,83,0.25);
+    box-shadow: 0 6px 20px rgba(37, 99, 235, 0.32);
 }
 
 /* Empty state */
 .stores-empty {
     text-align: center;
     padding: 4rem 2rem;
-    background: rgba(18,18,26,0.6);
-    border: 1px dashed rgba(255,255,255,0.07);
+    background: var(--rq-surface-card);
+    backdrop-filter: var(--rq-glass-blur);
+    -webkit-backdrop-filter: var(--rq-glass-blur);
+    border: 1px dashed var(--rq-border-strong);
     border-radius: 24px;
     grid-column: 1 / -1;
 }
 
 .stores-empty i {
-    font-size: 3rem;
-    color: #d4a853;
+    font-size: 2.75rem;
+    color: var(--rq-primary-light);
     margin-bottom: 1rem;
 }
 
 .stores-empty h3 {
-    color: #fff;
+    color: var(--rq-navy);
     font-size: 1.25rem;
     margin: 0 0 0.5rem;
 }
 
 .stores-empty p {
-    color: #8a8a9e;
+    color: var(--rq-text-muted);
     font-size: 0.9rem;
     margin: 0;
 }
 
 /* CTA Register Store */
 .stores-create-cta {
-    background: linear-gradient(135deg, rgba(212,168,83,0.05), rgba(124,92,191,0.05));
-    border: 1px solid rgba(212,168,83,0.15);
+    background: var(--rq-hero-bg);
+    backdrop-filter: var(--rq-glass-blur);
+    -webkit-backdrop-filter: var(--rq-glass-blur);
+    border: 1px solid var(--rq-hero-border);
     border-radius: 28px;
     padding: 3rem 2rem;
     text-align: center;
     position: relative;
     overflow: hidden;
+    box-shadow: var(--rq-shadow-lg);
 }
 
 .stores-create-cta h2 {
-    font-size: clamp(1.5rem, 3.5vw, 2.2rem);
+    font-size: clamp(1.45rem, 3.5vw, 2.1rem);
     font-weight: 900;
-    color: #fff;
+    color: #ffffff;
     margin: 0 0 0.75rem;
 }
 
 .stores-create-cta p {
-    color: #8a8a9e;
+    color: #cbd5e1;
     max-width: 520px;
     margin: 0 auto 2rem;
-    font-size: 0.95rem;
+    font-size: 0.94rem;
     line-height: 1.65;
 }
 

@@ -118,7 +118,7 @@
 
     <!-- Orders Column -->
     <div>
-      <div style="background: var(--rq-surface-card); border: 1px solid var(--rq-border); border-radius: var(--rq-radius-xl); padding: 1.5rem; box-shadow: var(--rq-shadow-xs);">
+      <div class="rq-pdp-card" style="background: var(--rq-surface-card); border: 1px solid var(--rq-border); border-radius: var(--rq-radius-xl); padding: 1.5rem; box-shadow: var(--rq-shadow-xs);">
         <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.25rem;">
           <div style="display: flex; align-items: center; gap: 0.6rem;">
             <i class="fas fa-bag-shopping" style="color: var(--rq-primary); font-size: 1rem;"></i>
@@ -190,19 +190,19 @@
     <div style="display: flex; flex-direction: column; gap: 1.25rem;">
       
       <!-- Account Security -->
-      <div style="background: var(--rq-surface-card); border: 1px solid var(--rq-border); border-radius: var(--rq-radius-xl); padding: 1.5rem; box-shadow: var(--rq-shadow-xs);">
+      <div class="rq-pdp-card" style="background: var(--rq-surface-card); border: 1px solid var(--rq-border); border-radius: var(--rq-radius-xl); padding: 1.5rem; box-shadow: var(--rq-shadow-xs);">
         <h4 style="font-size: 0.95rem; font-weight: 800; color: var(--rq-navy); margin: 0 0 1rem; display: flex; align-items: center; gap: 0.5rem;">
           <i class="fas fa-shield-halved" style="color: var(--rq-primary);"></i>
           <span>أمان الحساب</span>
         </h4>
 
         <div style="display: flex; flex-direction: column; gap: 0.55rem;">
-          <a href="{% url 'change_password' %}" style="display: flex; align-items: center; justify-content: space-between; padding: 0.7rem 0.9rem; border-radius: 10px; background: var(--rq-bg-body); border: 1px solid var(--rq-border); color: var(--rq-text-secondary); font-size: 0.82rem; font-weight: 700; text-decoration: none;">
+          <a href="{% url 'change_password' %}" style="display: flex; align-items: center; justify-content: space-between; padding: 0.7rem 0.9rem; border-radius: 10px; background: var(--rq-bg-elevated); border: 1px solid var(--rq-border); color: var(--rq-text-secondary); font-size: 0.82rem; font-weight: 700; text-decoration: none;">
             <span style="display: flex; align-items: center; gap: 0.5rem;"><i class="fas fa-lock text-xs" style="color: var(--rq-primary);"></i> تغيير كلمة المرور</span>
             <i class="fas fa-chevron-left text-[10px]"></i>
           </a>
 
-          <a href="{% url 'site_2fa_setup' %}" style="display: flex; align-items: center; justify-content: space-between; padding: 0.7rem 0.9rem; border-radius: 10px; background: var(--rq-bg-body); border: 1px solid var(--rq-border); color: var(--rq-text-secondary); font-size: 0.82rem; font-weight: 700; text-decoration: none;">
+          <a href="{% url 'site_2fa_setup' %}" style="display: flex; align-items: center; justify-content: space-between; padding: 0.7rem 0.9rem; border-radius: 10px; background: var(--rq-bg-elevated); border: 1px solid var(--rq-border); color: var(--rq-text-secondary); font-size: 0.82rem; font-weight: 700; text-decoration: none;">
             <span style="display: flex; align-items: center; gap: 0.5rem;"><i class="fas fa-mobile-screen text-xs" style="color: var(--rq-primary);"></i> التحقق بخطوتين (2FA)</span>
             <i class="fas fa-chevron-left text-[10px]"></i>
           </a>
@@ -210,7 +210,7 @@
       </div>
 
       <!-- Quick Support Help -->
-      <div style="background: var(--rq-primary-soft); border: 1px solid rgba(37, 99, 235, 0.18); border-radius: var(--rq-radius-xl); padding: 1.5rem; text-align: center;">
+      <div class="rq-pdp-card" style="background: var(--rq-primary-soft); border: 1px solid rgba(59, 130, 246, 0.24); border-radius: var(--rq-radius-xl); padding: 1.5rem; text-align: center;">
         <i class="fas fa-headset" style="color: var(--rq-primary); font-size: 1.65rem; margin-bottom: 0.5rem; display: block;"></i>
         <h5 style="font-size: 0.95rem; font-weight: 800; color: var(--rq-navy); margin: 0 0 0.35rem;">تحتاج إلى مساعدة؟</h5>
         <p style="font-size: 0.8rem; color: var(--rq-text-secondary); margin: 0 0 1rem; line-height: 1.55;">فريق خدمة العملاء متواجد لمساعدتك في استفسارات الأجهزة والطلبات.</p>

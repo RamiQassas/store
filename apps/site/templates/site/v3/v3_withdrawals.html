@@ -29,9 +29,9 @@
       </div>
 
       <div style="display: flex; align-items: center; gap: 0.75rem;">
-        <div style="background: #ecfdf5; border: 1px solid #a7f3d0; border-radius: 12px; padding: 0.45rem 1rem;">
-          <span style="font-size: 0.72rem; color: #047857; font-weight: 700; display: block;">الرصيد المتاح للسحب:</span>
-          <span class="tabular-nums font-mono" style="font-size: 1rem; font-weight: 900; color: #059669;">
+        <div style="background: var(--rq-accent-soft); border: 1px solid rgba(16, 185, 129, 0.35); border-radius: 12px; padding: 0.45rem 1rem;">
+          <span style="font-size: 0.72rem; color: var(--rq-accent); font-weight: 700; display: block;">الرصيد المتاح للسحب:</span>
+          <span class="tabular-nums font-mono" style="font-size: 1rem; font-weight: 900; color: var(--rq-accent);">
             {% format_price user.wallet.available_balance %}
           </span>
         </div>
@@ -40,7 +40,7 @@
   </div>
 
   <!-- 2. Withdrawal Main Form -->
-  <div style="background: var(--rq-surface-card); border: 1px solid var(--rq-border); border-radius: 18px; padding: 1.75rem; box-shadow: var(--rq-shadow-sm); margin-bottom: 2rem;">
+  <div class="rq-pdp-card" style="background: var(--rq-surface-card); border: 1px solid var(--rq-border); border-radius: 20px; padding: 1.75rem; box-shadow: var(--rq-shadow-sm); margin-bottom: 2rem;">
     
     <form method="post" id="withdrawal-form" action="{% url 'dashboard_withdrawals' %}">
       {% csrf_token %}
