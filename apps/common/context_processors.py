@@ -67,21 +67,24 @@ def common_context(request):
                 logo_url = ""
                 # Priority 1: Gateway logo uploaded by store owner
                 if g.logo:
-                    try: logo_url = g.logo.url
-                    except Exception: pass
-                # Priority 2: Gateway logo_url property
+                    try:
+                        if g.logo.name and "shamcash.svg" not in g.logo.name:
+                            logo_url = g.logo.url
+                    except Exception:
+                        pass
+                # Priority 2: PaymentMethod logo uploaded by store owner
+                if not logo_url and pm and pm.logo:
+                    try:
+                        if pm.logo.name and "shamcash.svg" not in pm.logo.name:
+                            logo_url = pm.logo.url
+                    except Exception:
+                        pass
+                # Priority 3: Gateway logo_url property
                 if not logo_url and getattr(g, "logo_url", None):
                     logo_url = g.logo_url
-                # Priority 3: PaymentMethod logo
-                if not logo_url and pm and pm.logo:
-                    try: logo_url = pm.logo.url
-                    except Exception: pass
-                # Fallback to local files only if no logo set in DB
-                if not logo_url:
-                    if g.provider == "sham_cash":
-                        logo_url = "/static/site/img/brands/shamcash.svg"
-                    elif g.provider == "paymera":
-                        logo_url = "/media/payment-methods/logos/paymera.png"
+                # Priority 4: PaymentMethod logo_url property
+                if not logo_url and pm and getattr(pm, "logo_url", None):
+                    logo_url = pm.logo_url
 
                 site_gateways.append({
                     "provider": g.provider,

@@ -115,12 +115,59 @@
   .receipt-row:last-child {
     border-bottom: none;
   }
+
+  /* Official Printable Receipt (Hidden on screen, shown exclusively when printing) */
+  #official-printable-receipt {
+    display: none;
+  }
+
+  @page {
+    size: A4 portrait;
+    margin: 10mm;
+  }
+
+  @media print {
+    html, body {
+      background: #ffffff !important;
+      color: #0f172a !important;
+      padding: 0 !important;
+      margin: 0 !important;
+      -webkit-print-color-adjust: exact !important;
+      print-color-adjust: exact !important;
+    }
+    .rq-header-shell,
+    .rq-subnav-bar,
+    .rq-footer,
+    .rq-mobile-bottom-nav,
+    .rq-drawer-backdrop,
+    .rq-drawer-panel,
+    .rq-toast-stack,
+    .screen-only-status {
+      display: none !important;
+    }
+    .rq-main-content {
+      padding: 0 !important;
+      margin: 0 !important;
+      min-height: auto !important;
+    }
+    #official-printable-receipt {
+      display: block !important;
+      max-width: 100%;
+      width: 100%;
+      background: #ffffff;
+      color: #0f172a;
+      border: 1.5px solid #cbd5e1;
+      border-radius: 14px;
+      overflow: hidden;
+      font-family: 'Cairo', sans-serif;
+    }
+  }
 </style>
 <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
 {% endblock %}
 
 {% block content %}
-<div class="rq-page-container" style="max-width: 680px; margin: 2.5rem auto 4rem; padding: 0 1rem;">
+<div class="rq-page-container screen-only-status" style="max-width: 680px; margin: 2.5rem auto 4rem; padding: 0 1rem;">
   <div class="receipt-card p-6 sm:p-10 text-center relative">
     
     <!-- Ambient Glow Effect -->
@@ -302,6 +349,20 @@
         </div>
         {% endif %}
 
+        {% if shipping_address %}
+        <div class="receipt-row" style="align-items: flex-start;">
+          <span style="color: #94a3b8; flex-shrink: 0;">عنوان التوصيل</span>
+          <div style="text-align: left; max-width: 68%;">
+            <span style="color: #f8fafc; font-size: 0.82rem; font-weight: 700; display: block;">{{ shipping_address }}</span>
+            {% if shipping_map_url %}
+            <a href="{{ shipping_map_url }}" target="_blank" rel="noopener" style="color: #34d399; font-size: 0.74rem; font-weight: 800; text-decoration: underline;">
+              <i class="fas fa-location-dot"></i> الموقع الدقيق على الخريطة
+            </a>
+            {% endif %}
+          </div>
+        </div>
+        {% endif %}
+
         <div class="receipt-row">
           <span style="color: #94a3b8;">توقيت العملية</span>
           <span style="color: #e2e8f0; font-size: 0.82rem;">{{ timestamp|default:"الآن" }}</span>
@@ -330,8 +391,8 @@
             <i class="fas fa-redo ml-1"></i> شحن رصيد جديد
           </a>
           {% endif %}
-          <button type="button" onclick="window.print()" class="btn btn-outline" style="flex: 1; height: 44px; display: flex; align-items: center; justify-content: center; gap: 0.4rem; border-radius: 12px; font-size: 0.85rem; border: 1px solid rgba(255,255,255,0.1); color: #94a3b8;">
-            <i class="fas fa-print ml-1"></i> طباعة الإيصال
+          <button type="button" onclick="window.print()" class="btn btn-outline" style="flex: 1; height: 44px; display: flex; align-items: center; justify-content: center; gap: 0.4rem; border-radius: 12px; font-size: 0.85rem; border: 1px solid rgba(255,255,255,0.14); color: #f8fafc; font-weight: 800; cursor: pointer;">
+            <i class="fas fa-print ml-1" style="color: #38bdf8;"></i> طباعة إيصال رسمي
           </button>
         </div>
       </div>
@@ -347,6 +408,140 @@
         </div>
       </div>
 
+    </div>
+  </div>
+</div>
+
+<!-- Official Printable Receipt Document (Rendered exclusively on Print) -->
+<div id="official-printable-receipt" dir="rtl">
+  <div style="height: 8px; background: linear-gradient(90deg, #1d4ed8 0%, #0ea5e9 50%, #10b981 100%);"></div>
+  <div style="padding: 2rem 2.25rem;">
+    <!-- Header -->
+    <div style="display: flex; align-items: flex-start; justify-content: space-between; gap: 1rem; padding-bottom: 1.25rem; border-bottom: 2px solid #e2e8f0;">
+      <div style="display: flex; align-items: center; gap: 0.9rem;">
+        {% if is_tenant and STORE_LOGO %}
+        <img src="{{ STORE_LOGO }}" alt="{{ STORE_NAME }}" style="width: 58px; height: 58px; border-radius: 14px; object-fit: cover; border: 1px solid #cbd5e1;">
+        {% else %}
+        <img src="/media/logo.jpg" alt="رقميات" style="width: 58px; height: 58px; border-radius: 14px; object-fit: cover; border: 1px solid #cbd5e1;" onerror="this.style.display='none'">
+        {% endif %}
+        <div>
+          <div style="font-size: 1.35rem; font-weight: 900; color: #0f172a;">{% if is_tenant %}{{ STORE_NAME }}{% else %}منصة ومتجر رقميات — RAQAMIYAT{% endif %}</div>
+          <div style="font-size: 0.78rem; font-weight: 700; color: #64748b;">إيصال عملية دفع واستلام رسمي معتمد</div>
+        </div>
+      </div>
+      <div style="text-align: left;">
+        <div style="display: inline-block; padding: 0.25rem 0.75rem; border-radius: 999px; background: #eff6ff; border: 1px solid #bfdbfe; color: #1d4ed8; font-size: 0.75rem; font-weight: 900; margin-bottom: 0.3rem;">
+          إيصال رسمي — OFFICIAL RECEIPT
+        </div>
+        <div style="font-family: monospace; font-size: 1.05rem; font-weight: 900; color: #0f172a;">#{{ reference|default:"—" }}</div>
+        <div style="font-family: monospace; font-size: 0.76rem; color: #64748b;">{{ timestamp|default:"الآن" }}</div>
+      </div>
+    </div>
+
+    <!-- Summary Grid -->
+    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin: 1.35rem 0;">
+      <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 1rem 1.15rem;">
+        <div style="font-size: 0.75rem; font-weight: 900; color: #64748b; border-bottom: 1px dashed #cbd5e1; padding-bottom: 0.4rem; margin-bottom: 0.55rem;">
+          بيانات العملية وبوابة الدفع
+        </div>
+        <div style="display: flex; justify-content: space-between; align-items: center; font-size: 0.82rem; margin-bottom: 0.35rem;">
+          <span style="color: #64748b; font-weight: 700;">بوابة الدفع:</span>
+          <span style="display: inline-flex; align-items: center; gap: 0.4rem; font-weight: 800; color: #0f172a;">
+            {% if provider_logo %}
+            <img src="{{ provider_logo }}" alt="{{ provider_title }}" style="height: 18px; width: auto; object-fit: contain;">
+            {% endif %}
+            <span>{{ provider_title|default:"بوابة دفع إلكترونية" }}</span>
+          </span>
+        </div>
+        <div style="display: flex; justify-content: space-between; font-size: 0.82rem; margin-bottom: 0.35rem;">
+          <span style="color: #64748b; font-weight: 700;">حالة العملية:</span>
+          <strong style="color: {% if status == 'success' %}#059669{% elif status == 'cancelled' %}#d97706{% elif status == 'failed' %}#dc2626{% else %}#0284c7{% endif %};">
+            {% if status == 'success' %}مكتملة ومؤكدة رسمياً ✓{% elif status == 'cancelled' %}ملغاة من قبل المستخدم{% elif status == 'failed' %}عملية مرفوضة{% else %}قيد المعالجة{% endif %}
+          </strong>
+        </div>
+        {% if tran_id %}
+        <div style="display: flex; justify-content: space-between; font-size: 0.8rem;">
+          <span style="color: #64748b; font-weight: 700;">رقم حركة المزود:</span>
+          <span style="font-family: monospace; font-weight: 800; color: #0f172a;">{{ tran_id }}</span>
+        </div>
+        {% endif %}
+      </div>
+
+      <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 1rem 1.15rem;">
+        <div style="font-size: 0.75rem; font-weight: 900; color: #64748b; border-bottom: 1px dashed #cbd5e1; padding-bottom: 0.4rem; margin-bottom: 0.55rem;">
+          بيانات العميل والمبلغ
+        </div>
+        {% if customer_name %}
+        <div style="display: flex; justify-content: space-between; font-size: 0.82rem; margin-bottom: 0.35rem;">
+          <span style="color: #64748b; font-weight: 700;">العميل / المستلم:</span>
+          <strong style="color: #0f172a;">{{ customer_name }}</strong>
+        </div>
+        {% endif %}
+        {% if customer_phone %}
+        <div style="display: flex; justify-content: space-between; font-size: 0.82rem; margin-bottom: 0.35rem;">
+          <span style="color: #64748b; font-weight: 700;">رقم الهاتف:</span>
+          <strong style="font-family: monospace; color: #0f172a;" dir="ltr">{{ customer_phone }}</strong>
+        </div>
+        {% endif %}
+        {% if shipping_address %}
+        <div style="display: flex; justify-content: space-between; font-size: 0.8rem; margin-bottom: 0.35rem;">
+          <span style="color: #64748b; font-weight: 700;">عنوان التوصيل:</span>
+          <strong style="color: #0f172a; text-align: left; max-width: 68%;">{{ shipping_address }}</strong>
+        </div>
+        {% endif %}
+        <div style="display: flex; justify-content: space-between; font-size: 0.92rem; padding-top: 0.35rem; border-top: 1px solid #e2e8f0;">
+          <span style="color: #0f172a; font-weight: 900;">إجمالي المبلغ:</span>
+          <strong style="font-family: monospace; color: #2563eb; font-weight: 900;">
+            {{ amount_display }}{% if secondary_amount_display %} ({{ secondary_amount_display }}){% endif %}
+          </strong>
+        </div>
+      </div>
+    </div>
+
+    {% if order_items %}
+    <!-- Order Items Table -->
+    <div style="border: 1px solid #e2e8f0; border-radius: 12px; overflow: hidden; margin-bottom: 1.35rem;">
+      <table style="width: 100%; border-collapse: collapse; text-align: right;">
+        <thead>
+          <tr style="background: #0f172a; color: #ffffff; font-size: 0.78rem;">
+            <th style="padding: 0.65rem 0.9rem;">المنتج والمواصفات</th>
+            <th style="padding: 0.65rem 0.9rem; text-align: center; width: 85px;">الكمية</th>
+            <th style="padding: 0.65rem 0.9rem; text-align: left; width: 120px;">سعر الوحدة</th>
+            <th style="padding: 0.65rem 0.9rem; text-align: left; width: 130px;">الإجمالي</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for itm in order_items %}
+          <tr style="border-bottom: 1px solid #f1f5f9; font-size: 0.84rem;">
+            <td style="padding: 0.75rem 0.9rem; font-weight: 800; color: #0f172a;">
+              {{ itm.product_name }}{% if itm.variant_name and itm.variant_name != itm.product_name %} — <span style="color: #64748b; font-weight: 700;">{{ itm.variant_name }}</span>{% endif %}
+            </td>
+            <td style="padding: 0.75rem 0.9rem; text-align: center; font-family: monospace; font-weight: 800;">×{{ itm.quantity }}</td>
+            <td style="padding: 0.75rem 0.9rem; text-align: left; font-family: monospace;">{{ itm.unit_price }}</td>
+            <td style="padding: 0.75rem 0.9rem; text-align: left; font-family: monospace; font-weight: 900; color: #2563eb;">{{ itm.total_price }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% endif %}
+
+    <!-- Official Stamp Footer -->
+    <div style="display: flex; align-items: center; justify-content: space-between; gap: 1rem; padding-top: 1rem; border-top: 2px solid #f1f5f9;">
+      <div style="display: flex; align-items: center; gap: 0.85rem;">
+        <div style="width: 74px; height: 74px; border-radius: 50%; border: 2.5px double {% if status == 'cancelled' or status == 'failed' %}#dc2626{% else %}#059669{% endif %}; color: {% if status == 'cancelled' or status == 'failed' %}#dc2626{% else %}#059669{% endif %}; display: flex; flex-direction: column; align-items: center; justify-content: center; font-size: 0.62rem; font-weight: 900; transform: rotate(-8deg); text-align: center;">
+          <span>{% if status == 'cancelled' %}ملغي{% elif status == 'failed' %}مرفوض{% else %}معتمد رسمياً{% endif %}</span>
+          <span style="font-family: monospace; font-size: 0.55rem;">RAQAMIYAT</span>
+        </div>
+        <div style="font-size: 0.75rem; color: #475569; max-width: 440px;">
+          <strong style="color: #0f172a; display: block;">وثيقة إيصال إلكترونية رسمية معتمدة</strong>
+          تم إصدار هذا الإيصال آلياً من نظام {% if is_tenant %}{{ STORE_NAME }}{% else %}منصة رقميات{% endif %}، ويُعتمد كمرجع رسمي لتفاصيل العملية المالية وحالتها.
+        </div>
+      </div>
+      <div style="text-align: left; font-size: 0.72rem; color: #64748b; font-family: monospace;">
+        <div>REF: #{{ reference|default:"—" }}</div>
+        <div>DATE: {{ timestamp|default:"الآن" }}</div>
+      </div>
     </div>
   </div>
 </div>

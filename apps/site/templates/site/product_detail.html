@@ -317,7 +317,7 @@
           </div>
           <div style="background: var(--rq-bg-elevated); padding: 0.65rem 0.8rem; border-radius: 10px; border: 1px solid var(--rq-border);">
             <span style="color: var(--rq-text-muted); display: block; font-size: 0.72rem;">نوع المنتج:</span>
-            <strong style="color: var(--rq-navy);">{% if product.product_type == 'physical' %}منتج مادي (شحن وتوصيل){% else %}منتج معتمد{% endif %}</strong>
+            <strong style="color: var(--rq-navy);">{% if not product.is_api_product %}منتج مادي أصلي (شحن وتوصيل){% else %}منتج معتمد{% endif %}</strong>
           </div>
           <div style="background: var(--rq-bg-elevated); padding: 0.65rem 0.8rem; border-radius: 10px; border: 1px solid var(--rq-border);">
             <span style="color: var(--rq-text-muted); display: block; font-size: 0.72rem;">حالة التوفر:</span>
@@ -413,15 +413,28 @@
             </div>
           </div>
 
-          <!-- 3. Physical Product Shipping Fields -->
-          {% if product.product_type == 'physical' %}
-          <div style="margin-bottom: 1.15rem; padding: 0.95rem; background: var(--rq-bg-elevated); border: 1px solid var(--rq-border); border-radius: 14px;">
-            <div style="font-size: 0.82rem; font-weight: 800; color: var(--rq-navy); margin-bottom: 0.65rem;">
-              <i class="fas fa-truck-fast ml-1" style="color: var(--rq-primary-light);"></i> بيانات المستلم والتوصيل:
+          <!-- 3. Physical Product Shipping & Accurate Location Pinpointing Fields -->
+          {% if product.product_type == 'physical' or not product.is_api_product %}
+          <div style="margin-bottom: 1.15rem; padding: 1rem; background: var(--rq-bg-elevated); border: 1px solid var(--rq-border); border-radius: 16px;">
+            <div style="display: flex; align-items: center; justify-content: space-between; gap: 0.5rem; margin-bottom: 0.75rem; flex-wrap: wrap;">
+              <div style="font-size: 0.84rem; font-weight: 800; color: var(--rq-navy); display: flex; align-items: center; gap: 0.45rem;">
+                <i class="fas fa-truck-fast" style="color: var(--rq-primary-light);"></i>
+                <span>بيانات المستلم وتحديد الموقع</span>
+              </div>
+              <button type="button" id="pdp-locate-btn" onclick="pinpointCustomerLocation('pdp')"
+                      style="display: inline-flex; align-items: center; gap: 0.4rem; padding: 0.38rem 0.78rem; border-radius: 999px; border: 1px solid rgba(16, 185, 129, 0.4); background: linear-gradient(135deg, rgba(16, 185, 129, 0.16), rgba(5, 150, 105, 0.08)); color: #10b981; font-size: 0.74rem; font-weight: 800; cursor: pointer; transition: all 0.2s ease;">
+                <i class="fas fa-location-crosshairs"></i>
+                <span id="pdp-locate-btn-text">تحديد موقعي بدقة (GPS)</span>
+              </button>
             </div>
+
+            <input type="hidden" name="shipping_lat" id="pdp-shipping-lat" value="">
+            <input type="hidden" name="shipping_lng" id="pdp-shipping-lng" value="">
+            <input type="hidden" name="shipping_map_url" id="pdp-shipping-map-url" value="">
+
             <div class="rq-pdp-shipping-grid" style="margin-bottom: 0.65rem;">
               <div>
-                <label class="rq-label" style="font-size: 0.74rem;">الاسم الكامل *</label>
+                <label class="rq-label" style="font-size: 0.74rem;">الاسم الكامل للمستلم *</label>
                 <input type="text" name="shipping_name" class="rq-input" placeholder="اسم مستلم الشحنة" value="{{ user.display_name|default:'' }}" required>
               </div>
               <div>
@@ -431,7 +444,23 @@
             </div>
             <div>
               <label class="rq-label" style="font-size: 0.74rem;">عنوان التوصيل بالتفصيل *</label>
-              <input type="text" name="shipping_address" class="rq-input" placeholder="المحافظة - المدينة - الشارع - أقرب نقطة دالة" required>
+              <input type="text" name="shipping_address" id="pdp-shipping-address" class="rq-input" placeholder="المحافظة - المدينة - الشارع - أقرب نقطة دالة (أو اضغط تحديد موقعي بدقة)" required>
+            </div>
+
+            <!-- Interactive Accurate Location Preview Card -->
+            <div id="pdp-location-preview-box" style="display: none; margin-top: 0.75rem; padding: 0.75rem; border-radius: 12px; background: rgba(16, 185, 129, 0.08); border: 1px solid rgba(16, 185, 129, 0.3);">
+              <div style="display: flex; align-items: center; justify-content: space-between; gap: 0.5rem; margin-bottom: 0.5rem; flex-wrap: wrap;">
+                <span style="font-size: 0.76rem; font-weight: 800; color: #10b981; display: inline-flex; align-items: center; gap: 0.35rem;">
+                  <i class="fas fa-circle-check"></i> تم تثبيت إحداثيات موقعك بدقة للتوصيل
+                </span>
+                <a href="#" id="pdp-location-map-link" target="_blank" rel="noopener" style="font-size: 0.72rem; font-weight: 800; color: var(--rq-primary-light); text-decoration: underline;">
+                  <i class="fas fa-map-location-dot"></i> فتح على خرائط Google
+                </a>
+              </div>
+              <div style="border-radius: 10px; overflow: hidden; border: 1px solid var(--rq-border); height: 155px; background: #0f172a;">
+                <iframe id="pdp-location-iframe" src="" style="width: 100%; height: 100%; border: 0;" loading="lazy" referrerpolicy="no-referrer-when-downgrade"></iframe>
+              </div>
+              <div id="pdp-location-coords-label" class="font-mono" style="font-size: 0.7rem; color: var(--rq-text-muted); margin-top: 0.35rem; direction: ltr; text-align: left;"></div>
             </div>
           </div>
           {% endif %}

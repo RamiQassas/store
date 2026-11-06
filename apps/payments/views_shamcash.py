@@ -498,7 +498,7 @@ def shamcash_redirect_view(request):
                         if is_paid:
                             _complete_successful_shamcash_deposit(deposit, bill_info.get("tranId"), bill_info)
                             payment_succeeded = True
-                        elif status_id in (ShamCashClient.STATUS_EXPIRED, 5, "5") or str(bill_info.get("statusName", "")).lower() == "expired":
+                        elif status_id in (ShamCashClient.STATUS_EXPIRED, 3, "3", 5, "5") or str(bill_info.get("statusName", "")).lower() == "expired":
                             deposit.status = DepositRequest.Status.REJECTED
                             deposit.admin_note = "انتهت صلاحية الفاتورة دون دفع."
                             deposit.save(update_fields=["status", "admin_note", "updated_at"])
@@ -510,14 +510,13 @@ def shamcash_redirect_view(request):
                     st = "success"
                 elif deposit.status == DepositRequest.Status.REJECTED:
                     st = "cancelled" if ("المستخدم" in (deposit.admin_note or "")) else "failed"
-                elif is_cancelled:
+                else:
+                    # User returned from ShamCash checkout without completing payment -> cancel immediately
                     if deposit.status == DepositRequest.Status.PENDING:
                         deposit.status = DepositRequest.Status.REJECTED
                         deposit.admin_note = "تم إلغاء عملية الدفع من قبل المستخدم."
                         deposit.save(update_fields=["status", "admin_note", "updated_at"])
                     st = "cancelled"
-                else:
-                    st = "pending"
                 return redirect(f"{reverse('payment_status')}?type=deposit&id={deposit.id}&status={st}&bill_no={active_bill_no}")
 
         return redirect("dashboard_deposits")
@@ -597,8 +596,8 @@ def shamcash_redirect_view(request):
                         finalize_paid_gateway_order(order, gateway_data)
                         payment_succeeded = True
                     else:
-                        status_id = bill_info.get("statusId")
-                        if status_id in (ShamCashClient.STATUS_EXPIRED, 5, "5") or str(bill_info.get("statusName", "")).lower() == "expired":
+                        status_id = bill_info.get("statusId") if isinstance(bill_info, dict) else None
+                        if status_id in (ShamCashClient.STATUS_EXPIRED, 3, "3", 5, "5") or str(bill_info.get("statusName", "") if isinstance(bill_info, dict) else "").lower() == "expired":
                             order.status = Order.Status.CANCELLED
                             order.admin_note = "انتهت مهلة الدفع في شام كاش."
                             order.save(update_fields=["status", "admin_note", "updated_at"])
@@ -607,8 +606,9 @@ def shamcash_redirect_view(request):
                 if order.status in (Order.Status.PROCESSING, Order.Status.COMPLETED) or payment_succeeded:
                     st = "success"
                 elif order.status == Order.Status.CANCELLED:
-                    st = "cancelled"
-                elif is_cancelled:
+                    st = "cancelled" if ("المستخدم" in (order.admin_note or "")) else "failed"
+                else:
+                    # User returned from ShamCash checkout without completing payment -> cancel order immediately
                     if order.status == Order.Status.PENDING:
                         order.status = Order.Status.CANCELLED
                         order.admin_note = "تم إلغاء عملية الدفع من قبل المستخدم."
@@ -616,12 +616,10 @@ def shamcash_redirect_view(request):
                         OrderLog.objects.create(
                             order=order,
                             status=Order.Status.CANCELLED,
-                            note="تم إلغاء عملية الدفع من قبل المستخدم.",
+                            note="تم إلغاء عملية الدفع والطلب من قبل المستخدم.",
                             created_by=request.user if (getattr(request, "user", None) and request.user.is_authenticated and request.user == order.customer) else None,
                         )
                     st = "cancelled"
-                else:
-                    st = "pending"
                 return redirect(f"{reverse('payment_status')}?type=order&id={order.id}&status={st}&bill_no={active_bill_no}")
 
     # Default fallback

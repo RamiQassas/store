@@ -113,10 +113,12 @@
           {% endif %}
 
           <!-- Cart Trigger -->
-          <button type="button" class="rq-header-icon-btn" onclick="toggleCartDrawer(true)" aria-label="سلة التسوق">
-            <i class="fas fa-shopping-bag" style="color: var(--rq-primary-light);"></i>
-            <span class="rq-hide-mobile">السلة</span>
-            <span class="rq-cart-badge" id="rq-header-cart-count">{{ cart_items_count|default:0 }}</span>
+          <button type="button" class="rq-header-icon-btn rq-header-cart-btn" onclick="toggleCartDrawer(true)" title="سلة المشتريات" aria-label="سلة التسوق">
+            <span class="rq-cart-icon-wrap">
+              <i class="fas fa-bag-shopping"></i>
+            </span>
+            <span class="rq-hide-mobile rq-cart-label">السلة</span>
+            <span class="rq-cart-badge tabular-nums" id="rq-header-cart-count">{{ cart_items_count|default:0 }}</span>
           </button>
 
           {% if user.is_authenticated %}
@@ -744,6 +746,10 @@
             badge.style.transform = 'scale(1.35)';
             setTimeout(function() { badge.style.transform = ''; }, 280);
           }
+          var drawerBadge = document.getElementById('rq-drawer-cart-count');
+          if (drawerBadge) {
+            drawerBadge.textContent = data.cart_items_count;
+          }
           showGlassToast('تمت الإضافة إلى سلة المشتريات بنجاح');
           if (btnEl) {
             btnEl.innerHTML = '<i class="fas fa-check"></i>';
@@ -768,6 +774,121 @@
           btnEl.innerHTML = origHtml;
         }
       });
+    }
+
+    function applyLocationCoords(prefix, lat, lng, fallbackLabel) {
+      var latFixed = parseFloat(lat).toFixed(6);
+      var lngFixed = parseFloat(lng).toFixed(6);
+      var gmapsUrl = 'https://www.google.com/maps?q=' + latFixed + ',' + lngFixed;
+
+      var latEl = document.getElementById(prefix + '-shipping-lat');
+      var lngEl = document.getElementById(prefix + '-shipping-lng');
+      var mapUrlEl = document.getElementById(prefix + '-shipping-map-url');
+      var addrInput = document.getElementById(prefix + '-shipping-address');
+      var previewBox = document.getElementById(prefix + '-location-preview-box');
+      var mapLink = document.getElementById(prefix + '-location-map-link');
+      var iframe = document.getElementById(prefix + '-location-iframe');
+      var coordsLabel = document.getElementById(prefix + '-location-coords-label');
+      var btn = document.getElementById(prefix + '-locate-btn');
+
+      if (latEl) latEl.value = latFixed;
+      if (lngEl) lngEl.value = lngFixed;
+      if (mapUrlEl) mapUrlEl.value = gmapsUrl;
+      if (mapLink) mapLink.href = gmapsUrl;
+      if (coordsLabel) coordsLabel.textContent = 'GPS: ' + latFixed + ', ' + lngFixed;
+
+      if (iframe) {
+        var d = 0.0035;
+        var bbox = (parseFloat(lngFixed) - d).toFixed(6) + '%2C' + (parseFloat(latFixed) - d).toFixed(6) + '%2C' + (parseFloat(lngFixed) + d).toFixed(6) + '%2C' + (parseFloat(latFixed) + d).toFixed(6);
+        iframe.src = 'https://www.openstreetmap.org/export/embed.html?bbox=' + bbox + '&layer=mapnik&marker=' + latFixed + '%2C' + lngFixed;
+      }
+      if (previewBox) previewBox.style.display = 'block';
+
+      fetch('https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=' + latFixed + '&lon=' + lngFixed + '&accept-language=ar')
+        .then(function(r) { return r.json(); })
+        .then(function(data) {
+          var readable = '';
+          if (data && data.address) {
+            var a = data.address;
+            var parts = [
+              a.state || a.province || a.city || a.town || a.county,
+              a.city_district || a.suburb || a.neighbourhood || a.quarter || a.village,
+              a.road || a.pedestrian || a.amenity || a.building
+            ].filter(Boolean);
+            readable = parts.join(' - ');
+          }
+          if (!readable && data && data.display_name) {
+            readable = data.display_name.split(',').slice(0, 4).join(' - ');
+          }
+          if (!readable) {
+            readable = fallbackLabel || ('موقع محدد عبر GPS (' + latFixed + ', ' + lngFixed + ')');
+          }
+          if (addrInput) {
+            var currentVal = (addrInput.value || '').trim();
+            if (!currentVal || currentVal.indexOf('GPS') !== -1 || currentVal.indexOf('موقع محدد') !== -1) {
+              addrInput.value = readable + ' (GPS: ' + latFixed + ', ' + lngFixed + ')';
+            } else {
+              addrInput.value = currentVal + ' | ' + readable + ' (GPS: ' + latFixed + ', ' + lngFixed + ')';
+            }
+          }
+        })
+        .catch(function() {
+          if (addrInput && !addrInput.value.trim()) {
+            addrInput.value = (fallbackLabel || 'موقع التوصيل الدقيق') + ' (GPS: ' + latFixed + ', ' + lngFixed + ')';
+          }
+        })
+        .finally(function() {
+          if (btn) {
+            btn.disabled = false;
+            btn.innerHTML = '<i class="fas fa-circle-check"></i> <span>تم تحديد موقعك بدقة ✓</span>';
+            btn.style.background = 'rgba(16, 185, 129, 0.22)';
+            btn.style.borderColor = '#10b981';
+          }
+          showGlassToast('تم تحديد موقعك الجغرافي بدقة وإرفاقه مع الطلب ✓');
+        });
+    }
+
+    function pinpointCustomerLocation(prefix) {
+      var btn = document.getElementById(prefix + '-locate-btn');
+      if (btn) {
+        btn.disabled = true;
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> <span>جارٍ تحديد موقعك بدقة...</span>';
+      }
+
+      if (!navigator.geolocation) {
+        if (btn) {
+          btn.disabled = false;
+          btn.innerHTML = '<i class="fas fa-location-crosshairs"></i> <span>تحديد موقعي بدقة (GPS)</span>';
+        }
+        showGlassToast('متصفحك لا يدعم تحديد الموقع التلقائي، يرجى كتابة العنوان بالتفصيل.', true);
+        return;
+      }
+
+      navigator.geolocation.getCurrentPosition(
+        function(pos) {
+          applyLocationCoords(prefix, pos.coords.latitude, pos.coords.longitude, '');
+        },
+        function() {
+          /* Retry with standard accuracy if high-accuracy GPS timed out on desktop/indoors */
+          navigator.geolocation.getCurrentPosition(
+            function(pos2) {
+              applyLocationCoords(prefix, pos2.coords.latitude, pos2.coords.longitude, '');
+            },
+            function(err2) {
+              if (btn) {
+                btn.disabled = false;
+                btn.innerHTML = '<i class="fas fa-location-crosshairs"></i> <span>تحديد موقعي بدقة (GPS)</span>';
+              }
+              var msg = (err2 && err2.code === 1)
+                ? 'يرجى السماح بصلاحية الوصول للموقع (Location) من المتصفح لتحديد موقعك بدقة.'
+                : 'تعذر التقاط إشارة GPS حالياً، يرجى التأكد من تفعيل خدمة الموقع في جهازك.';
+              showGlassToast(msg, true);
+            },
+            { enableHighAccuracy: false, timeout: 10000, maximumAge: 60000 }
+          );
+        },
+        { enableHighAccuracy: true, timeout: 8000, maximumAge: 0 }
+      );
     }
 
     /* Apple Interactive Spatial Effects (Scroll Elevation, Reveal & Specular Spotlight) */

@@ -112,21 +112,49 @@
           <input type="hidden" name="shamcash_currency" id="selected-cart-shamcash-currency" value="USD">
 
           {% if has_physical_items %}
-          <div style="background: rgba(59, 130, 246, 0.05); border: 1px solid rgba(59, 130, 246, 0.2); border-radius: 12px; padding: 0.85rem; margin-bottom: 1rem;">
-            <div style="font-size: 0.8rem; font-weight: 800; color: var(--rq-primary-light); margin-bottom: 0.6rem; display: flex; align-items: center; gap: 0.4rem;">
-              <i class="fas fa-truck"></i> بيانات الشحن والتوصيل (منتج مادي)
+          <div style="background: rgba(59, 130, 246, 0.05); border: 1px solid rgba(59, 130, 246, 0.22); border-radius: 14px; padding: 0.95rem; margin-bottom: 1.1rem;">
+            <div style="display: flex; align-items: center; justify-content: space-between; gap: 0.5rem; margin-bottom: 0.7rem; flex-wrap: wrap;">
+              <div style="font-size: 0.82rem; font-weight: 800; color: var(--rq-primary-light); display: flex; align-items: center; gap: 0.4rem;">
+                <i class="fas fa-truck-fast"></i> بيانات الشحن وتحديد الموقع
+              </div>
+              <button type="button" id="cart-locate-btn" onclick="pinpointCustomerLocation('cart')"
+                      style="display: inline-flex; align-items: center; gap: 0.35rem; padding: 0.35rem 0.72rem; border-radius: 999px; border: 1px solid rgba(16, 185, 129, 0.4); background: linear-gradient(135deg, rgba(16, 185, 129, 0.16), rgba(5, 150, 105, 0.08)); color: #10b981; font-size: 0.72rem; font-weight: 800; cursor: pointer; transition: all 0.2s ease;">
+                <i class="fas fa-location-crosshairs"></i>
+                <span>تحديد موقعي بدقة (GPS)</span>
+              </button>
+            </div>
+
+            <input type="hidden" name="shipping_lat" id="cart-shipping-lat" value="">
+            <input type="hidden" name="shipping_lng" id="cart-shipping-lng" value="">
+            <input type="hidden" name="shipping_map_url" id="cart-shipping-map-url" value="">
+
+            <div class="rq-form-group mb-2">
+              <label class="rq-label" style="font-size: 0.75rem;">اسم المستلم *</label>
+              <input type="text" name="shipping_name" class="rq-input" value="{{ user.display_name|default:'' }}" placeholder="الاسم الكامل للمستلم" required>
             </div>
             <div class="rq-form-group mb-2">
-              <label class="rq-label" style="font-size: 0.75rem;">اسم المستلم:</label>
-              <input type="text" name="shipping_name" class="rq-input" value="{{ user.display_name|default:'' }}" placeholder="الاسم الكامل" required>
-            </div>
-            <div class="rq-form-group mb-2">
-              <label class="rq-label" style="font-size: 0.75rem;">رقم الهاتف للتواصل:</label>
+              <label class="rq-label" style="font-size: 0.75rem;">رقم الهاتف للتواصل *</label>
               <input type="tel" name="shipping_phone" class="rq-input" value="{{ user.phone_number|default:'' }}" placeholder="09xxxxxxxx" required>
             </div>
             <div class="rq-form-group mb-0">
-              <label class="rq-label" style="font-size: 0.75rem;">عنوان التوصيل والشحن بالتفصيل:</label>
-              <input type="text" name="shipping_address" class="rq-input" placeholder="المحافظة - المنطقة - الحي - تفاصيل العنوان" required>
+              <label class="rq-label" style="font-size: 0.75rem;">عنوان التوصيل والشحن بالتفصيل *</label>
+              <input type="text" name="shipping_address" id="cart-shipping-address" class="rq-input" placeholder="المحافظة - المنطقة - الحي - تفاصيل العنوان (أو اضغط تحديد موقعي بدقة)" required>
+            </div>
+
+            <!-- Interactive Accurate Location Preview Card -->
+            <div id="cart-location-preview-box" style="display: none; margin-top: 0.75rem; padding: 0.7rem; border-radius: 12px; background: rgba(16, 185, 129, 0.08); border: 1px solid rgba(16, 185, 129, 0.3);">
+              <div style="display: flex; align-items: center; justify-content: space-between; gap: 0.5rem; margin-bottom: 0.45rem; flex-wrap: wrap;">
+                <span style="font-size: 0.74rem; font-weight: 800; color: #10b981; display: inline-flex; align-items: center; gap: 0.35rem;">
+                  <i class="fas fa-circle-check"></i> تم تثبيت إحداثيات موقعك بدقة
+                </span>
+                <a href="#" id="cart-location-map-link" target="_blank" rel="noopener" style="font-size: 0.72rem; font-weight: 800; color: var(--rq-primary-light); text-decoration: underline;">
+                  <i class="fas fa-map-location-dot"></i> فتح على خرائط Google
+                </a>
+              </div>
+              <div style="border-radius: 10px; overflow: hidden; border: 1px solid var(--rq-border); height: 140px; background: #0f172a;">
+                <iframe id="cart-location-iframe" src="" style="width: 100%; height: 100%; border: 0;" loading="lazy" referrerpolicy="no-referrer-when-downgrade"></iframe>
+              </div>
+              <div id="cart-location-coords-label" class="font-mono" style="font-size: 0.68rem; color: var(--rq-text-muted); margin-top: 0.3rem; direction: ltr; text-align: left;"></div>
             </div>
           </div>
           {% endif %}

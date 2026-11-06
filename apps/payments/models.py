@@ -315,22 +315,27 @@ class PaymentMethod(TimeStampedModel):
 
     @property
     def logo_url(self):
-        if self.gateway and self.gateway.logo:
+        if self.logo:
             try:
-                return self.gateway.logo.url
+                if self.logo.name and "shamcash.svg" not in self.logo.name:
+                    return self.logo.url
             except Exception:
                 pass
-        if self.gateway and getattr(self.gateway, "logo_url", None):
-            return self.gateway.logo_url
+        if self.gateway and self.gateway.logo:
+            try:
+                if self.gateway.logo.name and "shamcash.svg" not in self.gateway.logo.name:
+                    return self.gateway.logo.url
+            except Exception:
+                pass
+        if self.gateway:
+            gw_url = getattr(self.gateway, "logo_url", None)
+            if gw_url:
+                return gw_url
         if self.logo:
             try:
                 return self.logo.url
             except Exception:
                 pass
-        if self.gateway and getattr(self.gateway, "provider", "") == "sham_cash":
-            return "/static/site/img/brands/shamcash.svg"
-        if self.gateway and getattr(self.gateway, "provider", "") == "paymera":
-            return "/media/payment-methods/logos/paymera.png"
         return ""
 
 
@@ -399,13 +404,38 @@ class PaymentGatewayIntegration(TimeStampedModel):
     def logo_url(self):
         if self.logo:
             try:
+                if self.logo.name and "shamcash.svg" not in self.logo.name:
+                    return self.logo.url
+            except Exception:
+                pass
+        if isinstance(self.settings, dict) and self.settings.get("logo_url"):
+            custom_url = str(self.settings.get("logo_url")).strip()
+            if custom_url and "shamcash.svg" not in custom_url:
+                return custom_url
+        try:
+            for pm in PaymentMethod.all_objects.filter(gateway=self):
+                if pm.logo and pm.logo.name and "shamcash.svg" not in pm.logo.name:
+                    return pm.logo.url
+        except Exception:
+            pass
+        try:
+            if self.provider:
+                for other_gw in PaymentGatewayIntegration.all_objects.filter(provider=self.provider).exclude(pk=self.pk):
+                    if other_gw.logo and other_gw.logo.name and "shamcash.svg" not in other_gw.logo.name:
+                        return other_gw.logo.url
+                q_kw = "شام" if self.provider == "sham_cash" else ("بيميرا" if self.provider == "paymera" else self.provider)
+                for pm in PaymentMethod.all_objects.filter(name__icontains=q_kw):
+                    if pm.logo and pm.logo.name and "shamcash.svg" not in pm.logo.name:
+                        return pm.logo.url
+        except Exception:
+            pass
+        if self.logo:
+            try:
                 return self.logo.url
             except Exception:
                 pass
         if self.provider == "paymera" or "paymera" in (self.name or "").lower() or "بيميرا" in (self.name or ""):
             return "/media/payment-methods/logos/paymera.png"
-        if self.provider == "sham_cash" or "sham" in (self.name or "").lower() or "شام" in (self.name or ""):
-            return "/static/site/img/brands/shamcash.svg"
         return None
 
     class Meta:
@@ -463,6 +493,11 @@ class PaymentGatewayIntegration(TimeStampedModel):
             pm.method_type = method_type
             if not pm.description:
                 pm.description = description
+            if self.logo:
+                pm.logo = self.logo
+            elif pm.logo and not self.logo:
+                self.logo = pm.logo
+                PaymentGatewayIntegration.all_objects.filter(pk=self.pk).update(logo=pm.logo.name)
             pm.is_active = self.is_active
             pm.can_deposit = self.can_deposit
             pm.can_withdraw = self.can_withdraw
@@ -474,6 +509,7 @@ class PaymentGatewayIntegration(TimeStampedModel):
                 name=target_name,
                 method_type=method_type,
                 description=description,
+                logo=self.logo if self.logo else None,
                 is_active=self.is_active,
                 can_deposit=self.can_deposit,
                 can_withdraw=self.can_withdraw,

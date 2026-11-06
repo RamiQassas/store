@@ -1099,11 +1099,38 @@ def order_detail(request, pk):
 
 @login_required
 def order_invoice(request, pk):
-    order = get_object_or_404(
-        Order.objects.filter(customer=request.user).prefetch_related('items__variant__product'),
-        pk=pk
-    )
-    return render(request, "site/order_invoice.html", {"order": order})
+    from apps.payments.models import PaymentGatewayIntegration, PaymentMethod
+    from apps.common.tenant_utils import bypass_tenant_filter
+    qs = Order.all_objects.prefetch_related('items__variant__product')
+    if not (request.user.is_staff or request.user.is_superuser):
+        qs = qs.filter(customer=request.user)
+    order = get_object_or_404(qs, pk=pk)
+
+    order_meta = order.metadata if isinstance(order.metadata, dict) else {}
+    provider_code = (order_meta.get("payment_provider") or order_meta.get("payment_gateway") or "").lower().strip()
+    provider_title = "محفظة رقميات"
+    provider_logo = None
+
+    if provider_code:
+        if provider_code in ("shamcash", "sham_cash"):
+            provider_code = "sham_cash"
+            provider_title = "شام كاش (ShamCash)"
+        elif provider_code in ("direct_paymera", "paymera"):
+            provider_code = "paymera"
+            provider_title = "بيميرا (Paymera)"
+        with bypass_tenant_filter():
+            for gw in PaymentGatewayIntegration.all_objects.filter(provider=provider_code).order_by("-is_active", "-id"):
+                if gw.name and not any(ch in gw.name for ch in ['\ufffd', '?']):
+                    provider_title = gw.name
+                if gw.logo_url:
+                    provider_logo = gw.logo_url
+                    break
+
+    return render(request, "site/order_invoice.html", {
+        "order": order,
+        "provider_title": provider_title,
+        "provider_logo": provider_logo,
+    })
 
 from django.contrib.auth.hashers import make_password, check_password as check_password_hash
 
@@ -2805,22 +2832,31 @@ def product_detail(request, pk):
                 request.session['missing_currency'] = wallet.currency.code
                 return redirect("product_detail", pk=pk)
 
-        # Physical product shipping validation
-        shipping_name = ""
-        shipping_phone = ""
-        shipping_address = ""
+        # Physical product shipping & accurate GPS location validation
+        shipping_name = request.POST.get("shipping_name", "").strip()
+        shipping_phone = request.POST.get("shipping_phone", "").strip()
+        shipping_address = request.POST.get("shipping_address", "").strip()
+        shipping_lat = request.POST.get("shipping_lat", "").strip()
+        shipping_lng = request.POST.get("shipping_lng", "").strip()
+        shipping_map_url = request.POST.get("shipping_map_url", "").strip()
+        if shipping_lat and shipping_lng and not shipping_map_url:
+            shipping_map_url = f"https://www.google.com/maps?q={shipping_lat},{shipping_lng}"
+
         schema_fields = []
         if isinstance(getattr(product, "form_schema", None), dict):
             schema_fields = product.form_schema.get("fields") or []
-        if product.product_type == "physical" and not schema_fields:
-            shipping_name = request.POST.get("shipping_name", "").strip()
-            shipping_phone = request.POST.get("shipping_phone", "").strip()
-            shipping_address = request.POST.get("shipping_address", "").strip()
+        if (product.product_type == "physical" or not getattr(product, "is_api_product", False)) and not schema_fields:
             if not (shipping_name and shipping_phone and shipping_address):
                 if request.headers.get('x-requested-with') == 'XMLHttpRequest' or request.POST.get('ajax') == '1':
-                    return JsonResponse({"success": False, "error": "جميع بيانات الشحن والتوصيل (الاسم، رقم الهاتف، العنوان بالتفصيل) مطلوبة لإتمام الطلب."}, status=400)
-                messages.error(request, "جميع بيانات الشحن والتوصيل (الاسم، رقم الهاتف، العنوان بالتفصيل) مطلوبة لإتمام الطلب.")
+                    return JsonResponse({"success": False, "error": "جميع بيانات الشحن والتوصيل (الاسم، رقم الهاتف، العنوان بالتفصيل أو تحديد الموقع) مطلوبة لإتمام الطلب."}, status=400)
+                messages.error(request, "جميع بيانات الشحن والتوصيل (الاسم، رقم الهاتف، العنوان بالتفصيل أو تحديد الموقع) مطلوبة لإتمام الطلب.")
                 return redirect("product_detail", pk=pk)
+
+        if shipping_lat and shipping_lng:
+            metadata["shipping_lat"] = shipping_lat
+            metadata["shipping_lng"] = shipping_lng
+        if shipping_map_url:
+            metadata["shipping_map_url"] = shipping_map_url
 
         # Verification check (only for internal wallet debit)
         if not is_direct_gateway:
@@ -3028,23 +3064,24 @@ def product_detail(request, pk):
                 default_gw_name = gw.get_provider_display() or gw.name
             gw_name = (gw.name if gw.name and not any(ch in gw.name for ch in ['\ufffd', '?']) else "") or (pm.name if pm and pm.name and not any(ch in pm.name for ch in ['\ufffd', '?']) else "") or default_gw_name
 
-            # Dynamic logo: prioritize Gateway logo from DB
+            # Dynamic logo: prioritize Gateway & PaymentMethod logo from DB
             gw_logo = ""
             if gw.logo:
-                try: gw_logo = gw.logo.url
-                except Exception: pass
+                try:
+                    if gw.logo.name and "shamcash.svg" not in gw.logo.name:
+                        gw_logo = gw.logo.url
+                except Exception:
+                    pass
+            if not gw_logo and pm and pm.logo:
+                try:
+                    if pm.logo.name and "shamcash.svg" not in pm.logo.name:
+                        gw_logo = pm.logo.url
+                except Exception:
+                    pass
             if not gw_logo and getattr(gw, "logo_url", None):
                 gw_logo = gw.logo_url
-            if not gw_logo and pm and pm.logo:
-                try: gw_logo = pm.logo.url
-                except Exception: pass
-
-            # Fallback to local files only if no logo set in DB
-            if not gw_logo:
-                if gw.provider == "sham_cash":
-                    gw_logo = "/static/site/img/brands/shamcash.svg"
-                elif gw.provider == "paymera":
-                    gw_logo = "/media/payment-methods/logos/paymera.png"
+            if not gw_logo and pm and getattr(pm, "logo_url", None):
+                gw_logo = pm.logo_url
 
             gateway_methods.append({
                 "id": f"gateway:{gw.id}",
@@ -11900,19 +11937,21 @@ def get_active_gateway_methods(store=None):
 
             gw_logo = ""
             if gw.logo:
-                try: gw_logo = gw.logo.url
-                except Exception: pass
+                try:
+                    if gw.logo.name and "shamcash.svg" not in gw.logo.name:
+                        gw_logo = gw.logo.url
+                except Exception:
+                    pass
+            if not gw_logo and pm and pm.logo:
+                try:
+                    if pm.logo.name and "shamcash.svg" not in pm.logo.name:
+                        gw_logo = pm.logo.url
+                except Exception:
+                    pass
             if not gw_logo and getattr(gw, "logo_url", None):
                 gw_logo = gw.logo_url
-            if not gw_logo and pm and pm.logo:
-                try: gw_logo = pm.logo.url
-                except Exception: pass
-
-            if not gw_logo:
-                if gw.provider in ("sham_cash", "shamcash"):
-                    gw_logo = "/static/site/img/brands/shamcash.svg"
-                elif gw.provider in ("paymera", "direct_paymera"):
-                    gw_logo = "/media/payment-methods/logos/paymera.png"
+            if not gw_logo and pm and getattr(pm, "logo_url", None):
+                gw_logo = pm.logo_url
 
             gateway_methods.append({
                 "id": f"gateway:{gw.id}",
@@ -11933,7 +11972,7 @@ def cart_view(request):
     cart_ctx["gateway_methods"] = get_active_gateway_methods(store=store)
     syp_curr = Currency.all_objects.filter(code="SYP", is_active=True).first()
     cart_ctx["syp_rate"] = float(syp_curr.buy_rate) if (syp_curr and syp_curr.buy_rate) else 15000.0
-    cart_ctx["has_physical_items"] = any(item.get("product_type") == "physical" for item in cart_ctx.get("cart_items", []))
+    cart_ctx["has_physical_items"] = bool(cart_ctx.get("cart_items"))
     return render(request, "site/cart.html", cart_ctx)
 
 
@@ -12145,10 +12184,15 @@ def cart_checkout_view(request):
     shipping_name = (request.POST.get("shipping_name") or "").strip()
     shipping_phone = (request.POST.get("shipping_phone") or "").strip()
     shipping_address = (request.POST.get("shipping_address") or "").strip()
+    shipping_lat = (request.POST.get("shipping_lat") or "").strip()
+    shipping_lng = (request.POST.get("shipping_lng") or "").strip()
+    shipping_map_url = (request.POST.get("shipping_map_url") or "").strip()
+    if shipping_lat and shipping_lng and not shipping_map_url:
+        shipping_map_url = f"https://www.google.com/maps?q={shipping_lat},{shipping_lng}"
 
-    needs_shipping = any(item.get("product_type") == "physical" for item in cart_items)
+    needs_shipping = bool(cart_items)
     if needs_shipping and not (shipping_name and shipping_phone and shipping_address):
-        messages.error(request, "يرجى إدخال بيانات الشحن والتوصيل (الاسم، رقم الهاتف، العنوان بالتفصيل) للمنتجات المادية.")
+        messages.error(request, "يرجى إدخال بيانات الشحن والتوصيل (الاسم، رقم الهاتف، العنوان بالتفصيل أو تحديد الموقع).")
         return redirect("cart_detail")
 
     payment_method = (request.POST.get("payment_method") or "wallet").strip()
@@ -12199,11 +12243,17 @@ def cart_checkout_view(request):
                 order_metadata = dict(item.get("metadata") or {})
                 order_metadata["gateway_currency"] = gateway_curr
                 order_metadata["selected_currency"] = gateway_curr
+                if shipping_lat and shipping_lng:
+                    order_metadata["shipping_lat"] = shipping_lat
+                    order_metadata["shipping_lng"] = shipping_lng
+                if shipping_map_url:
+                    order_metadata["shipping_map_url"] = shipping_map_url
                 order = create_pending_gateway_order(
                     customer=request.user,
                     variant_id=item["variant_id"],
                     quantity=item["quantity"],
                     fulfillment_data=order_metadata,
+                    metadata=order_metadata,
                     shipping_name=shipping_name,
                     shipping_phone=shipping_phone,
                     shipping_address=shipping_address,
@@ -12220,6 +12270,15 @@ def cart_checkout_view(request):
                     gateway_code=selected_gateway.provider,
                     gateway_currency=gateway_curr,
                 )
+                if shipping_lat or shipping_lng or shipping_map_url:
+                    meta = dict(order.metadata or {})
+                    if shipping_lat and shipping_lng:
+                        meta["shipping_lat"] = shipping_lat
+                        meta["shipping_lng"] = shipping_lng
+                    if shipping_map_url:
+                        meta["shipping_map_url"] = shipping_map_url
+                    order.metadata = meta
+                    order.save(update_fields=["metadata", "updated_at"])
 
             gw_instance = gateway_for(selected_gateway)
             gw_res = gw_instance.create_order_payment(order, request=request)
@@ -12254,11 +12313,17 @@ def cart_checkout_view(request):
         created_orders = []
         try:
             for item in cart_items:
+                item_meta = dict(item.get("metadata") or {})
+                if shipping_lat and shipping_lng:
+                    item_meta["shipping_lat"] = shipping_lat
+                    item_meta["shipping_lng"] = shipping_lng
+                if shipping_map_url:
+                    item_meta["shipping_map_url"] = shipping_map_url
                 order = create_order(
                     customer=request.user,
                     variant_id=item["variant_id"],
                     quantity=item["quantity"],
-                    metadata=item.get("metadata") or {},
+                    metadata=item_meta,
                     shipping_name=shipping_name,
                     shipping_phone=shipping_phone,
                     shipping_address=shipping_address,
@@ -12399,6 +12464,88 @@ def payment_status_view(request):
     redirect_url = reverse("dashboard_wallet")
     wallet_balance = None
     debt_balance = None
+    customer_name = ""
+    customer_phone = ""
+    shipping_address = ""
+    shipping_map_url = ""
+    invoice_url = ""
+
+    def _resolve_gateway_branding(provider_code="", store_obj=None, pm_obj=None):
+        """Fetch real gateway name and logo from the site's PaymentGatewayIntegration / PaymentMethod models."""
+        from apps.payments.models import PaymentGatewayIntegration, PaymentMethod
+        from apps.common.tenant_utils import bypass_tenant_filter
+        resolved_title = ""
+        resolved_logo = None
+        norm_code = (provider_code or "").lower().strip()
+        if norm_code in ("shamcash", "sham_cash"):
+            norm_code = "sham_cash"
+        elif norm_code in ("direct_paymera", "paymera"):
+            norm_code = "paymera"
+
+        with bypass_tenant_filter():
+            if pm_obj:
+                if pm_obj.logo and getattr(pm_obj.logo, "name", "") and "shamcash.svg" not in pm_obj.logo.name:
+                    try:
+                        resolved_logo = pm_obj.logo.url
+                    except Exception:
+                        pass
+                if getattr(pm_obj, "gateway", None):
+                    gw = pm_obj.gateway
+                    if not resolved_logo and gw.logo and getattr(gw.logo, "name", "") and "shamcash.svg" not in gw.logo.name:
+                        try:
+                            resolved_logo = gw.logo.url
+                        except Exception:
+                            pass
+                    if not resolved_logo:
+                        resolved_logo = gw.logo_url
+                    resolved_title = (gw.name if gw.name and not any(ch in gw.name for ch in ['\ufffd', '?']) else "") or gw.get_provider_display()
+                if not resolved_logo:
+                    resolved_logo = pm_obj.logo_url
+                if not resolved_title:
+                    resolved_title = pm_obj.name
+
+            if norm_code and (not resolved_logo or not resolved_title):
+                gw_qs = list(PaymentGatewayIntegration.all_objects.filter(provider=norm_code).order_by("-is_active", "-id"))
+                if store_obj:
+                    gw_qs.sort(key=lambda g: 0 if g.store_id == store_obj.id else 1)
+                for gw in gw_qs:
+                    if not resolved_title:
+                        resolved_title = (gw.name if gw.name and not any(ch in gw.name for ch in ['\ufffd', '?']) else "") or gw.get_provider_display()
+                    if not resolved_logo and gw.logo and getattr(gw.logo, "name", "") and "shamcash.svg" not in gw.logo.name:
+                        try:
+                            resolved_logo = gw.logo.url
+                        except Exception:
+                            pass
+                    if not resolved_logo and gw.logo_url:
+                        resolved_logo = gw.logo_url
+                    if not resolved_logo:
+                        linked_pm = PaymentMethod.all_objects.filter(gateway=gw).first()
+                        if linked_pm and linked_pm.logo_url:
+                            resolved_logo = linked_pm.logo_url
+                    if resolved_logo and resolved_title:
+                        break
+
+            if not resolved_logo and norm_code:
+                kw = "شام" if norm_code == "sham_cash" else ("بيميرا" if norm_code == "paymera" else norm_code)
+                for m in PaymentMethod.all_objects.filter(name__icontains=kw).order_by("-is_active", "-id"):
+                    if m.logo and getattr(m.logo, "name", "") and "shamcash.svg" not in m.logo.name:
+                        try:
+                            resolved_logo = m.logo.url
+                            break
+                        except Exception:
+                            pass
+                    if m.logo_url:
+                        resolved_logo = m.logo_url
+                        break
+
+        if not resolved_title:
+            if norm_code == "sham_cash":
+                resolved_title = "شام كاش (ShamCash)"
+            elif norm_code == "paymera":
+                resolved_title = "بيميرا (Paymera)"
+            else:
+                resolved_title = "بوابة دفع إلكترونية"
+        return resolved_title, resolved_logo
 
     if request.user.is_authenticated:
         try:
@@ -12418,16 +12565,11 @@ def payment_status_view(request):
                 deposit = DepositRequest.all_objects.filter(pk=obj_id).first()
         if deposit:
             # Handle user explicit cancellation
-            if user_wants_cancel:
-                is_deposit_owner = (
-                    (request.user.is_authenticated and deposit.user_id == request.user.id)
-                    or not deposit.user_id
-                )
-                if is_deposit_owner and deposit.status == DepositRequest.Status.PENDING:
-                    deposit.status = DepositRequest.Status.REJECTED
-                    deposit.admin_note = "تم إلغاء عملية الدفع من قبل المستخدم."
-                    deposit.save(update_fields=["status", "admin_note", "updated_at"])
-                    deposit.refresh_from_db()
+            if user_wants_cancel and deposit.status == DepositRequest.Status.PENDING:
+                deposit.status = DepositRequest.Status.REJECTED
+                deposit.admin_note = "تم إلغاء عملية الدفع من قبل المستخدم."
+                deposit.save(update_fields=["status", "admin_note", "updated_at"])
+                deposit.refresh_from_db()
 
             # Active realtime verification with ShamCash if still pending
             if deposit.status == DepositRequest.Status.PENDING and not user_wants_cancel and deposit.payment_method and getattr(deposit.payment_method, "gateway", None):
@@ -12458,7 +12600,7 @@ def payment_status_view(request):
                             if is_paid:
                                 _complete_successful_shamcash_deposit(deposit, bill_info.get("tranId"), bill_info)
                                 deposit.refresh_from_db()
-                            elif status_id in (ShamCashClient.STATUS_EXPIRED, 5, "5") or str(bill_info.get("statusName", "")).lower() == "expired":
+                            elif status_id in (ShamCashClient.STATUS_EXPIRED, 3, "3", 5, "5") or str(bill_info.get("statusName", "")).lower() == "expired":
                                 deposit.status = DepositRequest.Status.REJECTED
                                 deposit.admin_note = "انتهت صلاحية الفاتورة دون دفع."
                                 deposit.save(update_fields=["status", "admin_note", "updated_at"])
@@ -12471,14 +12613,16 @@ def payment_status_view(request):
             tran_id = deposit.transaction_id or ""
             dep_curr = deposit.currency.code if deposit.currency else "USD"
             amount_display = f"{deposit.amount:,.2f} {dep_curr}"
-            
-            if deposit.payment_method and deposit.payment_method.gateway:
-                gw = deposit.payment_method.gateway
-                provider_title = gw.get_provider_display() if hasattr(gw, 'get_provider_display') else gw.name
-                provider_logo = gw.logo_url
-            elif deposit.payment_method:
-                provider_title = deposit.payment_method.name
-                provider_logo = deposit.payment_method.logo_url
+            if deposit.user:
+                customer_name = deposit.user.get_full_name() or deposit.user.username or deposit.user.email or ""
+                customer_phone = getattr(deposit.user, "phone", "") or ""
+
+            gw_provider_code = getattr(deposit.payment_method.gateway, "provider", "") if (deposit.payment_method and getattr(deposit.payment_method, "gateway", None)) else ""
+            provider_title, provider_logo = _resolve_gateway_branding(
+                provider_code=gw_provider_code,
+                store_obj=getattr(deposit, "store", None),
+                pm_obj=deposit.payment_method,
+            )
 
             if deposit.currency and deposit.currency.code == "USD" and deposit.metadata and deposit.metadata.get("syp_amount"):
                 secondary_amount_display = f"{deposit.metadata['syp_amount']:,} SYP"
@@ -12503,7 +12647,7 @@ def payment_status_view(request):
                 message = "تم تسجيل طلبك وجارٍ معالجة وتأكيد إشعار السداد مع المزود."
 
     elif target_type == "order":
-        from apps.orders.models import Order
+        from apps.orders.models import Order, OrderLog
         order = None
         if obj_id:
             from apps.common.tenant_utils import bypass_tenant_filter
@@ -12524,19 +12668,16 @@ def payment_status_view(request):
                     order = Order.all_objects.filter(metadata__gateway_payment_id=bill_param).first()
         if order:
             # Handle user explicit cancellation
-            if user_wants_cancel:
-                is_order_owner = (
-                    (request.user.is_authenticated and order.customer_id == request.user.id)
-                    or not order.customer_id
-                )
-                if is_order_owner and order.status == Order.Status.PENDING:
+            if user_wants_cancel and order.status == Order.Status.PENDING:
+                from apps.common.tenant_utils import bypass_tenant_filter
+                with bypass_tenant_filter():
                     order.status = Order.Status.CANCELLED
                     order.admin_note = "تم إلغاء عملية الدفع من قبل المستخدم."
                     order.save(update_fields=["status", "admin_note", "updated_at"])
                     OrderLog.objects.create(
                         order=order,
                         status=Order.Status.CANCELLED,
-                        note="تم إلغاء عملية الدفع من قبل المستخدم.",
+                        note="تم إلغاء عملية الدفع والطلب من قبل المستخدم.",
                         created_by=request.user if request.user.is_authenticated else None,
                     )
                     order.refresh_from_db()
@@ -12562,12 +12703,12 @@ def payment_status_view(request):
                         from apps.orders.services import finalize_paid_gateway_order
                         client = _get_active_shamcash_client()
                         if client:
-                            is_paid, tran_id, bill_info = _check_bill_paid_in_shamcash(client, active_bill)
+                            is_paid, checked_tran_id, bill_info = _check_bill_paid_in_shamcash(client, active_bill)
                             if is_paid:
                                 gateway_data = {
                                     "status": "A",
-                                    "id": str(tran_id or active_bill),
-                                    "tran_id": tran_id,
+                                    "id": str(checked_tran_id or active_bill),
+                                    "tran_id": checked_tran_id,
                                     "bill_no": active_bill,
                                     "provider": "sham_cash",
                                     "payload": bill_info,
@@ -12575,8 +12716,8 @@ def payment_status_view(request):
                                 finalize_paid_gateway_order(order, gateway_data)
                                 order.refresh_from_db()
                             else:
-                                status_id = bill_info.get("statusId")
-                                if status_id in (ShamCashClient.STATUS_EXPIRED, 5, "5") or str(bill_info.get("statusName", "")).lower() == "expired":
+                                status_id = bill_info.get("statusId") if isinstance(bill_info, dict) else None
+                                if status_id in (ShamCashClient.STATUS_EXPIRED, 3, "3", 5, "5") or str(bill_info.get("statusName", "") if isinstance(bill_info, dict) else "").lower() == "expired":
                                     order.status = Order.Status.CANCELLED
                                     order.admin_note = "انتهت مهلة الدفع في شام كاش."
                                     order.save(update_fields=["status", "admin_note", "updated_at"])
@@ -12586,11 +12727,18 @@ def payment_status_view(request):
                         logging.getLogger(__name__).warning(f"Could not actively check ShamCash order in payment_status_view: {err}")
 
             redirect_url = reverse("dashboard_order_detail", kwargs={"pk": order.id})
+            invoice_url = reverse("dashboard_order_invoice", kwargs={"pk": order.id})
             reference = str(getattr(order, "number", None) or getattr(order, "order_number", None) or order.id)[:12]
             order_total = getattr(order, "total_price", None) or getattr(order, "total_amount", None) or Decimal("0.00")
             
             # Format order amounts and provider info
             order_meta = order.metadata if isinstance(order.metadata, dict) else {}
+            tran_id = str(order_meta.get("shamcash_tran_id") or order_meta.get("gateway_payment_id") or "")
+            customer_name = order_meta.get("shipping_name") or (order.customer.get_full_name() or order.customer.username if order.customer else "عميل المتجر")
+            customer_phone = order_meta.get("shipping_phone") or order.target_phone or (getattr(order.customer, "phone", "") if order.customer else "")
+            shipping_address = order_meta.get("shipping_address") or ""
+            shipping_map_url = order_meta.get("shipping_map_url") or ""
+
             charge_curr = order_meta.get("gateway_charge_currency") or order_meta.get("gateway_currency") or "USD"
             charge_amt_str = order_meta.get("gateway_charge_amount")
             
@@ -12603,12 +12751,12 @@ def payment_status_view(request):
                 except Exception:
                     pass
 
-            provider_title = "شام كاش ⚡" if (order_meta.get("payment_provider") == "sham_cash" or "ORD-" in bill_param) else "دفع إلكتروني مباشر"
-            if order_meta.get("payment_provider") == "sham_cash":
-                provider_logo = "/static/site/img/brands/shamcash.svg"
-            elif order_meta.get("payment_provider") == "paymera":
-                provider_title = "بيميرا 💳"
-                provider_logo = "/media/payment-methods/logos/paymera.png"
+            detected_provider = order_meta.get("payment_provider") or ("sham_cash" if "ORD-" in bill_param else "")
+            provider_title, provider_logo = _resolve_gateway_branding(
+                provider_code=detected_provider,
+                store_obj=getattr(order, "store", None),
+                pm_obj=None,
+            )
 
             order_items = []
             for item in order.items.select_related("variant", "variant__product").all():
@@ -12625,7 +12773,7 @@ def payment_status_view(request):
                 status = "success"
                 title = "تم تأكيد طلبك وسداد قيمته بنجاح!"
                 message = "تم تأكيد عملية الدفع بنجاح وجارٍ تنفيذ وتجهيز طلبك فورياً."
-            elif order.status == Order.Status.CANCELLED or status_param in ("failed", "cancelled", "cancel") or user_wants_cancel:
+            elif order.status == Order.Status.CANCELLED or status_param in ("failed", "cancelled", "cancel", "canceled") or user_wants_cancel:
                 is_cancelled_by_user = user_wants_cancel or ("المستخدم" in (order.admin_note or "")) or status_param in ("cancel", "canceled", "cancelled")
                 if is_cancelled_by_user:
                     status = "cancelled"
@@ -12663,12 +12811,17 @@ def payment_status_view(request):
         "reference": reference,
         "tran_id": tran_id,
         "redirect_url": redirect_url,
+        "invoice_url": invoice_url,
         "wallet_balance": wallet_balance,
         "debt_balance": debt_balance,
         "target_type": target_type,
         "timestamp": timezone.now().strftime("%Y-%m-%d %H:%M"),
         "auto_redirect": (status == "success"),
         "order_items": order_items if target_type == "order" else [],
+        "customer_name": customer_name,
+        "customer_phone": customer_phone,
+        "shipping_address": shipping_address,
+        "shipping_map_url": shipping_map_url,
     }
 
     # AJAX / Polling JSON response

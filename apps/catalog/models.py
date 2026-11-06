@@ -71,10 +71,10 @@ class Product(TimeStampedModel):
     product_type = models.CharField(
         max_length=20,
         choices=(
-            ("digital", "منتج رقمي"),
             ("physical", "منتج مادي"),
+            ("digital", "منتج رقمي"),
         ),
-        default="digital",
+        default="physical",
         verbose_name="نوع المنتج"
     )
     name = models.CharField(max_length=160, verbose_name="اسم المنتج")

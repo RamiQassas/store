@@ -428,7 +428,10 @@ def clean_fulfillment_items(fulfillment):
         "is_paid", "exchange_rate", "base_usd_amount", "payment_gateway", "payment_provider",
         "gateway_charge_amount", "gateway_payment_status", "gateway_charge_currency",
         "gateway_payment_confirmed", "shamcash_url", "shamcash_bill_no", "paymera_payment_id",
-        "notes", "حالة الطلب", "user_email", "provider", "cart_checkout", "is_direct_gateway_purchase"
+        "notes", "حالة الطلب", "حالة السداد", "user_email", "provider", "cart_checkout",
+        "is_direct_gateway_purchase", "shipping_lat", "shipping_lng", "shipping_map_url",
+        "shipping_name", "shipping_phone", "shipping_address", "رقم الهاتف المستلم",
+        "shamcash_tran_id", "gateway_payment_id"
     }
 
     delivery_val = extract_clean_text(fulfillment.get("بيانات التسليم والأكواد") or fulfillment.get("keys") or fulfillment.get("كود التفعيل / البطاقة"))
@@ -440,7 +443,7 @@ def clean_fulfillment_items(fulfillment):
     seen_values = set()
 
     # 1. Delivery codes / keys (Highest priority for customer)
-    for deliv_key in ("بيانات التسليم والأكواد", "keys", "كود التفعيل / البطاقة", "رقم الهاتف المستلم"):
+    for deliv_key in ("بيانات التسليم والأكواد", "keys", "كود التفعيل / البطاقة"):
         if deliv_key in fulfillment:
             c_val = extract_clean_text(fulfillment[deliv_key])
             if c_val and c_val not in seen_values:
