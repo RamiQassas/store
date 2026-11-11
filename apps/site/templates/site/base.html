@@ -638,6 +638,34 @@
   </button>
   {% endif %}
 
+  <!-- First-Time Location Permission Explanation Modal (Apple Spatial Glass) -->
+  <div id="rq-location-permission-modal" style="display: none; position: fixed; inset: 0; z-index: 9999; background: rgba(7, 11, 20, 0.72); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); align-items: center; justify-content: center; padding: 1.25rem;" dir="rtl">
+    <div style="background: var(--rq-surface-card); border: 1.5px solid var(--rq-border-strong); border-radius: 24px; max-width: 440px; width: 100%; padding: 1.75rem 1.5rem; box-shadow: 0 28px 64px rgba(0, 0, 0, 0.45); position: relative; text-align: center; animation: rqModalSlideIn 0.25s cubic-bezier(0.16, 1, 0.3, 1);">
+      <div style="width: 64px; height: 64px; border-radius: 20px; background: linear-gradient(135deg, rgba(16, 185, 129, 0.2), rgba(5, 150, 105, 0.08)); border: 1.5px solid rgba(16, 185, 129, 0.4); display: flex; align-items: center; justify-content: center; margin: 0 auto 1.1rem; color: #10b981; font-size: 1.75rem; box-shadow: 0 10px 24px rgba(16, 185, 129, 0.2);">
+        <i class="fas fa-location-crosshairs"></i>
+      </div>
+      <span style="display: inline-flex; align-items: center; gap: 0.35rem; font-size: 0.72rem; font-weight: 800; color: #10b981; background: rgba(16, 185, 129, 0.12); border: 1px solid rgba(16, 185, 129, 0.3); padding: 0.2rem 0.65rem; border-radius: 999px; margin-bottom: 0.65rem;">
+        <i class="fas fa-truck-fast"></i> ميزة التوصيل الذكي (اختياري)
+      </span>
+      <h3 style="font-size: 1.15rem; font-weight: 900; color: var(--rq-navy); margin: 0 0 0.6rem; line-height: 1.4;">
+        تحديد موقعك الجغرافي لشحن الطلب بدقة إليك
+      </h3>
+      <p style="font-size: 0.85rem; color: var(--rq-text-secondary); line-height: 1.75; margin: 0 0 1.35rem; font-weight: 600;">
+        يتطلب تحديد الموقع منح إذن الموقع للمتصفح لإرفاق إحداثياتك مع الطلب وشحن طلبيتك بدقة وسرعة مباشرة إلى عنوانك.<br>
+        <span style="color: var(--rq-text-muted); font-size: 0.78rem;">هذه الخطوة <strong>اختيارية وليست إلزامية</strong>، ويمكنك إتمام الشراء بدونها في أي وقت.</span>
+      </p>
+      <div style="display: flex; flex-direction: column; gap: 0.6rem;">
+        <button type="button" onclick="confirmLocationModalGrant()" style="width: 100%; height: 48px; border-radius: 14px; border: none; background: linear-gradient(135deg, #10b981 0%, #059669 100%); color: #ffffff; font-size: 0.92rem; font-weight: 900; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; gap: 0.5rem; box-shadow: 0 6px 20px rgba(16, 185, 129, 0.35); transition: all 0.2s ease;">
+          <i class="fas fa-location-dot"></i>
+          <span>السماح وتحديد موقعي الآن</span>
+        </button>
+        <button type="button" onclick="dismissLocationModal()" style="width: 100%; height: 44px; border-radius: 14px; border: 1px solid var(--rq-border-strong); background: var(--rq-bg-elevated); color: var(--rq-text-secondary); font-size: 0.84rem; font-weight: 800; cursor: pointer; transition: all 0.2s ease;">
+          تخطي والمتابعة بدون تحديد الموقع (اختياري)
+        </button>
+      </div>
+    </div>
+  </div>
+
   <!-- Global Interactive Scripts (Theme Toggle, Drawers, AJAX Cart) -->
   <script>
     function syncThemeUI() {
@@ -848,7 +876,38 @@
         });
     }
 
-    function pinpointCustomerLocation(prefix) {
+    var _pendingLocationPrefix = 'pdp';
+
+    function openLocationPermissionModal(prefix) {
+      _pendingLocationPrefix = prefix || 'pdp';
+      var modal = document.getElementById('rq-location-permission-modal');
+      if (modal) {
+        modal.style.display = 'flex';
+      }
+    }
+
+    function dismissLocationModal() {
+      try {
+        localStorage.setItem('rq_loc_prompt_seen', '1');
+      } catch (e) {}
+      var modal = document.getElementById('rq-location-permission-modal');
+      if (modal) {
+        modal.style.display = 'none';
+      }
+    }
+
+    function confirmLocationModalGrant() {
+      try {
+        localStorage.setItem('rq_loc_prompt_seen', '1');
+      } catch (e) {}
+      var modal = document.getElementById('rq-location-permission-modal');
+      if (modal) {
+        modal.style.display = 'none';
+      }
+      executeGeolocationCapture(_pendingLocationPrefix);
+    }
+
+    function executeGeolocationCapture(prefix) {
       var btn = document.getElementById(prefix + '-locate-btn');
       if (btn) {
         btn.disabled = true;
@@ -858,30 +917,36 @@
       if (!navigator.geolocation) {
         if (btn) {
           btn.disabled = false;
-          btn.innerHTML = '<i class="fas fa-location-crosshairs"></i> <span>تحديد موقعي بدقة (GPS)</span>';
+          btn.innerHTML = '<i class="fas fa-location-crosshairs"></i> <span>تحديد موقعي بدقة (اختياري)</span>';
         }
-        showGlassToast('متصفحك لا يدعم تحديد الموقع التلقائي، يرجى كتابة العنوان بالتفصيل.', true);
+        showGlassToast('متصفحك لا يدعم تحديد الموقع التلقائي، يمكنك المتابعة بدونه أو كتابة العنوان.', true);
         return;
       }
 
       navigator.geolocation.getCurrentPosition(
         function(pos) {
+          try {
+            localStorage.setItem('rq_loc_prompt_seen', '1');
+          } catch (e) {}
           applyLocationCoords(prefix, pos.coords.latitude, pos.coords.longitude, '');
         },
         function() {
           /* Retry with standard accuracy if high-accuracy GPS timed out on desktop/indoors */
           navigator.geolocation.getCurrentPosition(
             function(pos2) {
+              try {
+                localStorage.setItem('rq_loc_prompt_seen', '1');
+              } catch (e) {}
               applyLocationCoords(prefix, pos2.coords.latitude, pos2.coords.longitude, '');
             },
             function(err2) {
               if (btn) {
                 btn.disabled = false;
-                btn.innerHTML = '<i class="fas fa-location-crosshairs"></i> <span>تحديد موقعي بدقة (GPS)</span>';
+                btn.innerHTML = '<i class="fas fa-location-crosshairs"></i> <span>تحديد موقعي بدقة (اختياري)</span>';
               }
               var msg = (err2 && err2.code === 1)
-                ? 'يرجى السماح بصلاحية الوصول للموقع (Location) من المتصفح لتحديد موقعك بدقة.'
-                : 'تعذر التقاط إشارة GPS حالياً، يرجى التأكد من تفعيل خدمة الموقع في جهازك.';
+                ? 'لم يتم منح إذن الموقع. يمكنك متابعة الشراء بشكل طبيعي بدون تحديد الموقع (اختياري).'
+                : 'تعذر التقاط إشارة GPS حالياً، يمكنك متابعة الطلب بدونها بشكل طبيعي.';
               showGlassToast(msg, true);
             },
             { enableHighAccuracy: false, timeout: 10000, maximumAge: 60000 }
@@ -890,6 +955,74 @@
         { enableHighAccuracy: true, timeout: 8000, maximumAge: 0 }
       );
     }
+
+    function pinpointCustomerLocation(prefix, forceDirect) {
+      _pendingLocationPrefix = prefix || 'pdp';
+      if (forceDirect) {
+        executeGeolocationCapture(_pendingLocationPrefix);
+        return;
+      }
+
+      var seenPrompt = false;
+      try {
+        seenPrompt = localStorage.getItem('rq_loc_prompt_seen') === '1';
+      } catch (e) {}
+
+      if (navigator.permissions && navigator.permissions.query) {
+        navigator.permissions.query({ name: 'geolocation' }).then(function(perm) {
+          if (perm.state === 'granted') {
+            /* User already granted permission -> NEVER show modal, capture immediately */
+            try { localStorage.setItem('rq_loc_prompt_seen', '1'); } catch (e) {}
+            executeGeolocationCapture(_pendingLocationPrefix);
+          } else if (!seenPrompt) {
+            /* First time asking and permission not granted -> show explanatory optional modal */
+            openLocationPermissionModal(_pendingLocationPrefix);
+          } else {
+            executeGeolocationCapture(_pendingLocationPrefix);
+          }
+        }).catch(function() {
+          if (!seenPrompt) {
+            openLocationPermissionModal(_pendingLocationPrefix);
+          } else {
+            executeGeolocationCapture(_pendingLocationPrefix);
+          }
+        });
+      } else {
+        if (!seenPrompt) {
+          openLocationPermissionModal(_pendingLocationPrefix);
+        } else {
+          executeGeolocationCapture(_pendingLocationPrefix);
+        }
+      }
+    }
+
+    /* Auto-check on checkout/product page load:
+       - If permission is ALREADY 'granted': silently attach coordinates without showing any modal.
+       - If permission is NOT granted and it's the user's FIRST time on a shipping box: show the optional explanation modal once. */
+    document.addEventListener('DOMContentLoaded', function() {
+      var shippingBox = document.querySelector('[data-shipping-box]');
+      if (!shippingBox) return;
+      var prefix = shippingBox.getAttribute('data-shipping-box') || 'pdp';
+      var seenPrompt = false;
+      try {
+        seenPrompt = localStorage.getItem('rq_loc_prompt_seen') === '1';
+      } catch (e) {}
+
+      if (navigator.permissions && navigator.permissions.query) {
+        navigator.permissions.query({ name: 'geolocation' }).then(function(perm) {
+          if (perm.state === 'granted') {
+            /* Already granted -> never show modal, auto-attach location quietly */
+            try { localStorage.setItem('rq_loc_prompt_seen', '1'); } catch (e) {}
+            executeGeolocationCapture(prefix);
+          } else if (perm.state === 'prompt' && !seenPrompt) {
+            /* First time -> show the friendly optional explanation modal */
+            openLocationPermissionModal(prefix);
+          }
+        }).catch(function() {});
+      } else if (!seenPrompt) {
+        openLocationPermissionModal(prefix);
+      }
+    });
 
     /* Apple Interactive Spatial Effects (Scroll Elevation, Reveal & Specular Spotlight) */
     document.addEventListener('DOMContentLoaded', function() {

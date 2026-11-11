@@ -92,6 +92,9 @@ def _check_bill_paid_in_shamcash(client, bill_no):
         )
         if is_paid:
             return True, bill_info.get("tranId"), bill_info
+        # If get_bill_info explicitly succeeded and returned pending (1) or expired (3), do NOT call get_transactions() which can hang for 20+ seconds!
+        if status_id in (ShamCashClient.STATUS_PENDING, ShamCashClient.STATUS_EXPIRED, 1, "1", 3, "3", 5, "5"):
+            return False, None, bill_info
     except Exception as err:
         logger.warning(f"get_bill_info failed for {bill_no}: {err}")
 

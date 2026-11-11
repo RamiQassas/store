@@ -2785,18 +2785,33 @@ def product_detail(request, pk):
         if is_direct_gateway:
             from apps.payments.models import PaymentGatewayIntegration, PaymentMethod
             from apps.common.tenant_utils import bypass_tenant_filter
+            import uuid as _uuid
+
+            def _is_valid_uuid(val):
+                try:
+                    _uuid.UUID(str(val))
+                    return True
+                except Exception:
+                    return False
+
             with bypass_tenant_filter():
                 if payment_method.startswith("gateway:"):
                     gw_val = payment_method.split(":", 1)[1]
-                    selected_gateway = PaymentGatewayIntegration.all_objects.filter(pk=gw_val, is_active=True).first() or PaymentGatewayIntegration.all_objects.filter(provider=gw_val, is_active=True).first()
+                    if _is_valid_uuid(gw_val):
+                        selected_gateway = PaymentGatewayIntegration.all_objects.filter(pk=gw_val, is_active=True).first()
+                    if not selected_gateway:
+                        selected_gateway = PaymentGatewayIntegration.all_objects.filter(provider=gw_val, is_active=True).first()
                 elif payment_method.startswith("method:"):
                     pm_id = payment_method.split(":", 1)[1]
-                    pm = PaymentMethod.all_objects.filter(pk=pm_id, is_active=True).first()
-                    if pm and pm.gateway and pm.gateway.is_active:
-                        selected_gateway = pm.gateway
+                    if _is_valid_uuid(pm_id):
+                        pm = PaymentMethod.all_objects.filter(pk=pm_id, is_active=True).first()
+                        if pm and pm.gateway and pm.gateway.is_active:
+                            selected_gateway = pm.gateway
                 else:
-                    selected_gateway = PaymentGatewayIntegration.all_objects.filter(provider=payment_method, is_active=True).first() or PaymentGatewayIntegration.all_objects.filter(pk=payment_method, is_active=True).first()
-                    if not selected_gateway:
+                    selected_gateway = PaymentGatewayIntegration.all_objects.filter(provider=payment_method, is_active=True).first()
+                    if not selected_gateway and _is_valid_uuid(payment_method):
+                        selected_gateway = PaymentGatewayIntegration.all_objects.filter(pk=payment_method, is_active=True).first()
+                    if not selected_gateway and _is_valid_uuid(payment_method):
                         pm = PaymentMethod.all_objects.filter(pk=payment_method, is_active=True).first()
                         if pm and pm.gateway and pm.gateway.is_active:
                             selected_gateway = pm.gateway
@@ -2832,7 +2847,7 @@ def product_detail(request, pk):
                 request.session['missing_currency'] = wallet.currency.code
                 return redirect("product_detail", pk=pk)
 
-        # Physical product shipping & accurate GPS location validation
+        # Physical product shipping & accurate GPS location (Optional — never blocks order)
         shipping_name = request.POST.get("shipping_name", "").strip()
         shipping_phone = request.POST.get("shipping_phone", "").strip()
         shipping_address = request.POST.get("shipping_address", "").strip()
@@ -2846,11 +2861,15 @@ def product_detail(request, pk):
         if isinstance(getattr(product, "form_schema", None), dict):
             schema_fields = product.form_schema.get("fields") or []
         if (product.product_type == "physical" or not getattr(product, "is_api_product", False)) and not schema_fields:
-            if not (shipping_name and shipping_phone and shipping_address):
-                if request.headers.get('x-requested-with') == 'XMLHttpRequest' or request.POST.get('ajax') == '1':
-                    return JsonResponse({"success": False, "error": "جميع بيانات الشحن والتوصيل (الاسم، رقم الهاتف، العنوان بالتفصيل أو تحديد الموقع) مطلوبة لإتمام الطلب."}, status=400)
-                messages.error(request, "جميع بيانات الشحن والتوصيل (الاسم، رقم الهاتف، العنوان بالتفصيل أو تحديد الموقع) مطلوبة لإتمام الطلب.")
-                return redirect("product_detail", pk=pk)
+            if not shipping_name:
+                shipping_name = getattr(request.user, "display_name", "") or getattr(request.user, "email", "") or "عميل رقميات"
+            if not shipping_phone:
+                shipping_phone = getattr(request.user, "phone_number", "") or getattr(request.user, "phone", "") or ""
+            if not shipping_address:
+                if shipping_lat and shipping_lng:
+                    shipping_address = f"موقع محدد عبر GPS ({shipping_lat}, {shipping_lng})"
+                else:
+                    shipping_address = "لم يتم إرفاق الموقع الجغرافي (توصيل حسب التواصل)"
 
         if shipping_lat and shipping_lng:
             metadata["shipping_lat"] = shipping_lat
@@ -12191,9 +12210,16 @@ def cart_checkout_view(request):
         shipping_map_url = f"https://www.google.com/maps?q={shipping_lat},{shipping_lng}"
 
     needs_shipping = bool(cart_items)
-    if needs_shipping and not (shipping_name and shipping_phone and shipping_address):
-        messages.error(request, "يرجى إدخال بيانات الشحن والتوصيل (الاسم، رقم الهاتف، العنوان بالتفصيل أو تحديد الموقع).")
-        return redirect("cart_detail")
+    if needs_shipping:
+        if not shipping_name:
+            shipping_name = getattr(request.user, "display_name", "") or getattr(request.user, "email", "") or "عميل رقميات"
+        if not shipping_phone:
+            shipping_phone = getattr(request.user, "phone_number", "") or getattr(request.user, "phone", "") or ""
+        if not shipping_address:
+            if shipping_lat and shipping_lng:
+                shipping_address = f"موقع محدد عبر GPS ({shipping_lat}, {shipping_lng})"
+            else:
+                shipping_address = "لم يتم إرفاق الموقع الجغرافي (توصيل حسب التواصل)"
 
     payment_method = (request.POST.get("payment_method") or "wallet").strip()
     is_direct_gateway = (payment_method != "wallet")
@@ -12204,25 +12230,33 @@ def cart_checkout_view(request):
         from apps.payments.models import PaymentGatewayIntegration, PaymentMethod
         from apps.common.tenant_utils import bypass_tenant_filter
         from apps.payments.gateways import gateway_for, PaymentGatewayError
+        import uuid as _uuid
+
+        def _is_valid_uuid(val):
+            try:
+                _uuid.UUID(str(val))
+                return True
+            except Exception:
+                return False
 
         selected_gateway = None
         with bypass_tenant_filter():
             if payment_method.startswith("gateway:"):
                 gw_val = payment_method.split(":", 1)[1]
-                selected_gateway = (
-                    PaymentGatewayIntegration.all_objects.filter(pk=gw_val, is_active=True).first()
-                    or PaymentGatewayIntegration.all_objects.filter(provider=gw_val, is_active=True).first()
-                )
+                if _is_valid_uuid(gw_val):
+                    selected_gateway = PaymentGatewayIntegration.all_objects.filter(pk=gw_val, is_active=True).first()
+                if not selected_gateway:
+                    selected_gateway = PaymentGatewayIntegration.all_objects.filter(provider=gw_val, is_active=True).first()
             elif payment_method.startswith("method:"):
                 pm_id = payment_method.split(":", 1)[1]
-                pm = PaymentMethod.all_objects.filter(pk=pm_id, is_active=True).first()
-                if pm and pm.gateway and pm.gateway.is_active:
-                    selected_gateway = pm.gateway
+                if _is_valid_uuid(pm_id):
+                    pm = PaymentMethod.all_objects.filter(pk=pm_id, is_active=True).first()
+                    if pm and pm.gateway and pm.gateway.is_active:
+                        selected_gateway = pm.gateway
             else:
-                selected_gateway = (
-                    PaymentGatewayIntegration.all_objects.filter(provider=payment_method, is_active=True).first()
-                    or PaymentGatewayIntegration.all_objects.filter(pk=payment_method, is_active=True).first()
-                )
+                selected_gateway = PaymentGatewayIntegration.all_objects.filter(provider=payment_method, is_active=True).first()
+                if not selected_gateway and _is_valid_uuid(payment_method):
+                    selected_gateway = PaymentGatewayIntegration.all_objects.filter(pk=payment_method, is_active=True).first()
                 if not selected_gateway:
                     if payment_method in ("paymera", "direct_paymera"):
                         selected_gateway = PaymentGatewayIntegration.all_objects.filter(provider=PaymentGatewayIntegration.Provider.PAYMERA, is_active=True).first()
@@ -12734,9 +12768,9 @@ def payment_status_view(request):
             # Format order amounts and provider info
             order_meta = order.metadata if isinstance(order.metadata, dict) else {}
             tran_id = str(order_meta.get("shamcash_tran_id") or order_meta.get("gateway_payment_id") or "")
-            customer_name = order_meta.get("shipping_name") or (order.customer.get_full_name() or order.customer.username if order.customer else "عميل المتجر")
-            customer_phone = order_meta.get("shipping_phone") or order.target_phone or (getattr(order.customer, "phone", "") if order.customer else "")
-            shipping_address = order_meta.get("shipping_address") or ""
+            customer_name = getattr(order, "shipping_name", "") or order_meta.get("shipping_name") or (getattr(order.customer, "display_name", "") or order.customer.get_full_name() or order.customer.username or order.customer.email if order.customer else "عميل المتجر")
+            customer_phone = getattr(order, "shipping_phone", "") or order_meta.get("shipping_phone") or (getattr(order.customer, "phone", "") or getattr(order.customer, "phone_number", "") if order.customer else "")
+            shipping_address = getattr(order, "shipping_address", "") or order_meta.get("shipping_address") or ""
             shipping_map_url = order_meta.get("shipping_map_url") or ""
 
             charge_curr = order_meta.get("gateway_charge_currency") or order_meta.get("gateway_currency") or "USD"

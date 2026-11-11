@@ -413,18 +413,19 @@
             </div>
           </div>
 
-          <!-- 3. Physical Product Shipping & Accurate Location Pinpointing Fields -->
+          <!-- 3. Physical Product Shipping & Accurate Location Pinpointing Fields (Optional) -->
           {% if product.product_type == 'physical' or not product.is_api_product %}
-          <div style="margin-bottom: 1.15rem; padding: 1rem; background: var(--rq-bg-elevated); border: 1px solid var(--rq-border); border-radius: 16px;">
+          <div style="margin-bottom: 1.15rem; padding: 1rem; background: var(--rq-bg-elevated); border: 1px solid var(--rq-border); border-radius: 16px;" data-shipping-box="pdp">
             <div style="display: flex; align-items: center; justify-content: space-between; gap: 0.5rem; margin-bottom: 0.75rem; flex-wrap: wrap;">
               <div style="font-size: 0.84rem; font-weight: 800; color: var(--rq-navy); display: flex; align-items: center; gap: 0.45rem;">
                 <i class="fas fa-truck-fast" style="color: var(--rq-primary-light);"></i>
-                <span>بيانات المستلم وتحديد الموقع</span>
+                <span>بيانات التوصيل وتحديد الموقع</span>
+                <span style="font-size: 0.68rem; font-weight: 700; color: var(--rq-text-muted); background: var(--rq-surface-card); padding: 0.12rem 0.45rem; border-radius: 999px; border: 1px solid var(--rq-border);">اختياري</span>
               </div>
               <button type="button" id="pdp-locate-btn" onclick="pinpointCustomerLocation('pdp')"
                       style="display: inline-flex; align-items: center; gap: 0.4rem; padding: 0.38rem 0.78rem; border-radius: 999px; border: 1px solid rgba(16, 185, 129, 0.4); background: linear-gradient(135deg, rgba(16, 185, 129, 0.16), rgba(5, 150, 105, 0.08)); color: #10b981; font-size: 0.74rem; font-weight: 800; cursor: pointer; transition: all 0.2s ease;">
                 <i class="fas fa-location-crosshairs"></i>
-                <span id="pdp-locate-btn-text">تحديد موقعي بدقة (GPS)</span>
+                <span id="pdp-locate-btn-text">تحديد موقعي بدقة (اختياري)</span>
               </button>
             </div>
 
@@ -434,17 +435,17 @@
 
             <div class="rq-pdp-shipping-grid" style="margin-bottom: 0.65rem;">
               <div>
-                <label class="rq-label" style="font-size: 0.74rem;">الاسم الكامل للمستلم *</label>
-                <input type="text" name="shipping_name" class="rq-input" placeholder="اسم مستلم الشحنة" value="{{ user.display_name|default:'' }}" required>
+                <label class="rq-label" style="font-size: 0.74rem;">الاسم الكامل للمستلم (اختياري)</label>
+                <input type="text" name="shipping_name" class="rq-input" placeholder="اسم مستلم الشحنة" value="{{ user.display_name|default:'' }}">
               </div>
               <div>
-                <label class="rq-label" style="font-size: 0.74rem;">رقم هاتف المستلم *</label>
-                <input type="tel" name="shipping_phone" class="rq-input" placeholder="09xxxxxxxx" value="{{ user.phone_number|default:'' }}" required>
+                <label class="rq-label" style="font-size: 0.74rem;">رقم هاتف المستلم (اختياري)</label>
+                <input type="tel" name="shipping_phone" class="rq-input" placeholder="09xxxxxxxx" value="{{ user.phone_number|default:'' }}">
               </div>
             </div>
             <div>
-              <label class="rq-label" style="font-size: 0.74rem;">عنوان التوصيل بالتفصيل *</label>
-              <input type="text" name="shipping_address" id="pdp-shipping-address" class="rq-input" placeholder="المحافظة - المدينة - الشارع - أقرب نقطة دالة (أو اضغط تحديد موقعي بدقة)" required>
+              <label class="rq-label" style="font-size: 0.74rem;">عنوان التوصيل أو الموقع الجغرافي (اختياري)</label>
+              <input type="text" name="shipping_address" id="pdp-shipping-address" class="rq-input" placeholder="المحافظة - المدينة - الشارع (اختياري، أو اضغط تحديد موقعي بدقة لشحن أسرع)">
             </div>
 
             <!-- Interactive Accurate Location Preview Card -->

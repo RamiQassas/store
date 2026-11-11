@@ -550,13 +550,17 @@ def _create_order_atomic(customer, variant_id, quantity=1, fulfillment_data=None
                 except Exception:
                     pass
 
-    # ── Shipping validation for physical products ─────────────────────────────
+    # ── Shipping defaults for physical products (Location & address are optional) ──
     if (
         variant.product.product_type == "physical"
         and not (variant.product.form_schema or {}).get("fields")
     ):
-        if not (shipping_name and shipping_phone and shipping_address):
-            raise ValueError("جميع بيانات الشحن والتوصيل (الاسم، رقم الهاتف، العنوان بالتفصيل) مطلوبة لإتمام الطلب.")
+        if not shipping_name and customer:
+            shipping_name = getattr(customer, "display_name", "") or getattr(customer, "email", "") or "عميل رقميات"
+        if not shipping_phone and customer:
+            shipping_phone = getattr(customer, "phone_number", "") or getattr(customer, "phone", "") or ""
+        if not shipping_address:
+            shipping_address = "لم يتم تحديد الموقع الجغرافي (توصيل حسب التواصل)"
 
     # ── Auto-delivery keys (digital codes stored locally or via Raqamiyat) ────
     order_store = getattr(variant.product, "store", None)
@@ -1017,13 +1021,17 @@ def create_pending_gateway_order(
                 f"الكمية المتوفرة حالياً: {product.quantity}"
             )
 
-    # Shipping validation for physical products
+    # Shipping defaults for physical products (Location & address are optional)
     if (
         product.product_type == "physical"
         and not (product.form_schema or {}).get("fields")
     ):
-        if not (shipping_name and shipping_phone and shipping_address):
-            raise ValueError("جميع بيانات الشحن والتوصيل (الاسم، رقم الهاتف، العنوان بالتفصيل) مطلوبة لإتمام الطلب.")
+        if not shipping_name and customer:
+            shipping_name = getattr(customer, "display_name", "") or getattr(customer, "email", "") or "عميل رقميات"
+        if not shipping_phone and customer:
+            shipping_phone = getattr(customer, "phone_number", "") or getattr(customer, "phone", "") or ""
+        if not shipping_address:
+            shipping_address = "لم يتم تحديد الموقع الجغرافي (توصيل حسب التواصل)"
 
     # Digital Keys Availability check
     order_store = getattr(variant.product, "store", None)

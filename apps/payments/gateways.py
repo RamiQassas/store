@@ -351,32 +351,31 @@ class ShamCashGateway(BasePaymentGateway):
             deposit.save(update_fields=["gateway_payment_id", "metadata"])
 
             # Create immutable bill record for compliance & 5-year retention
-            created_date = None
-            created_time = None
-            if res.get("createdDate"):
-                try:
-                    created_date = res.get("createdDate")
-                except Exception:
-                    pass
-
-            ShamCashBillRecord.objects.create(
-                bill_no=bill_no,
-                bill_type=ShamCashBillRecord.BillType.DEPOSIT,
-                user=deposit.user,
-                deposit=deposit,
-                amount=bill_amount,
-                currency_id=currency_id,
-                currency_code=curr_code,
-                status_id=ShamCashClient.STATUS_PENDING,
-                status_name=ShamCashClient.STATUS_NAMES[ShamCashClient.STATUS_PENDING],
-                payment_url=res.get("paymentUrl") or "",
-                callback_url=callback_url,
-                redirect_url=redirect_url,
-                note=notes,
-                created_date=created_date,
-                expires_at=timezone.now() + timezone.timedelta(minutes=10),
-                raw_create_response=res,
-            )
+            try:
+                from django.utils.dateparse import parse_date
+                raw_cd = res.get("createdDate")
+                parsed_cd = parse_date(str(raw_cd)[:10]) if raw_cd else timezone.now().date()
+                ShamCashBillRecord.objects.create(
+                    bill_no=bill_no,
+                    bill_type=ShamCashBillRecord.BillType.DEPOSIT,
+                    user=deposit.user,
+                    deposit=deposit,
+                    amount=bill_amount,
+                    currency_id=currency_id,
+                    currency_code=curr_code,
+                    status_id=ShamCashClient.STATUS_PENDING,
+                    status_name=ShamCashClient.STATUS_NAMES[ShamCashClient.STATUS_PENDING],
+                    payment_url=res.get("paymentUrl") or "",
+                    callback_url=callback_url,
+                    redirect_url=redirect_url,
+                    note=notes,
+                    created_date=parsed_cd,
+                    expires_at=timezone.now() + timezone.timedelta(minutes=10),
+                    raw_create_response=res,
+                )
+            except Exception as rec_err:
+                import logging
+                logging.getLogger(__name__).warning(f"ShamCashBillRecord deposit create warning: {rec_err}")
 
             return {
                 "url": res.get("paymentUrl"),
@@ -500,24 +499,31 @@ class ShamCashGateway(BasePaymentGateway):
             order.save(update_fields=["metadata"])
 
             # Create immutable bill record for compliance & 5-year retention
-            ShamCashBillRecord.objects.create(
-                bill_no=bill_no,
-                bill_type=ShamCashBillRecord.BillType.ORDER,
-                user=order.customer,
-                order=order,
-                amount=charge_amount,
-                currency_id=currency_id,
-                currency_code=currency_code,
-                status_id=ShamCashClient.STATUS_PENDING,
-                status_name=ShamCashClient.STATUS_NAMES[ShamCashClient.STATUS_PENDING],
-                payment_url=res.get("paymentUrl") or "",
-                callback_url=callback_url,
-                redirect_url=redirect_url,
-                note=notes,
-                created_date=res.get("createdDate"),
-                expires_at=timezone.now() + timezone.timedelta(minutes=10),
-                raw_create_response=res,
-            )
+            try:
+                from django.utils.dateparse import parse_date
+                raw_cd = res.get("createdDate")
+                parsed_cd = parse_date(str(raw_cd)[:10]) if raw_cd else timezone.now().date()
+                ShamCashBillRecord.objects.create(
+                    bill_no=bill_no,
+                    bill_type=ShamCashBillRecord.BillType.ORDER,
+                    user=order.customer,
+                    order=order,
+                    amount=charge_amount,
+                    currency_id=currency_id,
+                    currency_code=currency_code,
+                    status_id=ShamCashClient.STATUS_PENDING,
+                    status_name=ShamCashClient.STATUS_NAMES[ShamCashClient.STATUS_PENDING],
+                    payment_url=res.get("paymentUrl") or "",
+                    callback_url=callback_url,
+                    redirect_url=redirect_url,
+                    note=notes,
+                    created_date=parsed_cd,
+                    expires_at=timezone.now() + timezone.timedelta(minutes=10),
+                    raw_create_response=res,
+                )
+            except Exception as rec_err:
+                import logging
+                logging.getLogger(__name__).warning(f"ShamCashBillRecord order create warning: {rec_err}")
 
             return {
                 "url": res.get("paymentUrl"),
@@ -529,6 +535,8 @@ class ShamCashGateway(BasePaymentGateway):
             }
         except ShamCashError as err:
             raise PaymentGatewayError(str(err)) from err
+        except Exception as err:
+            raise PaymentGatewayError(f"تعذر إنشاء فاتورة الدفع عبر شام كاش: {err}") from err
 
     def verify_order_payment(self, order):
         bill_no = (

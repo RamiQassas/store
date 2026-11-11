@@ -539,18 +539,18 @@
           </div>
           <div class="rc-info-row">
             <span class="rc-info-label">اسم المستلم:</span>
-            <span class="rc-info-val">{{ order.shipping_name|default:order.metadata.shipping_name|default:order.customer.display_name|default:order.customer.email }}</span>
+            <span class="rc-info-val">{% if order.shipping_name %}{{ order.shipping_name }}{% elif order.metadata.shipping_name %}{{ order.metadata.shipping_name }}{% else %}{{ order.customer.display_name|default:order.customer.email }}{% endif %}</span>
           </div>
-          {% if order.shipping_phone or order.metadata.shipping_phone or order.target_phone %}
+          {% if order.shipping_phone or order.metadata.shipping_phone %}
           <div class="rc-info-row">
             <span class="rc-info-label">رقم الهاتف:</span>
-            <span class="rc-info-val font-mono" dir="ltr">{{ order.shipping_phone|default:order.metadata.shipping_phone|default:order.target_phone }}</span>
+            <span class="rc-info-val font-mono" dir="ltr">{% if order.shipping_phone %}{{ order.shipping_phone }}{% else %}{{ order.metadata.shipping_phone }}{% endif %}</span>
           </div>
           {% endif %}
           {% if order.shipping_address or order.metadata.shipping_address %}
           <div class="rc-info-row">
             <span class="rc-info-label">عنوان التسليم:</span>
-            <span class="rc-info-val">{{ order.shipping_address|default:order.metadata.shipping_address }}</span>
+            <span class="rc-info-val">{% if order.shipping_address %}{{ order.shipping_address }}{% else %}{{ order.metadata.shipping_address }}{% endif %}</span>
           </div>
           {% endif %}
           {% if order.metadata.shipping_map_url %}
