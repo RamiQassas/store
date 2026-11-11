@@ -1072,6 +1072,36 @@ def order_detail(request, pk):
         messages.success(request, "تم تقديم طلب استرداد الأموال بنجاح! سيتم فحص طلبك وإعادة المبلغ مباشرة إلى وسيلة الدفع المستخدمة فور الموافقة.")
         return redirect("dashboard_order_detail", pk=order.id)
 
+    # Auto-refresh payment status from ShamCash / Paymera if order is PENDING or was prematurely marked CANCELLED on return
+    if order.status in (Order.Status.PENDING, Order.Status.CANCELLED) and isinstance(order.metadata, dict):
+        gw_prov = (order.metadata.get("payment_provider") or order.metadata.get("payment_gateway") or "").lower()
+        bill_ref = order.metadata.get("shamcash_bill_no") or order.metadata.get("gateway_payment_id") or ""
+        if gw_prov in ("sham_cash", "shamcash") and bill_ref:
+            try:
+                from apps.payments.views_shamcash import _get_active_shamcash_client, _check_bill_paid_in_shamcash
+                from apps.orders.services import finalize_paid_gateway_order
+                from apps.common.tenant_utils import bypass_tenant_filter
+                sc_client = _get_active_shamcash_client()
+                if sc_client:
+                    is_paid, checked_tran_id, bill_info = _check_bill_paid_in_shamcash(sc_client, bill_ref)
+                    if is_paid:
+                        if order.status == Order.Status.CANCELLED:
+                            with bypass_tenant_filter():
+                                order.status = Order.Status.PENDING
+                                order.admin_note = "تم تأكيد السداد من شام كاش وتفعيل الطلب."
+                                order.save(update_fields=["status", "admin_note", "updated_at"])
+                        finalize_paid_gateway_order(order, {
+                            "status": "A",
+                            "id": str(checked_tran_id or bill_ref),
+                            "tran_id": checked_tran_id,
+                            "bill_no": bill_ref,
+                            "provider": "sham_cash",
+                            "payload": bill_info,
+                        })
+                        order.refresh_from_db()
+            except Exception:
+                pass
+
     # Auto-refresh status from provider if order is still pending or processing
     if order.status in (Order.Status.PROCESSING, Order.Status.PENDING) and (order.api_order_uuid or order.api_order_id or order.provider_orders.exists()):
         try:
@@ -4764,6 +4794,36 @@ def control_order_detail(request, pk):
             
         return redirect("control_order_detail", pk=pk)
     
+    # Auto-refresh payment status from ShamCash / Paymera if order is PENDING or was prematurely marked CANCELLED on return
+    if order.status in (Order.Status.PENDING, Order.Status.CANCELLED) and isinstance(order.metadata, dict):
+        gw_prov = (order.metadata.get("payment_provider") or order.metadata.get("payment_gateway") or "").lower()
+        bill_ref = order.metadata.get("shamcash_bill_no") or order.metadata.get("gateway_payment_id") or ""
+        if gw_prov in ("sham_cash", "shamcash") and bill_ref:
+            try:
+                from apps.payments.views_shamcash import _get_active_shamcash_client, _check_bill_paid_in_shamcash
+                from apps.orders.services import finalize_paid_gateway_order
+                from apps.common.tenant_utils import bypass_tenant_filter
+                sc_client = _get_active_shamcash_client()
+                if sc_client:
+                    is_paid, checked_tran_id, bill_info = _check_bill_paid_in_shamcash(sc_client, bill_ref)
+                    if is_paid:
+                        if order.status == Order.Status.CANCELLED:
+                            with bypass_tenant_filter():
+                                order.status = Order.Status.PENDING
+                                order.admin_note = "تم تأكيد السداد من شام كاش وتفعيل الطلب."
+                                order.save(update_fields=["status", "admin_note", "updated_at"])
+                        finalize_paid_gateway_order(order, {
+                            "status": "A",
+                            "id": str(checked_tran_id or bill_ref),
+                            "tran_id": checked_tran_id,
+                            "bill_no": bill_ref,
+                            "provider": "sham_cash",
+                            "payload": bill_info,
+                        })
+                        order.refresh_from_db()
+            except Exception:
+                pass
+
     # Auto-refresh status from provider if order is still pending or processing
     if order.status in (Order.Status.PROCESSING, Order.Status.PENDING) and (order.api_order_uuid or order.api_order_id or order.provider_orders.exists()):
         try:
@@ -12605,15 +12665,15 @@ def payment_status_view(request):
                 deposit.save(update_fields=["status", "admin_note", "updated_at"])
                 deposit.refresh_from_db()
 
-            # Active realtime verification with ShamCash if still pending
-            if deposit.status == DepositRequest.Status.PENDING and not user_wants_cancel and deposit.payment_method and getattr(deposit.payment_method, "gateway", None):
+            # Active realtime verification with ShamCash if still pending or rejected before payment propagated
+            if deposit.status in (DepositRequest.Status.PENDING, DepositRequest.Status.REJECTED) and not user_wants_cancel and deposit.payment_method and getattr(deposit.payment_method, "gateway", None):
                 gw = deposit.payment_method.gateway
                 if getattr(gw, "provider", "") == "sham_cash":
                     try:
                         from apps.payments.shamcash import ShamCashClient
-                        from apps.payments.views_shamcash import _get_active_shamcash_integration
+                        from apps.payments.views_shamcash import _get_active_shamcash_client, _check_bill_paid_in_shamcash
                         from apps.payments.views_shamcash import _complete_successful_shamcash_deposit
-                        integration = _get_active_shamcash_integration()
+                        client = _get_active_shamcash_client()
                         active_bill = deposit.gateway_payment_id or ""
                         if not active_bill:
                             from apps.payments.models import ShamCashBillRecord
@@ -12623,22 +12683,21 @@ def payment_status_view(request):
                         if not active_bill:
                             active_bill = request.GET.get("bill_no") or request.GET.get("billNo") or ""
 
-                        if integration and active_bill:
-                            client = ShamCashClient.from_integration(integration)
-                            bill_info = client.get_bill_info(active_bill)
-                            status_id = bill_info.get("statusId")
-                            is_paid = (
-                                status_id in (ShamCashClient.STATUS_PAID, 4, "4")
-                                or str(bill_info.get("statusName", "")).lower() == "paid"
-                            )
+                        if client and active_bill:
+                            is_paid, checked_tran_id, bill_info = _check_bill_paid_in_shamcash(client, active_bill)
                             if is_paid:
-                                _complete_successful_shamcash_deposit(deposit, bill_info.get("tranId"), bill_info)
+                                if deposit.status == DepositRequest.Status.REJECTED:
+                                    deposit.status = DepositRequest.Status.PENDING
+                                    deposit.save(update_fields=["status", "updated_at"])
+                                _complete_successful_shamcash_deposit(deposit, checked_tran_id or bill_info.get("tranId"), bill_info)
                                 deposit.refresh_from_db()
-                            elif status_id in (ShamCashClient.STATUS_EXPIRED, 3, "3", 5, "5") or str(bill_info.get("statusName", "")).lower() == "expired":
-                                deposit.status = DepositRequest.Status.REJECTED
-                                deposit.admin_note = "انتهت صلاحية الفاتورة دون دفع."
-                                deposit.save(update_fields=["status", "admin_note", "updated_at"])
-                                deposit.refresh_from_db()
+                            elif deposit.status == DepositRequest.Status.PENDING:
+                                status_id = bill_info.get("statusId") if isinstance(bill_info, dict) else None
+                                if status_id in (ShamCashClient.STATUS_EXPIRED, 3, "3", 5, "5") or str(bill_info.get("statusName", "") if isinstance(bill_info, dict) else "").lower() == "expired":
+                                    deposit.status = DepositRequest.Status.REJECTED
+                                    deposit.admin_note = "انتهت صلاحية الفاتورة دون دفع."
+                                    deposit.save(update_fields=["status", "admin_note", "updated_at"])
+                                    deposit.refresh_from_db()
                     except Exception as err:
                         import logging
                         logging.getLogger(__name__).warning(f"Could not actively check ShamCash bill in payment_status_view: {err}")
@@ -12716,21 +12775,55 @@ def payment_status_view(request):
                     )
                     order.refresh_from_db()
 
-            # Active realtime verification with ShamCash if still pending or processing
-            if order.status in (Order.Status.PENDING, Order.Status.PROCESSING) and not user_wants_cancel:
+            # Active realtime verification with ShamCash or Paymera if still pending or previously marked cancelled before payment propagated
+            if order.status in (Order.Status.PENDING, Order.Status.PROCESSING, Order.Status.CANCELLED) and not user_wants_cancel:
+                order_provider = (order.metadata.get("payment_provider") or order.metadata.get("payment_gateway") or "") if isinstance(order.metadata, dict) else ""
                 active_bill = (
                     (order.metadata.get("gateway_payment_id") if order.metadata else "")
                     or (order.metadata.get("shamcash_bill_no") if order.metadata else "")
                     or bill_param
                     or ""
                 )
-                if not active_bill:
+                if not active_bill and order_provider != "paymera":
                     from apps.payments.models import ShamCashBillRecord
                     record = ShamCashBillRecord.objects.filter(order=order).order_by("-created_at").first()
                     if record:
                         active_bill = record.bill_no
 
-                if active_bill:
+                if active_bill and order_provider == "paymera":
+                    try:
+                        from apps.payments.models import PaymentGatewayIntegration
+                        from apps.payments.paymera import PaymeraClient
+                        from apps.orders.services import finalize_paid_gateway_order
+                        from apps.common.tenant_utils import bypass_tenant_filter
+                        with bypass_tenant_filter():
+                            pm_gw = PaymentGatewayIntegration.all_objects.filter(
+                                provider=PaymentGatewayIntegration.Provider.PAYMERA,
+                                is_active=True
+                            ).first()
+                        if pm_gw:
+                            pm_client = PaymeraClient.from_integration(pm_gw)
+                            status_res = pm_client.get_payment_status(active_bill)
+                            pm_st = status_res.get("status")
+                            if pm_st == PaymeraClient.STATUS_ACCEPTED:
+                                if order.status == Order.Status.CANCELLED:
+                                    with bypass_tenant_filter():
+                                        order.status = Order.Status.PENDING
+                                        order.admin_note = "تم تأكيد السداد من بيميرا وتفعيل الطلب."
+                                        order.save(update_fields=["status", "admin_note", "updated_at"])
+                                finalize_paid_gateway_order(order, status_res)
+                                order.refresh_from_db()
+                            elif pm_st in (PaymeraClient.STATUS_CANCELED, PaymeraClient.STATUS_FAILED) and order.status == Order.Status.PENDING:
+                                with bypass_tenant_filter():
+                                    order.status = Order.Status.CANCELLED
+                                    order.admin_note = "تم إلغاء عملية الدفع من قبل المستخدم." if pm_st == PaymeraClient.STATUS_CANCELED else f"Paymera status: {pm_st}"
+                                    order.save(update_fields=["status", "admin_note", "updated_at"])
+                                    order.refresh_from_db()
+                    except Exception as err:
+                        import logging
+                        logging.getLogger(__name__).warning(f"Could not actively check Paymera order in payment_status_view: {err}")
+
+                elif active_bill:
                     try:
                         from apps.payments.shamcash import ShamCashClient
                         from apps.payments.views_shamcash import _get_active_shamcash_client, _check_bill_paid_in_shamcash
@@ -12739,6 +12832,12 @@ def payment_status_view(request):
                         if client:
                             is_paid, checked_tran_id, bill_info = _check_bill_paid_in_shamcash(client, active_bill)
                             if is_paid:
+                                if order.status == Order.Status.CANCELLED:
+                                    from apps.common.tenant_utils import bypass_tenant_filter
+                                    with bypass_tenant_filter():
+                                        order.status = Order.Status.PENDING
+                                        order.admin_note = "تم تأكيد السداد من شام كاش وتفعيل الطلب."
+                                        order.save(update_fields=["status", "admin_note", "updated_at"])
                                 gateway_data = {
                                     "status": "A",
                                     "id": str(checked_tran_id or active_bill),
@@ -12749,7 +12848,7 @@ def payment_status_view(request):
                                 }
                                 finalize_paid_gateway_order(order, gateway_data)
                                 order.refresh_from_db()
-                            else:
+                            elif order.status == Order.Status.PENDING:
                                 status_id = bill_info.get("statusId") if isinstance(bill_info, dict) else None
                                 if status_id in (ShamCashClient.STATUS_EXPIRED, 3, "3", 5, "5") or str(bill_info.get("statusName", "") if isinstance(bill_info, dict) else "").lower() == "expired":
                                     order.status = Order.Status.CANCELLED

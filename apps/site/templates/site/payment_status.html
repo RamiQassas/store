@@ -238,9 +238,9 @@
       <!-- User Explicit Cancellation Action (Shown when pending) -->
       {% if status == 'pending' %}
       <div id="user-cancel-action-box" style="margin: -0.75rem auto 1.5rem; text-align: center;">
-        <button type="button" onclick="cancelPaymentByUser()" style="background: rgba(239, 68, 68, 0.1); border: 1.5px solid rgba(239, 68, 68, 0.35); color: #f87171; border-radius: 12px; padding: 0.55rem 1.25rem; font-size: 0.82rem; font-weight: 800; cursor: pointer; display: inline-flex; align-items: center; gap: 0.5rem; transition: all 0.2s ease;">
+        <button type="button" onclick="cancelPaymentByUser()" style="background: rgba(239, 68, 68, 0.14); border: 1.5px solid rgba(239, 68, 68, 0.45); color: #f87171; border-radius: 12px; padding: 0.6rem 1.35rem; font-size: 0.84rem; font-weight: 800; cursor: pointer; display: inline-flex; align-items: center; gap: 0.5rem; transition: all 0.2s ease;">
           <i class="fas fa-times-circle"></i>
-          <span>إلغاء العملية من قبل المستخدم</span>
+          <span>لم أكمل السداد — إلغاء الطلب فوراً</span>
         </button>
       </div>
       {% endif %}
@@ -668,7 +668,6 @@
   }
 
   async function cancelPaymentByUser() {
-    if (!confirm('هل أنت متأكد من رغبتك في إلغاء عملية الدفع؟')) return;
     const url = new URL(window.location.href);
     url.searchParams.set('action', 'cancel');
     url.searchParams.set('status', 'cancelled');
