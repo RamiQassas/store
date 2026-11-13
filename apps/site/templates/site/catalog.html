@@ -53,6 +53,44 @@
       </div>
     </div>
 
+    <!-- ── Promotional Storefront Banner & Trust Strip ── -->
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 0.65rem; margin-bottom: 1.25rem;">
+      <div style="display: flex; align-items: center; gap: 0.65rem; padding: 0.75rem 0.95rem; border-radius: 14px; background: linear-gradient(135deg, rgba(6, 182, 212, 0.12), rgba(15, 23, 42, 0.85)); border: 1px solid rgba(34, 211, 238, 0.25);">
+        <span style="width: 34px; height: 34px; border-radius: 10px; background: rgba(34, 211, 238, 0.16); color: #22d3ee; display: flex; align-items: center; justify-content: center; flex-shrink: 0;"><i class="fas fa-bolt"></i></span>
+        <div>
+          <div style="font-size: 0.78rem; font-weight: 900; color: var(--rq-text-primary);">تجهيز وشحن سريع</div>
+          <div style="font-size: 0.68rem; color: var(--rq-text-secondary);">توصيل موثوق لكافة المحافظات</div>
+        </div>
+      </div>
+
+      <div style="display: flex; align-items: center; gap: 0.65rem; padding: 0.75rem 0.95rem; border-radius: 14px; background: linear-gradient(135deg, rgba(251, 191, 36, 0.12), rgba(15, 23, 42, 0.85)); border: 1px solid rgba(251, 191, 36, 0.25);">
+        <span style="width: 34px; height: 34px; border-radius: 10px; background: rgba(251, 191, 36, 0.16); color: #fbbf24; display: flex; align-items: center; justify-content: center; flex-shrink: 0;"><i class="fas fa-credit-card"></i></span>
+        <div>
+          <div style="font-size: 0.78rem; font-weight: 900; color: var(--rq-text-primary);">دفع شام كاش وبيميرا</div>
+          <div style="font-size: 0.68rem; color: var(--rq-text-secondary);">دفع فوري وآمن بالدولار والليرة</div>
+        </div>
+      </div>
+
+      <div style="display: flex; align-items: center; gap: 0.65rem; padding: 0.75rem 0.95rem; border-radius: 14px; background: linear-gradient(135deg, rgba(16, 185, 129, 0.12), rgba(15, 23, 42, 0.85)); border: 1px solid rgba(16, 185, 129, 0.25);">
+        <span style="width: 34px; height: 34px; border-radius: 10px; background: rgba(16, 185, 129, 0.16); color: #34d399; display: flex; align-items: center; justify-content: center; flex-shrink: 0;"><i class="fas fa-shield-check"></i></span>
+        <div>
+          <div style="font-size: 0.78rem; font-weight: 900; color: var(--rq-text-primary);">جودة أصلية ومضمونة</div>
+          <div style="font-size: 0.68rem; color: var(--rq-text-secondary);">فحص وضمان رقميات المعتمد</div>
+        </div>
+      </div>
+
+      <a href="{% url 'download_android_apk' %}" style="display: flex; align-items: center; justify-content: space-between; gap: 0.65rem; padding: 0.75rem 0.95rem; border-radius: 14px; background: linear-gradient(135deg, rgba(14, 165, 233, 0.22), rgba(16, 185, 129, 0.2)); border: 1px solid rgba(34, 211, 238, 0.45); text-decoration: none;">
+        <div style="display: flex; align-items: center; gap: 0.6rem;">
+          <span style="width: 34px; height: 34px; border-radius: 10px; background: #22d3ee; color: #030712; display: flex; align-items: center; justify-content: center; flex-shrink: 0; font-size: 1.05rem;"><i class="fab fa-android"></i></span>
+          <div>
+            <div style="font-size: 0.78rem; font-weight: 900; color: #ffffff;">حمل تطبيق الأندرويد</div>
+            <div style="font-size: 0.68rem; color: #bae6fd;">تصفح أسرع وعروض حصرية</div>
+          </div>
+        </div>
+        <i class="fas fa-arrow-left" style="color: #22d3ee; font-size: 0.8rem;"></i>
+      </a>
+    </div>
+
     <!-- ── Mobile Horizontal Category Pills ── -->
     <div id="mobile-categories-pills" class="rq-categories-scroller lg:hidden" style="margin-bottom: 1.15rem; display: {% if view_type == 'categories' %}none{% else %}flex{% endif %}; gap: 0.5rem; overflow-x: auto; -webkit-overflow-scrolling: touch; padding-bottom: 0.35rem; width: 100%; max-width: 100%; box-sizing: border-box;">
       <a href="{% url 'catalog' %}{% if query %}?q={{ query }}&{% else %}?{% endif %}view=categories" style="flex-shrink: 0; padding: 0.4rem 0.9rem; border-radius: 9999px; font-size: 0.76rem; font-weight: 800; border: 1.5px solid {% if not active_category and view_type == 'categories' %}var(--rq-primary-light){% else %}var(--rq-border){% endif %}; background: {% if not active_category and view_type == 'categories' %}linear-gradient(135deg, #2563eb, #0ea5e9){% else %}var(--rq-surface-card){% endif %}; color: {% if not active_category and view_type == 'categories' %}#ffffff{% else %}var(--rq-text-secondary){% endif %}; transition: all 0.2s ease;">
@@ -240,8 +278,8 @@
             <a href="?view=products&type=physical{% if query %}&q={{ query }}{% endif %}{% if active_category %}&category={{ active_category }}{% endif %}" style="flex-shrink: 0; padding: 0.38rem 0.85rem; border-radius: 9999px; font-size: 0.74rem; font-weight: 800; border: 1px solid {% if product_type_filter == 'physical' %}var(--rq-primary-light){% else %}var(--rq-border){% endif %}; background: {% if product_type_filter == 'physical' %}linear-gradient(135deg, rgba(37,99,235,0.25), rgba(14,165,233,0.25)){% else %}var(--rq-surface-card){% endif %}; color: {% if product_type_filter == 'physical' %}#38bdf8{% else %}var(--rq-text-secondary){% endif %}; transition: all 0.2s;">
               💻 أجهزة وعتاد تقني
             </a>
-            <a href="?view=products&type=physical{% if query %}&q={{ query }}{% endif %}{% if active_category %}&category={{ active_category }}{% endif %}" style="flex-shrink: 0; padding: 0.38rem 0.85rem; border-radius: 9999px; font-size: 0.74rem; font-weight: 800; border: 1px solid {% if product_type_filter == 'physical' %}var(--rq-primary-light){% else %}var(--rq-border){% endif %}; background: {% if product_type_filter == 'physical' %}linear-gradient(135deg, rgba(37,99,235,0.25), rgba(14,165,233,0.25)){% else %}var(--rq-surface-card){% endif %}; color: {% if product_type_filter == 'physical' %}#38bdf8{% else %}var(--rq-text-secondary){% endif %}; transition: all 0.2s;">
-              📦 متوفر للشحن الفوري
+            <a href="?view=products&type=digital{% if query %}&q={{ query }}{% endif %}{% if active_category %}&category={{ active_category }}{% endif %}" style="flex-shrink: 0; padding: 0.38rem 0.85rem; border-radius: 9999px; font-size: 0.74rem; font-weight: 800; border: 1px solid {% if product_type_filter == 'digital' %}var(--rq-primary-light){% else %}var(--rq-border){% endif %}; background: {% if product_type_filter == 'digital' %}linear-gradient(135deg, rgba(37,99,235,0.25), rgba(14,165,233,0.25)){% else %}var(--rq-surface-card){% endif %}; color: {% if product_type_filter == 'digital' %}#38bdf8{% else %}var(--rq-text-secondary){% endif %}; transition: all 0.2s;">
+              ⚡ منتجات وخدمات رقمية
             </a>
             <a href="?view=products&in_stock=1{% if query %}&q={{ query }}{% endif %}{% if active_category %}&category={{ active_category }}{% endif %}" style="flex-shrink: 0; padding: 0.38rem 0.85rem; border-radius: 9999px; font-size: 0.74rem; font-weight: 800; border: 1px solid {% if in_stock_filter == '1' %}#34d399{% else %}var(--rq-border){% endif %}; background: {% if in_stock_filter == '1' %}rgba(16,185,129,0.2){% else %}var(--rq-surface-card){% endif %}; color: {% if in_stock_filter == '1' %}#34d399{% else %}var(--rq-text-secondary){% endif %}; transition: all 0.2s;">
               🟢 المتوفر حالياً فقط
@@ -253,10 +291,15 @@
             {% product_display_image p as p_img %}
             <article class="rq-product-card">
               <a href="{% url 'product_detail' p.id %}" class="rq-product-thumb">
+                {% if p.is_sale %}
+                <span class="rq-badge" style="position: absolute; top: 0.45rem; left: 0.45rem; z-index: 2; background: linear-gradient(135deg, #ef4444, #f97316); color: #fff;">🔥 عرض خاص</span>
+                {% elif p.is_featured %}
+                <span class="rq-badge" style="position: absolute; top: 0.45rem; left: 0.45rem; z-index: 2; background: linear-gradient(135deg, #f59e0b, #d97706); color: #030712;">⭐ مميز</span>
+                {% endif %}
                 {% if p.product_type == 'physical' %}
                 <span class="rq-badge rq-badge-stock" style="position: absolute; top: 0.45rem; right: 0.45rem; z-index: 2;"><i class="fas fa-truck"></i> شحن</span>
                 {% else %}
-                <span class="rq-badge rq-badge-featured" style="position: absolute; top: 0.45rem; right: 0.45rem; z-index: 2;"><i class="fas fa-truck-fast"></i> شحن وتوصيل</span>
+                <span class="rq-badge rq-badge-featured" style="position: absolute; top: 0.45rem; right: 0.45rem; z-index: 2;"><i class="fas fa-bolt"></i> فوري</span>
                 {% endif %}
                 <img src="{{ p_img }}" alt="{{ p.name }}" loading="lazy" onerror="this.onerror=null; this.src='{% static 'site/img/raqamiyat_logo_square.jpg' %}';">
               </a>
@@ -332,6 +375,44 @@
         </div>
 
       </div>
+    </div>
+
+    <!-- ── Promotional Storefront Banner & Trust Strip ── -->
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 0.65rem; margin-bottom: 1.25rem;">
+      <div style="display: flex; align-items: center; gap: 0.65rem; padding: 0.75rem 0.95rem; border-radius: 14px; background: linear-gradient(135deg, rgba(6, 182, 212, 0.12), rgba(15, 23, 42, 0.85)); border: 1px solid rgba(34, 211, 238, 0.25);">
+        <span style="width: 34px; height: 34px; border-radius: 10px; background: rgba(34, 211, 238, 0.16); color: #22d3ee; display: flex; align-items: center; justify-content: center; flex-shrink: 0;"><i class="fas fa-bolt"></i></span>
+        <div>
+          <div style="font-size: 0.78rem; font-weight: 900; color: var(--rq-text-primary);">تجهيز وشحن سريع</div>
+          <div style="font-size: 0.68rem; color: var(--rq-text-secondary);">توصيل موثوق لكافة المحافظات</div>
+        </div>
+      </div>
+
+      <div style="display: flex; align-items: center; gap: 0.65rem; padding: 0.75rem 0.95rem; border-radius: 14px; background: linear-gradient(135deg, rgba(251, 191, 36, 0.12), rgba(15, 23, 42, 0.85)); border: 1px solid rgba(251, 191, 36, 0.25);">
+        <span style="width: 34px; height: 34px; border-radius: 10px; background: rgba(251, 191, 36, 0.16); color: #fbbf24; display: flex; align-items: center; justify-content: center; flex-shrink: 0;"><i class="fas fa-credit-card"></i></span>
+        <div>
+          <div style="font-size: 0.78rem; font-weight: 900; color: var(--rq-text-primary);">دفع شام كاش وبيميرا</div>
+          <div style="font-size: 0.68rem; color: var(--rq-text-secondary);">دفع فوري وآمن بالدولار والليرة</div>
+        </div>
+      </div>
+
+      <div style="display: flex; align-items: center; gap: 0.65rem; padding: 0.75rem 0.95rem; border-radius: 14px; background: linear-gradient(135deg, rgba(16, 185, 129, 0.12), rgba(15, 23, 42, 0.85)); border: 1px solid rgba(16, 185, 129, 0.25);">
+        <span style="width: 34px; height: 34px; border-radius: 10px; background: rgba(16, 185, 129, 0.16); color: #34d399; display: flex; align-items: center; justify-content: center; flex-shrink: 0;"><i class="fas fa-shield-check"></i></span>
+        <div>
+          <div style="font-size: 0.78rem; font-weight: 900; color: var(--rq-text-primary);">جودة أصلية ومضمونة</div>
+          <div style="font-size: 0.68rem; color: var(--rq-text-secondary);">فحص وضمان رقميات المعتمد</div>
+        </div>
+      </div>
+
+      <a href="{% url 'download_android_apk' %}" style="display: flex; align-items: center; justify-content: space-between; gap: 0.65rem; padding: 0.75rem 0.95rem; border-radius: 14px; background: linear-gradient(135deg, rgba(14, 165, 233, 0.22), rgba(16, 185, 129, 0.2)); border: 1px solid rgba(34, 211, 238, 0.45); text-decoration: none;">
+        <div style="display: flex; align-items: center; gap: 0.6rem;">
+          <span style="width: 34px; height: 34px; border-radius: 10px; background: #22d3ee; color: #030712; display: flex; align-items: center; justify-content: center; flex-shrink: 0; font-size: 1.05rem;"><i class="fab fa-android"></i></span>
+          <div>
+            <div style="font-size: 0.78rem; font-weight: 900; color: #ffffff;">حمل تطبيق الأندرويد</div>
+            <div style="font-size: 0.68rem; color: #bae6fd;">تصفح أسرع وعروض حصرية</div>
+          </div>
+        </div>
+        <i class="fas fa-arrow-left" style="color: #22d3ee; font-size: 0.8rem;"></i>
+      </a>
     </div>
 
   </div>

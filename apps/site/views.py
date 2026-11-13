@@ -7543,32 +7543,71 @@ def api_offline_catalog(request):
 
 def download_android_apk(request):
     """
-    Direct download and landing page for the compiled Raqamiyat Android APK.
-    If ?direct=1 is provided or direct download is requested, streams local APK file.
-    Otherwise renders the dedicated download landing page with installation guide.
+    Direct local-server download and landing page for the compiled Raqamiyat Android APK.
+    Always serves the APK directly from the local site server (never redirects user to GitHub).
     """
     import os
-    from django.http import FileResponse, Http404
+    import requests as http_requests
+    from django.http import FileResponse, HttpResponse
     from django.conf import settings
 
     direct = request.GET.get("direct") == "1" or request.headers.get("accept", "").startswith("application/vnd.android.package-archive")
-    local_apk_path = os.path.join(settings.MEDIA_ROOT, "apk", "Raqamiyat-Release.apk")
+    apk_dir = os.path.join(settings.MEDIA_ROOT, "apk")
+    local_apk_path = os.path.join(apk_dir, "Raqamiyat-Release.apk")
+
+    candidate_paths = [
+        local_apk_path,
+        os.path.join(settings.BASE_DIR, "media", "apk", "Raqamiyat-Release.apk"),
+        os.path.join(settings.BASE_DIR, "release_apk", "Raqamiyat-Release.apk"),
+        os.path.join(settings.BASE_DIR, "android", "app", "build", "outputs", "apk", "release", "app-release.apk"),
+    ]
+    found_path = next((p for p in candidate_paths if os.path.exists(p) and os.path.getsize(p) > 100000), None)
 
     if direct:
-        if os.path.exists(local_apk_path):
+        if not found_path:
+            # Cache locally on the site server once instead of redirecting user to GitHub
+            try:
+                os.makedirs(apk_dir, exist_ok=True)
+                upstream_url = getattr(
+                    settings,
+                    "ANDROID_APK_UPSTREAM_URL",
+                    "https://github.com/RamiQassas/store/releases/download/v2.0.0-apk/Raqamiyat-Release.apk"
+                )
+                resp = http_requests.get(upstream_url, stream=True, timeout=30)
+                if resp.status_code == 200:
+                    tmp_path = local_apk_path + ".tmp"
+                    with open(tmp_path, "wb") as f:
+                        for chunk in resp.iter_content(chunk_size=65536):
+                            if chunk:
+                                f.write(chunk)
+                    if os.path.exists(tmp_path) and os.path.getsize(tmp_path) > 100000:
+                        os.replace(tmp_path, local_apk_path)
+                        found_path = local_apk_path
+            except Exception as exc:
+                logger.warning("Failed to cache APK locally: %s", exc)
+
+        if found_path and os.path.exists(found_path):
             response = FileResponse(
-                open(local_apk_path, "rb"),
+                open(found_path, "rb"),
                 content_type="application/vnd.android.package-archive",
                 as_attachment=True,
-                filename="Raqamiyat-Release.apk"
+                filename="Raqamiyat-v3.0.0.apk"
             )
-            response["Content-Length"] = os.path.getsize(local_apk_path)
+            response["Content-Length"] = os.path.getsize(found_path)
+            response["Cache-Control"] = "no-store"
             return response
-        else:
-            # Fallback to GitHub Release asset
-            return redirect("https://github.com/RamiQassas/store/releases/download/v2.0.0-apk/Raqamiyat-Release.apk")
 
-    return render(request, "site/download_app.html")
+        return HttpResponse(
+            "ملف التطبيق قيد التجهيز على الخادم المحلي حالياً، يرجى المحاولة بعد قليل.",
+            status=503,
+            content_type="text/plain; charset=utf-8"
+        )
+
+    apk_size_mb = round(os.path.getsize(found_path) / (1024 * 1024), 1) if found_path else 4.9
+    return render(request, "site/download_app.html", {
+        "apk_available": bool(found_path),
+        "apk_size_mb": apk_size_mb,
+    })
 
 
 @admin_required

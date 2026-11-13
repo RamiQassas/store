@@ -1,298 +1,601 @@
 {% extends "site/base.html" %}
 {% load static %}
 
-{% block title %}تحميل تطبيق رقميات الرسمي للأجهزة الذكية | Raqamiyat Mobile App{% endblock %}
+{% block title %}تحميل تطبيق رقميات الرسمي للأندرويد | Raqamiyat App v3.0{% endblock %}
 
 {% block extra_head %}
 <style>
-    .app-landing-root {
-        position: relative;
-        direction: rtl;
-        font-family: 'Cairo', 'Tajawal', sans-serif;
+  .rq-app-page {
+    position: relative;
+    direction: rtl;
+    padding: 2.25rem 0 4.5rem;
+    overflow-x: clip;
+  }
+
+  .rq-app-hero {
+    position: relative;
+    border-radius: 28px;
+    background: linear-gradient(135deg, #030712 0%, #0b132b 52%, #083344 100%);
+    border: 1px solid rgba(34, 211, 238, 0.28);
+    padding: clamp(1.5rem, 4vw, 3.25rem);
+    box-shadow: 0 25px 60px rgba(2, 6, 23, 0.65);
+    overflow: hidden;
+    margin-bottom: 2.5rem;
+  }
+
+  .rq-app-hero::before {
+    content: "";
+    position: absolute;
+    top: -120px;
+    left: -120px;
+    width: 380px;
+    height: 380px;
+    background: radial-gradient(circle, rgba(6, 182, 212, 0.22) 0%, transparent 70%);
+    pointer-events: none;
+  }
+
+  .rq-app-hero::after {
+    content: "";
+    position: absolute;
+    bottom: -140px;
+    right: -100px;
+    width: 340px;
+    height: 340px;
+    background: radial-gradient(circle, rgba(251, 191, 36, 0.14) 0%, transparent 70%);
+    pointer-events: none;
+  }
+
+  .rq-app-hero-grid {
+    position: relative;
+    z-index: 2;
+    display: grid;
+    grid-template-columns: 1.25fr 0.85fr;
+    gap: 2.5rem;
+    align-items: center;
+  }
+
+  @media (max-width: 900px) {
+    .rq-app-hero-grid {
+      grid-template-columns: 1fr;
+      text-align: center;
     }
-    .hero-glow-cyan {
-        position: absolute;
-        top: 5%;
-        left: 50%;
-        transform: translateX(-50%);
-        width: 600px;
-        height: 600px;
-        background: radial-gradient(circle, rgba(6, 182, 212, 0.15) 0%, transparent 70%);
-        pointer-events: none;
-        z-index: 0;
+  }
+
+  .rq-app-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.42rem 1rem;
+    border-radius: 999px;
+    background: rgba(6, 182, 212, 0.14);
+    border: 1px solid rgba(34, 211, 238, 0.38);
+    color: #22d3ee;
+    font-size: 0.78rem;
+    font-weight: 800;
+    margin-bottom: 1.1rem;
+  }
+
+  .rq-app-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: #10b981;
+    box-shadow: 0 0 10px #10b981;
+  }
+
+  .rq-app-title {
+    font-size: clamp(1.85rem, 4.2vw, 3.15rem);
+    font-weight: 900;
+    color: #ffffff;
+    line-height: 1.25;
+    margin: 0 0 0.9rem;
+  }
+
+  .rq-app-title .gold {
+    color: #fbbf24;
+  }
+
+  .rq-app-title .cyan {
+    color: #22d3ee;
+  }
+
+  .rq-app-desc {
+    font-size: 0.98rem;
+    color: #cbd5e1;
+    line-height: 1.8;
+    margin: 0 0 1.6rem;
+    max-width: 600px;
+  }
+
+  @media (max-width: 900px) {
+    .rq-app-desc {
+      margin-left: auto;
+      margin-right: auto;
     }
-    .hero-glow-gold {
-        position: absolute;
-        bottom: 10%;
-        left: 20%;
-        width: 450px;
-        height: 450px;
-        background: radial-gradient(circle, rgba(245, 158, 11, 0.12) 0%, transparent 70%);
-        pointer-events: none;
-        z-index: 0;
+  }
+
+  .rq-app-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.9rem;
+    align-items: center;
+    margin-bottom: 1.6rem;
+  }
+
+  @media (max-width: 900px) {
+    .rq-app-actions {
+      justify-content: center;
     }
-    .device-mockup {
-        position: relative;
-        border: 4px solid rgba(255, 255, 255, 0.15);
-        border-radius: 40px;
-        box-shadow: 0 25px 60px -15px rgba(0, 0, 0, 0.8), 0 0 40px rgba(6, 182, 212, 0.2);
-        background: #030712;
-        overflow: hidden;
+  }
+
+  .rq-apk-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.9rem;
+    padding: 0.95rem 1.75rem;
+    border-radius: 16px;
+    background: linear-gradient(135deg, #22d3ee 0%, #10b981 100%);
+    color: #030712;
+    text-decoration: none;
+    font-weight: 900;
+    box-shadow: 0 14px 32px rgba(6, 182, 212, 0.35);
+    transition: transform 0.2s ease, filter 0.2s ease;
+  }
+
+  .rq-apk-btn:hover {
+    transform: translateY(-3px);
+    filter: brightness(1.08);
+    color: #030712;
+  }
+
+  .rq-apk-btn i.fab {
+    font-size: 1.75rem;
+  }
+
+  .rq-apk-btn-sub {
+    display: block;
+    font-size: 0.72rem;
+    font-weight: 800;
+    opacity: 0.82;
+  }
+
+  .rq-apk-btn-main {
+    display: block;
+    font-size: 1.02rem;
+    font-weight: 900;
+  }
+
+  .rq-ios-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.8rem;
+    padding: 0.95rem 1.4rem;
+    border-radius: 16px;
+    background: rgba(15, 23, 42, 0.85);
+    border: 1px solid rgba(255, 255, 255, 0.14);
+    color: #e2e8f0;
+  }
+
+  .rq-soon-tag {
+    padding: 0.22rem 0.65rem;
+    border-radius: 999px;
+    background: rgba(251, 191, 36, 0.14);
+    border: 1px solid rgba(251, 191, 36, 0.35);
+    color: #fbbf24;
+    font-size: 0.72rem;
+    font-weight: 800;
+  }
+
+  .rq-trust-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1rem 1.5rem;
+    padding-top: 1.15rem;
+    border-top: 1px solid rgba(255, 255, 255, 0.08);
+    font-size: 0.8rem;
+    color: #94a3b8;
+    font-weight: 700;
+  }
+
+  @media (max-width: 900px) {
+    .rq-trust-row {
+      justify-content: center;
     }
-    .feature-card {
-        background: rgba(15, 23, 42, 0.6);
-        border: 1px solid rgba(255, 255, 255, 0.08);
-        border-radius: 24px;
-        padding: 1.75rem;
-        backdrop-filter: blur(16px);
-        transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
-    }
-    .feature-card:hover {
-        transform: translateY(-4px);
-        border-color: rgba(6, 182, 212, 0.4);
-        box-shadow: 0 15px 35px -10px rgba(0, 0, 0, 0.6);
-    }
+  }
+
+  .rq-trust-row span {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+  }
+
+  /* Realistic Phone Mockup */
+  .rq-phone-frame {
+    width: 280px;
+    margin: 0 auto;
+    border-radius: 36px;
+    padding: 12px;
+    background: linear-gradient(160deg, #1e293b 0%, #020617 100%);
+    border: 2px solid rgba(34, 211, 238, 0.35);
+    box-shadow: 0 28px 65px rgba(0, 0, 0, 0.75), 0 0 35px rgba(6, 182, 212, 0.18);
+  }
+
+  .rq-phone-screen {
+    background: #030712;
+    border-radius: 26px;
+    overflow: hidden;
+    padding: 14px;
+    text-align: right;
+  }
+
+  .rq-phone-topbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding-bottom: 10px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    margin-bottom: 10px;
+  }
+
+  .rq-phone-brand {
+    color: #fbbf24;
+    font-weight: 900;
+    font-size: 0.85rem;
+  }
+
+  .rq-phone-badges {
+    display: flex;
+    gap: 5px;
+  }
+
+  .rq-phone-mini-btn {
+    padding: 3px 7px;
+    border-radius: 8px;
+    font-size: 0.64rem;
+    font-weight: 800;
+    background: #f59e0b;
+    color: #030712;
+  }
+
+  .rq-phone-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+    margin-bottom: 12px;
+  }
+
+  .rq-phone-card {
+    background: #111827;
+    border: 1px solid #1f2937;
+    border-radius: 12px;
+    padding: 8px;
+  }
+
+  .rq-phone-thumb {
+    height: 62px;
+    border-radius: 8px;
+    background: linear-gradient(135deg, #ffffff 0%, #e2e8f0 100%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #0284c7;
+    font-size: 1.35rem;
+    margin-bottom: 6px;
+  }
+
+  .rq-phone-prod-name {
+    color: #f8fafc;
+    font-size: 0.7rem;
+    font-weight: 800;
+    margin-bottom: 2px;
+  }
+
+  .rq-phone-prod-price {
+    color: #fbbf24;
+    font-size: 0.72rem;
+    font-weight: 900;
+  }
+
+  .rq-phone-notif {
+    background: rgba(6, 182, 212, 0.12);
+    border: 1px solid rgba(34, 211, 238, 0.32);
+    border-radius: 12px;
+    padding: 9px 10px;
+    color: #e2e8f0;
+    font-size: 0.68rem;
+    line-height: 1.5;
+  }
+
+  /* Features Grid */
+  .rq-app-section-head {
+    text-align: center;
+    margin-bottom: 1.75rem;
+  }
+
+  .rq-app-section-head h2 {
+    font-size: clamp(1.4rem, 3vw, 2.1rem);
+    font-weight: 900;
+    color: var(--rq-text-primary);
+    margin: 0 0 0.45rem;
+  }
+
+  .rq-app-section-head p {
+    font-size: 0.9rem;
+    color: var(--rq-text-secondary);
+    margin: 0;
+  }
+
+  .rq-app-features-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+    gap: 1.15rem;
+    margin-bottom: 2.75rem;
+  }
+
+  .rq-app-feature-card {
+    background: var(--rq-surface-card);
+    border: 1px solid var(--rq-border);
+    border-radius: 20px;
+    padding: 1.4rem;
+    transition: transform 0.25s ease, border-color 0.25s ease;
+  }
+
+  .rq-app-feature-card:hover {
+    transform: translateY(-4px);
+    border-color: rgba(34, 211, 238, 0.45);
+  }
+
+  .rq-app-feature-icon {
+    width: 46px;
+    height: 46px;
+    border-radius: 14px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.25rem;
+    margin-bottom: 0.9rem;
+  }
+
+  .rq-app-feature-card h3 {
+    font-size: 1.02rem;
+    font-weight: 900;
+    color: var(--rq-text-primary);
+    margin: 0 0 0.45rem;
+  }
+
+  .rq-app-feature-card p {
+    font-size: 0.84rem;
+    color: var(--rq-text-secondary);
+    line-height: 1.7;
+    margin: 0;
+  }
+
+  /* Steps */
+  .rq-install-box {
+    background: var(--rq-surface-card);
+    border: 1px solid var(--rq-border);
+    border-radius: 24px;
+    padding: clamp(1.35rem, 3vw, 2.25rem);
+  }
+
+  .rq-steps-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 1rem;
+    margin-top: 1.25rem;
+  }
+
+  .rq-step-item {
+    background: rgba(15, 23, 42, 0.45);
+    border: 1px solid var(--rq-border);
+    border-radius: 16px;
+    padding: 1.15rem;
+  }
+
+  .rq-step-num {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #22d3ee, #06b6d4);
+    color: #030712;
+    font-weight: 900;
+    font-size: 0.85rem;
+    margin-bottom: 0.65rem;
+  }
+
+  .rq-step-item h4 {
+    margin: 0 0 0.35rem;
+    font-size: 0.95rem;
+    font-weight: 800;
+    color: var(--rq-text-primary);
+  }
+
+  .rq-step-item p {
+    margin: 0;
+    font-size: 0.8rem;
+    color: var(--rq-text-secondary);
+    line-height: 1.6;
+  }
 </style>
 {% endblock %}
 
 {% block content %}
-<div class="app-landing-root min-h-screen py-8 sm:py-16 relative overflow-hidden">
-    <div class="hero-glow-cyan"></div>
-    <div class="hero-glow-gold"></div>
+<div class="rq-app-page">
+  <div class="rq-container">
 
-    <div class="container mx-auto px-4 max-w-6xl relative z-10">
-        
-        <!-- Hero Section -->
-        <div class="grid grid-cols-1 lg:grid-cols-12 gap-10 lg:gap-14 items-center mb-20">
-            
-            <!-- Hero Text & Download Actions (7 cols) -->
-            <div class="lg:col-span-7 space-y-6 text-center lg:text-right">
-                
-                <div class="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-cyan/10 border border-cyan/30 text-cyan text-xs font-black shadow-inner">
-                    <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
-                    <span>الإصدار الرسمي 3.0.0 المعتمد (Native) • دفع شام كاش وبيميرا + إشعارات العروض</span>
-                </div>
+    <!-- 1. Hero Promotional Card -->
+    <section class="rq-app-hero">
+      <div class="rq-app-hero-grid">
+        <div>
+          <div class="rq-app-pill">
+            <span class="rq-app-dot"></span>
+            <span>الإصدار الرسمي 3.0.0 (Native) • تحميل مباشر من خادم رقميات</span>
+          </div>
 
-                <h1 class="text-3xl sm:text-5xl lg:text-6xl font-black text-white leading-tight">
-                    تطبيق <span class="text-transparent bg-clip-text bg-gradient-to-r from-amber-400 via-yellow-200 to-cyan-400">رقميات</span> الذكي
-                    <br>
-                    <span class="text-2xl sm:text-4xl text-slate-200 font-bold">بين يديك في كل لحظة</span>
-                </h1>
+          <h1 class="rq-app-title">
+            تطبيق <span class="gold">رقميات</span> للأندرويد
+            <br>
+            <span class="cyan">تسوق ودفع أسرع بـ 10 أضعاف ⚡</span>
+          </h1>
 
-                <p class="text-slate-300 text-sm sm:text-base leading-relaxed max-w-xl mx-auto lg:mx-0 font-medium">
-                    تطبيق أندرويد أصيل (Native) فائق السرعة لتصفح وشراء المنتجات، مع دفع مباشر عبر <strong class="text-cyan-400">شام كاش</strong> و<strong class="text-amber-400">بيميرا</strong> من داخل التطبيق، وإشعارات فورية بأحدث العروض والتخفيضات والتحديثات، وتصفح أوفلاين متكامل.
-                </p>
+          <p class="rq-app-desc">
+            تطبيق أندرويد أصيل (Native) مصمم ليعمل بسلاسة فائقة حتى مع ضعف الإنترنت. تصفح جميع المنتجات والأسعار لحظياً، اشحن محفظتك وادفع طلباتك مباشرة عبر <strong style="color:#22d3ee;">شام كاش</strong> و<strong style="color:#fbbf24;">بيميرا</strong> من داخل التطبيق، واستلم تنبيهات فورية بأحدث العروض والتخفيضات!
+          </p>
 
-                <!-- Download & Actions Cluster -->
-                <div class="pt-2 flex flex-col sm:flex-row items-stretch sm:items-center gap-3.5 max-w-md mx-auto lg:mx-0">
-                    <!-- Direct Android APK Download -->
-                    <a href="{% url 'download_android_apk' %}?direct=1" class="flex-1 py-4 px-6 rounded-2xl bg-gradient-to-r from-cyan-400 via-teal-300 to-emerald-400 hover:brightness-110 text-slate-950 font-black text-base flex items-center justify-center gap-3 shadow-xl shadow-cyan-500/25 transition-all transform hover:-translate-y-1 active:scale-95">
-                        <i class="fab fa-android text-2xl text-slate-950"></i>
-                        <div class="text-right">
-                            <span class="block text-[10px] font-extrabold opacity-85 leading-tight">تحميل مباشر وسريع</span>
-                            <span class="block text-base font-black leading-tight">أندرويد APK (مجاناً)</span>
-                        </div>
-                        <i class="fas fa-arrow-down mr-auto text-sm opacity-70"></i>
-                    </a>
+          <div class="rq-app-actions">
+            <a href="{% url 'download_android_apk' %}?direct=1" class="rq-apk-btn">
+              <i class="fab fa-android"></i>
+              <div>
+                <span class="rq-apk-btn-sub">تحميل مباشر من الموقع ({{ apk_size_mb|default:"4.9" }} MB)</span>
+                <span class="rq-apk-btn-main">تحميل ملف التطبيق APK مجاناً</span>
+              </div>
+              <i class="fas fa-download"></i>
+            </a>
 
-                    <!-- iOS Coming Soon Button -->
-                    <div class="flex-1 py-4 px-6 rounded-2xl bg-slate-900/90 border border-white/15 text-slate-400 flex items-center justify-between gap-3 shadow-lg select-none">
-                        <div class="flex items-center gap-2.5">
-                            <i class="fab fa-apple text-2xl text-slate-300"></i>
-                            <div class="text-right">
-                                <span class="block text-[10px] font-bold text-slate-400 leading-tight">آبل آيفون (iOS)</span>
-                                <span class="block text-sm sm:text-base font-black text-slate-200 leading-tight">App Store</span>
-                            </div>
-                        </div>
-                        <span class="px-2.5 py-1 rounded-full bg-amber-400/10 border border-amber-400/30 text-amber-300 text-[10px] font-black">
-                            قريباً
-                        </span>
-                    </div>
-                </div>
-
-                <!-- Trust Strip -->
-                <div class="pt-4 flex flex-wrap items-center justify-center lg:justify-start gap-4 sm:gap-6 text-xs text-slate-400 border-t border-white/5">
-                    <span class="flex items-center gap-1.5"><i class="fas fa-shield-check text-emerald-400"></i> فحص أمني 100%</span>
-                    <span class="flex items-center gap-1.5"><i class="fas fa-bolt text-amber-400"></i> خفيف وسريع (4.6 MB)</span>
-                    <span class="flex items-center gap-1.5"><i class="fas fa-fingerprint text-cyan-400"></i> دعم بصمة الإصبع</span>
-                    <span class="flex items-center gap-1.5"><i class="fas fa-bell text-indigo-400"></i> إشعارات فورية</span>
-                </div>
-
+            <div class="rq-ios-pill">
+              <i class="fab fa-apple" style="font-size:1.55rem;"></i>
+              <div>
+                <div style="font-size:0.7rem; color:#94a3b8; font-weight:700;">آبل آيفون (iOS)</div>
+                <div style="font-size:0.9rem; font-weight:900;">App Store</div>
+              </div>
+              <span class="rq-soon-tag">قريباً</span>
             </div>
+          </div>
 
-            <!-- Hero Interactive Visual / Mockup (5 cols) -->
-            <div class="lg:col-span-5 flex justify-center">
-                <div class="device-mockup w-72 sm:w-80 p-3 relative">
-                    <!-- Notch / Dynamic Island -->
-                    <div class="w-24 h-4 bg-slate-900 rounded-full mx-auto mb-3 border border-white/10"></div>
-                    
-                    <!-- Inner Screen Content Mockup -->
-                    <div class="rounded-3xl bg-slate-950 p-4 space-y-4 border border-white/5">
-                        
-                        <!-- Top Bar Mockup -->
-                        <div class="flex items-center justify-between">
-                            <div class="flex items-center gap-2">
-                                <div class="w-8 h-8 rounded-xl bg-gradient-to-tr from-amber-400 to-cyan-400 flex items-center justify-center text-slate-950 font-black text-xs shadow-md">
-                                    <i class="fas fa-bolt"></i>
-                                </div>
-                                <span class="text-xs font-black text-white">رقميات</span>
-                            </div>
-                            <span class="w-2 h-2 rounded-full bg-emerald-400 animate-ping"></span>
-                        </div>
-
-                        <!-- Wallet Card Mini Mockup -->
-                        <div class="p-3.5 rounded-2xl bg-gradient-to-br from-slate-900 to-slate-800 border border-cyan/30 space-y-2">
-                            <div class="flex items-center justify-between text-[10px] text-slate-400">
-                                <span>محفظة رقميات الرقمية</span>
-                                <i class="fas fa-wallet text-cyan"></i>
-                            </div>
-                            <div class="text-lg font-black text-white font-mono">$ 150.00</div>
-                            <div class="flex items-center gap-1.5 text-[9px] text-emerald-400 font-bold">
-                                <i class="fas fa-shield-halved"></i>
-                                <span>جاهز للتسوق والشحن الفوري</span>
-                            </div>
-                        </div>
-
-                        <!-- Mini Services Grid -->
-                        <div class="grid grid-cols-2 gap-2 text-center">
-                            <div class="p-2.5 rounded-xl bg-slate-900/90 border border-white/5">
-                                <i class="fas fa-laptop-code text-cyan text-sm mb-1 block"></i>
-                                <span class="text-[10px] font-bold text-white block">برمجيات بالجملة</span>
-                            </div>
-                            <div class="p-2.5 rounded-xl bg-slate-900/90 border border-white/5">
-                                <i class="fas fa-microchip text-amber-400 text-sm mb-1 block"></i>
-                                <span class="text-[10px] font-bold text-white block">معدات إلكترونية</span>
-                            </div>
-                            <div class="p-2.5 rounded-xl bg-slate-900/90 border border-white/5">
-                                <i class="fas fa-network-wired text-indigo-400 text-sm mb-1 block"></i>
-                                <span class="text-[10px] font-bold text-white block">أنظمة اتصالات</span>
-                            </div>
-                            <div class="p-2.5 rounded-xl bg-slate-900/90 border border-white/5">
-                                <i class="fas fa-certificate text-emerald-400 text-sm mb-1 block"></i>
-                                <span class="text-[10px] font-bold text-white block">تراخيص معتمدة</span>
-                            </div>
-                        </div>
-
-                        <!-- Mini Download Callout -->
-                        <div class="p-2.5 rounded-xl bg-emerald-500/15 border border-emerald-500/30 text-center">
-                            <span class="text-[11px] font-black text-emerald-400">جاهز للتثبيت بنقرة واحدة</span>
-                        </div>
-
-                    </div>
-                </div>
-            </div>
-
+          <div class="rq-trust-row">
+            <span><i class="fas fa-shield-halved" style="color:#10b981;"></i> ملف رسمي آمن وموثق 100%</span>
+            <span><i class="fas fa-server" style="color:#22d3ee;"></i> تحميل مباشر من خادمنا المحلي</span>
+            <span><i class="fas fa-wifi" style="color:#fbbf24;"></i> يعمل في وضع الأوفلاين</span>
+            <span><i class="fas fa-bell" style="color:#818cf8;"></i> إشعارات عروض وتخفيضات فورية</span>
+          </div>
         </div>
 
-        <!-- App Superpowers Feature Grid -->
-        <div class="mb-20">
-            <div class="text-center max-w-2xl mx-auto mb-12 space-y-2">
-                <span class="text-xs font-black text-cyan uppercase tracking-wider block">مميزات التطبيق الحصرية</span>
-                <h2 class="text-2xl sm:text-4xl font-black text-white">لماذا تفضل استخدام تطبيق رقميات؟</h2>
-                <p class="text-xs sm:text-sm text-slate-400">تجربة صممت خصيصاً لراحتك وسرعة تلبية احتياجاتك الرقمية</p>
+        <!-- Phone Mockup -->
+        <div>
+          <div class="rq-phone-frame">
+            <div class="rq-phone-screen">
+              <div class="rq-phone-topbar">
+                <span class="rq-phone-brand">⚡ رقميات</span>
+                <div class="rq-phone-badges">
+                  <span class="rq-phone-mini-btn">💳 شحن</span>
+                  <span class="rq-phone-mini-btn" style="background:#1e293b; color:#fff;">🔔</span>
+                </div>
+              </div>
+
+              <div class="rq-phone-grid">
+                <div class="rq-phone-card">
+                  <div class="rq-phone-thumb"><i class="fas fa-headphones"></i></div>
+                  <div class="rq-phone-prod-name">سماعات لاسلكية احترافية</div>
+                  <div class="rq-phone-prod-price">$24.00</div>
+                </div>
+                <div class="rq-phone-card">
+                  <div class="rq-phone-thumb"><i class="fas fa-bolt" style="color:#f59e0b;"></i></div>
+                  <div class="rq-phone-prod-name">شاحن سريع 65W الأصلي</div>
+                  <div class="rq-phone-prod-price">$18.50</div>
+                </div>
+              </div>
+
+              <div class="rq-phone-notif">
+                <strong style="color:#22d3ee;">🎁 عرض خاص الآن:</strong>
+                خصم حصري وشحن سريع عبر شام كاش وبيميرا مباشرة من داخل التطبيق!
+              </div>
             </div>
-
-            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                <!-- Feature 1 -->
-                <div class="feature-card space-y-3">
-                    <div class="w-12 h-12 rounded-2xl bg-cyan/15 border border-cyan/30 flex items-center justify-center text-cyan text-xl">
-                        <i class="fas fa-bolt"></i>
-                    </div>
-                    <h3 class="text-base font-black text-white">تسليم فوري ومباشر</h3>
-                    <p class="text-xs text-slate-400 leading-relaxed">
-                        استلم أكوادك وشحناتك خلال ثوانٍ معدودة مباشرة داخل التطبيق دون أي تأخير.
-                    </p>
-                </div>
-
-                <!-- Feature 2 -->
-                <div class="feature-card space-y-3">
-                    <div class="w-12 h-12 rounded-2xl bg-amber-500/15 border border-amber-500/30 flex items-center justify-center text-amber-400 text-xl">
-                        <i class="fas fa-bell"></i>
-                    </div>
-                    <h3 class="text-base font-black text-white">إشعارات حية ومباشرة</h3>
-                    <p class="text-xs text-slate-400 leading-relaxed">
-                        تنبيهات فورية على شاشة قفل هاتفك فور اكتمال طلبك أو توفر عروض حصرية جديدة.
-                    </p>
-                </div>
-
-                <!-- Feature 3 -->
-                <div class="feature-card space-y-3">
-                    <div class="w-12 h-12 rounded-2xl bg-emerald-500/15 border border-emerald-500/30 flex items-center justify-center text-emerald-400 text-xl">
-                        <i class="fas fa-fingerprint"></i>
-                    </div>
-                    <h3 class="text-base font-black text-white">حماية قصوى ودخول بالبصمة</h3>
-                    <p class="text-xs text-slate-400 leading-relaxed">
-                        سجل دخولك بلمسة واحدة ببصمة الإصبع أو الوجه مع حماية مشفرة لأرصدتك وبياناتك.
-                    </p>
-                </div>
-
-                <!-- Feature 4 -->
-                <div class="feature-card space-y-3">
-                    <div class="w-12 h-12 rounded-2xl bg-indigo-500/15 border border-indigo-500/30 flex items-center justify-center text-indigo-400 text-xl">
-                        <i class="fas fa-wallet"></i>
-                    </div>
-                    <h3 class="text-base font-black text-white">محفظة رقمية متعددة العملات</h3>
-                    <p class="text-xs text-slate-400 leading-relaxed">
-                        إدارة أرصدتك بكل سهولة (ليرة سورية، تركية، دولار، وعملات رقمية) وتحويل فوري.
-                    </p>
-                </div>
-            </div>
+          </div>
         </div>
+      </div>
+    </section>
 
-        <!-- 3-Step Simple Install Guide -->
-        <div class="p-6 sm:p-10 rounded-3xl bg-slate-900/60 border border-white/10 backdrop-blur-xl">
-            <div class="flex flex-wrap items-center justify-between gap-4 mb-8 pb-4 border-b border-white/5">
-                <div>
-                    <h3 class="text-lg sm:text-xl font-black text-white flex items-center gap-2">
-                        <i class="fas fa-download text-cyan"></i>
-                        <span>كيفية تثبيت التطبيق في 3 خطوات بسيطة:</span>
-                    </h3>
-                    <p class="text-xs text-slate-400 mt-1">تثبيت سهل وسريع يستغرق أقل من 30 ثانية</p>
-                </div>
-                <a href="{% url 'download_android_apk' %}?direct=1" class="px-4 py-2 rounded-xl bg-cyan text-slate-950 font-black text-xs hover:brightness-110 transition-all">
-                    تحميل الملف الآن
-                </a>
-            </div>
-
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-                <div class="flex items-start gap-3.5">
-                    <div class="w-10 h-10 rounded-2xl bg-cyan/15 text-cyan border border-cyan/30 flex items-center justify-center font-black text-sm flex-shrink-0">
-                        1
-                    </div>
-                    <div class="space-y-1">
-                        <h4 class="text-sm font-black text-white">حمّل ملف التطبيق</h4>
-                        <p class="text-xs text-slate-400 leading-relaxed">
-                            اضغط على زر "تحميل أندرويد APK" وسيبدأ تحميل الملف مباشرة على هاتفك.
-                        </p>
-                    </div>
-                </div>
-
-                <div class="flex items-start gap-3.5">
-                    <div class="w-10 h-10 rounded-2xl bg-amber-500/15 text-amber-300 border border-amber-500/30 flex items-center justify-center font-black text-sm flex-shrink-0">
-                        2
-                    </div>
-                    <div class="space-y-1">
-                        <h4 class="text-sm font-black text-white">تأكيد التثبيت</h4>
-                        <p class="text-xs text-slate-400 leading-relaxed">
-                            افتح الملف واضغط "تثبيت" (إذا ظهر إشعار الأمان، اختر "السماح بالتثبيت من هذا المصدر").
-                        </p>
-                    </div>
-                </div>
-
-                <div class="flex items-start gap-3.5">
-                    <div class="w-10 h-10 rounded-2xl bg-emerald-500/15 text-emerald-300 border border-emerald-500/30 flex items-center justify-center font-black text-sm flex-shrink-0">
-                        3
-                    </div>
-                    <div class="space-y-1">
-                        <h4 class="text-sm font-black text-white">ابدأ الاستخدام فوراً</h4>
-                        <p class="text-xs text-slate-400 leading-relaxed">
-                            افتح تطبيق رقميات وسجل دخولك واستمتع بتسوق رقمي فوري وآمن.
-                        </p>
-                    </div>
-                </div>
-            </div>
-        </div>
-
+    <!-- 2. Promotional Features Grid -->
+    <div class="rq-app-section-head">
+      <h2>لماذا يفضل عملاؤنا تطبيق رقميات؟</h2>
+      <p>مزايا حصرية مصممة لراحتك وسرعة إتمام طلباتك في أي وقت</p>
     </div>
+
+    <div class="rq-app-features-grid">
+      <div class="rq-app-feature-card">
+        <div class="rq-app-feature-icon" style="background:rgba(34,211,238,0.14); color:#22d3ee;">
+          <i class="fas fa-mobile-screen-button"></i>
+        </div>
+        <h3>تطبيق أندرويد أصيل (Native)</h3>
+        <p>واجهة أصلية فائقة السرعة مصممة خصيصاً للهاتف بدون ثقل المتصفح، مع عرض واضح للمنتجات والصور والأسعار.</p>
+      </div>
+
+      <div class="rq-app-feature-card">
+        <div class="rq-app-feature-icon" style="background:rgba(251,191,36,0.14); color:#fbbf24;">
+          <i class="fas fa-credit-card"></i>
+        </div>
+        <h3>الدفع المباشر عبر شام كاش وبيميرا</h3>
+        <p>اشحن محفظتك وأتمم مدفوعاتك بلمسة واحدة من داخل التطبيق عبر بوابتي ShamCash وPaymera مع تحقق تلقائي للرصيد.</p>
+      </div>
+
+      <div class="rq-app-feature-card">
+        <div class="rq-app-feature-icon" style="background:rgba(16,185,129,0.14); color:#10b981;">
+          <i class="fas fa-bell"></i>
+        </div>
+        <h3>إشعارات العروض والتخفيضات</h3>
+        <p>كن أول من يعلم بالتخفيضات الموسمية، العروض الترويجية، وتحديثات الطلبات فور صدورها عبر إشعارات فورية.</p>
+      </div>
+
+      <div class="rq-app-feature-card">
+        <div class="rq-app-feature-icon" style="background:rgba(129,140,248,0.14); color:#818cf8;">
+          <i class="fas fa-plane-slash"></i>
+        </div>
+        <h3>تصفح بدون إنترنت (Offline)</h3>
+        <p>يحتفظ التطبيق بنسخة محلية من المنتجات والصور والتصنيفات لتتمكن من تصفح المتجر والأسعار حتى عند انقطاع الشبكة.</p>
+      </div>
+
+      <div class="rq-app-feature-card">
+        <div class="rq-app-feature-icon" style="background:rgba(244,63,94,0.14); color:#fb7185;">
+          <i class="fab fa-google"></i>
+        </div>
+        <h3>دخول فوري وآمن عبر Google</h3>
+        <p>سجل دخولك بضغطة واحدة باستخدام حساب Google المسجل على هاتفك دون الحاجة لكتابة كلمات مرور طويلة.</p>
+      </div>
+
+      <div class="rq-app-feature-card">
+        <div class="rq-app-feature-icon" style="background:rgba(14,165,233,0.14); color:#38bdf8;">
+          <i class="fas fa-camera-retro"></i>
+        </div>
+        <h3>استوديو تصوير المنتجات للإدارة</h3>
+        <p>أداة مدمجة لمديري المتجر لتصوير المنتجات بكود المنتج وعزل الخلفية تلقائياً وإضافة شعار رقميات خلال ثوانٍ.</p>
+      </div>
+    </div>
+
+    <!-- 3. Easy Installation Steps -->
+    <div class="rq-install-box">
+      <div style="display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:1rem;">
+        <div>
+          <h3 style="margin:0 0 0.25rem; font-size:1.2rem; font-weight:900; color:var(--rq-text-primary);">خطوات التثبيت السريعة (أقل من 30 ثانية)</h3>
+          <p style="margin:0; font-size:0.84rem; color:var(--rq-text-secondary);">التحميل مباشر وآمن 100% من خادم موقع رقميات الرسمي</p>
+        </div>
+        <a href="{% url 'download_android_apk' %}?direct=1" class="rq-apk-btn" style="padding:0.75rem 1.35rem;">
+          <i class="fas fa-download"></i>
+          <span>ابدأ التحميل الآن</span>
+        </a>
+      </div>
+
+      <div class="rq-steps-grid">
+        <div class="rq-step-item">
+          <span class="rq-step-num">1</span>
+          <h4>تحميل ملف APK</h4>
+          <p>اضغط على زر «تحميل ملف التطبيق APK مجاناً» ليبدأ التنزيل مباشرة من خادمنا المحلي.</p>
+        </div>
+        <div class="rq-step-item">
+          <span class="rq-step-num">2</span>
+          <h4>السماح بالتثبيت</h4>
+          <p>عند فتح الملف، وافق على خيار «التثبيت من هذا المصدر» في إعدادات أندرويد لمرة واحدة فقط.</p>
+        </div>
+        <div class="rq-step-item">
+          <span class="rq-step-num">3</span>
+          <h4>افتح التطبيق وتسوق</h4>
+          <p>شغل تطبيق رقميات واستمتع بتصفح المنتجات، الدفع عبر شام كاش وبيميرا، واستقبال العروض.</p>
+        </div>
+      </div>
+    </div>
+
+  </div>
 </div>
 {% endblock %}
