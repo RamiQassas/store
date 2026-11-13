@@ -24,6 +24,8 @@ urlpatterns = [
     path("auth/2fa-verify/", views.v3_2fa_verify_view, name="site_2fa_verify"),
     path("auth/sp-verify/", views.v3_verify_sp_view, name="site_sp_verify"),
     path("auth/sso-callback/", views.sso_transfer_view, name="sso_transfer"),
+    path("auth/app-sso-handoff/", views.app_sso_handoff, name="app_sso_handoff"),
+    path("auth/app-sso-exchange/", views.app_sso_exchange, name="app_sso_exchange"),
 
     path("", views.home, name="home"),
     path("stores/", views.stores_directory, name="stores_directory"),

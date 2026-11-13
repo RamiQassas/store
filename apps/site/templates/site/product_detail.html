@@ -2,6 +2,33 @@
 {% load static site_tags %}
 
 {% block title %}{{ product.name }} | {% if is_tenant %}{{ STORE_NAME }}{% else %}رقميات Raqamiyat{% endif %}{% endblock %}
+{% block meta_description %}{{ product.description|striptags|truncatechars:155|default:product.name }}{% endblock %}
+{% block og_tags %}
+<meta property="og:type" content="product">
+<meta property="og:title" content="{{ product.name }} | رقميات">
+<meta property="og:description" content="{{ product.description|striptags|truncatechars:155|default:product.name }}">
+{% if product.image %}<meta property="og:image" content="{{ request.scheme }}://{{ request.get_host }}{{ product.image.url }}">{% endif %}
+<meta property="og:url" content="{{ request.scheme }}://{{ request.get_host }}{{ request.path }}">
+{% endblock %}
+{% block structured_data %}
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org/",
+  "@type": "Product",
+  "name": "{{ product.name|escapejs }}",
+  "description": "{{ product.description|striptags|truncatechars:200|default:product.name|escapejs }}",
+  {% if product.image %}"image": "{{ request.scheme }}://{{ request.get_host }}{{ product.image.url }}",{% endif %}
+  "brand": {"@type": "Brand", "name": "Raqamiyat"},
+  "offers": {
+    "@type": "Offer",
+    "url": "{{ request.scheme }}://{{ request.get_host }}{{ request.path }}",
+    "priceCurrency": "USD",
+    "price": "{{ product.base_price|default:'0.00' }}",
+    "availability": "{% if product.is_out_of_stock %}https://schema.org/OutOfStock{% else %}https://schema.org/InStock{% endif %}"
+  }
+}
+</script>
+{% endblock %}
 
 {% block extra_head %}
 <style>

@@ -180,14 +180,7 @@ public class MainActivity extends AppCompatActivity implements ConnectivityHelpe
         // Handle Deep Linking or Start Native Storefront
         Intent intent = getIntent();
         if (intent != null && intent.getData() != null) {
-            String deepUrl = intent.getData().toString();
-            if (deepUrl.contains("/control/camera-studio")) {
-                launchNativeStudio();
-            } else if (deepUrl.contains("/dashboard/") || deepUrl.contains("/control/") || deepUrl.contains("/cart/")) {
-                showWebMode(deepUrl);
-            } else {
-                showNativeMode(true);
-            }
+            handleIncomingDeepLink(intent.getData());
         } else {
             showNativeMode(true);
         }
@@ -793,11 +786,29 @@ public class MainActivity extends AppCompatActivity implements ConnectivityHelpe
         super.onNewIntent(intent);
         setIntent(intent);
         if (intent != null && intent.getData() != null) {
-            String url = intent.getData().toString();
-            if (webView != null && url.contains("raqamiyatapp.com")) {
-                CookieManager.getInstance().flush();
-                webView.loadUrl(url);
+            handleIncomingDeepLink(intent.getData());
+        }
+    }
+
+    private void handleIncomingDeepLink(Uri uri) {
+        if (uri == null) return;
+        String deepUrl = uri.toString();
+        if ("raqamiyat".equals(uri.getScheme()) && "auth".equals(uri.getHost())) {
+            String token = uri.getQueryParameter("token");
+            if (token != null && !token.isEmpty()) {
+                isWaitingForGoogleAuth = false;
+                String exchangeUrl = BASE_URL + "auth/app-sso-exchange/?token=" + Uri.encode(token);
+                showWebMode(exchangeUrl);
+                Toast.makeText(this, "جاري تأكيد تسجيل الدخول في التطبيق...", Toast.LENGTH_SHORT).show();
             }
+            return;
+        }
+        if (deepUrl.contains("/control/camera-studio")) {
+            launchNativeStudio();
+        } else if (deepUrl.contains("/dashboard/") || deepUrl.contains("/control/") || deepUrl.contains("/cart/")) {
+            showWebMode(deepUrl);
+        } else if (deepUrl.contains("raqamiyatapp.com")) {
+            showNativeMode(true);
         }
     }
 
@@ -820,10 +831,14 @@ public class MainActivity extends AppCompatActivity implements ConnectivityHelpe
     private boolean handleUrlNavigation(String url) {
         if (url == null) return false;
 
-        // Google Sign-In & OAuth: Open via Chrome Custom Tabs so Android Google Account Picker shows all device accounts
+        // Google Sign-In & OAuth: Open via Chrome Custom Tabs with App SSO Handoff so session returns to the App
         if (url.contains("accounts.google.com") || url.contains("/accounts/google/login/") || url.contains("oauth2")) {
             isWaitingForGoogleAuth = true;
-            launchCustomTab(url);
+            String authUrl = url;
+            if (url.contains("/accounts/google/login/") && !url.contains("next=")) {
+                authUrl += (url.contains("?") ? "&" : "?") + "next=" + Uri.encode("/auth/app-sso-handoff/");
+            }
+            launchCustomTab(authUrl);
             return true;
         }
 
@@ -862,7 +877,7 @@ public class MainActivity extends AppCompatActivity implements ConnectivityHelpe
     @Override
     public void onOpenGoogleLogin() {
         isWaitingForGoogleAuth = true;
-        launchCustomTab("https://raqamiyatapp.com/accounts/google/login/?process=login");
+        launchCustomTab("https://raqamiyatapp.com/accounts/google/login/?process=login&next=" + Uri.encode("/auth/app-sso-handoff/"));
     }
 
     @Override

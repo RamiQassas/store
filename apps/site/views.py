@@ -7275,6 +7275,70 @@ def api_app_session_info(request):
     })
 
 
+def app_sso_handoff(request):
+    """
+    Called inside Chrome Custom Tabs right after Google OAuth login completes.
+    Generates a short-lived signed token and bounces back into the Android App
+    via `raqamiyat://auth?token=...` so the App gets its own authenticated session.
+    """
+    from django.core import signing
+    from django.http import HttpResponse
+
+    if not request.user or not request.user.is_authenticated:
+        return redirect("/auth/login/?next=/auth/app-sso-handoff/")
+
+    token = signing.dumps({"uid": str(request.user.id)}, salt="raqamiyat_app_sso")
+    deep_link = f"raqamiyat://auth?token={token}"
+    html = f"""<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>جاري العودة لتطبيق رقميات...</title>
+  <style>
+    body {{ background:#030712; color:#f8fafc; font-family:sans-serif; display:flex; align-items:center; justify-content:center; min-height:100vh; margin:0; text-align:center; padding:24px; }}
+    .card {{ background:#111827; border:1px solid #1f2937; border-radius:20px; padding:28px 22px; max-width:380px; width:100%; }}
+    .btn {{ display:inline-block; margin-top:16px; padding:13px 22px; border-radius:12px; background:linear-gradient(135deg,#22d3ee,#10b981); color:#030712; font-weight:900; text-decoration:none; }}
+  </style>
+</head>
+<body>
+  <div class="card">
+    <h2>✓ تم تسجيل الدخول بنجاح</h2>
+    <p style="color:#94a3b8;font-size:14px;">جاري إعادتك تلقائياً إلى تطبيق رقميات...</p>
+    <a class="btn" href="{deep_link}">العودة إلى التطبيق الآن ⚡</a>
+  </div>
+  <script>window.location.replace("{deep_link}");</script>
+</body>
+</html>"""
+    return HttpResponse(html)
+
+
+def app_sso_exchange(request):
+    """
+    Called inside the Android App WebView with the signed token from `raqamiyat://auth`.
+    Logs the user into the Android App's own CookieManager session.
+    """
+    from django.core import signing
+    from django.contrib.auth import get_user_model, login
+
+    token = (request.GET.get("token") or "").strip()
+    if not token:
+        return redirect("/auth/login/")
+
+    try:
+        data = signing.loads(token, salt="raqamiyat_app_sso", max_age=180)
+        UserModel = get_user_model()
+        user = UserModel.objects.filter(id=data.get("uid"), is_active=True).first()
+        if user:
+            login(request, user, backend="django.contrib.auth.backends.ModelBackend")
+            messages.success(request, "تم تسجيل الدخول في تطبيق رقميات بنجاح ⚡")
+            return redirect("/dashboard/")
+    except Exception as exc:
+        logger.warning("App SSO exchange failed: %s", exc)
+
+    return redirect("/auth/login/")
+
+
 def api_app_notifications(request):
     """
     Returns broadcast notifications (updates, promos, discounts, custom messages)

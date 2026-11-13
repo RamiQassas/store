@@ -214,6 +214,7 @@ SILENCED_SYSTEM_CHECKS = ["auth.E003", "auth.W004"]
 
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
+    "django.middleware.gzip.GZipMiddleware",
     "apps.common.middleware.DomainRedirectMiddleware",
 
     # Render static files

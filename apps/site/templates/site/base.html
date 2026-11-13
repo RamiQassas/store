@@ -5,8 +5,21 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
   <title>{% block title %}{% if is_tenant %}{{ STORE_NAME }}{% else %}رقميات | متجر الإلكترونيات والتقنية{% endif %}{% endblock %}</title>
-  <meta name="description" content="{{ STORE_DESCRIPTION|default:'رقميات — متجر الإلكترونيات والأجهزة الذكية والحواسيب والشبكات والخدمات التقنية' }}">
+  <meta name="description" content="{% block meta_description %}{{ STORE_DESCRIPTION|default:'رقميات — متجر الإلكترونيات والأجهزة الذكية والحواسيب والشبكات والخدمات التقنية مع دفع سريع عبر شام كاش وبيميرا' }}{% endblock %}">
+  <meta name="robots" content="{% block meta_robots %}index, follow, max-image-preview:large, max-snippet:-1{% endblock %}">
+  <link rel="canonical" href="{% block canonical_url %}{{ request.scheme }}://{{ request.get_host }}{{ request.path }}{% endblock %}">
   <meta name="theme-color" content="#070b14" id="rq-meta-theme-color">
+
+  <!-- Open Graph & Social SEO -->
+  {% block og_tags %}
+  <meta property="og:type" content="website">
+  <meta property="og:locale" content="ar_AR">
+  <meta property="og:site_name" content="{% if is_tenant %}{{ STORE_NAME }}{% else %}رقميات | Raqamiyat{% endif %}">
+  <meta property="og:title" content="{% if is_tenant %}{{ STORE_NAME }}{% else %}رقميات | متجر الإلكترونيات والتقنية{% endif %}">
+  <meta property="og:description" content="{{ STORE_DESCRIPTION|default:'رقميات — متجر الإلكترونيات والأجهزة الذكية والحواسيب والشبكات والخدمات التقنية' }}">
+  <meta property="og:url" content="{{ request.scheme }}://{{ request.get_host }}{{ request.path }}">
+  <meta name="twitter:card" content="summary_large_image">
+  {% endblock %}
 
   <!-- Instant Theme Initialization (Default: Dark, Toggleable to Light) -->
   <script>
@@ -23,14 +36,36 @@
     })();
   </script>
 
-  <!-- Fonts & Icons -->
+  <!-- Performance: DNS Prefetch, Preconnect & Preload -->
+  <link rel="dns-prefetch" href="//fonts.googleapis.com">
+  <link rel="dns-prefetch" href="//fonts.gstatic.com">
+  <link rel="dns-prefetch" href="//cdnjs.cloudflare.com">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@500;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+  <link rel="preload" href="{% static 'site/css/app.css' %}?v=20261106_apple_glass_v1" as="style">
+  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" media="print" onload="this.media='all'">
+  <noscript><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"></noscript>
 
   <!-- Apple Spatial Glass Design System Stylesheet -->
   <link rel="stylesheet" href="{% static 'site/css/app.css' %}?v=20261106_apple_glass_v1">
+
+  <!-- Structured Data (Schema.org WebSite & SearchAction) -->
+  {% block structured_data %}
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "WebSite",
+    "name": "{% if is_tenant %}{{ STORE_NAME|escapejs }}{% else %}رقميات Raqamiyat{% endif %}",
+    "url": "{{ request.scheme }}://{{ request.get_host }}/",
+    "potentialAction": {
+      "@type": "SearchAction",
+      "target": "{{ request.scheme }}://{{ request.get_host }}/catalog/?q={search_term_string}",
+      "query-input": "required name=search_term_string"
+    }
+  }
+  </script>
+  {% endblock %}
 
   {% if STORE_CUSTOM_CSS %}
   <style>{{ STORE_CUSTOM_CSS|safe }}</style>

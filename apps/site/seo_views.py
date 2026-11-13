@@ -42,6 +42,7 @@ def sitemap_xml_view(request):
     static_pages = [
         ("/", "1.0", "hourly"),
         ("/catalog/", "0.9", "hourly"),
+        ("/download/app/", "0.85", "weekly"),
         ("/stores/", "0.7", "daily"),
         ("/contact/", "0.5", "monthly"),
         ("/privacy-policy/", "0.3", "monthly"),
