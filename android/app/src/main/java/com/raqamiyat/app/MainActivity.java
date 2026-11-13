@@ -89,9 +89,13 @@ public class MainActivity extends AppCompatActivity implements ConnectivityHelpe
     private EditText nativeSearchInput;
     private TextView nativeEmptyState;
     private Button btnAdminQuickStudio;
+    private Button btnNativePay;
+    private Button btnNativeNotif;
     private Button btnNativeCart;
 
     private CatalogRepository catalogRepository;
+    private AppNotificationSync notificationSync;
+    private final List<AppNotificationSync.AppNotifItem> latestNotifications = new ArrayList<>();
     private CategoryAdapter categoryAdapter;
     private ProductAdapter productAdapter;
     private final List<ProductItem> allProducts = new ArrayList<>();
@@ -140,6 +144,8 @@ public class MainActivity extends AppCompatActivity implements ConnectivityHelpe
         nativeSearchInput = findViewById(R.id.native_search_input);
         nativeEmptyState = findViewById(R.id.native_empty_state);
         btnAdminQuickStudio = findViewById(R.id.btn_admin_quick_studio);
+        btnNativePay = findViewById(R.id.btn_native_pay);
+        btnNativeNotif = findViewById(R.id.btn_native_notif);
         btnNativeCart = findViewById(R.id.btn_native_cart);
 
         // Initialize WebView Portal Views
@@ -156,6 +162,7 @@ public class MainActivity extends AppCompatActivity implements ConnectivityHelpe
         // Core Native Systems
         localStore = new RaqamiyatLocalStore(this);
         catalogRepository = new CatalogRepository(localStore);
+        notificationSync = new AppNotificationSync(this);
         connectivityHelper = new ConnectivityHelper(this);
         connectivityHelper.setListener(this);
         nativeBridge = new RaqamiyatNativeBridge(this, connectivityHelper, localStore, this);
@@ -185,9 +192,10 @@ public class MainActivity extends AppCompatActivity implements ConnectivityHelpe
             showNativeMode(true);
         }
 
-        // Load native products & check admin session
+        // Load native products & check admin session & sync notifications
         loadNativeCatalog(false);
         refreshAdminSessionBadge();
+        syncAppNotifications();
     }
 
     private void setupNativeStorefront() {
@@ -224,6 +232,14 @@ public class MainActivity extends AppCompatActivity implements ConnectivityHelpe
         });
 
         btnAdminQuickStudio.setOnClickListener(v -> launchNativeStudio());
+        btnNativePay.setOnClickListener(v -> {
+            if (!connectivityHelper.isOnline()) {
+                nativeBridge.showOfflineTransactionAlert("الدفع وشحن المحفظة");
+                return;
+            }
+            startActivity(new Intent(MainActivity.this, NativePaymentActivity.class));
+        });
+        btnNativeNotif.setOnClickListener(v -> showNotificationsInboxDialog());
         btnNativeCart.setOnClickListener(v -> {
             if (!connectivityHelper.isOnline()) {
                 nativeBridge.showOfflineTransactionAlert("سلة المشتريات");
@@ -231,6 +247,43 @@ public class MainActivity extends AppCompatActivity implements ConnectivityHelpe
             }
             showWebMode(BASE_URL + "cart/");
         });
+    }
+
+    private void syncAppNotifications() {
+        if (notificationSync == null || !connectivityHelper.isOnline()) return;
+        notificationSync.syncNow(items -> {
+            latestNotifications.clear();
+            latestNotifications.addAll(items);
+        });
+    }
+
+    private void showNotificationsInboxDialog() {
+        syncAppNotifications();
+        if (latestNotifications.isEmpty()) {
+            new com.google.android.material.dialog.MaterialAlertDialogBuilder(this)
+                    .setTitle("🔔 إشعارات وعروض رقميات")
+                    .setMessage("لا توجد إشعارات أو عروض جديدة حالياً.")
+                    .setPositiveButton("حسناً", (d, w) -> d.dismiss())
+                    .show();
+            return;
+        }
+        CharSequence[] titles = new CharSequence[latestNotifications.size()];
+        for (int i = 0; i < latestNotifications.size(); i++) {
+            AppNotificationSync.AppNotifItem item = latestNotifications.get(i);
+            String icon = "discount".equals(item.category) ? "🔥 " : ("update".equals(item.category) ? "⚡ " : ("promo".equals(item.category) ? "🎁 " : "💬 "));
+            titles[i] = icon + item.title + "\n" + item.body;
+        }
+        new com.google.android.material.dialog.MaterialAlertDialogBuilder(this)
+                .setTitle("🔔 أحدث الإشعارات والعروض")
+                .setItems(titles, (dialog, which) -> {
+                    AppNotificationSync.AppNotifItem picked = latestNotifications.get(which);
+                    if (picked.actionUrl != null && !picked.actionUrl.isEmpty()) {
+                        String fullUrl = picked.actionUrl.startsWith("http") ? picked.actionUrl : BASE_URL + (picked.actionUrl.startsWith("/") ? picked.actionUrl.substring(1) : picked.actionUrl);
+                        showWebMode(fullUrl);
+                    }
+                })
+                .setNegativeButton("إغلاق", (d, w) -> d.dismiss())
+                .show();
     }
 
     private void loadNativeCatalog(boolean forceNetwork) {
@@ -723,6 +776,7 @@ public class MainActivity extends AppCompatActivity implements ConnectivityHelpe
         super.onResume();
         CookieManager.getInstance().flush();
         refreshAdminSessionBadge();
+        syncAppNotifications();
         if (isWaitingForGoogleAuth) {
             isWaitingForGoogleAuth = false;
             // Delay slightly so system auth cookies are flushed and page can reload authenticated

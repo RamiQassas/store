@@ -94,3 +94,33 @@ class PushSubscription(TimeStampedModel):
         unique_together = ("user", "endpoint")
         verbose_name = "اشتراك دفع"
         verbose_name_plural = "اشتراكات الدفع"
+
+
+class AppBroadcastNotification(TimeStampedModel):
+    class Category(models.TextChoices):
+        UPDATE = "update", "تحديث التطبيق / النظام"
+        PROMO = "promo", "عرض ترويجي"
+        DISCOUNT = "discount", "تخفيضات وخصومات"
+        CUSTOM = "custom", "رسالة مخصصة"
+
+    category = models.CharField(max_length=20, choices=Category.choices, default=Category.PROMO, verbose_name="نوع الإشعار")
+    title = models.CharField(max_length=160, verbose_name="عنوان الإشعار")
+    body = models.TextField(verbose_name="نص الإشعار")
+    action_url = models.CharField(max_length=255, blank=True, null=True, verbose_name="رابط الإجراء")
+    is_active = models.BooleanField(default=True, verbose_name="نشط")
+    created_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="sent_app_broadcasts",
+        verbose_name="المرسل"
+    )
+
+    class Meta:
+        ordering = ["-created_at"]
+        verbose_name = "بث إشعار للتطبيق"
+        verbose_name_plural = "بث إشعارات التطبيق"
+
+    def __str__(self):
+        return f"[{self.get_category_display()}] {self.title}"

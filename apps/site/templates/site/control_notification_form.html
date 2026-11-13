@@ -45,10 +45,30 @@
 
                 <hr class="border-white/5">
 
-                <div>
-                    <label class="block text-[10px] font-black text-slate-500 uppercase tracking-widest mb-2">{{ form.channels.label }}</label>
-                    {{ form.channels }}
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-[10px] font-black text-slate-500 uppercase tracking-widest mb-2">{{ form.channels.label }}</label>
+                        {{ form.channels }}
+                    </div>
+
+                    <div>
+                        <label class="block text-[10px] font-black text-slate-500 uppercase tracking-widest mb-2">تصنيف الإشعار في تطبيق الأندرويد</label>
+                        <select name="app_category" class="w-full bg-slate-900 border border-white/10 rounded-xl px-4 py-3 text-sm text-white">
+                            <option value="promo">🎁 عرض ترويجي</option>
+                            <option value="discount">🔥 تخفيضات وخصومات</option>
+                            <option value="update">⚡ تحديث التطبيق / النظام</option>
+                            <option value="custom">💬 رسالة مخصصة</option>
+                        </select>
+                    </div>
                 </div>
+
+                <label class="flex items-center gap-3 p-4 rounded-2xl bg-cyan/10 border border-cyan/30 cursor-pointer">
+                    <input type="checkbox" name="broadcast_to_app" checked class="w-4 h-4 accent-cyan">
+                    <div>
+                        <div class="text-sm font-black text-white">📱 إرسال كإشعار فوري لتطبيق الأندرويد</div>
+                        <div class="text-xs text-slate-400">يصل الإشعار مباشرة لهواتف جميع مستخدمي تطبيق رقميات (التحديثات، العروض، التخفيضات، الرسائل المخصصة).</div>
+                    </div>
+                </label>
 
                 <div>
                     <label class="block text-[10px] font-black text-slate-500 uppercase tracking-widest mb-2">{{ form.title.label }}</label>

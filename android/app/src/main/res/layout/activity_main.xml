@@ -105,6 +105,28 @@
                 android:visibility="gone" />
 
             <Button
+                android:id="@+id/btn_native_pay"
+                android:layout_width="wrap_content"
+                android:layout_height="34dp"
+                android:layout_marginEnd="6dp"
+                android:background="@drawable/bg_button_gold"
+                android:paddingHorizontal="10dp"
+                android:text="💳 شحن"
+                android:textColor="#030712"
+                android:textSize="11sp"
+                android:textStyle="bold" />
+
+            <Button
+                android:id="@+id/btn_native_notif"
+                android:layout_width="38dp"
+                android:layout_height="34dp"
+                android:layout_marginEnd="6dp"
+                android:background="@drawable/bg_chip_unselected"
+                android:text="🔔"
+                android:textColor="#F8FAFC"
+                android:textSize="13sp" />
+
+            <Button
                 android:id="@+id/btn_native_cart"
                 android:layout_width="wrap_content"
                 android:layout_height="34dp"

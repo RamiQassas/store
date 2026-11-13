@@ -60,6 +60,12 @@
             android:windowSoftInputMode="adjustResize"
             android:theme="@style/Theme.RaqamiyatApp.NoActionBar" />
 
+        <activity
+            android:name=".NativePaymentActivity"
+            android:exported="false"
+            android:windowSoftInputMode="adjustResize"
+            android:theme="@style/Theme.RaqamiyatApp.NoActionBar" />
+
         <!-- FileProvider for secure Camera photo capture -->
         <provider
             android:name="androidx.core.content.FileProvider"

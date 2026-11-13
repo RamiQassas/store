@@ -7275,6 +7275,201 @@ def api_app_session_info(request):
     })
 
 
+def api_app_notifications(request):
+    """
+    Returns broadcast notifications (updates, promos, discounts, custom messages)
+    plus personal user notifications if authenticated, for the Native Android App.
+    """
+    from apps.notifications.models import AppBroadcastNotification, Notification
+
+    items = []
+    broadcasts = AppBroadcastNotification.objects.filter(is_active=True).order_by("-created_at")[:15]
+    for b in broadcasts:
+        items.append({
+            "id": f"b_{b.id}",
+            "source": "broadcast",
+            "category": b.category,
+            "title": b.title,
+            "body": b.body,
+            "action_url": b.action_url or "",
+            "created_at": b.created_at.isoformat() if b.created_at else "",
+        })
+
+    user = getattr(request, "user", None)
+    if user and user.is_authenticated:
+        personals = Notification.objects.filter(
+            user=user,
+            channel=Notification.Channel.IN_APP
+        ).order_by("-created_at")[:15]
+        for n in personals:
+            cat = "custom"
+            if isinstance(n.metadata, dict) and n.metadata.get("app_category"):
+                cat = n.metadata.get("app_category")
+            items.append({
+                "id": f"n_{n.id}",
+                "source": "personal",
+                "category": cat,
+                "title": n.title,
+                "body": n.body,
+                "action_url": n.action_url or "",
+                "is_read": n.is_read,
+                "created_at": n.created_at.isoformat() if n.created_at else "",
+            })
+
+    items.sort(key=lambda x: x.get("created_at", ""), reverse=True)
+    return JsonResponse({"status": "success", "notifications": items[:25]})
+
+
+def api_app_wallet_info(request):
+    """Returns wallet balance and available Paymera / ShamCash gateways for the Android App."""
+    user = getattr(request, "user", None)
+    if not user or not user.is_authenticated:
+        return JsonResponse({"status": "ok", "is_authenticated": False})
+
+    from apps.wallets.services import get_or_create_wallet
+    from apps.payments.models import PaymentGatewayIntegration
+
+    wallet = get_or_create_wallet(user)
+    shamcash_on = PaymentGatewayIntegration.all_objects.filter(
+        provider=PaymentGatewayIntegration.Provider.SHAM_CASH, is_active=True
+    ).exists() or bool(getattr(settings, "SHAM_CASH_AGENT_KEY", ""))
+    paymera_on = PaymentGatewayIntegration.all_objects.filter(
+        provider=PaymentGatewayIntegration.Provider.PAYMERA, is_active=True
+    ).exists() or bool(getattr(settings, "PAYMERA_MERCHANT_KEY", ""))
+
+    return JsonResponse({
+        "status": "success",
+        "is_authenticated": True,
+        "balance": float(wallet.balance),
+        "currency": wallet.currency.code if wallet.currency else "USD",
+        "shamcash_enabled": shamcash_on,
+        "paymera_enabled": paymera_on,
+    })
+
+
+def api_app_payment_deposit(request):
+    """
+    Initiates a ShamCash or Paymera deposit directly via API from inside the Native Android App.
+    """
+    if request.method != "POST":
+        return JsonResponse({"status": "error", "message": "Method not allowed"}, status=405)
+
+    user = getattr(request, "user", None)
+    if not user or not user.is_authenticated:
+        return JsonResponse({"status": "error", "message": "يرجى تسجيل الدخول أولاً لإتمام الدفع"}, status=401)
+
+    import json as _json
+    from decimal import Decimal, InvalidOperation
+    from apps.common.models import Currency
+    from apps.payments.models import DepositRequest, PaymentMethod
+    from apps.payments.gateways import gateway_for, PaymentGatewayError
+
+    try:
+        if request.content_type and "application/json" in request.content_type:
+            payload = _json.loads(request.body.decode("utf-8") or "{}")
+        else:
+            payload = request.POST
+    except Exception:
+        payload = request.POST
+
+    provider = str(payload.get("provider", "")).strip().lower()
+    if provider not in ("shamcash", "paymera"):
+        return JsonResponse({"status": "error", "message": "بوابة الدفع غير مدعومة. اختر شام كاش أو بيميرا"}, status=400)
+
+    try:
+        amount = Decimal(str(payload.get("amount", "0")).strip())
+    except (InvalidOperation, ValueError):
+        return JsonResponse({"status": "error", "message": "المبلغ غير صالح"}, status=400)
+
+    if amount <= 0:
+        return JsonResponse({"status": "error", "message": "يجب أن يكون المبلغ أكبر من صفر"}, status=400)
+
+    curr_code = str(payload.get("currency_code", "USD")).strip().upper()
+    currency = Currency.objects.filter(code=curr_code, is_active=True).first() or Currency.all_objects.filter(code=curr_code).first()
+    if not currency:
+        currency = Currency.objects.filter(is_active=True).first() or Currency.all_objects.first()
+
+    pm = PaymentMethod.all_objects.filter(is_active=True, gateway_provider=provider).first()
+    if not pm:
+        pm = PaymentMethod.all_objects.filter(is_active=True, name__icontains=("شام" if provider == "shamcash" else "بيميرا")).first()
+    if not pm:
+        pm = PaymentMethod.all_objects.filter(is_active=True).first()
+    if not pm:
+        return JsonResponse({"status": "error", "message": "لا توجد وسيلة دفع مفعلة حالياً"}, status=400)
+
+    store = getattr(request, "store", None)
+    deposit = DepositRequest.objects.create(
+        user=user,
+        store=store,
+        payment_method=pm,
+        amount=amount,
+        final_amount=amount,
+        currency=currency,
+        status=DepositRequest.Status.PENDING,
+        customer_note=f"دفع عبر التطبيق ({provider})",
+        metadata={"payment_provider": provider, "from_android_app": True},
+    )
+    deposit.calculate_fees()
+    deposit.save(update_fields=["fee_amount", "final_amount"])
+
+    try:
+        gw = gateway_for(provider)
+        res = gw.create_payment(deposit, request=request)
+        payment_url = res.get("paymentUrl") or res.get("url") or deposit.metadata.get("shamcash_url") or deposit.metadata.get("paymera_url") or ""
+        bill_no = res.get("billNo") or deposit.gateway_payment_id or ""
+        return JsonResponse({
+            "status": "success",
+            "provider": provider,
+            "deposit_id": str(deposit.id),
+            "payment_url": payment_url,
+            "bill_no": bill_no,
+            "amount": str(deposit.amount),
+            "currency": currency.code if currency else "USD",
+            "message": "تم إنشاء رابط الدفع بنجاح",
+        })
+    except PaymentGatewayError as exc:
+        deposit.status = DepositRequest.Status.REJECTED
+        deposit.admin_note = str(exc)
+        deposit.save(update_fields=["status", "admin_note"])
+        return JsonResponse({"status": "error", "message": f"خطأ من بوابة الدفع: {exc}"}, status=400)
+    except Exception as exc:
+        logger.exception("App payment init error: %s", exc)
+        return JsonResponse({"status": "error", "message": f"تعذر بدء عملية الدفع: {exc}"}, status=500)
+
+
+def api_app_payment_status(request, pk):
+    """Checks and verifies a ShamCash or Paymera deposit status from the Native Android App."""
+    user = getattr(request, "user", None)
+    if not user or not user.is_authenticated:
+        return JsonResponse({"status": "error", "message": "غير مصرح"}, status=401)
+
+    from apps.payments.models import DepositRequest
+    from apps.payments.gateways import gateway_for
+    from apps.wallets.services import get_or_create_wallet
+
+    deposit = DepositRequest.all_objects.filter(id=pk, user=user).first()
+    if not deposit:
+        return JsonResponse({"status": "error", "message": "العملية غير موجودة"}, status=404)
+
+    provider = (deposit.metadata or {}).get("payment_provider", "shamcash")
+    if deposit.status != DepositRequest.Status.COMPLETED:
+        try:
+            gw = gateway_for(provider)
+            gw.verify_payment(deposit)
+            deposit.refresh_from_db()
+        except Exception as exc:
+            logger.warning("App payment verify warning for %s: %s", pk, exc)
+
+    wallet = get_or_create_wallet(user)
+    return JsonResponse({
+        "status": "success",
+        "deposit_status": deposit.status,
+        "is_completed": deposit.status == DepositRequest.Status.COMPLETED,
+        "wallet_balance": float(wallet.balance),
+        "currency": wallet.currency.code if wallet.currency else "USD",
+    })
+
+
 def api_offline_catalog(request):
     """
     Returns complete catalog data in a lightweight format for ServiceWorker
@@ -8383,17 +8578,23 @@ def control_debts(request):
 
 @support_required
 def control_send_notification(request):
+    from apps.notifications.models import AppBroadcastNotification
+
     store = getattr(request, "store", None)
     form = SendNotificationForm(request.POST or None)
     if request.method == "POST" and form.is_valid():
+        app_category = request.POST.get("app_category", "promo").strip() or "promo"
+        broadcast_to_app = request.POST.get("broadcast_to_app") in ("on", "true", "1", "yes")
+        target = form.cleaned_data["target"]
+
         if store:
             users = User.objects.filter(is_active=True, store=store)
         else:
             users = User.objects.filter(is_active=True, store__isnull=True)
             
-        if form.cleaned_data["target"] == "tier":
+        if target == "tier":
             users = users.filter(tier=form.cleaned_data["tier"])
-        elif form.cleaned_data["target"] == "individual":
+        elif target == "individual":
             q = form.cleaned_data["user_identifier"]
             users = users.filter(
                 Q(email__icontains=q) | 
@@ -8402,18 +8603,29 @@ def control_send_notification(request):
                 Q(phone__icontains=q)
             )
         
+        channel = form.cleaned_data["channels"]
+        title = form.cleaned_data["title"]
+        body = form.cleaned_data["body"]
+        action_url = form.cleaned_data["action_url"]
+
+        if broadcast_to_app and target == "all":
+            AppBroadcastNotification.objects.create(
+                category=app_category if app_category in ("update", "promo", "discount", "custom") else "custom",
+                title=title,
+                body=body,
+                action_url=action_url or "",
+                created_by=request.user,
+            )
+
+        sent_count = 0
         if users.exists():
-            channel = form.cleaned_data["channels"]
-            title = form.cleaned_data["title"]
-            body = form.cleaned_data["body"]
-            action_url = form.cleaned_data["action_url"]
-            
             for user in users:
                 # 1. In-App Notification
                 if channel in ['all', 'in_app']:
                     Notification.objects.create(
                         user=user, title=title, body=body, action_url=action_url,
-                        channel=Notification.Channel.IN_APP
+                        channel=Notification.Channel.IN_APP,
+                        metadata={"app_category": app_category},
                     )
                 
                 # 2. Push Notification
@@ -8423,9 +8635,13 @@ def control_send_notification(request):
                 # 3. Email Notification
                 if channel in ['all', 'email']:
                     send_brevo_email(user.email, user.get_full_name() or user.email, title, body)
+            sent_count = users.count()
             
-            messages.success(request, f"تم الإرسال لـ {users.count()} مستخدم عبر القنوات المحددة.")
-            return redirect("control_send_notification")
+        if broadcast_to_app and target == "all":
+            messages.success(request, f"تم بث الإشعار لتطبيق الأندرويد وإرساله لـ {sent_count} مستخدم بنجاح.")
+        elif sent_count > 0:
+            messages.success(request, f"تم الإرسال لـ {sent_count} مستخدم عبر القنوات المحددة.")
+        return redirect("control_send_notification")
     return render(request, "site/control_notification_form.html", {"form": form})
 
 @admin_required
