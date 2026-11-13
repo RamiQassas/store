@@ -28,12 +28,23 @@ import android.webkit.WebResourceResponse;
 import android.webkit.WebSettings;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
+import android.text.Editable;
+import android.text.TextWatcher;
 import android.widget.Button;
+import android.widget.EditText;
 import android.widget.LinearLayout;
 import android.widget.ProgressBar;
 import android.widget.RelativeLayout;
 import android.widget.TextView;
 import android.widget.Toast;
+
+import androidx.recyclerview.widget.GridLayoutManager;
+import androidx.recyclerview.widget.LinearLayoutManager;
+import androidx.recyclerview.widget.RecyclerView;
+
+import com.raqamiyat.app.adapter.CategoryAdapter;
+import com.raqamiyat.app.adapter.ProductAdapter;
+import com.raqamiyat.app.model.ProductItem;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
@@ -68,6 +79,25 @@ public class MainActivity extends AppCompatActivity implements ConnectivityHelpe
     private static final String CHANNEL_ID = "raqamiyat_notifications";
     private static final int FILE_CHOOSER_REQUEST_CODE = 1001;
     private static final int PERMISSIONS_REQUEST_CODE = 2001;
+    private static final int PRODUCT_DETAIL_REQUEST_CODE = 4001;
+    private static final int NATIVE_STUDIO_REQUEST_CODE = 4002;
+
+    private LinearLayout nativeStoreContainer;
+    private SwipeRefreshLayout nativeCatalogSwipe;
+    private RecyclerView nativeCategoriesRv;
+    private RecyclerView nativeProductsRv;
+    private EditText nativeSearchInput;
+    private TextView nativeEmptyState;
+    private Button btnAdminQuickStudio;
+    private Button btnNativeCart;
+
+    private CatalogRepository catalogRepository;
+    private CategoryAdapter categoryAdapter;
+    private ProductAdapter productAdapter;
+    private final List<ProductItem> allProducts = new ArrayList<>();
+    private String activeCategoryId = "";
+    private String activeSearchQuery = "";
+    private boolean isNativeMode = true;
 
     private WebView webView;
     private SwipeRefreshLayout swipeRefresh;
@@ -102,7 +132,17 @@ public class MainActivity extends AppCompatActivity implements ConnectivityHelpe
 
         setContentView(R.layout.activity_main);
 
-        // Initialize Native Views
+        // Initialize Native Storefront Views
+        nativeStoreContainer = findViewById(R.id.native_store_container);
+        nativeCatalogSwipe = findViewById(R.id.native_catalog_swipe);
+        nativeCategoriesRv = findViewById(R.id.native_categories_rv);
+        nativeProductsRv = findViewById(R.id.native_products_rv);
+        nativeSearchInput = findViewById(R.id.native_search_input);
+        nativeEmptyState = findViewById(R.id.native_empty_state);
+        btnAdminQuickStudio = findViewById(R.id.btn_admin_quick_studio);
+        btnNativeCart = findViewById(R.id.btn_native_cart);
+
+        // Initialize WebView Portal Views
         webView = findViewById(R.id.main_webview);
         swipeRefresh = findViewById(R.id.swipe_refresh);
         progressBar = findViewById(R.id.page_progress);
@@ -115,11 +155,13 @@ public class MainActivity extends AppCompatActivity implements ConnectivityHelpe
 
         // Core Native Systems
         localStore = new RaqamiyatLocalStore(this);
+        catalogRepository = new CatalogRepository(localStore);
         connectivityHelper = new ConnectivityHelper(this);
         connectivityHelper.setListener(this);
         nativeBridge = new RaqamiyatNativeBridge(this, connectivityHelper, localStore, this);
 
         createNotificationChannel();
+        setupNativeStorefront();
         setupWebView();
         setupErrorView();
         setupSwipeRefresh();
@@ -128,16 +170,143 @@ public class MainActivity extends AppCompatActivity implements ConnectivityHelpe
 
         connectivityHelper.startMonitoring();
 
-        // Handle Deep Linking or Default URL
+        // Handle Deep Linking or Start Native Storefront
         Intent intent = getIntent();
         if (intent != null && intent.getData() != null) {
-            webView.loadUrl(intent.getData().toString());
+            String deepUrl = intent.getData().toString();
+            if (deepUrl.contains("/control/camera-studio")) {
+                launchNativeStudio();
+            } else if (deepUrl.contains("/dashboard/") || deepUrl.contains("/control/") || deepUrl.contains("/cart/")) {
+                showWebMode(deepUrl);
+            } else {
+                showNativeMode(true);
+            }
         } else {
-            webView.loadUrl(BASE_URL);
+            showNativeMode(true);
         }
 
-        // Background catalog sync if online
-        syncCatalogCacheInBackground();
+        // Load native products & check admin session
+        loadNativeCatalog(false);
+        refreshAdminSessionBadge();
+    }
+
+    private void setupNativeStorefront() {
+        nativeCategoriesRv.setLayoutManager(new LinearLayoutManager(this, LinearLayoutManager.HORIZONTAL, false));
+        categoryAdapter = new CategoryAdapter(categoryId -> {
+            activeCategoryId = categoryId;
+            applyProductFilters();
+        });
+        nativeCategoriesRv.setAdapter(categoryAdapter);
+
+        nativeProductsRv.setLayoutManager(new GridLayoutManager(this, 2));
+        productAdapter = new ProductAdapter(product -> {
+            Intent detailIntent = new Intent(MainActivity.this, ProductDetailActivity.class);
+            detailIntent.putExtra(ProductDetailActivity.EXTRA_PRODUCT, product);
+            startActivityForResult(detailIntent, PRODUCT_DETAIL_REQUEST_CODE);
+        });
+        nativeProductsRv.setAdapter(productAdapter);
+
+        nativeCatalogSwipe.setColorSchemeColors(0xFF06B6D4, 0xFFD4A853);
+        nativeCatalogSwipe.setOnRefreshListener(() -> loadNativeCatalog(true));
+
+        nativeSearchInput.addTextChangedListener(new TextWatcher() {
+            @Override
+            public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
+
+            @Override
+            public void onTextChanged(CharSequence s, int start, int before, int count) {
+                activeSearchQuery = s != null ? s.toString().trim().toLowerCase(Locale.ROOT) : "";
+                applyProductFilters();
+            }
+
+            @Override
+            public void afterTextChanged(Editable s) {}
+        });
+
+        btnAdminQuickStudio.setOnClickListener(v -> launchNativeStudio());
+        btnNativeCart.setOnClickListener(v -> {
+            if (!connectivityHelper.isOnline()) {
+                nativeBridge.showOfflineTransactionAlert("سلة المشتريات");
+                return;
+            }
+            showWebMode(BASE_URL + "cart/");
+        });
+    }
+
+    private void loadNativeCatalog(boolean forceNetwork) {
+        catalogRepository.loadCatalog(forceNetwork, new CatalogRepository.CatalogCallback() {
+            @Override
+            public void onLoaded(CatalogRepository.CatalogData data, boolean fromCache) {
+                nativeCatalogSwipe.setRefreshing(false);
+                categoryAdapter.submitList(data.categories);
+                allProducts.clear();
+                allProducts.addAll(data.products);
+                applyProductFilters();
+                if (!isInitialPageLoaded) {
+                    isInitialPageLoaded = true;
+                    dismissSplashOverlay();
+                }
+            }
+
+            @Override
+            public void onError(String message) {
+                nativeCatalogSwipe.setRefreshing(false);
+                if (!isInitialPageLoaded) {
+                    isInitialPageLoaded = true;
+                    dismissSplashOverlay();
+                }
+                if (allProducts.isEmpty()) {
+                    nativeEmptyState.setText(message);
+                    nativeEmptyState.setVisibility(View.VISIBLE);
+                }
+            }
+        });
+    }
+
+    private void applyProductFilters() {
+        List<ProductItem> filtered = new ArrayList<>();
+        for (ProductItem p : allProducts) {
+            boolean matchesCat = activeCategoryId.isEmpty() || activeCategoryId.equals(p.categoryId);
+            boolean matchesQuery = activeSearchQuery.isEmpty()
+                    || (p.name != null && p.name.toLowerCase(Locale.ROOT).contains(activeSearchQuery))
+                    || (p.categoryName != null && p.categoryName.toLowerCase(Locale.ROOT).contains(activeSearchQuery))
+                    || (p.code != null && p.code.toLowerCase(Locale.ROOT).contains(activeSearchQuery));
+            if (matchesCat && matchesQuery) {
+                filtered.add(p);
+            }
+        }
+        productAdapter.submitList(filtered);
+        nativeEmptyState.setVisibility(filtered.isEmpty() ? View.VISIBLE : View.GONE);
+    }
+
+    private void refreshAdminSessionBadge() {
+        catalogRepository.checkSession((isAuthenticated, isAdmin, displayName) -> {
+            btnAdminQuickStudio.setVisibility(isAdmin ? View.VISIBLE : View.GONE);
+        });
+    }
+
+    private void showNativeMode(boolean isHomeTab) {
+        isNativeMode = true;
+        nativeStoreContainer.setVisibility(View.VISIBLE);
+        swipeRefresh.setVisibility(View.GONE);
+        nativeErrorView.setVisibility(View.GONE);
+        updateBottomNavigationActiveTab(isHomeTab ? BASE_URL : CATALOG_URL);
+        if (!isHomeTab) {
+            nativeSearchInput.requestFocus();
+        }
+    }
+
+    private void showWebMode(String url) {
+        isNativeMode = false;
+        nativeStoreContainer.setVisibility(View.GONE);
+        swipeRefresh.setVisibility(View.VISIBLE);
+        webView.loadUrl(url);
+        updateBottomNavigationActiveTab(url);
+    }
+
+    private void launchNativeStudio() {
+        Intent studioIntent = new Intent(this, NativeCameraStudioActivity.class);
+        startActivityForResult(studioIntent, NATIVE_STUDIO_REQUEST_CODE);
     }
 
     private void setupWebView() {
@@ -214,6 +383,7 @@ public class MainActivity extends AppCompatActivity implements ConnectivityHelpe
                 }
 
                 updateBottomNavigationActiveTab(url);
+                refreshAdminSessionBadge();
 
                 super.onPageFinished(view, url);
             }
@@ -359,19 +529,19 @@ public class MainActivity extends AppCompatActivity implements ConnectivityHelpe
         View navAccount = findViewById(R.id.nav_item_account);
 
         if (navHome != null) {
-            navHome.setOnClickListener(v -> webView.loadUrl(BASE_URL));
+            navHome.setOnClickListener(v -> showNativeMode(true));
         }
         if (navCatalog != null) {
-            navCatalog.setOnClickListener(v -> webView.loadUrl("https://raqamiyatapp.com/catalog/"));
+            navCatalog.setOnClickListener(v -> showNativeMode(false));
         }
         if (navWallet != null) {
-            navWallet.setOnClickListener(v -> webView.loadUrl("https://raqamiyatapp.com/dashboard/wallet/"));
+            navWallet.setOnClickListener(v -> showWebMode("https://raqamiyatapp.com/dashboard/wallet/"));
         }
         if (navOrders != null) {
-            navOrders.setOnClickListener(v -> webView.loadUrl("https://raqamiyatapp.com/dashboard/orders/"));
+            navOrders.setOnClickListener(v -> showWebMode("https://raqamiyatapp.com/dashboard/orders/"));
         }
         if (navAccount != null) {
-            navAccount.setOnClickListener(v -> webView.loadUrl("https://raqamiyatapp.com/dashboard/"));
+            navAccount.setOnClickListener(v -> showWebMode("https://raqamiyatapp.com/dashboard/"));
         }
     }
 
@@ -478,6 +648,21 @@ public class MainActivity extends AppCompatActivity implements ConnectivityHelpe
 
     @Override
     protected void onActivityResult(int requestCode, int resultCode, @Nullable Intent data) {
+        if (requestCode == PRODUCT_DETAIL_REQUEST_CODE) {
+            if (resultCode == RESULT_OK && data != null) {
+                String openUrl = data.getStringExtra(ProductDetailActivity.EXTRA_OPEN_URL);
+                if (openUrl != null && !openUrl.isEmpty()) {
+                    showWebMode(openUrl);
+                }
+            }
+            return;
+        }
+        if (requestCode == NATIVE_STUDIO_REQUEST_CODE) {
+            if (resultCode == RESULT_OK) {
+                loadNativeCatalog(true);
+            }
+            return;
+        }
         if (requestCode == FILE_CHOOSER_REQUEST_CODE) {
             if (mFilePathCallback == null) {
                 super.onActivityResult(requestCode, resultCode, data);
@@ -518,8 +703,10 @@ public class MainActivity extends AppCompatActivity implements ConnectivityHelpe
             return;
         }
 
-        if (webView.canGoBack()) {
+        if (!isNativeMode && webView.canGoBack()) {
             webView.goBack();
+        } else if (!isNativeMode) {
+            showNativeMode(true);
         } else {
             // Double back to exit
             if (backPressedTime + 2000 > System.currentTimeMillis()) {
@@ -535,6 +722,7 @@ public class MainActivity extends AppCompatActivity implements ConnectivityHelpe
     protected void onResume() {
         super.onResume();
         CookieManager.getInstance().flush();
+        refreshAdminSessionBadge();
         if (isWaitingForGoogleAuth) {
             isWaitingForGoogleAuth = false;
             // Delay slightly so system auth cookies are flushed and page can reload authenticated
@@ -596,6 +784,12 @@ public class MainActivity extends AppCompatActivity implements ConnectivityHelpe
             }
         }
 
+        // Intercept Camera Studio in Admin Panel -> Launch Native Camera Studio with Product Code Prompt
+        if (url.contains("/control/camera-studio")) {
+            launchNativeStudio();
+            return true;
+        }
+
         // Internal navigation within Raqamiyat domain stays inside WebView
         if (url.contains("raqamiyatapp.com")) {
             return false;
@@ -608,7 +802,7 @@ public class MainActivity extends AppCompatActivity implements ConnectivityHelpe
 
     @Override
     public void onOpenNativeStudio() {
-        webView.loadUrl("https://raqamiyatapp.com/control/camera-studio/");
+        launchNativeStudio();
     }
 
     @Override

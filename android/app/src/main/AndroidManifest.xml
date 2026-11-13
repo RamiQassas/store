@@ -48,6 +48,18 @@
             </intent-filter>
         </activity>
 
+        <activity
+            android:name=".ProductDetailActivity"
+            android:exported="false"
+            android:theme="@style/Theme.RaqamiyatApp.NoActionBar" />
+
+        <activity
+            android:name=".NativeCameraStudioActivity"
+            android:exported="false"
+            android:screenOrientation="portrait"
+            android:windowSoftInputMode="adjustResize"
+            android:theme="@style/Theme.RaqamiyatApp.NoActionBar" />
+
         <!-- FileProvider for secure Camera photo capture -->
         <provider
             android:name="androidx.core.content.FileProvider"

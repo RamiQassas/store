@@ -7134,13 +7134,15 @@ def control_camera_studio_process_ajax(request):
 
         store = getattr(request, "store", None)
         store_name = store.name if store else "Raqamiyat"
+        bg_style = request.POST.get("bg_style", "studio_white").strip() or "studio_white"
 
         processed_bytes = process_camera_product_snapshot(
             raw_bytes,
             isolate_white=isolate_white,
             add_hallmark=add_hallmark,
             target_size=800,
-            store_name=store_name
+            store_name=store_name,
+            bg_style=bg_style,
         )
 
         if product_id:
@@ -7150,6 +7152,12 @@ def control_camera_studio_process_ajax(request):
             
             filename = f"{slugify(product.name) or 'camera_prod'}_{str(product.id)[:8]}_studio.jpg"
             product.image.save(filename, ContentFile(processed_bytes), save=True)
+
+            try:
+                from django.core.cache import cache
+                cache.delete("api_offline_catalog_data")
+            except Exception:
+                pass
 
             return JsonResponse({
                 "status": "success",
@@ -7163,13 +7171,108 @@ def control_camera_studio_process_ajax(request):
         preview_b64 = "data:image/jpeg;base64," + base64.b64encode(processed_bytes).decode("utf-8")
         return JsonResponse({
             "status": "success",
-            "message": "تمت معالجة الصورة بنجاح على خلفية استوديو بيضاء وبشعار رقميات!",
+            "message": "تمت معالجة الصورة بنجاح على خلفية استوديو احترافية وبشعار رقميات!",
             "preview_url": preview_b64
         })
 
     except Exception as e:
         logger.exception("Error processing camera snapshot: %s", e)
         return JsonResponse({"status": "error", "message": f"حدث خطأ أثناء معالجة الصورة: {str(e)}"}, status=500)
+
+
+@support_required
+def control_camera_studio_lookup_product(request):
+    """
+    Fast lookup of a Product by code (Variant SKU, Product UUID or prefix, api_product_id, or name)
+    for the Native Camera Studio and Web Quick Studio.
+    """
+    import uuid as _uuid
+    from django.db.models import Q
+
+    code = (request.GET.get("code") or "").strip()
+    if not code:
+        return JsonResponse({"status": "error", "message": "يرجى إدخال كود المنتج"}, status=400)
+
+    store = getattr(request, "store", None)
+    base_qs = Product.objects.filter(store=store) if store else Product.objects.filter(store__isnull=True)
+    base_qs = base_qs.select_related("category").prefetch_related("variants")
+
+    product = None
+    matched_code = code
+
+    # 1. Exact SKU match on ProductVariant
+    variant = ProductVariant.all_objects.filter(sku__iexact=code).select_related("product", "product__category").first()
+    if variant and variant.product:
+        if (store and variant.product.store_id == store.id) or (not store and variant.product.store_id is None):
+            product = variant.product
+            matched_code = variant.sku
+
+    # 2. Exact UUID match
+    if not product:
+        try:
+            parsed_uuid = _uuid.UUID(code)
+            product = base_qs.filter(id=parsed_uuid).first()
+        except ValueError:
+            pass
+
+    # 3. Numeric api_product_id match
+    if not product and code.isdigit():
+        product = base_qs.filter(api_product_id=int(code)).first()
+
+    # 4. UUID prefix match (e.g. first 6-12 chars)
+    if not product and len(code) >= 4:
+        clean_hex = code.replace("-", "").lower()
+        for p in base_qs.only("id", "name", "category_id", "image"):
+            if str(p.id).replace("-", "").lower().startswith(clean_hex):
+                product = p
+                break
+
+    # 5. Fallback partial SKU or name search
+    if not product:
+        v_partial = ProductVariant.all_objects.filter(sku__icontains=code).select_related("product").first()
+        if v_partial and v_partial.product:
+            if (store and v_partial.product.store_id == store.id) or (not store and v_partial.product.store_id is None):
+                product = v_partial.product
+                matched_code = v_partial.sku
+        if not product:
+            product = base_qs.filter(Q(name__icontains=code)).first()
+
+    if not product:
+        return JsonResponse({
+            "status": "not_found",
+            "message": f"لم يتم العثور على منتج بالكود: {code}",
+        }, status=404)
+
+    first_variant = product.variants.first()
+    return JsonResponse({
+        "status": "success",
+        "product": {
+            "id": str(product.id),
+            "name": product.name,
+            "code": first_variant.sku if first_variant and first_variant.sku else str(product.id)[:8].upper(),
+            "matched_code": matched_code,
+            "category": product.category.name if product.category else "بدون قسم",
+            "price": float(product.base_price) if product.base_price else 0.0,
+            "image_url": product.image.url if product.image else "",
+        }
+    })
+
+
+def api_app_session_info(request):
+    """
+    Lightweight session/role info for the Native Android App so it knows
+    if the user is authenticated and has Admin/Studio privileges.
+    """
+    user = getattr(request, "user", None)
+    is_auth = bool(user and user.is_authenticated)
+    is_admin = bool(is_auth and (user.is_staff or user.is_superuser or getattr(user, "role", "") in ("admin", "support", "staff")))
+    return JsonResponse({
+        "is_authenticated": is_auth,
+        "username": user.username if is_auth else "",
+        "full_name": (user.get_full_name() or user.username) if is_auth else "",
+        "is_admin": is_admin,
+        "can_manage_studio": is_admin,
+    })
 
 
 def api_offline_catalog(request):
@@ -7204,27 +7307,36 @@ def api_offline_catalog(request):
     products_list = []
     for p in products_qs:
         variants_list = []
-        for v in p.variants.all():
+        first_sku = str(p.id)[:8].upper()
+        for idx, v in enumerate(p.variants.all()):
+            if idx == 0 and getattr(v, "sku", None):
+                first_sku = v.sku
             variants_list.append({
                 "id": str(v.id),
                 "name": v.name,
+                "sku": getattr(v, "sku", ""),
                 "price": float(v.price) if v.price else 0.0,
                 "is_active": getattr(v, "is_active", True)
             })
         products_list.append({
             "id": str(p.id),
             "name": p.name,
+            "code": first_sku,
+            "description": p.description or "",
             "category_id": str(p.category_id) if p.category_id else None,
             "category_name": p.category.name if p.category else "",
             "image": p.image.url if p.image else None,
-            "price": float(p.price) if hasattr(p, "price") and p.price else 0.0,
+            "price": float(p.base_price) if p.base_price else 0.0,
             "product_type": getattr(p, "product_type", "physical"),
+            "is_featured": getattr(p, "is_featured", False),
+            "is_sale": getattr(p, "is_sale", False),
             "is_out_of_stock": getattr(p, "is_out_of_stock", False),
+            "delivery_time_display": getattr(p, "delivery_time_display", "") or "",
             "variants": variants_list
         })
 
     data = {
-        "version": "2.0.0",
+        "version": "3.0.0",
         "timestamp": time.time(),
         "categories": categories_list,
         "products": products_list,

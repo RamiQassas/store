@@ -40,13 +40,153 @@
         android:elevation="10dp"
         android:visibility="gone" />
 
-    <!-- Main Content Area with SwipeRefreshLayout -->
+    <!-- Real Native Android Storefront Container (Home & Products) -->
+    <LinearLayout
+        android:id="@+id/native_store_container"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:layout_below="@id/page_progress"
+        android:layout_above="@id/native_bottom_navigation"
+        android:background="#030712"
+        android:layoutDirection="rtl"
+        android:orientation="vertical"
+        android:visibility="visible">
+
+        <!-- Native Luxury App Header -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="56dp"
+            android:background="#0B1120"
+            android:gravity="center_vertical"
+            android:orientation="horizontal"
+            android:paddingHorizontal="14dp">
+
+            <ImageView
+                android:layout_width="32dp"
+                android:layout_height="32dp"
+                android:src="@mipmap/ic_launcher"
+                android:contentDescription="رقميات" />
+
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:layout_marginStart="10dp"
+                android:orientation="vertical">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="رقميات | Raqamiyat"
+                    android:textColor="#D4A853"
+                    android:textSize="15sp"
+                    android:textStyle="bold" />
+
+                <TextView
+                    android:id="@+id/native_store_subtitle"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="متجر المنتجات والخدمات الرقمية"
+                    android:textColor="#94A3B8"
+                    android:textSize="10sp" />
+            </LinearLayout>
+
+            <Button
+                android:id="@+id/btn_admin_quick_studio"
+                android:layout_width="wrap_content"
+                android:layout_height="34dp"
+                android:layout_marginEnd="6dp"
+                android:background="@drawable/bg_button_cyan"
+                android:paddingHorizontal="10dp"
+                android:text="📷 استوديو الإدارة"
+                android:textColor="#030712"
+                android:textSize="11sp"
+                android:textStyle="bold"
+                android:visibility="gone" />
+
+            <Button
+                android:id="@+id/btn_native_cart"
+                android:layout_width="wrap_content"
+                android:layout_height="34dp"
+                android:background="@drawable/bg_chip_unselected"
+                android:paddingHorizontal="10dp"
+                android:text="🛒 السلة"
+                android:textColor="#F8FAFC"
+                android:textSize="11sp"
+                android:textStyle="bold" />
+        </LinearLayout>
+
+        <!-- Native Search Bar -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:background="#060B16"
+            android:orientation="vertical"
+            android:paddingHorizontal="12dp"
+            android:paddingTop="10dp"
+            android:paddingBottom="8dp">
+
+            <EditText
+                android:id="@+id/native_search_input"
+                android:layout_width="match_parent"
+                android:layout_height="44dp"
+                android:background="@drawable/bg_input_dark"
+                android:hint="🔍 ابحث عن منتج، تصنيف، أو كود المنتج..."
+                android:imeOptions="actionSearch"
+                android:inputType="text"
+                android:paddingHorizontal="14dp"
+                android:singleLine="true"
+                android:textColor="#FFFFFF"
+                android:textColorHint="#64748B"
+                android:textSize="13sp" />
+
+            <androidx.recyclerview.widget.RecyclerView
+                android:id="@+id/native_categories_rv"
+                android:layout_width="match_parent"
+                android:layout_height="42dp"
+                android:layout_marginTop="10dp"
+                android:clipToPadding="false" />
+        </LinearLayout>
+
+        <!-- Native Products Grid with Pull-to-Refresh -->
+        <androidx.swiperefreshlayout.widget.SwipeRefreshLayout
+            android:id="@+id/native_catalog_swipe"
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_weight="1">
+
+            <FrameLayout
+                android:layout_width="match_parent"
+                android:layout_height="match_parent">
+
+                <androidx.recyclerview.widget.RecyclerView
+                    android:id="@+id/native_products_rv"
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:clipToPadding="false"
+                    android:padding="6dp" />
+
+                <TextView
+                    android:id="@+id/native_empty_state"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_gravity="center"
+                    android:text="لا توجد منتجات مطابقة لبحثك"
+                    android:textColor="#64748B"
+                    android:textSize="14sp"
+                    android:visibility="gone" />
+            </FrameLayout>
+        </androidx.swiperefreshlayout.widget.SwipeRefreshLayout>
+    </LinearLayout>
+
+    <!-- Main Web Content Area (Only for Wallet, Orders, Account & Admin Portal) -->
     <androidx.swiperefreshlayout.widget.SwipeRefreshLayout
         android:id="@+id/swipe_refresh"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:layout_below="@id/page_progress"
-        android:layout_above="@id/native_bottom_navigation">
+        android:layout_above="@id/native_bottom_navigation"
+        android:visibility="gone">
 
         <WebView
             android:id="@+id/main_webview"
