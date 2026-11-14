@@ -853,7 +853,7 @@ public class MainActivity extends AppCompatActivity implements ConnectivityHelpe
         }
         if (deepUrl.contains("/control/camera-studio")) {
             launchNativeStudio();
-        } else if (deepUrl.contains("/dashboard/") || deepUrl.contains("/control/") || deepUrl.contains("/cart/")) {
+        } else if (deepUrl.contains("/auth/app-sso-exchange") || deepUrl.contains("/dashboard/") || deepUrl.contains("/control/") || deepUrl.contains("/cart/")) {
             showWebMode(deepUrl);
         } else if (deepUrl.contains("raqamiyatapp.com")) {
             showNativeMode(true);

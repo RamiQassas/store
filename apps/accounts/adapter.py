@@ -395,6 +395,17 @@ class MySocialAccountAdapter(DefaultSocialAccountAdapter):
             if not next_url:
                 next_url = getattr(settings, "LOGIN_REDIRECT_URL", "/dashboard/")
 
+            # Bind Android WebView session ticket if present in next_url
+            try:
+                from urllib.parse import urlparse, parse_qs
+                parsed_next = urlparse(str(next_url))
+                ticket_vals = parse_qs(parsed_next.query).get("ticket")
+                if ticket_vals and ticket_vals[0]:
+                    from apps.site.views import _bind_user_to_app_ticket
+                    _bind_user_to_app_ticket(request, user, ticket_vals[0])
+            except Exception as ticket_err:
+                logger.warning(f"Failed binding app ticket in pre_social_login: {ticket_err}")
+
             resp = perform_login(
                 request,
                 user,

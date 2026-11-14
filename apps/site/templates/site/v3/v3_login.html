@@ -54,7 +54,7 @@
     <div style="flex: 1; height: 1px; background: var(--rq-border);"></div>
   </div>
 
-  <a href="{{ SSO_GOOGLE_LOGIN_URL }}" class="rq-btn-secondary" style="width: 100%; justify-content: center; height: 46px; margin-bottom: 1.25rem;">
+  <a href="{{ app_google_login_url|default:SSO_GOOGLE_LOGIN_URL }}" id="rq-google-login-btn" class="rq-btn-secondary" style="width: 100%; justify-content: center; height: 46px; margin-bottom: 1.25rem;">
     <i class="fab fa-google" style="color: #ea4335; font-size: 1rem;"></i>
     <span>تسجيل الدخول بواسطة Google</span>
   </a>
@@ -65,4 +65,35 @@
     <a href="{% url 'site_register' %}" style="font-weight: 900; color: var(--rq-primary-light); margin-right: 0.25rem;">إنشاء حساب جديد مجاناً</a>
   </div>
 </div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+  (function() {
+    var redirected = false;
+    function checkAppSessionSynced() {
+      if (redirected) return;
+      fetch('/api/app/session/?_=' + Date.now(), {
+        credentials: 'same-origin',
+        cache: 'no-store'
+      })
+      .then(function(r) { return r.ok ? r.json() : null; })
+      .then(function(data) {
+        if (data && data.is_authenticated && !redirected) {
+          redirected = true;
+          window.location.replace('/dashboard/');
+        }
+      })
+      .catch(function() {});
+    }
+
+    document.addEventListener('visibilitychange', function() {
+      if (!document.hidden) {
+        checkAppSessionSynced();
+      }
+    });
+    window.addEventListener('focus', checkAppSessionSynced);
+    setInterval(checkAppSessionSynced, 1500);
+  })();
+</script>
 {% endblock %}

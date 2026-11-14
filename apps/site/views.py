@@ -371,6 +371,74 @@ def v3_verify_sp_view(request):
 # --- AUTHENTICATION (V3) ---
 # ==========================================
 
+def _bind_user_to_app_ticket(request, user, ticket):
+    """
+    Upgrades the Android WebView session stored inside a signed SSO ticket
+    so that completing Google OAuth inside Chrome Custom Tabs authenticates
+    the in-app WebView session in the database as well.
+    """
+    if not user or not getattr(user, "is_authenticated", False) or not ticket:
+        return False
+    try:
+        from django.core import signing
+        from django.contrib.auth import SESSION_KEY, BACKEND_SESSION_KEY, HASH_SESSION_KEY
+        data = signing.loads(str(ticket).strip(), salt="raqamiyat_app_ticket", max_age=900)
+        skey = (data.get("skey") or "").strip()
+        if not skey:
+            return False
+        SessionCls = request.session.__class__
+        wv_session = SessionCls(session_key=skey)
+        wv_session.load()
+        backend = (
+            getattr(user, "backend", None)
+            or (request.session.get(BACKEND_SESSION_KEY) if hasattr(request, "session") else None)
+            or "django.contrib.auth.backends.ModelBackend"
+        )
+        wv_session[SESSION_KEY] = user._meta.pk.value_to_string(user)
+        wv_session[BACKEND_SESSION_KEY] = backend
+        wv_session[HASH_SESSION_KEY] = user.get_session_auth_hash()
+        active_store = getattr(request, "store", None)
+        wv_session["session_scope"] = str(active_store.pk) if active_store else "main"
+        wv_session.pop("app_sso_pending", None)
+        wv_session.save()
+        return True
+    except Exception as exc:
+        logger.warning("Failed to bind user to app ticket: %s", exc)
+        return False
+
+
+def _build_app_google_login_context(request, active_store=None):
+    from django.core import signing
+    from urllib.parse import quote
+
+    if not request.session.get("app_sso_pending"):
+        request.session["app_sso_pending"] = True
+    if not request.session.session_key:
+        request.session.save()
+
+    app_sso_ticket = signing.dumps({"skey": request.session.session_key}, salt="raqamiyat_app_ticket")
+    handoff_path = f"/auth/app-sso-handoff/?ticket={quote(app_sso_ticket)}"
+
+    if active_store:
+        platform_url = getattr(settings, "SITE_URL", "https://raqamiyatapp.com")
+        target_abs = request.build_absolute_uri(handoff_path)
+        sso_callback = (
+            f"{platform_url}/auth/sso-callback/"
+            f"?store_id={active_store.pk}&subdomain={active_store.subdomain}&next={quote(target_abs)}"
+        )
+        google_url = (
+            f"{platform_url}/accounts/google/login/"
+            f"?store_id={active_store.pk}&subdomain={active_store.subdomain}&next={quote(sso_callback)}"
+        )
+    else:
+        google_url = f"/accounts/google/login/?process=login&next={quote(handoff_path)}"
+
+    return {
+        "app_sso_ticket": app_sso_ticket,
+        "app_google_login_url": google_url,
+    }
+
+
 @ensure_csrf_cookie
 def v3_login_view(request):
     active_store = getattr(request, 'store', None)
@@ -409,7 +477,9 @@ def v3_login_view(request):
         if user:
             if not user.is_active:
                 messages.error(request, "الحساب معطل.")
-                return render(request, "site/v3/v3_login.html", {"form": form})
+                ctx = {"form": form}
+                ctx.update(_build_app_google_login_context(request, active_store))
+                return render(request, "site/v3/v3_login.html", ctx)
 
             # Multi-Tenant isolation:
             # - On main platform (active_store=None): reject users linked to any store (except store owners/staff)
@@ -421,7 +491,9 @@ def v3_login_view(request):
                         is_owner = user.owned_stores.exists()
                     if not is_owner and not (user.is_superuser or user.is_staff or getattr(user, "role", None) in ["super_admin", "admin"]):
                         messages.error(request, "هذا الحساب مرتبط بمتجر فرعي ولا يمكنه تسجيل الدخول هنا. يرجى التوجه إلى صفحة تسجيل الدخول الخاصة بمتجرك.")
-                        return render(request, "site/v3/v3_login.html", {"form": form})
+                        ctx = {"form": form}
+                        ctx.update(_build_app_google_login_context(request, active_store))
+                        return render(request, "site/v3/v3_login.html", ctx)
             else:
                 if not (user.is_superuser or user.is_staff or getattr(user, "role", None) in ["super_admin", "admin"]):
                     from apps.stores.models import StoreEmployee
@@ -439,7 +511,9 @@ def v3_login_view(request):
                         )
                     if not is_store_member:
                         messages.error(request, "هذا الحساب مرتبط بمتجر فرعي آخر.")
-                        return render(request, "site/v3/v3_login.html", {"form": form})
+                        ctx = {"form": form}
+                        ctx.update(_build_app_google_login_context(request, active_store))
+                        return render(request, "site/v3/v3_login.html", ctx)
 
             # Ensure backend is set for session authentication
             user.backend = 'apps.stores.auth_backend.TenantModelBackend'
@@ -475,7 +549,9 @@ def v3_login_view(request):
             messages.error(request, "هذا الحساب مرتبط بمتجر فرعي ولا يمكنه تسجيل الدخول في المنصة الرئيسية. يرجى تسجيل الدخول من رابط المتجر الخاص بك.")
         else:
             messages.error(request, "بيانات الدخول غير صحيحة.")
-    return render(request, "site/v3/v3_login.html", {"form": form})
+    ctx = {"form": form}
+    ctx.update(_build_app_google_login_context(request, active_store))
+    return render(request, "site/v3/v3_login.html", ctx)
 
 @ensure_csrf_cookie
 def v3_register_view(request):
@@ -7334,18 +7410,38 @@ def api_app_session_info(request):
 
 def app_sso_handoff(request):
     """
-    Called inside Chrome Custom Tabs right after Google OAuth login completes.
-    Generates a short-lived signed token and bounces back into the Android App
-    via `raqamiyat://auth?token=...` so the App gets its own authenticated session.
+    Called right after Google OAuth login completes.
+    1. Binds the user session into the originating Android WebView ticket (if provided),
+       so even if Chrome Custom Tabs stays separate or the user simply switches back to the app,
+       the WebView session inside the app is already authenticated.
+    2. If called from inside the Android WebView (`RaqamiyatAndroid`) or a non-Android browser,
+       redirects directly to `/dashboard/`.
+    3. If called from Chrome Custom Tabs / Android browser, opens the app via Android Intent URI
+       (compatible with both old and new APK manifest filters).
     """
     from django.core import signing
     from django.http import HttpResponse
+    from urllib.parse import quote
 
+    ticket = (request.GET.get("ticket") or "").strip()
     if not request.user or not request.user.is_authenticated:
-        return redirect("/auth/login/?next=/auth/app-sso-handoff/")
+        handoff_target = f"/auth/app-sso-handoff/?ticket={quote(ticket)}" if ticket else "/auth/app-sso-handoff/"
+        return redirect(f"/auth/login/?next={quote(handoff_target)}")
+
+    if ticket:
+        _bind_user_to_app_ticket(request, request.user, ticket)
+
+    ua = request.META.get("HTTP_USER_AGENT", "") or ""
+    if "RaqamiyatAndroid" in ua or "Android" not in ua:
+        return redirect("/dashboard/")
 
     token = signing.dumps({"uid": str(request.user.id)}, salt="raqamiyat_app_sso")
-    deep_link = f"raqamiyat://auth?token={token}"
+    intent_url = (
+        f"intent://raqamiyatapp.com/auth/app-sso-exchange/?token={quote(token)}"
+        f"#Intent;scheme=https;package=com.raqamiyat.app;"
+        f"S.browser_fallback_url=https%3A%2F%2Fraqamiyatapp.com%2Fdashboard%2F;end"
+    )
+    deep_link = f"raqamiyat://auth?token={quote(token)}"
     html = f"""<!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
@@ -7356,15 +7452,25 @@ def app_sso_handoff(request):
     body {{ background:#030712; color:#f8fafc; font-family:sans-serif; display:flex; align-items:center; justify-content:center; min-height:100vh; margin:0; text-align:center; padding:24px; }}
     .card {{ background:#111827; border:1px solid #1f2937; border-radius:20px; padding:28px 22px; max-width:380px; width:100%; }}
     .btn {{ display:inline-block; margin-top:16px; padding:13px 22px; border-radius:12px; background:linear-gradient(135deg,#22d3ee,#10b981); color:#030712; font-weight:900; text-decoration:none; }}
+    .sub-btn {{ display:inline-block; margin-top:10px; color:#94a3b8; font-size:13px; text-decoration:underline; }}
   </style>
 </head>
 <body>
   <div class="card">
     <h2>✓ تم تسجيل الدخول بنجاح</h2>
-    <p style="color:#94a3b8;font-size:14px;">جاري إعادتك تلقائياً إلى تطبيق رقميات...</p>
-    <a class="btn" href="{deep_link}">العودة إلى التطبيق الآن ⚡</a>
+    <p style="color:#94a3b8;font-size:14px;">تم ربط حسابك بتطبيق رقميات، جاري إعادتك تلقائياً الآن...</p>
+    <a class="btn" href="{intent_url}">العودة إلى التطبيق الآن ⚡</a>
+    <br>
+    <a class="sub-btn" href="/dashboard/">أو المتابعة هنا</a>
   </div>
-  <script>window.location.replace("{deep_link}");</script>
+  <script>
+    (function() {{
+      try {{ window.location.replace("{intent_url}"); }} catch (e) {{}}
+      setTimeout(function() {{
+        try {{ window.location.href = "{deep_link}"; }} catch (e) {{}}
+      }}, 350);
+    }})();
+  </script>
 </body>
 </html>"""
     return HttpResponse(html)
@@ -7372,7 +7478,7 @@ def app_sso_handoff(request):
 
 def app_sso_exchange(request):
     """
-    Called inside the Android App WebView with the signed token from `raqamiyat://auth`.
+    Called inside the Android App WebView with the signed token from `intent://` or `raqamiyat://auth`.
     Logs the user into the Android App's own CookieManager session.
     """
     from django.core import signing
@@ -7383,7 +7489,7 @@ def app_sso_exchange(request):
         return redirect("/auth/login/")
 
     try:
-        data = signing.loads(token, salt="raqamiyat_app_sso", max_age=180)
+        data = signing.loads(token, salt="raqamiyat_app_sso", max_age=600)
         UserModel = get_user_model()
         user = UserModel.objects.filter(id=data.get("uid"), is_active=True).first()
         if user:
@@ -7887,8 +7993,10 @@ def download_android_apk(request):
     """
     Direct local-server download and landing page for the compiled Raqamiyat Android APK.
     Always serves the APK directly from the local site server (never redirects user to GitHub).
+    Automatically refreshes cached APKs if stale or outdated (< 6 MB).
     """
     import os
+    import time as _time
     import requests as http_requests
     from django.http import FileResponse, HttpResponse
     from django.conf import settings
@@ -7905,29 +8013,41 @@ def download_android_apk(request):
     ]
     found_path = next((p for p in candidate_paths if os.path.exists(p) and os.path.getsize(p) > 100000), None)
 
-    if direct:
-        if not found_path:
-            # Cache locally on the site server once instead of redirecting user to GitHub
-            try:
-                os.makedirs(apk_dir, exist_ok=True)
-                upstream_url = getattr(
-                    settings,
-                    "ANDROID_APK_UPSTREAM_URL",
-                    "https://github.com/RamiQassas/store/releases/download/v2.0.0-apk/Raqamiyat-Release.apk"
-                )
-                resp = http_requests.get(upstream_url, stream=True, timeout=30)
-                if resp.status_code == 200:
-                    tmp_path = local_apk_path + ".tmp"
-                    with open(tmp_path, "wb") as f:
-                        for chunk in resp.iter_content(chunk_size=65536):
-                            if chunk:
-                                f.write(chunk)
-                    if os.path.exists(tmp_path) and os.path.getsize(tmp_path) > 100000:
-                        os.replace(tmp_path, local_apk_path)
-                        found_path = local_apk_path
-            except Exception as exc:
-                logger.warning("Failed to cache APK locally: %s", exc)
+    needs_refresh = False
+    if not found_path:
+        needs_refresh = True
+    else:
+        try:
+            fsize = os.path.getsize(found_path)
+            fage = _time.time() - os.path.getmtime(found_path)
+            if fsize < 6000000 or fage > 900:
+                needs_refresh = True
+        except Exception:
+            needs_refresh = True
 
+    if direct and needs_refresh:
+        # Refresh locally on the site server instead of redirecting user to GitHub
+        try:
+            os.makedirs(apk_dir, exist_ok=True)
+            upstream_url = getattr(
+                settings,
+                "ANDROID_APK_UPSTREAM_URL",
+                "https://github.com/RamiQassas/store/releases/download/v2.0.0-apk/Raqamiyat-Release.apk"
+            )
+            resp = http_requests.get(upstream_url, stream=True, timeout=30)
+            if resp.status_code == 200:
+                tmp_path = local_apk_path + ".tmp"
+                with open(tmp_path, "wb") as f:
+                    for chunk in resp.iter_content(chunk_size=65536):
+                        if chunk:
+                            f.write(chunk)
+                if os.path.exists(tmp_path) and os.path.getsize(tmp_path) > 100000:
+                    os.replace(tmp_path, local_apk_path)
+                    found_path = local_apk_path
+        except Exception as exc:
+            logger.warning("Failed to cache APK locally: %s", exc)
+
+    if direct:
         if found_path and os.path.exists(found_path):
             response = FileResponse(
                 open(found_path, "rb"),
@@ -7945,7 +8065,7 @@ def download_android_apk(request):
             content_type="text/plain; charset=utf-8"
         )
 
-    apk_size_mb = round(os.path.getsize(found_path) / (1024 * 1024), 1) if found_path else 4.9
+    apk_size_mb = round(os.path.getsize(found_path) / (1024 * 1024), 1) if found_path else 6.6
     return render(request, "site/download_app.html", {
         "apk_available": bool(found_path),
         "apk_size_mb": apk_size_mb,
