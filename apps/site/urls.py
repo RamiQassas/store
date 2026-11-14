@@ -26,6 +26,7 @@ urlpatterns = [
     path("auth/sso-callback/", views.sso_transfer_view, name="sso_transfer"),
     path("auth/app-sso-handoff/", views.app_sso_handoff, name="app_sso_handoff"),
     path("auth/app-sso-exchange/", views.app_sso_exchange, name="app_sso_exchange"),
+    path("accounts/google/login/callback/", views.google_oauth_callback_wrapper, name="google_oauth_callback_wrapper"),
 
     path("", views.home, name="home"),
     path("stores/", views.stores_directory, name="stores_directory"),
@@ -172,6 +173,7 @@ urlpatterns = [
     path("control/camera-studio/lookup-product/", views.control_camera_studio_lookup_product, name="control_camera_studio_lookup_product"),
     path("api/studio/lookup-product/", views.control_camera_studio_lookup_product, name="api_studio_lookup_product"),
     path("api/app/session/", views.api_app_session_info, name="api_app_session_info"),
+    path("api/app/version/", views.api_app_version_info, name="api_app_version_info"),
     path("api/app/notifications/", views.api_app_notifications, name="api_app_notifications"),
     path("api/app/wallet/", views.api_app_wallet_info, name="api_app_wallet_info"),
     path("api/app/orders/create/", views.api_app_create_order, name="api_app_create_order"),

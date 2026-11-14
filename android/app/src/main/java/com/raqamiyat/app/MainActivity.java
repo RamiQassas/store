@@ -188,10 +188,11 @@ public class MainActivity extends AppCompatActivity implements ConnectivityHelpe
             showNativeMode(true);
         }
 
-        // Load native products & check admin session & sync notifications
+        // Load native products & check admin session & sync notifications & check updates
         loadNativeCatalog(false);
         refreshAdminSessionBadge();
         syncAppNotifications();
+        checkForAppUpdatesInBackground();
     }
 
     private void setupNativeStorefront() {
@@ -353,24 +354,8 @@ public class MainActivity extends AppCompatActivity implements ConnectivityHelpe
         if (connectivityHelper != null && connectivityHelper.isOnline() && webView != null) {
             webView.getSettings().setCacheMode(WebSettings.LOAD_DEFAULT);
         }
-        applyUserAgentForUrl(url);
         webView.loadUrl(url);
         updateBottomNavigationActiveTab(url);
-    }
-
-    private void applyUserAgentForUrl(String url) {
-        if (webView == null || url == null) return;
-        String lower = url.toLowerCase(Locale.ROOT);
-        boolean isGoogleAuth = lower.contains("accounts.google.com")
-                || lower.contains("accounts.youtube.com")
-                || lower.contains("myaccount.google.com")
-                || lower.contains("/accounts/google/")
-                || lower.contains("oauth2")
-                || lower.contains("gstatic.com");
-        String targetUa = isGoogleAuth ? cleanChromeUserAgent : appWebViewUserAgent;
-        if (targetUa != null && !targetUa.isEmpty() && !targetUa.equals(webView.getSettings().getUserAgentString())) {
-            webView.getSettings().setUserAgentString(targetUa);
-        }
     }
 
     private void launchNativeStudio() {
@@ -411,7 +396,7 @@ public class MainActivity extends AppCompatActivity implements ConnectivityHelpe
             cleanedUa = "Mozilla/5.0 (Linux; Android 13; Mobile) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Mobile Safari/537.36";
         }
         cleanChromeUserAgent = cleanedUa;
-        appWebViewUserAgent = cleanedUa + " RaqamiyatAndroid/3.0 NativeApp";
+        appWebViewUserAgent = cleanedUa + " RaqamiyatAndroid/3.1 NativeApp";
         settings.setUserAgentString(appWebViewUserAgent);
 
         // Cookies & Sessions
@@ -446,7 +431,6 @@ public class MainActivity extends AppCompatActivity implements ConnectivityHelpe
             }
             @Override
             public void onPageStarted(WebView view, String url, Bitmap favicon) {
-                applyUserAgentForUrl(url);
                 progressBar.setVisibility(View.VISIBLE);
                 super.onPageStarted(view, url, favicon);
             }
@@ -805,10 +789,61 @@ public class MainActivity extends AppCompatActivity implements ConnectivityHelpe
         }
     }
 
+    private boolean hasPromptedAppUpdate = false;
+
+    private void checkForAppUpdatesInBackground() {
+        if (hasPromptedAppUpdate || !connectivityHelper.isOnline()) return;
+        Executors.newSingleThreadExecutor().execute(() -> {
+            try {
+                HttpURLConnection conn = (HttpURLConnection) new URL(BASE_URL + "api/app/version/").openConnection();
+                conn.setConnectTimeout(5000);
+                conn.setReadTimeout(6000);
+                conn.setRequestProperty("User-Agent", "RaqamiyatAndroid/3.1 UpdateCheck");
+                conn.connect();
+                if (conn.getResponseCode() == 200) {
+                    Scanner scanner = new Scanner(conn.getInputStream(), StandardCharsets.UTF_8.name());
+                    String json = scanner.useDelimiter("\\A").hasNext() ? scanner.next() : "";
+                    scanner.close();
+                    if (!json.isEmpty()) {
+                        org.json.JSONObject obj = new org.json.JSONObject(json);
+                        int serverCode = obj.optInt("version_code", 0);
+                        String serverName = obj.optString("version_name", "");
+                        String apkUrl = obj.optString("apk_url", BASE_URL + "download/app/?direct=1");
+                        String notes = obj.optString("release_notes", "تتوفر نسخة محدثة من تطبيق رقميات.");
+                        long localCode = 0;
+                        try {
+                            android.content.pm.PackageInfo pInfo = getPackageManager().getPackageInfo(getPackageName(), 0);
+                            localCode = Build.VERSION.SDK_INT >= Build.VERSION_CODES.P ? pInfo.getLongVersionCode() : pInfo.versionCode;
+                        } catch (Exception ignored) {}
+                        if (serverCode > localCode) {
+                            hasPromptedAppUpdate = true;
+                            mainHandler.post(() -> {
+                                if (!isFinishing()) {
+                                    new com.google.android.material.dialog.MaterialAlertDialogBuilder(MainActivity.this)
+                                            .setTitle("⚡ يتوفر تحديث جديد لتطبيق رقميات (" + serverName + ")")
+                                            .setMessage(notes + "\n\nاضغط تحديث ليتم تحميل وتثبيت النسخة الجديدة تلقائياً.")
+                                            .setPositiveButton("تحديث تلقائي الآن", (d, w) -> {
+                                                try {
+                                                    startActivity(new Intent(Intent.ACTION_VIEW, Uri.parse(apkUrl)));
+                                                } catch (Exception ignored) {}
+                                            })
+                                            .setNegativeButton("لاحقاً", (d, w) -> d.dismiss())
+                                            .show();
+                                }
+                            });
+                        }
+                    }
+                }
+            } catch (Exception ignored) {
+            }
+        });
+    }
+
     @Override
     protected void onResume() {
         super.onResume();
         CookieManager.getInstance().flush();
+        loadNativeCatalog(false);
         refreshAdminSessionBadge();
         syncAppNotifications();
         if (isWaitingForGoogleAuth) {
@@ -853,7 +888,12 @@ public class MainActivity extends AppCompatActivity implements ConnectivityHelpe
         }
         if (deepUrl.contains("/control/camera-studio")) {
             launchNativeStudio();
-        } else if (deepUrl.contains("/auth/app-sso-exchange") || deepUrl.contains("/dashboard/") || deepUrl.contains("/control/") || deepUrl.contains("/cart/")) {
+        } else if (deepUrl.contains("/auth/app-sso-exchange")
+                || deepUrl.contains("/accounts/")
+                || deepUrl.contains("/auth/")
+                || deepUrl.contains("/dashboard/")
+                || deepUrl.contains("/control/")
+                || deepUrl.contains("/cart/")) {
             showWebMode(deepUrl);
         } else if (deepUrl.contains("raqamiyatapp.com")) {
             showNativeMode(true);
@@ -889,7 +929,6 @@ public class MainActivity extends AppCompatActivity implements ConnectivityHelpe
 
         // Keep Google OAuth, Raqamiyat pages, and payment gateways 100% inside the in-app WebView
         if (url.startsWith("http://") || url.startsWith("https://")) {
-            applyUserAgentForUrl(url);
             if (isNativeMode) {
                 isNativeMode = false;
                 nativeStoreContainer.setVisibility(View.GONE);

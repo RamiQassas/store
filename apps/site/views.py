@@ -389,18 +389,26 @@ def _bind_user_to_app_ticket(request, user, ticket):
         SessionCls = request.session.__class__
         wv_session = SessionCls(session_key=skey)
         wv_session.load()
-        backend = (
-            getattr(user, "backend", None)
-            or (request.session.get(BACKEND_SESSION_KEY) if hasattr(request, "session") else None)
-            or "django.contrib.auth.backends.ModelBackend"
-        )
+        backend = "apps.stores.auth_backend.TenantModelBackend"
         wv_session[SESSION_KEY] = user._meta.pk.value_to_string(user)
         wv_session[BACKEND_SESSION_KEY] = backend
         wv_session[HASH_SESSION_KEY] = user.get_session_auth_hash()
         active_store = getattr(request, "store", None)
+        if not active_store and data.get("store_id"):
+            from apps.stores.models import Store
+            from apps.common.tenant_utils import bypass_tenant_filter
+            with bypass_tenant_filter():
+                active_store = Store.objects.filter(pk=data.get("store_id")).first()
         wv_session["session_scope"] = str(active_store.pk) if active_store else "main"
+        wv_session["last_activity"] = timezone.now().timestamp()
         wv_session.pop("app_sso_pending", None)
         wv_session.save()
+        try:
+            if user.last_session_key != skey:
+                user.last_session_key = skey
+                user.save(update_fields=["last_session_key"])
+        except Exception:
+            pass
         return True
     except Exception as exc:
         logger.warning("Failed to bind user to app ticket: %s", exc)
@@ -409,29 +417,43 @@ def _bind_user_to_app_ticket(request, user, ticket):
 
 def _build_app_google_login_context(request, active_store=None):
     from django.core import signing
-    from urllib.parse import quote
+    from urllib.parse import urlencode
+    from allauth.socialaccount.models import SocialApp
 
     if not request.session.get("app_sso_pending"):
         request.session["app_sso_pending"] = True
     if not request.session.session_key:
         request.session.save()
 
-    app_sso_ticket = signing.dumps({"skey": request.session.session_key}, salt="raqamiyat_app_ticket")
-    handoff_path = f"/auth/app-sso-handoff/?ticket={quote(app_sso_ticket)}"
+    ticket_payload = {
+        "skey": request.session.session_key,
+        "store_id": str(active_store.pk) if active_store else "",
+    }
+    app_sso_ticket = signing.dumps(ticket_payload, salt="raqamiyat_app_ticket")
 
-    if active_store:
-        platform_url = getattr(settings, "SITE_URL", "https://raqamiyatapp.com")
-        target_abs = request.build_absolute_uri(handoff_path)
-        sso_callback = (
-            f"{platform_url}/auth/sso-callback/"
-            f"?store_id={active_store.pk}&subdomain={active_store.subdomain}&next={quote(target_abs)}"
-        )
-        google_url = (
-            f"{platform_url}/accounts/google/login/"
-            f"?store_id={active_store.pk}&subdomain={active_store.subdomain}&next={quote(sso_callback)}"
-        )
-    else:
-        google_url = f"/accounts/google/login/?process=login&next={quote(handoff_path)}"
+    client_id = getattr(settings, "GOOGLE_CLIENT_ID", "") or ""
+    if not client_id:
+        try:
+            app = SocialApp.objects.filter(provider="google").first()
+            if app and app.client_id:
+                client_id = app.client_id
+        except Exception:
+            pass
+    if not client_id:
+        client_id = "723304203570-h9erhh2qklh8l77hkfr7pb3covp50par.apps.googleusercontent.com"
+
+    platform_url = (getattr(settings, "SITE_URL", "https://raqamiyatapp.com") or "https://raqamiyatapp.com").rstrip("/")
+    redirect_uri = f"{platform_url}/accounts/google/login/callback/"
+    params = {
+        "client_id": client_id,
+        "redirect_uri": redirect_uri,
+        "response_type": "code",
+        "scope": "openid email profile",
+        "access_type": "online",
+        "prompt": "select_account",
+        "state": f"app_{app_sso_ticket}",
+    }
+    google_url = f"https://accounts.google.com/o/oauth2/v2/auth?{urlencode(params)}"
 
     return {
         "app_sso_ticket": app_sso_ticket,
@@ -923,8 +945,38 @@ def email_verify(request, uidb64, token): return redirect("site_login")
 # --- USER VIEWS (V3) ---
 # ==========================================
 
-@login_required
 def dashboard(request):
+    sso_token = (request.GET.get("sso_token") or "").strip()
+    if sso_token and not request.user.is_authenticated:
+        try:
+            from django.core import signing
+            from django.contrib.auth import get_user_model
+            from apps.common.tenant_utils import bypass_tenant_filter
+            data = signing.loads(sso_token, salt="raqamiyat_app_sso", max_age=900)
+            UserModel = get_user_model()
+            with bypass_tenant_filter():
+                sso_user = UserModel.all_objects.filter(id=data.get("uid"), is_active=True).first()
+            if sso_user:
+                sso_user.backend = "apps.stores.auth_backend.TenantModelBackend"
+                login(request, sso_user, backend="apps.stores.auth_backend.TenantModelBackend")
+                active_store = getattr(request, "store", None)
+                request.session["session_scope"] = str(active_store.pk) if active_store else "main"
+                request.session["last_activity"] = timezone.now().timestamp()
+                if request.session.session_key:
+                    try:
+                        sso_user.last_session_key = request.session.session_key
+                        sso_user.save(update_fields=["last_session_key"])
+                    except Exception:
+                        pass
+                messages.success(request, "تم تسجيل الدخول في تطبيق رقميات بنجاح ⚡")
+                return redirect("dashboard")
+        except Exception as exc:
+            logger.warning("Dashboard SSO token exchange failed: %s", exc)
+
+    if not request.user.is_authenticated:
+        from urllib.parse import quote
+        return redirect(f"/auth/login/?next={quote(request.get_full_path())}")
+
     print(f"[dashboard VIEW DEBUG] User: {request.user}, is_authenticated: {request.user.is_authenticated}")
     # Multi-Tenant: Order.objects uses TenantManager, so it filters by store automatically.
     # On main site (store=None): returns orders where store=None (platform orders).
@@ -7408,38 +7460,24 @@ def api_app_session_info(request):
     })
 
 
-def app_sso_handoff(request):
+def _render_android_app_return_response(user, redirect_path="/dashboard/"):
     """
-    Called right after Google OAuth login completes.
-    1. Binds the user session into the originating Android WebView ticket (if provided),
-       so even if Chrome Custom Tabs stays separate or the user simply switches back to the app,
-       the WebView session inside the app is already authenticated.
-    2. If called from inside the Android WebView (`RaqamiyatAndroid`) or a non-Android browser,
-       redirects directly to `/dashboard/`.
-    3. If called from Chrome Custom Tabs / Android browser, opens the app via Android Intent URI
-       (compatible with both old and new APK manifest filters).
+    Renders an auto-returning handoff page from Chrome Custom Tabs back into
+    the Raqamiyat Android app, passing a signed sso_token on /dashboard/ so
+    both older and newer APK deep-link filters authenticate cleanly.
     """
     from django.core import signing
     from django.http import HttpResponse
     from urllib.parse import quote
 
-    ticket = (request.GET.get("ticket") or "").strip()
-    if not request.user or not request.user.is_authenticated:
-        handoff_target = f"/auth/app-sso-handoff/?ticket={quote(ticket)}" if ticket else "/auth/app-sso-handoff/"
-        return redirect(f"/auth/login/?next={quote(handoff_target)}")
-
-    if ticket:
-        _bind_user_to_app_ticket(request, request.user, ticket)
-
-    ua = request.META.get("HTTP_USER_AGENT", "") or ""
-    if "RaqamiyatAndroid" in ua or "Android" not in ua:
-        return redirect("/dashboard/")
-
-    token = signing.dumps({"uid": str(request.user.id)}, salt="raqamiyat_app_sso")
+    token = signing.dumps({"uid": str(user.id)}, salt="raqamiyat_app_sso")
+    sep = "&" if "?" in redirect_path else "?"
+    dashboard_target = f"https://raqamiyatapp.com{redirect_path}{sep}sso_token={quote(token)}"
+    intent_path = f"{redirect_path.lstrip('/')}{sep}sso_token={quote(token)}"
     intent_url = (
-        f"intent://raqamiyatapp.com/auth/app-sso-exchange/?token={quote(token)}"
+        f"intent://raqamiyatapp.com/{intent_path}"
         f"#Intent;scheme=https;package=com.raqamiyat.app;"
-        f"S.browser_fallback_url=https%3A%2F%2Fraqamiyatapp.com%2Fdashboard%2F;end"
+        f"S.browser_fallback_url={quote(dashboard_target, safe='')};end"
     )
     deep_link = f"raqamiyat://auth?token={quote(token)}"
     html = f"""<!DOCTYPE html>
@@ -7461,7 +7499,7 @@ def app_sso_handoff(request):
     <p style="color:#94a3b8;font-size:14px;">تم ربط حسابك بتطبيق رقميات، جاري إعادتك تلقائياً الآن...</p>
     <a class="btn" href="{intent_url}">العودة إلى التطبيق الآن ⚡</a>
     <br>
-    <a class="sub-btn" href="/dashboard/">أو المتابعة هنا</a>
+    <a class="sub-btn" href="{dashboard_target}">أو المتابعة هنا</a>
   </div>
   <script>
     (function() {{
@@ -7476,6 +7514,251 @@ def app_sso_handoff(request):
     return HttpResponse(html)
 
 
+def google_oauth_callback_wrapper(request):
+    """
+    Handles direct Google OAuth callbacks carrying a signed `state=app_<ticket>`
+    (which avoids /accounts/google/login/ Custom-Tab self-routing loops in existing APKs)
+    while delegating standard allauth flows to `oauth2_callback`.
+    """
+    state = (request.GET.get("state") or "").strip()
+    if not state.startswith("app_"):
+        from allauth.socialaccount.providers.google.views import oauth2_callback
+        return oauth2_callback(request)
+
+    import base64
+    import json as _json
+    import requests as _requests
+    from urllib.parse import quote
+    from django.core import signing
+    from django.contrib.auth import get_user_model
+    from django.utils.crypto import get_random_string
+    from allauth.socialaccount.models import SocialApp, SocialAccount
+    from allauth.account.models import EmailAddress
+    from apps.common.tenant_utils import bypass_tenant_filter
+    from apps.stores.models import Store
+
+    ticket = state[4:].strip()
+    code = (request.GET.get("code") or "").strip()
+    if request.GET.get("error") or not code:
+        messages.error(request, "تم إلغاء تسجيل الدخول عبر Google أو تعذر إكماله.")
+        return redirect("/auth/login/")
+
+    ticket_data = {}
+    try:
+        ticket_data = signing.loads(ticket, salt="raqamiyat_app_ticket", max_age=900)
+    except Exception as exc:
+        logger.warning("Invalid/expired Google OAuth app state ticket: %s", exc)
+
+    app_obj = SocialApp.objects.filter(provider="google").first()
+    client_id = getattr(settings, "GOOGLE_CLIENT_ID", "") or (app_obj.client_id if app_obj else "")
+    client_secret = getattr(settings, "GOOGLE_CLIENT_SECRET", "") or (app_obj.secret if app_obj else "")
+    if not client_id or not client_secret:
+        logger.error("Google OAuth client credentials missing on server.")
+        messages.error(request, "إعدادات تسجيل الدخول عبر Google غير مكتملة.")
+        return redirect("/auth/login/")
+
+    platform_url = (getattr(settings, "SITE_URL", "https://raqamiyatapp.com") or "https://raqamiyatapp.com").rstrip("/")
+    redirect_uri = f"{platform_url}/accounts/google/login/callback/"
+
+    try:
+        token_resp = _requests.post(
+            "https://oauth2.googleapis.com/token",
+            data={
+                "code": code,
+                "client_id": client_id,
+                "client_secret": client_secret,
+                "redirect_uri": redirect_uri,
+                "grant_type": "authorization_code",
+            },
+            timeout=12,
+        )
+        token_json = token_resp.json() if token_resp.content else {}
+    except Exception as exc:
+        logger.exception("Google token exchange error: %s", exc)
+        messages.error(request, "تعذر الاتصال بخدمة Google، يرجى المحاولة مجدداً.")
+        return redirect("/auth/login/")
+
+    access_token = token_json.get("access_token")
+    id_token = token_json.get("id_token")
+    if not access_token and not id_token:
+        logger.warning("Google token exchange failed: %s", token_json)
+        messages.error(request, "فشل التحقق من حساب Google، يرجى المحاولة مرة أخرى.")
+        return redirect("/auth/login/")
+
+    userinfo = {}
+    if access_token:
+        try:
+            ui_resp = _requests.get(
+                "https://www.googleapis.com/oauth2/v3/userinfo",
+                headers={"Authorization": f"Bearer {access_token}"},
+                timeout=10,
+            )
+            if ui_resp.ok:
+                userinfo = ui_resp.json() or {}
+        except Exception as exc:
+            logger.warning("Google userinfo fetch warning: %s", exc)
+
+    if (not userinfo.get("email")) and id_token and "." in id_token:
+        try:
+            payload_b64 = id_token.split(".")[1]
+            payload_b64 += "=" * (-len(payload_b64) % 4)
+            claims = _json.loads(base64.urlsafe_b64decode(payload_b64).decode("utf-8"))
+            if isinstance(claims, dict):
+                userinfo.update(claims)
+        except Exception:
+            pass
+
+    email = (userinfo.get("email") or "").strip().lower()
+    if not email:
+        messages.error(request, "لم يقم Google بتزويد البريد الإلكتروني للحساب.")
+        return redirect("/auth/login/")
+
+    first_name = (userinfo.get("given_name") or "").strip()
+    last_name = (userinfo.get("family_name") or "").strip()
+    google_uid = str(userinfo.get("sub") or userinfo.get("id") or email)
+
+    active_store = getattr(request, "store", None)
+    if not active_store and ticket_data.get("store_id"):
+        with bypass_tenant_filter():
+            active_store = Store.objects.filter(pk=ticket_data.get("store_id")).first()
+
+    UserModel = get_user_model()
+    with bypass_tenant_filter():
+        if active_store:
+            from django.db.models import Q
+            is_owner = bool(active_store.owner and active_store.owner.email.lower() == email)
+            admin_user = (
+                UserModel.all_objects.filter(email__iexact=email, store__isnull=True)
+                .filter(Q(is_superuser=True) | Q(is_staff=True) | Q(role__in=["super_admin", "admin"]))
+                .first()
+            )
+            if is_owner:
+                user = active_store.owner
+            elif admin_user:
+                user = admin_user
+            else:
+                user = UserModel.all_objects.filter(email__iexact=email, store=active_store).first()
+                if not user:
+                    user = UserModel.objects.create_user(
+                        email=email,
+                        username=email,
+                        password=get_random_string(32),
+                        first_name=first_name,
+                        last_name=last_name,
+                        store=active_store,
+                        email_verified=True,
+                        is_active=True,
+                    )
+        else:
+            user = UserModel.all_objects.filter(email__iexact=email, store__isnull=True).first()
+            if not user:
+                user = UserModel.objects.create_user(
+                    email=email,
+                    username=email,
+                    password=get_random_string(32),
+                    first_name=first_name,
+                    last_name=last_name,
+                    store=None,
+                    email_verified=True,
+                    is_active=True,
+                )
+
+    get_or_create_wallet(user)
+
+    needs_save = False
+    if not user.email_verified:
+        user.email_verified = True
+        needs_save = True
+    if not user.is_active:
+        user.is_active = True
+        needs_save = True
+    if not user.first_name and first_name:
+        user.first_name = first_name
+        needs_save = True
+    if not user.last_name and last_name:
+        user.last_name = last_name
+        needs_save = True
+    if needs_save:
+        user.save()
+
+    try:
+        EmailAddress.objects.update_or_create(
+            user=user,
+            email=user.email,
+            defaults={"verified": True, "primary": True},
+        )
+        acc = SocialAccount.objects.filter(provider="google", uid=google_uid).first()
+        if not acc:
+            SocialAccount.objects.create(
+                user=user,
+                provider="google",
+                uid=google_uid,
+                extra_data=userinfo,
+            )
+        else:
+            if acc.user_id != user.id:
+                acc.user = user
+            acc.extra_data = userinfo
+            acc.save()
+    except Exception as exc:
+        logger.warning("SocialAccount/EmailAddress sync warning: %s", exc)
+
+    prev_session_key = getattr(request.session, "session_key", None)
+    user.backend = "apps.stores.auth_backend.TenantModelBackend"
+    login(request, user, backend="apps.stores.auth_backend.TenantModelBackend")
+    request.session["session_scope"] = str(active_store.pk) if active_store else "main"
+    request.session["last_activity"] = timezone.now().timestamp()
+
+    ticket_skey = (ticket_data.get("skey") or "").strip() if isinstance(ticket_data, dict) else ""
+    if ticket and ticket_skey and ticket_skey != prev_session_key:
+        _bind_user_to_app_ticket(request, user, ticket)
+    elif request.session.session_key:
+        try:
+            user.last_session_key = request.session.session_key
+            user.save(update_fields=["last_session_key"])
+        except Exception:
+            pass
+
+    if active_store:
+        sso_token = signing.dumps({"uid": str(user.id)}, salt="raqamiyat_app_sso")
+        target_domain = active_store.custom_domain or f"{active_store.subdomain}.raqamiyatapp.com"
+        target_url = f"https://{target_domain}/dashboard/?sso_token={quote(sso_token)}"
+        return redirect(
+            f"{platform_url}/auth/sso-callback/?store_id={active_store.pk}&subdomain={active_store.subdomain}&next={quote(target_url)}"
+        )
+
+    ua = request.META.get("HTTP_USER_AGENT", "") or ""
+    if "RaqamiyatAndroid" in ua or "Android" not in ua:
+        return redirect("/dashboard/")
+
+    return _render_android_app_return_response(user, redirect_path="/dashboard/")
+
+
+def app_sso_handoff(request):
+    """
+    Called right after Google OAuth login completes.
+    1. Binds the user session into the originating Android WebView ticket (if provided).
+    2. If called from inside the Android WebView (`RaqamiyatAndroid`) or a non-Android browser,
+       redirects directly to `/dashboard/`.
+    3. If called from Chrome Custom Tabs / Android browser, returns the app bounce page.
+    """
+    from urllib.parse import quote
+
+    ticket = (request.GET.get("ticket") or "").strip()
+    if not request.user or not request.user.is_authenticated:
+        handoff_target = f"/auth/app-sso-handoff/?ticket={quote(ticket)}" if ticket else "/auth/app-sso-handoff/"
+        return redirect(f"/auth/login/?next={quote(handoff_target)}")
+
+    if ticket:
+        _bind_user_to_app_ticket(request, request.user, ticket)
+
+    ua = request.META.get("HTTP_USER_AGENT", "") or ""
+    if "RaqamiyatAndroid" in ua or "Android" not in ua:
+        return redirect("/dashboard/")
+
+    return _render_android_app_return_response(request.user, redirect_path="/dashboard/")
+
+
 def app_sso_exchange(request):
     """
     Called inside the Android App WebView with the signed token from `intent://` or `raqamiyat://auth`.
@@ -7483,23 +7766,48 @@ def app_sso_exchange(request):
     """
     from django.core import signing
     from django.contrib.auth import get_user_model, login
+    from apps.common.tenant_utils import bypass_tenant_filter
 
     token = (request.GET.get("token") or "").strip()
     if not token:
         return redirect("/auth/login/")
 
     try:
-        data = signing.loads(token, salt="raqamiyat_app_sso", max_age=600)
+        data = signing.loads(token, salt="raqamiyat_app_sso", max_age=900)
         UserModel = get_user_model()
-        user = UserModel.objects.filter(id=data.get("uid"), is_active=True).first()
+        with bypass_tenant_filter():
+            user = UserModel.all_objects.filter(id=data.get("uid"), is_active=True).first()
         if user:
-            login(request, user, backend="django.contrib.auth.backends.ModelBackend")
+            user.backend = "apps.stores.auth_backend.TenantModelBackend"
+            login(request, user, backend="apps.stores.auth_backend.TenantModelBackend")
+            active_store = getattr(request, "store", None)
+            request.session["session_scope"] = str(active_store.pk) if active_store else "main"
+            request.session["last_activity"] = timezone.now().timestamp()
             messages.success(request, "تم تسجيل الدخول في تطبيق رقميات بنجاح ⚡")
             return redirect("/dashboard/")
     except Exception as exc:
         logger.warning("App SSO exchange failed: %s", exc)
 
     return redirect("/auth/login/")
+
+
+def api_app_version_info(request):
+    """
+    Returns live app/platform sync & version metadata for automatic updates inside
+    the Native Android App without requiring manual APK downloads for store updates.
+    """
+    from apps.common.auto_deploy import get_local_commit_sha
+    platform_url = (getattr(settings, "SITE_URL", "https://raqamiyatapp.com") or "https://raqamiyatapp.com").rstrip("/")
+    return JsonResponse({
+        "status": "ok",
+        "version_code": 310,
+        "version_name": "3.1.0",
+        "live_sync": True,
+        "commit": get_local_commit_sha(),
+        "apk_url": f"{platform_url}/download/app/?direct=1",
+        "force_update": False,
+        "release_notes": "تحديث تلقائي مباشر للمتجر، إصلاح تسجيل الدخول عبر Google، وتحديث الكتالوج والدفع.",
+    })
 
 
 def api_app_notifications(request):
