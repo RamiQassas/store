@@ -396,8 +396,19 @@ public class MainActivity extends AppCompatActivity implements ConnectivityHelpe
             cleanedUa = "Mozilla/5.0 (Linux; Android 13; Mobile) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Mobile Safari/537.36";
         }
         cleanChromeUserAgent = cleanedUa;
-        appWebViewUserAgent = cleanedUa + " RaqamiyatAndroid/3.1 NativeApp";
+        appWebViewUserAgent = cleanedUa + " RaqamiyatAndroid/3.2 NativeApp";
         settings.setUserAgentString(appWebViewUserAgent);
+
+        // Support direct in-app APK and file downloads inside WebView
+        webView.setDownloadListener((url, userAgent, contentDisposition, mimetype, contentLength) -> {
+            if (url != null && (url.contains("/download/app") || url.contains("/download/apk") || url.endsWith(".apk"))) {
+                downloadAndInstallApkInApp(url);
+            } else if (url != null) {
+                try {
+                    startActivity(new Intent(Intent.ACTION_VIEW, Uri.parse(url)));
+                } catch (Exception ignored) {}
+            }
+        });
 
         // Cookies & Sessions
         CookieManager cookieManager = CookieManager.getInstance();
@@ -791,6 +802,85 @@ public class MainActivity extends AppCompatActivity implements ConnectivityHelpe
 
     private boolean hasPromptedAppUpdate = false;
 
+    private boolean isPackageInstalled(String packageName) {
+        try {
+            getPackageManager().getPackageInfo(packageName, 0);
+            return true;
+        } catch (Exception e) {
+            return false;
+        }
+    }
+
+    private void launchGoogleCustomTab(String url) {
+        try {
+            androidx.browser.customtabs.CustomTabsIntent customTabsIntent =
+                    new androidx.browser.customtabs.CustomTabsIntent.Builder()
+                            .setShowTitle(true)
+                            .setToolbarColor(0xFF030712)
+                            .build();
+            if (isPackageInstalled("com.android.chrome")) {
+                customTabsIntent.intent.setPackage("com.android.chrome");
+            }
+            customTabsIntent.launchUrl(this, Uri.parse(url));
+        } catch (Exception e) {
+            try {
+                Intent browserIntent = new Intent(Intent.ACTION_VIEW, Uri.parse(url));
+                if (isPackageInstalled("com.android.chrome")) {
+                    browserIntent.setPackage("com.android.chrome");
+                }
+                startActivity(browserIntent);
+            } catch (Exception ignored) {
+            }
+        }
+    }
+
+    private void downloadAndInstallApkInApp(final String apkUrl) {
+        Toast.makeText(this, "⏳ جاري تحميل وتثبيت التحديث التلقائي داخل التطبيق...", Toast.LENGTH_LONG).show();
+        Executors.newSingleThreadExecutor().execute(() -> {
+            try {
+                HttpURLConnection conn = (HttpURLConnection) new URL(apkUrl).openConnection();
+                conn.setInstanceFollowRedirects(true);
+                conn.setConnectTimeout(15000);
+                conn.setReadTimeout(30000);
+                conn.setRequestProperty("User-Agent", "RaqamiyatAndroid/3.2 AutoUpdater");
+                conn.connect();
+                if (conn.getResponseCode() == 200) {
+                    File outFile = new File(getCacheDir(), "Raqamiyat-Update.apk");
+                    java.io.InputStream is = conn.getInputStream();
+                    java.io.FileOutputStream fos = new java.io.FileOutputStream(outFile);
+                    byte[] buffer = new byte[32768];
+                    int len;
+                    while ((len = is.read(buffer)) != -1) {
+                        fos.write(buffer, 0, len);
+                    }
+                    fos.flush();
+                    fos.close();
+                    is.close();
+                    if (outFile.exists() && outFile.length() > 100000) {
+                        mainHandler.post(() -> {
+                            try {
+                                Uri apkUri = FileProvider.getUriForFile(
+                                        MainActivity.this,
+                                        getPackageName() + ".fileprovider",
+                                        outFile
+                                );
+                                Intent installIntent = new Intent(Intent.ACTION_VIEW);
+                                installIntent.setDataAndType(apkUri, "application/vnd.android.package-archive");
+                                installIntent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION | Intent.FLAG_ACTIVITY_NEW_TASK);
+                                startActivity(installIntent);
+                            } catch (Exception e) {
+                                launchGoogleCustomTab(apkUrl);
+                            }
+                        });
+                        return;
+                    }
+                }
+            } catch (Exception ignored) {
+            }
+            mainHandler.post(() -> launchGoogleCustomTab(apkUrl));
+        });
+    }
+
     private void checkForAppUpdatesInBackground() {
         if (hasPromptedAppUpdate || !connectivityHelper.isOnline()) return;
         Executors.newSingleThreadExecutor().execute(() -> {
@@ -798,7 +888,7 @@ public class MainActivity extends AppCompatActivity implements ConnectivityHelpe
                 HttpURLConnection conn = (HttpURLConnection) new URL(BASE_URL + "api/app/version/").openConnection();
                 conn.setConnectTimeout(5000);
                 conn.setReadTimeout(6000);
-                conn.setRequestProperty("User-Agent", "RaqamiyatAndroid/3.1 UpdateCheck");
+                conn.setRequestProperty("User-Agent", "RaqamiyatAndroid/3.2 UpdateCheck");
                 conn.connect();
                 if (conn.getResponseCode() == 200) {
                     Scanner scanner = new Scanner(conn.getInputStream(), StandardCharsets.UTF_8.name());
@@ -808,7 +898,7 @@ public class MainActivity extends AppCompatActivity implements ConnectivityHelpe
                         org.json.JSONObject obj = new org.json.JSONObject(json);
                         int serverCode = obj.optInt("version_code", 0);
                         String serverName = obj.optString("version_name", "");
-                        String apkUrl = obj.optString("apk_url", BASE_URL + "download/app/?direct=1");
+                        String apkUrl = obj.optString("local_apk_url", obj.optString("apk_url", BASE_URL + "download/app/?direct=1"));
                         String notes = obj.optString("release_notes", "تتوفر نسخة محدثة من تطبيق رقميات.");
                         long localCode = 0;
                         try {
@@ -822,11 +912,7 @@ public class MainActivity extends AppCompatActivity implements ConnectivityHelpe
                                     new com.google.android.material.dialog.MaterialAlertDialogBuilder(MainActivity.this)
                                             .setTitle("⚡ يتوفر تحديث جديد لتطبيق رقميات (" + serverName + ")")
                                             .setMessage(notes + "\n\nاضغط تحديث ليتم تحميل وتثبيت النسخة الجديدة تلقائياً.")
-                                            .setPositiveButton("تحديث تلقائي الآن", (d, w) -> {
-                                                try {
-                                                    startActivity(new Intent(Intent.ACTION_VIEW, Uri.parse(apkUrl)));
-                                                } catch (Exception ignored) {}
-                                            })
+                                            .setPositiveButton("تحديث تلقائي الآن", (d, w) -> downloadAndInstallApkInApp(apkUrl))
                                             .setNegativeButton("لاحقاً", (d, w) -> d.dismiss())
                                             .show();
                                 }
@@ -909,9 +995,22 @@ public class MainActivity extends AppCompatActivity implements ConnectivityHelpe
             return true;
         }
 
-        // WhatsApp, Tel, Mailto, Telegram, Intent protocols
+        // Android Intent URI scheme
+        if (url.startsWith("intent:")) {
+            try {
+                Intent intent = Intent.parseUri(url, Intent.URI_INTENT_SCHEME);
+                if (intent != null) {
+                    startActivity(intent);
+                }
+                return true;
+            } catch (Exception ignored) {
+                return true;
+            }
+        }
+
+        // WhatsApp, Tel, Mailto, Telegram protocols
         if (url.startsWith("whatsapp:") || url.startsWith("tel:") || url.startsWith("mailto:")
-                || url.startsWith("tg:") || url.startsWith("intent:")) {
+                || url.startsWith("tg:")) {
             try {
                 Intent intent = new Intent(Intent.ACTION_VIEW, Uri.parse(url));
                 startActivity(intent);
@@ -921,13 +1020,22 @@ public class MainActivity extends AppCompatActivity implements ConnectivityHelpe
             }
         }
 
+        // Google Sign-In & OAuth Account Picker:
+        // Open via Chrome Custom Tabs targeting Chrome so all Google accounts signed into the
+        // device appear immediately, while state=app_<ticket> binds the session directly to this app WebView.
+        if (url.contains("accounts.google.com") || url.contains("/accounts/google/login")) {
+            isWaitingForGoogleAuth = true;
+            launchGoogleCustomTab(url);
+            return true;
+        }
+
         // Intercept Camera Studio in Admin Panel -> Launch Native Camera Studio with Product Code Prompt
         if (url.contains("/control/camera-studio")) {
             launchNativeStudio();
             return true;
         }
 
-        // Keep Google OAuth, Raqamiyat pages, and payment gateways 100% inside the in-app WebView
+        // Keep Raqamiyat pages and payment gateways inside the in-app WebView
         if (url.startsWith("http://") || url.startsWith("https://")) {
             if (isNativeMode) {
                 isNativeMode = false;
@@ -948,8 +1056,7 @@ public class MainActivity extends AppCompatActivity implements ConnectivityHelpe
 
     @Override
     public void onOpenGoogleLogin() {
-        isWaitingForGoogleAuth = false;
-        showWebMode("https://raqamiyatapp.com/accounts/google/login/?process=login&next=" + Uri.encode("/dashboard/"));
+        showWebMode(BASE_URL + "auth/login/");
     }
 
     @Override

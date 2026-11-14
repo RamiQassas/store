@@ -7800,13 +7800,14 @@ def api_app_version_info(request):
     platform_url = (getattr(settings, "SITE_URL", "https://raqamiyatapp.com") or "https://raqamiyatapp.com").rstrip("/")
     return JsonResponse({
         "status": "ok",
-        "version_code": 310,
-        "version_name": "3.1.0",
+        "version_code": 320,
+        "version_name": "3.2.0",
         "live_sync": True,
         "commit": get_local_commit_sha(),
-        "apk_url": f"{platform_url}/download/app/?direct=1",
+        "apk_url": "https://github.com/RamiQassas/store/releases/download/v2.0.0-apk/Raqamiyat-Release.apk",
+        "local_apk_url": f"{platform_url}/download/app/?direct=1",
         "force_update": False,
-        "release_notes": "تحديث تلقائي مباشر للمتجر، إصلاح تسجيل الدخول عبر Google، وتحديث الكتالوج والدفع.",
+        "release_notes": "إظهار جميع حسابات Google المسجلة على الهاتف بلمسة واحدة عند تسجيل الدخول، وتثبيت التحديثات تلقائياً من داخل التطبيق.",
     })
 
 
@@ -8321,14 +8322,14 @@ def download_android_apk(request):
     ]
     found_path = next((p for p in candidate_paths if os.path.exists(p) and os.path.getsize(p) > 100000), None)
 
-    needs_refresh = False
+    needs_refresh = request.GET.get("refresh") == "1"
     if not found_path:
         needs_refresh = True
     else:
         try:
             fsize = os.path.getsize(found_path)
             fage = _time.time() - os.path.getmtime(found_path)
-            if fsize < 6000000 or fage > 900:
+            if fsize < 6000000 or fage > 120:
                 needs_refresh = True
         except Exception:
             needs_refresh = True
@@ -8361,7 +8362,7 @@ def download_android_apk(request):
                 open(found_path, "rb"),
                 content_type="application/vnd.android.package-archive",
                 as_attachment=True,
-                filename="Raqamiyat-v3.0.0.apk"
+                filename="Raqamiyat-v3.2.0.apk"
             )
             response["Content-Length"] = os.path.getsize(found_path)
             response["Cache-Control"] = "no-store"
