@@ -73,6 +73,10 @@ public class AppNotificationSync {
                 if (cookies != null && !cookies.isEmpty()) {
                     conn.setRequestProperty("Cookie", cookies);
                 }
+                String appToken = new RaqamiyatLocalStore(context).getAppAuthToken();
+                if (appToken != null && !appToken.isEmpty()) {
+                    conn.setRequestProperty("X-App-Auth-Token", appToken);
+                }
                 conn.connect();
 
                 if (conn.getResponseCode() == 200) {

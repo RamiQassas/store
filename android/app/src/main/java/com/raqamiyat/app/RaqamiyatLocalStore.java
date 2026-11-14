@@ -29,6 +29,8 @@ public class RaqamiyatLocalStore {
     private static final String TAG = "RaqamiyatLocalStore";
     private static final String CATALOG_CACHE_FILENAME = "raqamiyat_offline_catalog.json";
     private static final String IMAGE_CACHE_DIR = "product_images";
+    private static final String PREFS_NAME = "raqamiyat_app_prefs";
+    private static final String KEY_APP_AUTH_TOKEN = "app_auth_token";
     private static final long MAX_IMAGE_CACHE_BYTES = 50 * 1024 * 1024; // 50 MB max
 
     private final Context context;
@@ -40,6 +42,25 @@ public class RaqamiyatLocalStore {
         this.imageCacheDir = new File(this.context.getCacheDir(), IMAGE_CACHE_DIR);
         if (!imageCacheDir.exists()) {
             imageCacheDir.mkdirs();
+        }
+    }
+
+    public void saveAppAuthToken(String token) {
+        try {
+            context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+                    .edit()
+                    .putString(KEY_APP_AUTH_TOKEN, token != null ? token.trim() : "")
+                    .apply();
+        } catch (Exception ignored) {
+        }
+    }
+
+    public String getAppAuthToken() {
+        try {
+            return context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+                    .getString(KEY_APP_AUTH_TOKEN, "");
+        } catch (Exception e) {
+            return "";
         }
     }
 

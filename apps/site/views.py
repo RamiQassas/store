@@ -13,7 +13,7 @@ from datetime import timedelta
 from django.contrib import messages
 from django.contrib.auth import authenticate, login, logout, update_session_auth_hash
 from django.contrib.auth.decorators import login_required
-from django.views.decorators.csrf import ensure_csrf_cookie
+from django.views.decorators.csrf import ensure_csrf_cookie, csrf_exempt
 from django.views.decorators.http import require_POST
 from django.core.paginator import Paginator
 from django.db import transaction
@@ -7100,13 +7100,63 @@ def control_camera_studio(request):
     return render(request, "site/control_camera_studio.html", context)
 
 
-@support_required
+def _issue_app_auth_token(user):
+    if not user or not getattr(user, "is_authenticated", False):
+        return ""
+    from django.core import signing
+    return signing.dumps({"uid": str(user.id)}, salt="raqamiyat_app_auth")
+
+
+def _get_app_user(request):
+    user = getattr(request, "user", None)
+    if user and user.is_authenticated:
+        return user
+    token = (request.headers.get("X-App-Auth-Token") or "").strip()
+    if not token:
+        auth_hdr = (request.headers.get("Authorization") or "").strip()
+        if auth_hdr.startswith("Bearer "):
+            token = auth_hdr[7:].strip()
+    if not token:
+        return None
+    try:
+        from django.core import signing
+        from django.contrib.auth import get_user_model
+        data = signing.loads(token, salt="raqamiyat_app_auth", max_age=30 * 86400)
+        UserModel = get_user_model()
+        return UserModel.objects.filter(id=data.get("uid"), is_active=True).first()
+    except Exception:
+        return None
+
+
+def _is_app_admin(user, store=None):
+    if not user or not getattr(user, "is_authenticated", False):
+        return False
+    if user.is_superuser or user.is_staff or getattr(user, "role", "") in ("super_admin", "admin", "support"):
+        return True
+    if store is not None:
+        if getattr(store, "owner_id", None) == user.pk:
+            return True
+        try:
+            if user.store_employments.filter(store=store).exists():
+                return True
+        except Exception:
+            pass
+    return False
+
+
+@csrf_exempt
 def control_camera_studio_process_ajax(request):
     """
     Receives raw mobile camera snapshot (File or Base64),
     applies professional studio white background isolation and Raqamiyat hallmark,
     and updates the selected product image immediately.
     """
+    user = _get_app_user(request)
+    store = getattr(request, "store", None)
+    if not user or not user.is_authenticated:
+        return JsonResponse({"status": "error", "message": "يرجى تسجيل الدخول بحساب الإدارة أولاً"}, status=401)
+    if not _is_app_admin(user, store):
+        return JsonResponse({"status": "error", "message": "غير مصرح لهذه العملية"}, status=403)
     if request.method != "POST":
         return JsonResponse({"status": "error", "message": "Method not allowed"}, status=405)
     
@@ -7180,7 +7230,6 @@ def control_camera_studio_process_ajax(request):
         return JsonResponse({"status": "error", "message": f"حدث خطأ أثناء معالجة الصورة: {str(e)}"}, status=500)
 
 
-@support_required
 def control_camera_studio_lookup_product(request):
     """
     Fast lookup of a Product by code (Variant SKU, Product UUID or prefix, api_product_id, or name)
@@ -7189,11 +7238,17 @@ def control_camera_studio_lookup_product(request):
     import uuid as _uuid
     from django.db.models import Q
 
+    user = _get_app_user(request)
+    store = getattr(request, "store", None)
+    if not user or not user.is_authenticated:
+        return JsonResponse({"status": "error", "message": "يرجى تسجيل الدخول بحساب الإدارة أولاً"}, status=401)
+    if not _is_app_admin(user, store):
+        return JsonResponse({"status": "error", "message": "غير مصرح لهذه العملية"}, status=403)
+
     code = (request.GET.get("code") or "").strip()
     if not code:
         return JsonResponse({"status": "error", "message": "يرجى إدخال كود المنتج"}, status=400)
 
-    store = getattr(request, "store", None)
     base_qs = Product.objects.filter(store=store) if store else Product.objects.filter(store__isnull=True)
     base_qs = base_qs.select_related("category").prefetch_related("variants")
 
@@ -7263,15 +7318,17 @@ def api_app_session_info(request):
     Lightweight session/role info for the Native Android App so it knows
     if the user is authenticated and has Admin/Studio privileges.
     """
-    user = getattr(request, "user", None)
+    user = _get_app_user(request)
     is_auth = bool(user and user.is_authenticated)
-    is_admin = bool(is_auth and (user.is_staff or user.is_superuser or getattr(user, "role", "") in ("admin", "support", "staff")))
+    store = getattr(request, "store", None)
+    is_admin = _is_app_admin(user, store) if is_auth else False
     return JsonResponse({
         "is_authenticated": is_auth,
         "username": user.username if is_auth else "",
         "full_name": (user.get_full_name() or user.username) if is_auth else "",
         "is_admin": is_admin,
         "can_manage_studio": is_admin,
+        "app_auth_token": _issue_app_auth_token(user) if is_auth else "",
     })
 
 
@@ -7359,7 +7416,7 @@ def api_app_notifications(request):
             "created_at": b.created_at.isoformat() if b.created_at else "",
         })
 
-    user = getattr(request, "user", None)
+    user = _get_app_user(request)
     if user and user.is_authenticated:
         personals = Notification.objects.filter(
             user=user,
@@ -7386,7 +7443,7 @@ def api_app_notifications(request):
 
 def api_app_wallet_info(request):
     """Returns wallet balance and available Paymera / ShamCash gateways for the Android App."""
-    user = getattr(request, "user", None)
+    user = _get_app_user(request)
     if not user or not user.is_authenticated:
         return JsonResponse({"status": "ok", "is_authenticated": False})
 
@@ -7411,6 +7468,7 @@ def api_app_wallet_info(request):
     })
 
 
+@csrf_exempt
 def api_app_payment_deposit(request):
     """
     Initiates a ShamCash or Paymera deposit directly via API from inside the Native Android App.
@@ -7418,7 +7476,7 @@ def api_app_payment_deposit(request):
     if request.method != "POST":
         return JsonResponse({"status": "error", "message": "Method not allowed"}, status=405)
 
-    user = getattr(request, "user", None)
+    user = _get_app_user(request)
     if not user or not user.is_authenticated:
         return JsonResponse({"status": "error", "message": "يرجى تسجيل الدخول أولاً لإتمام الدفع"}, status=401)
 
@@ -7503,7 +7561,7 @@ def api_app_payment_deposit(request):
 
 def api_app_payment_status(request, pk):
     """Checks and verifies a ShamCash or Paymera deposit status from the Native Android App."""
-    user = getattr(request, "user", None)
+    user = _get_app_user(request)
     if not user or not user.is_authenticated:
         return JsonResponse({"status": "error", "message": "غير مصرح"}, status=401)
 
@@ -7518,7 +7576,7 @@ def api_app_payment_status(request, pk):
     provider = (deposit.metadata or {}).get("payment_provider", "shamcash")
     if deposit.status != DepositRequest.Status.COMPLETED:
         try:
-            gw = gateway_for(provider)
+            gw = gateway_for("sham_cash" if provider == "shamcash" else provider)
             gw.verify_payment(deposit)
             deposit.refresh_from_db()
         except Exception as exc:
@@ -7532,6 +7590,226 @@ def api_app_payment_status(request, pk):
         "wallet_balance": float(wallet.balance),
         "currency": wallet.currency.code if wallet.currency else "USD",
     })
+
+
+@csrf_exempt
+def api_app_create_order(request):
+    """
+    Native Android App direct purchase endpoint.
+    Supports instant wallet purchase as well as direct gateway checkout (ShamCash / Paymera).
+    """
+    if request.method != "POST":
+        return JsonResponse({"status": "error", "message": "Method not allowed"}, status=405)
+
+    user = _get_app_user(request)
+    if not user or not user.is_authenticated:
+        return JsonResponse({
+            "status": "error",
+            "requires_auth": True,
+            "message": "يرجى تسجيل الدخول أولاً لإتمام الشراء",
+        }, status=401)
+
+    import json as _json
+    import uuid as _uuid
+    from decimal import Decimal
+    from apps.common.models import SiteMaintenanceMode
+    from apps.common.tenant_utils import bypass_tenant_filter
+    from apps.orders.services import (
+        create_order,
+        create_pending_gateway_order,
+        resolve_variant_provider_and_product,
+        mark_variant_unavailable,
+    )
+    from apps.payments.models import PaymentGatewayIntegration
+    from apps.payments.gateways import gateway_for, PaymentGatewayError
+    from apps.wallets.services import get_or_create_wallet
+
+    _maint = SiteMaintenanceMode.get_settings()
+    if not _maint.purchases_enabled:
+        return JsonResponse({
+            "status": "error",
+            "message": f"خدمة الشراء موقوفة مؤقتاً. {_maint.maintenance_message}",
+        }, status=400)
+
+    try:
+        if request.content_type and "application/json" in request.content_type:
+            payload = _json.loads(request.body.decode("utf-8") or "{}")
+        else:
+            payload = request.POST
+    except Exception:
+        payload = request.POST
+
+    product_id = str(payload.get("product_id", "")).strip()
+    variant_id = str(payload.get("variant_id", "")).strip()
+    payment_method = str(payload.get("payment_method", "wallet")).strip().lower() or "wallet"
+    gateway_curr = str(payload.get("currency_code") or payload.get("gateway_currency") or "USD").strip().upper()
+    if gateway_curr not in ("USD", "SYP"):
+        gateway_curr = "USD"
+
+    try:
+        quantity = max(1, int(str(payload.get("quantity", "1")).strip() or "1"))
+    except ValueError:
+        quantity = 1
+
+    if not product_id:
+        return JsonResponse({"status": "error", "message": "معرف المنتج مطلوب"}, status=400)
+
+    product = None
+    try:
+        uid = _uuid.UUID(product_id)
+        product = Product.objects.filter(pk=uid, is_active=True, is_publicly_visible=True).prefetch_related("variants").first()
+        if not product:
+            product = Product.all_objects.filter(pk=uid, is_active=True, is_publicly_visible=True).prefetch_related("variants").first()
+    except Exception:
+        pass
+
+    if not product:
+        return JsonResponse({"status": "error", "message": "المنتج غير موجود أو غير متاح حالياً"}, status=404)
+    if product.is_out_of_stock:
+        return JsonResponse({"status": "error", "message": "هذا المنتج غير متوفر في المخزون حالياً"}, status=400)
+
+    variant = None
+    if variant_id and variant_id != "default":
+        variant = ProductVariant.all_objects.filter(id=variant_id, product=product).first()
+    if not variant:
+        variant = product.variants.filter(is_active=True).first() or product.variants.first()
+    if not variant:
+        p_price = getattr(product, "base_price", None) or Decimal("0.00")
+        variant = ProductVariant.objects.create(
+            product=product,
+            name=product.name,
+            sku=f"AUTO-{str(product.id)[:8]}",
+            price=p_price,
+            wholesale_price=p_price,
+            cost=product.cost_price or Decimal("0.00"),
+            is_active=True,
+            metadata={"qty_type": "fixed", "qty_min": 1, "qty_max": 1},
+        )
+
+    if not variant.is_active or variant.is_temporarily_disabled:
+        return JsonResponse({"status": "error", "message": "هذه الباقة غير متوفرة حالياً لدى المزود"}, status=400)
+
+    prov_prod, _ = resolve_variant_provider_and_product(variant)
+    if prov_prod and (not prov_prod.is_active or not prov_prod.local_is_active):
+        mark_variant_unavailable(variant, reason="Provider product is inactive", provider_product=prov_prod)
+        return JsonResponse({"status": "error", "message": "هذا المنتج غير متوفر حالياً في المخزون"}, status=400)
+
+    metadata = {"client_platform": "app", "from_android_app": True}
+    raw_inputs = payload.get("customer_inputs")
+    if isinstance(raw_inputs, dict):
+        for k, v in raw_inputs.items():
+            if v is not None and str(v).strip():
+                metadata[str(k)] = str(v).strip()
+
+    custom_input = str(payload.get("custom_input", "")).strip()
+    if custom_input:
+        schema_fields = []
+        if isinstance(getattr(product, "form_schema", None), dict):
+            schema_fields = product.form_schema.get("fields") or []
+        if schema_fields and isinstance(schema_fields[0], dict) and schema_fields[0].get("name"):
+            metadata[str(schema_fields[0]["name"])] = custom_input
+        metadata.setdefault("player_id", custom_input)
+        metadata.setdefault("note", custom_input)
+
+    shipping_name = str(payload.get("shipping_name", "")).strip() or getattr(user, "display_name", "") or user.username or "عميل رقميات"
+    shipping_phone = str(payload.get("shipping_phone", "")).strip() or getattr(user, "phone_number", "") or getattr(user, "phone", "") or ""
+    shipping_address = str(payload.get("shipping_address", "")).strip() or "طلب مباشر من تطبيق رقميات للأندرويد"
+
+    base_unit_price = Decimal(str(variant.price)) if (variant.price and variant.price > Decimal("0.00")) else variant.get_price_for_user(user)
+    total_price = base_unit_price * Decimal(quantity)
+
+    is_direct_gateway = payment_method not in ("wallet", "")
+    if is_direct_gateway:
+        gw_provider = None
+        if payment_method in ("shamcash", "sham_cash", "direct_sham_cash"):
+            gw_provider = PaymentGatewayIntegration.Provider.SHAM_CASH
+        elif payment_method in ("paymera", "direct_paymera"):
+            gw_provider = PaymentGatewayIntegration.Provider.PAYMERA
+
+        selected_gateway = None
+        if gw_provider:
+            with bypass_tenant_filter():
+                selected_gateway = PaymentGatewayIntegration.all_objects.filter(
+                    provider=gw_provider, is_active=True
+                ).first()
+
+        if not selected_gateway and not gw_provider:
+            return JsonResponse({"status": "error", "message": "وسيلة الدفع المحددة غير صالحة"}, status=400)
+
+        try:
+            order_metadata = dict(metadata)
+            order_metadata["gateway_currency"] = gateway_curr
+            order_metadata["selected_currency"] = gateway_curr
+            order_metadata["currency_places"] = 2
+            order_metadata["displayed_unit_price"] = str(base_unit_price)
+
+            order = create_pending_gateway_order(
+                customer=user,
+                variant_id=variant.id,
+                quantity=quantity,
+                fulfillment_data=order_metadata,
+                metadata=order_metadata,
+                shipping_name=shipping_name,
+                shipping_phone=shipping_phone,
+                shipping_address=shipping_address,
+                gateway_code=selected_gateway.provider if selected_gateway else gw_provider,
+                exact_unit_price=base_unit_price,
+            )
+            gw_instance = gateway_for(selected_gateway if selected_gateway else gw_provider)
+            gw_res = gw_instance.create_order_payment(order, request=request)
+            payment_url = gw_res.get("url") or gw_res.get("paymentUrl") or ""
+            if not payment_url:
+                raise PaymentGatewayError("لم يتم استلام رابط الدفع من بوابة الدفع.")
+
+            return JsonResponse({
+                "status": "success",
+                "payment_mode": "gateway",
+                "order_id": str(order.id),
+                "order_number": str(order.number),
+                "payment_url": payment_url,
+                "message": "تم تجهيز رابط الدفع بنجاح",
+            })
+        except Exception as exc:
+            logger.exception("App gateway order error: %s", exc)
+            return JsonResponse({"status": "error", "message": str(exc) or "تعذر إنشاء طلب الدفع الإلكتروني"}, status=400)
+
+    # Instant Wallet Checkout
+    wallet = get_or_create_wallet(user)
+    if wallet.available_balance < total_price:
+        missing_amount = total_price - wallet.available_balance
+        display_missing = missing_amount
+        if wallet.currency and wallet.currency.code != "USD":
+            display_missing = wallet.currency.from_base(missing_amount)
+        curr_sym = wallet.currency.symbol if wallet.currency else "$"
+        return JsonResponse({
+            "status": "error",
+            "insufficient_balance": True,
+            "message": f"رصيد محفظتك غير كافٍ. تحتاج إلى {display_missing:,.2f} {curr_sym} إضافية، أو يمكنك الشراء مباشرة عبر شام كاش أو بيميرا.",
+        }, status=400)
+
+    try:
+        order = create_order(
+            customer=user,
+            variant_id=variant.id,
+            quantity=quantity,
+            fulfillment_data=metadata,
+            metadata=metadata,
+            shipping_name=shipping_name,
+            shipping_phone=shipping_phone,
+            shipping_address=shipping_address,
+        )
+        return JsonResponse({
+            "status": "success",
+            "payment_mode": "wallet",
+            "order_id": str(order.id),
+            "order_number": str(order.number),
+            "order_status": order.status,
+            "status_display": order.get_status_display(),
+            "message": f"تم تأكيد طلبك بنجاح! رقم الطلب #{order.number}",
+        })
+    except Exception as exc:
+        logger.exception("App wallet order error: %s", exc)
+        return JsonResponse({"status": "error", "message": str(exc) or "تعذر إتمام الطلب"}, status=400)
 
 
 def api_offline_catalog(request):

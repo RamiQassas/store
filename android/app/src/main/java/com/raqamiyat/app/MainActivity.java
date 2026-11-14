@@ -49,7 +49,6 @@ import com.raqamiyat.app.model.ProductItem;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
-import androidx.browser.customtabs.CustomTabsIntent;
 import androidx.core.app.ActivityCompat;
 import androidx.core.app.NotificationCompat;
 import androidx.core.content.ContextCompat;
@@ -122,6 +121,8 @@ public class MainActivity extends AppCompatActivity implements ConnectivityHelpe
     private boolean isInitialPageLoaded = false;
     private boolean isWaitingForGoogleAuth = false;
     private long backPressedTime = 0;
+    private String cleanChromeUserAgent = "";
+    private String appWebViewUserAgent = "";
     private final Handler mainHandler = new Handler(Looper.getMainLooper());
 
     @Override
@@ -168,6 +169,7 @@ public class MainActivity extends AppCompatActivity implements ConnectivityHelpe
         nativeBridge = new RaqamiyatNativeBridge(this, connectivityHelper, localStore, this);
 
         createNotificationChannel();
+        connectivityHelper.startMonitoring();
         setupNativeStorefront();
         setupWebView();
         setupErrorView();
@@ -175,11 +177,12 @@ public class MainActivity extends AppCompatActivity implements ConnectivityHelpe
         setupBottomNavigation();
         checkAndRequestPermissions();
 
-        connectivityHelper.startMonitoring();
-
         // Handle Deep Linking or Start Native Storefront
         Intent intent = getIntent();
-        if (intent != null && intent.getData() != null) {
+        String openUrlExtra = intent != null ? intent.getStringExtra(ProductDetailActivity.EXTRA_OPEN_URL) : null;
+        if (openUrlExtra != null && !openUrlExtra.isEmpty()) {
+            showWebMode(openUrlExtra);
+        } else if (intent != null && intent.getData() != null) {
             handleIncomingDeepLink(intent.getData());
         } else {
             showNativeMode(true);
@@ -345,9 +348,29 @@ public class MainActivity extends AppCompatActivity implements ConnectivityHelpe
     private void showWebMode(String url) {
         isNativeMode = false;
         nativeStoreContainer.setVisibility(View.GONE);
+        nativeErrorView.setVisibility(View.GONE);
         swipeRefresh.setVisibility(View.VISIBLE);
+        if (connectivityHelper != null && connectivityHelper.isOnline() && webView != null) {
+            webView.getSettings().setCacheMode(WebSettings.LOAD_DEFAULT);
+        }
+        applyUserAgentForUrl(url);
         webView.loadUrl(url);
         updateBottomNavigationActiveTab(url);
+    }
+
+    private void applyUserAgentForUrl(String url) {
+        if (webView == null || url == null) return;
+        String lower = url.toLowerCase(Locale.ROOT);
+        boolean isGoogleAuth = lower.contains("accounts.google.com")
+                || lower.contains("accounts.youtube.com")
+                || lower.contains("myaccount.google.com")
+                || lower.contains("/accounts/google/")
+                || lower.contains("oauth2")
+                || lower.contains("gstatic.com");
+        String targetUa = isGoogleAuth ? cleanChromeUserAgent : appWebViewUserAgent;
+        if (targetUa != null && !targetUa.isEmpty() && !targetUa.equals(webView.getSettings().getUserAgentString())) {
+            webView.getSettings().setUserAgentString(targetUa);
+        }
     }
 
     private void launchNativeStudio() {
@@ -377,8 +400,19 @@ public class MainActivity extends AppCompatActivity implements ConnectivityHelpe
         // Mixed Content Security
         settings.setMixedContentMode(WebSettings.MIXED_CONTENT_NEVER_ALLOW);
 
-        // Hardware Acceleration & Custom Native User-Agent
-        settings.setUserAgentString(settings.getUserAgentString() + " RaqamiyatAndroid/2.0 NativeApp");
+        // Hardware Acceleration & Clean Chrome User-Agent (allows in-app Google OAuth without WebView blocks)
+        settings.setSupportMultipleWindows(false);
+        settings.setJavaScriptCanOpenWindowsAutomatically(true);
+        String rawUa = settings.getUserAgentString();
+        String cleanedUa = rawUa != null
+                ? rawUa.replace("; wv", "").replaceAll("Version/\\d+(?:\\.\\d+)?\\s*", "").replaceAll("\\s+", " ").trim()
+                : "";
+        if (!cleanedUa.contains("Chrome/")) {
+            cleanedUa = "Mozilla/5.0 (Linux; Android 13; Mobile) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Mobile Safari/537.36";
+        }
+        cleanChromeUserAgent = cleanedUa;
+        appWebViewUserAgent = cleanedUa + " RaqamiyatAndroid/3.0 NativeApp";
+        settings.setUserAgentString(appWebViewUserAgent);
 
         // Cookies & Sessions
         CookieManager cookieManager = CookieManager.getInstance();
@@ -412,6 +446,7 @@ public class MainActivity extends AppCompatActivity implements ConnectivityHelpe
             }
             @Override
             public void onPageStarted(WebView view, String url, Bitmap favicon) {
+                applyUserAgentForUrl(url);
                 progressBar.setVisibility(View.VISIBLE);
                 super.onPageStarted(view, url, favicon);
             }
@@ -421,6 +456,7 @@ public class MainActivity extends AppCompatActivity implements ConnectivityHelpe
                 progressBar.setVisibility(View.GONE);
                 swipeRefresh.setRefreshing(false);
                 nativeErrorView.setVisibility(View.GONE);
+                CookieManager.getInstance().flush();
 
                 // Dismiss splash screen smoothly after first load
                 if (!isInitialPageLoaded) {
@@ -436,19 +472,24 @@ public class MainActivity extends AppCompatActivity implements ConnectivityHelpe
 
             @Override
             public void onReceivedError(WebView view, WebResourceRequest request, WebResourceError error) {
-                if (request.isForMainFrame()) {
-                    progressBar.setVisibility(View.GONE);
-                    swipeRefresh.setRefreshing(false);
+                if (request != null && request.isForMainFrame() && !isNativeMode) {
+                    String reqUrl = request.getUrl() != null ? request.getUrl().toString() : "";
+                    int errCode = (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M && error != null)
+                            ? error.getErrorCode()
+                            : WebViewClient.ERROR_UNKNOWN;
+                    boolean isHttp = reqUrl.startsWith("http://") || reqUrl.startsWith("https://");
+                    boolean isNetworkError = !connectivityHelper.isOnline()
+                            || errCode == WebViewClient.ERROR_HOST_LOOKUP
+                            || errCode == WebViewClient.ERROR_CONNECT
+                            || errCode == WebViewClient.ERROR_TIMEOUT
+                            || errCode == WebViewClient.ERROR_IO;
 
-                    if (!connectivityHelper.isOnline()) {
-                        // Show offline banner and try to fallback to cached catalog
-                        showConnectivityBanner(false);
-                        String cachedJson = localStore.getCachedCatalogJson();
-                        if (cachedJson == null) {
-                            nativeErrorView.setVisibility(View.VISIBLE);
-                            dismissSplashOverlay();
+                    if (isHttp && isNetworkError) {
+                        progressBar.setVisibility(View.GONE);
+                        swipeRefresh.setRefreshing(false);
+                        if (!connectivityHelper.isOnline()) {
+                            showConnectivityBanner(false);
                         }
-                    } else {
                         nativeErrorView.setVisibility(View.VISIBLE);
                         dismissSplashOverlay();
                     }
@@ -785,8 +826,15 @@ public class MainActivity extends AppCompatActivity implements ConnectivityHelpe
     protected void onNewIntent(Intent intent) {
         super.onNewIntent(intent);
         setIntent(intent);
-        if (intent != null && intent.getData() != null) {
-            handleIncomingDeepLink(intent.getData());
+        if (intent != null) {
+            String openUrlExtra = intent.getStringExtra(ProductDetailActivity.EXTRA_OPEN_URL);
+            if (openUrlExtra != null && !openUrlExtra.isEmpty()) {
+                showWebMode(openUrlExtra);
+                return;
+            }
+            if (intent.getData() != null) {
+                handleIncomingDeepLink(intent.getData());
+            }
         }
     }
 
@@ -812,38 +860,18 @@ public class MainActivity extends AppCompatActivity implements ConnectivityHelpe
         }
     }
 
-    private void launchCustomTab(String url) {
-        try {
-            CustomTabsIntent customTabsIntent = new CustomTabsIntent.Builder()
-                    .setShowTitle(true)
-                    .setToolbarColor(0xFF030712)
-                    .build();
-            customTabsIntent.launchUrl(this, Uri.parse(url));
-        } catch (Exception e) {
-            try {
-                Intent browserIntent = new Intent(Intent.ACTION_VIEW, Uri.parse(url));
-                startActivity(browserIntent);
-            } catch (Exception ignored) {
-            }
-        }
-    }
-
     private boolean handleUrlNavigation(String url) {
         if (url == null) return false;
 
-        // Google Sign-In & OAuth: Open via Chrome Custom Tabs with App SSO Handoff so session returns to the App
-        if (url.contains("accounts.google.com") || url.contains("/accounts/google/login/") || url.contains("oauth2")) {
-            isWaitingForGoogleAuth = true;
-            String authUrl = url;
-            if (url.contains("/accounts/google/login/") && !url.contains("next=")) {
-                authUrl += (url.contains("?") ? "&" : "?") + "next=" + Uri.encode("/auth/app-sso-handoff/");
-            }
-            launchCustomTab(authUrl);
+        // Custom App SSO Deep Link
+        if (url.startsWith("raqamiyat://")) {
+            handleIncomingDeepLink(Uri.parse(url));
             return true;
         }
 
-        // WhatsApp, Tel, Mailto protocols
-        if (url.startsWith("whatsapp:") || url.startsWith("tel:") || url.startsWith("mailto:")) {
+        // WhatsApp, Tel, Mailto, Telegram, Intent protocols
+        if (url.startsWith("whatsapp:") || url.startsWith("tel:") || url.startsWith("mailto:")
+                || url.startsWith("tg:") || url.startsWith("intent:")) {
             try {
                 Intent intent = new Intent(Intent.ACTION_VIEW, Uri.parse(url));
                 startActivity(intent);
@@ -859,14 +887,19 @@ public class MainActivity extends AppCompatActivity implements ConnectivityHelpe
             return true;
         }
 
-        // Internal navigation within Raqamiyat domain stays inside WebView
-        if (url.contains("raqamiyatapp.com")) {
+        // Keep Google OAuth, Raqamiyat pages, and payment gateways 100% inside the in-app WebView
+        if (url.startsWith("http://") || url.startsWith("https://")) {
+            applyUserAgentForUrl(url);
+            if (isNativeMode) {
+                isNativeMode = false;
+                nativeStoreContainer.setVisibility(View.GONE);
+                nativeErrorView.setVisibility(View.GONE);
+                swipeRefresh.setVisibility(View.VISIBLE);
+            }
             return false;
         }
 
-        // External third-party links open in Custom Tab
-        launchCustomTab(url);
-        return true;
+        return false;
     }
 
     @Override
@@ -876,8 +909,8 @@ public class MainActivity extends AppCompatActivity implements ConnectivityHelpe
 
     @Override
     public void onOpenGoogleLogin() {
-        isWaitingForGoogleAuth = true;
-        launchCustomTab("https://raqamiyatapp.com/accounts/google/login/?process=login&next=" + Uri.encode("/auth/app-sso-handoff/"));
+        isWaitingForGoogleAuth = false;
+        showWebMode("https://raqamiyatapp.com/accounts/google/login/?process=login&next=" + Uri.encode("/dashboard/"));
     }
 
     @Override

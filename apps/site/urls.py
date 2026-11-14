@@ -174,6 +174,7 @@ urlpatterns = [
     path("api/app/session/", views.api_app_session_info, name="api_app_session_info"),
     path("api/app/notifications/", views.api_app_notifications, name="api_app_notifications"),
     path("api/app/wallet/", views.api_app_wallet_info, name="api_app_wallet_info"),
+    path("api/app/orders/create/", views.api_app_create_order, name="api_app_create_order"),
     path("api/app/payments/deposit/", views.api_app_payment_deposit, name="api_app_payment_deposit"),
     path("api/app/payments/deposit/<uuid:pk>/status/", views.api_app_payment_status, name="api_app_payment_status"),
     path("api/offline-catalog/", views.api_offline_catalog, name="api_offline_catalog"),

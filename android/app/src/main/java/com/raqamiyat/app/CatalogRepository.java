@@ -110,6 +110,10 @@ public class CatalogRepository {
                 if (cookies != null && !cookies.isEmpty()) {
                     conn.setRequestProperty("Cookie", cookies);
                 }
+                String storedToken = localStore.getAppAuthToken();
+                if (storedToken != null && !storedToken.isEmpty()) {
+                    conn.setRequestProperty("X-App-Auth-Token", storedToken);
+                }
                 conn.connect();
                 if (conn.getResponseCode() == 200) {
                     Scanner scanner = new Scanner(conn.getInputStream(), StandardCharsets.UTF_8.name());
@@ -117,6 +121,12 @@ public class CatalogRepository {
                     scanner.close();
                     JSONObject obj = new JSONObject(json);
                     boolean isAuth = obj.optBoolean("is_authenticated", false);
+                    String token = obj.optString("app_auth_token", "");
+                    if (isAuth && !token.isEmpty()) {
+                        localStore.saveAppAuthToken(token);
+                    } else if (!isAuth) {
+                        localStore.saveAppAuthToken("");
+                    }
                     boolean isAdmin = obj.optBoolean("can_manage_studio", false) || obj.optBoolean("is_admin", false);
                     String name = obj.optString("full_name", obj.optString("username", ""));
                     mainHandler.post(() -> callback.onSessionInfo(isAuth, isAdmin, name));

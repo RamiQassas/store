@@ -17,7 +17,6 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.appcompat.app.AppCompatActivity;
-import androidx.browser.customtabs.CustomTabsIntent;
 
 import org.json.JSONObject;
 
@@ -52,6 +51,7 @@ public class NativePaymentActivity extends AppCompatActivity {
     private String activeDepositId = "";
     private boolean waitingForGatewayReturn = false;
 
+    private RaqamiyatLocalStore localStore;
     private final ExecutorService executor = Executors.newSingleThreadExecutor();
     private final Handler mainHandler = new Handler(Looper.getMainLooper());
 
@@ -64,6 +64,7 @@ public class NativePaymentActivity extends AppCompatActivity {
         }
         setContentView(R.layout.activity_native_payment);
 
+        localStore = new RaqamiyatLocalStore(this);
         bindViews();
         setupActions();
         loadWalletInfo();
@@ -134,6 +135,10 @@ public class NativePaymentActivity extends AppCompatActivity {
                 conn.setReadTimeout(6000);
                 String cookies = CookieManager.getInstance().getCookie(DOMAIN);
                 if (cookies != null) conn.setRequestProperty("Cookie", cookies);
+                String appToken = localStore.getAppAuthToken();
+                if (appToken != null && !appToken.isEmpty()) {
+                    conn.setRequestProperty("X-App-Auth-Token", appToken);
+                }
                 conn.connect();
                 if (conn.getResponseCode() == 200) {
                     Scanner sc = new Scanner(conn.getInputStream(), StandardCharsets.UTF_8.name());
@@ -181,6 +186,10 @@ public class NativePaymentActivity extends AppCompatActivity {
                     String csrf = extractCookie(cookies, "csrftoken");
                     if (!csrf.isEmpty()) conn.setRequestProperty("X-CSRFToken", csrf);
                 }
+                String appToken = localStore.getAppAuthToken();
+                if (appToken != null && !appToken.isEmpty()) {
+                    conn.setRequestProperty("X-App-Auth-Token", appToken);
+                }
 
                 JSONObject payload = new JSONObject();
                 payload.put("provider", selectedProvider);
@@ -194,11 +203,30 @@ public class NativePaymentActivity extends AppCompatActivity {
 
                 int code = conn.getResponseCode();
                 InputStream is = code >= 400 ? conn.getErrorStream() : conn.getInputStream();
-                Scanner sc = new Scanner(is, StandardCharsets.UTF_8.name());
-                String resp = sc.useDelimiter("\\A").hasNext() ? sc.next() : "";
-                sc.close();
+                String resp = "";
+                if (is != null) {
+                    Scanner sc = new Scanner(is, StandardCharsets.UTF_8.name());
+                    resp = sc.useDelimiter("\\A").hasNext() ? sc.next() : "";
+                    sc.close();
+                }
 
-                JSONObject json = new JSONObject(resp);
+                String trimmed = resp.trim();
+                if (!trimmed.startsWith("{")) {
+                    final int statusCode = code;
+                    mainHandler.post(() -> {
+                        progressBar.setVisibility(View.GONE);
+                        btnSubmit.setEnabled(true);
+                        if (statusCode == 401 || statusCode == 403) {
+                            statusText.setText("يرجى تسجيل الدخول بحسابك من داخل التطبيق أولاً لإتمام الدفع.");
+                        } else {
+                            statusText.setText("تعذر معالجة استجابة الخادم (" + statusCode + ")، يرجى المحاولة مجدداً.");
+                        }
+                        statusText.setVisibility(View.VISIBLE);
+                    });
+                    return;
+                }
+
+                JSONObject json = new JSONObject(trimmed);
                 if (code == 200 && "success".equals(json.optString("status"))) {
                     String paymentUrl = json.optString("payment_url", "");
                     activeDepositId = json.optString("deposit_id", "");
@@ -246,6 +274,10 @@ public class NativePaymentActivity extends AppCompatActivity {
                 HttpURLConnection conn = (HttpURLConnection) new URL(url).openConnection();
                 String cookies = CookieManager.getInstance().getCookie(DOMAIN);
                 if (cookies != null) conn.setRequestProperty("Cookie", cookies);
+                String appToken = localStore.getAppAuthToken();
+                if (appToken != null && !appToken.isEmpty()) {
+                    conn.setRequestProperty("X-App-Auth-Token", appToken);
+                }
                 conn.connect();
                 if (conn.getResponseCode() == 200) {
                     Scanner sc = new Scanner(conn.getInputStream(), StandardCharsets.UTF_8.name());
@@ -275,14 +307,11 @@ public class NativePaymentActivity extends AppCompatActivity {
     }
 
     private void openPaymentUrl(String url) {
-        try {
-            CustomTabsIntent customTabsIntent = new CustomTabsIntent.Builder()
-                    .setToolbarColor(0xFF030712)
-                    .build();
-            customTabsIntent.launchUrl(this, Uri.parse(url));
-        } catch (Exception e) {
-            startActivity(new Intent(Intent.ACTION_VIEW, Uri.parse(url)));
-        }
+        Intent intent = new Intent(this, MainActivity.class);
+        intent.putExtra(ProductDetailActivity.EXTRA_OPEN_URL, url);
+        intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_SINGLE_TOP);
+        startActivity(intent);
+        finish();
     }
 
     @Override

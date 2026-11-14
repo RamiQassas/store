@@ -98,6 +98,7 @@ public class NativeCameraStudioActivity extends AppCompatActivity {
 
     private ImageCapture imageCapture;
     private Camera boundCamera;
+    private RaqamiyatLocalStore localStore;
     private final ExecutorService executor = Executors.newFixedThreadPool(2);
     private final Handler mainHandler = new Handler(Looper.getMainLooper());
 
@@ -110,6 +111,7 @@ public class NativeCameraStudioActivity extends AppCompatActivity {
         }
         setContentView(R.layout.activity_native_camera_studio);
 
+        localStore = new RaqamiyatLocalStore(this);
         bindViews();
         setupListeners();
         showCodeEntryStage();
@@ -262,13 +264,33 @@ public class NativeCameraStudioActivity extends AppCompatActivity {
                 if (cookies != null && !cookies.isEmpty()) {
                     conn.setRequestProperty("Cookie", cookies);
                 }
+                String appToken = localStore.getAppAuthToken();
+                if (appToken != null && !appToken.isEmpty()) {
+                    conn.setRequestProperty("X-App-Auth-Token", appToken);
+                }
                 conn.connect();
 
                 int status = conn.getResponseCode();
                 InputStream is = status >= 400 ? conn.getErrorStream() : conn.getInputStream();
-                Scanner sc = new Scanner(is, StandardCharsets.UTF_8.name());
-                String body = sc.useDelimiter("\\A").hasNext() ? sc.next() : "";
-                sc.close();
+                String body = "";
+                if (is != null) {
+                    Scanner sc = new Scanner(is, StandardCharsets.UTF_8.name());
+                    body = sc.useDelimiter("\\A").hasNext() ? sc.next() : "";
+                    sc.close();
+                }
+
+                if (!body.trim().startsWith("{")) {
+                    final int st = status;
+                    mainHandler.post(() -> {
+                        codeLookupProgress.setVisibility(View.GONE);
+                        btnLookupCode.setEnabled(true);
+                        codeErrorText.setText(st == 401 || st == 403
+                                ? "يرجى تسجيل الدخول بحساب الإدارة أولاً"
+                                : "استجابة غير متوقعة من الخادم (" + st + ")");
+                        codeErrorText.setVisibility(View.VISIBLE);
+                    });
+                    return;
+                }
 
                 JSONObject json = new JSONObject(body);
                 if (status == 200 && "success".equals(json.optString("status"))) {
@@ -443,6 +465,10 @@ public class NativeCameraStudioActivity extends AppCompatActivity {
                         conn.setRequestProperty("X-CSRFToken", csrf);
                     }
                 }
+                String appToken = localStore.getAppAuthToken();
+                if (appToken != null && !appToken.isEmpty()) {
+                    conn.setRequestProperty("X-App-Auth-Token", appToken);
+                }
 
                 DataOutputStream dos = new DataOutputStream(conn.getOutputStream());
                 writeFormField(dos, boundary, "product_id", activeProductId);
@@ -462,9 +488,23 @@ public class NativeCameraStudioActivity extends AppCompatActivity {
 
                 int status = conn.getResponseCode();
                 InputStream is = status >= 400 ? conn.getErrorStream() : conn.getInputStream();
-                Scanner sc = new Scanner(is, StandardCharsets.UTF_8.name());
-                String respBody = sc.useDelimiter("\\A").hasNext() ? sc.next() : "";
-                sc.close();
+                String respBody = "";
+                if (is != null) {
+                    Scanner sc = new Scanner(is, StandardCharsets.UTF_8.name());
+                    respBody = sc.useDelimiter("\\A").hasNext() ? sc.next() : "";
+                    sc.close();
+                }
+
+                if (!respBody.trim().startsWith("{")) {
+                    final int st = status;
+                    mainHandler.post(() -> {
+                        Toast.makeText(NativeCameraStudioActivity.this,
+                                st == 401 || st == 403 ? "يرجى تسجيل الدخول بحساب الإدارة أولاً" : "فشل حفظ الصورة (" + st + ")",
+                                Toast.LENGTH_LONG).show();
+                        showCameraStage();
+                    });
+                    return;
+                }
 
                 JSONObject json = new JSONObject(respBody);
                 if (status == 200 && "success".equals(json.optString("status"))) {

@@ -4,7 +4,9 @@ import android.content.Context;
 import android.net.ConnectivityManager;
 import android.net.Network;
 import android.net.NetworkCapabilities;
+import android.net.NetworkInfo;
 import android.net.NetworkRequest;
+import android.os.Build;
 import android.os.Handler;
 import android.os.Looper;
 
@@ -43,14 +45,32 @@ public class ConnectivityHelper {
     public ConnectivityHelper(Context context) {
         this.context = context.getApplicationContext();
         this.connectivityManager = (ConnectivityManager) this.context.getSystemService(Context.CONNECTIVITY_SERVICE);
+        this.isOnline = hasActiveNetworkTransport();
     }
 
     public void setListener(OnConnectivityChangeListener listener) {
         this.listener = listener;
     }
 
+    public boolean hasActiveNetworkTransport() {
+        if (connectivityManager == null) return false;
+        try {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+                Network network = connectivityManager.getActiveNetwork();
+                if (network == null) return false;
+                NetworkCapabilities caps = connectivityManager.getNetworkCapabilities(network);
+                return caps != null && caps.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET);
+            } else {
+                NetworkInfo info = connectivityManager.getActiveNetworkInfo();
+                return info != null && info.isConnected();
+            }
+        } catch (Exception e) {
+            return false;
+        }
+    }
+
     public boolean isOnline() {
-        return isOnline;
+        return isOnline || hasActiveNetworkTransport();
     }
 
     public void startMonitoring() {
