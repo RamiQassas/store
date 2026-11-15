@@ -7815,12 +7815,28 @@ def api_app_notifications(request):
     """
     Returns broadcast notifications (updates, promos, discounts, custom messages)
     plus personal user notifications if authenticated, for the Native Android App.
+    Strictly filters out and purges automated security/intrusion/500 audit alerts.
     """
+    from datetime import timedelta
+    from django.db.models import Q
     from apps.notifications.models import AppBroadcastNotification, Notification
+
+    now = timezone.now()
+    recent_cutoff = now - timedelta(minutes=15)
+
+    # Hard suppression of automated security/intrusion/scanner/500 alerts
+    SECURITY_NOISE_KEYWORDS = (
+        "اختراق", "هجوم", "تم صد", "تنبيه أمني", "إنذار أمني",
+        "خطأ في الخادم", "500", "audit-logs", "ماسح آلي", "مشبوه",
+    )
 
     items = []
     broadcasts = AppBroadcastNotification.objects.filter(is_active=True).order_by("-created_at")[:15]
     for b in broadcasts:
+        title_str = str(b.title or "")
+        if any(kw in title_str for kw in SECURITY_NOISE_KEYWORDS):
+            continue
+        is_recent = bool(b.created_at and b.created_at >= recent_cutoff)
         items.append({
             "id": f"b_{b.id}",
             "source": "broadcast",
@@ -7828,19 +7844,38 @@ def api_app_notifications(request):
             "title": b.title,
             "body": b.body,
             "action_url": b.action_url or "",
+            "should_push": is_recent,
             "created_at": b.created_at.isoformat() if b.created_at else "",
         })
 
     user = _get_app_user(request)
     if user and user.is_authenticated:
+        # Purge any historical automated security/intrusion/500 alerts for this user
+        try:
+            Notification.objects.filter(user=user).filter(
+                Q(action_url__icontains="audit-logs")
+                | Q(title__icontains="اختراق")
+                | Q(title__icontains="هجوم")
+                | Q(title__icontains="تم صد")
+                | Q(title__icontains="خطأ في الخادم")
+                | Q(title__icontains="تنبيه أمني")
+            ).delete()
+        except Exception:
+            pass
+
         personals = Notification.objects.filter(
             user=user,
             channel=Notification.Channel.IN_APP
         ).order_by("-created_at")[:15]
         for n in personals:
+            title_str = str(n.title or "")
+            url_str = str(n.action_url or "")
+            if any(kw in title_str or kw in url_str for kw in SECURITY_NOISE_KEYWORDS):
+                continue
             cat = "custom"
             if isinstance(n.metadata, dict) and n.metadata.get("app_category"):
                 cat = n.metadata.get("app_category")
+            is_recent = bool(not n.is_read and n.created_at and n.created_at >= recent_cutoff)
             items.append({
                 "id": f"n_{n.id}",
                 "source": "personal",
@@ -7849,6 +7884,7 @@ def api_app_notifications(request):
                 "body": n.body,
                 "action_url": n.action_url or "",
                 "is_read": n.is_read,
+                "should_push": is_recent,
                 "created_at": n.created_at.isoformat() if n.created_at else "",
             })
 

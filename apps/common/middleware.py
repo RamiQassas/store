@@ -95,46 +95,8 @@ def report_security_intrusion(request, attack_category, matched_detail, is_criti
         except Exception as e_log:
             logger.warning(f"Could not write SystemAuditLog for intrusion: {e_log}")
 
-        # 2. In-App Notification in Control Panel (Throttled: 1 per 30 minutes per IP/category)
-        throttle_key_app = f"sec_inapp_alert_{hashlib.md5(f'{ip}_{attack_category}'.encode()).hexdigest()}"
-        if not cache.get(throttle_key_app):
-            cache.set(throttle_key_app, True, 1800)
-            try:
-                from django.contrib.auth import get_user_model
-                from apps.notifications.models import Notification
-
-                User = get_user_model()
-                admins = User.objects.filter(
-                    models.Q(is_superuser=True) | models.Q(is_staff=True),
-                    is_active=True
-                ).distinct()
-
-                notif_title = f"🚨 تم صد محاولة اختراق: {attack_category}"
-                notif_body = (
-                    f"تم حظر هجوم إلكتروني بنجاح.\n"
-                    f"نوع التهديد: {attack_category}\n"
-                    f"النمط المكتشف: {matched_detail[:150]}\n"
-                    f"عنوان IP: {ip}\n"
-                    f"المسار المستهدف: {method} {path}\n"
-                    f"المتصفح/الأداة: {ua[:120]}\n"
-                    f"التوقيت: {now_str}"
-                )
-
-                for adm in admins:
-                    try:
-                        Notification.objects.create(
-                            user=adm,
-                            title=notif_title,
-                            body=notif_body,
-                            action_url="/control/audit-logs/",
-                            channel=Notification.Channel.IN_APP,
-                            priority=Notification.Priority.HIGH,
-                            metadata=forensics
-                        )
-                    except Exception:
-                        pass
-            except Exception as e_notif:
-                logger.warning(f"Failed to create intrusion in-app notification: {e_notif}")
+        # Security intrusion events are strictly recorded in SystemAuditLog (/control/audit-logs/) only.
+        # Never push automated scanner/intrusion alerts to user/admin in-app notifications or mobile app.
 
     except Exception as e_main:
         logger.error(f"Error in report_security_intrusion: {e_main}")
@@ -311,49 +273,7 @@ def record_server_error_and_notify(request, exception=None, status_code=500):
         except Exception as e:
             logger.warning(f"Failed to create SystemAuditLog for 500 error: {e}")
 
-        # 2. In-App Notification for Admins in Control Panel
-        try:
-            from django.contrib.auth import get_user_model
-            from apps.notifications.models import Notification
-            
-            User = get_user_model()
-            admins = User.objects.filter(
-                models.Q(is_superuser=True) | models.Q(is_staff=True),
-                is_active=True
-            ).distinct()
-
-            full_url = request.get_full_path() if hasattr(request, "get_full_path") else path
-            title = f"⚠️ تنبيه: خطأ في الخادم (500) على المسار {path[:45]}"
-            body = (
-                f"المستخدم: {user_str}\n"
-                f"المسار: {method} {full_url}\n"
-                f"عنوان IP: {ip}\n"
-                f"الخطأ: {exc_msg[:250]}\n"
-                f"الوقت: {timezone.now().strftime('%Y-%m-%d %H:%M:%S')}"
-            )
-
-            for adm in admins:
-                try:
-                    Notification.objects.create(
-                        user=adm,
-                        title=title,
-                        body=body,
-                        action_url=path if path.startswith("/") else "/control/",
-                        channel=Notification.Channel.IN_APP,
-                        priority=Notification.Priority.HIGH,
-                        metadata={
-                            "path": path,
-                            "method": method,
-                            "user": user_str,
-                            "ip": ip,
-                            "error": exc_msg[:300]
-                        }
-                    )
-                except Exception as ex_adm:
-                    logger.warning(f"Failed to notify admin {getattr(adm, 'email', adm)}: {ex_adm}")
-
-        except Exception as e:
-            logger.warning(f"Failed to dispatch 500 error notifications: {e}")
+        # Server 500 diagnostics are logged in SystemAuditLog (/control/audit-logs/) only.
 
     except Exception as e:
         logger.error(f"Error in record_server_error_and_notify: {e}")

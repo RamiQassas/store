@@ -132,7 +132,6 @@ def _filter_central_components_and_fill_holes(mask_320):
     comp_scores = {}
     cur_label = 0
 
-    # Central guide zone where the user positions the product
     cx_ideal, cy_ideal = w * 0.50, h * 0.48
     core_x1, core_x2 = int(w * 0.28), int(w * 0.72)
     core_y1, core_y2 = int(h * 0.18), int(h * 0.82)
@@ -177,7 +176,6 @@ def _filter_central_components_and_fill_holes(mask_320):
                 core_fraction = core_hits / float(area)
                 mean_prob = prob_sum / float(area)
 
-                # Reject peripheral room clutter that barely overlaps the center framing core
                 if core_fraction < 0.15 and dist_norm > 0.24:
                     continue
                 if touches_outer_edge and core_fraction < 0.35:
@@ -194,8 +192,6 @@ def _filter_central_components_and_fill_holes(mask_320):
     best_score, best_x, best_y, best_area, _ = comp_scores[best_label]
 
     keep_mask = labels == best_label
-    # Also keep secondary components only if they are vertically aligned parts of the same product
-    # (e.g., bottle cap/logo separated from bottom rim on a white product)
     for lbl, (sc, mx, my, area, cf) in comp_scores.items():
         if lbl == best_label:
             continue
@@ -205,7 +201,6 @@ def _filter_central_components_and_fill_holes(mask_320):
 
     cleaned = np.where(keep_mask, mask_320, 0.0).astype(np.float32)
 
-    # Fill enclosed interior holes (flood fill background from borders of 320x320 grid)
     fg_solid = cleaned > 0.30
     bg_reach = np.zeros((h, w), dtype=bool)
     bg_q = deque()
@@ -236,34 +231,132 @@ def _filter_central_components_and_fill_holes(mask_320):
     return cleaned
 
 
+def _regularize_contour_envelope(mask_pil: Image.Image) -> Image.Image:
+    """
+    Applies 1D subpixel contour envelope smoothing along the left and right vertical profiles
+    of the isolated product. Shaves off outward background bumps/shadow protrusions and
+    eliminates 320x320 neural staircase waviness while preserving narrower caps and necks.
+    """
+    try:
+        import numpy as np
+
+        arr = np.asarray(mask_pil, dtype=np.float32)
+        h, w = arr.shape
+        fg = arr > 110
+        row_has = fg.any(axis=1)
+        ys = np.where(row_has)[0]
+        if len(ys) < 24:
+            return mask_pil
+
+        y0, y1 = int(ys[0]), int(ys[-1])
+        fh = y1 - y0 + 1
+        x_left = np.zeros(fh, dtype=np.float32)
+        x_right = np.zeros(fh, dtype=np.float32)
+        for i, y in enumerate(range(y0, y1 + 1)):
+            xs = np.where(fg[y])[0]
+            x_left[i] = float(xs[0])
+            x_right[i] = float(xs[-1])
+
+        win = max(15, int(fh * 0.30))
+        half = win // 2
+        reg_left = np.copy(x_left)
+        reg_right = np.copy(x_right)
+        for i in range(fh):
+            s = max(0, i - half)
+            e = min(fh, i + half + 1)
+            reg_left[i] = np.percentile(x_left[s:e], 68)
+            reg_right[i] = np.percentile(x_right[s:e], 32)
+
+        sigma = max(3.0, fh * 0.04)
+        k_rad = int(sigma * 2.5)
+        kx = np.arange(-k_rad, k_rad + 1, dtype=np.float32)
+        kernel = np.exp(-(kx ** 2) / (2.0 * sigma * sigma))
+        kernel /= kernel.sum()
+
+        smooth_left = np.convolve(np.pad(reg_left, k_rad, mode="edge"), kernel, mode="valid")
+        smooth_right = np.convolve(np.pad(reg_right, k_rad, mode="edge"), kernel, mode="valid")
+
+        final_left = np.maximum(x_left, smooth_left)
+        final_right = np.minimum(x_right, smooth_right)
+
+        k2_rad = max(2, int(fh * 0.02))
+        kx2 = np.arange(-k2_rad, k2_rad + 1, dtype=np.float32)
+        k2 = np.exp(-(kx2 ** 2) / (2.0 * (k2_rad * 0.6) ** 2))
+        k2 /= k2.sum()
+        final_left = np.convolve(np.pad(final_left, k2_rad, mode="edge"), k2, mode="valid")
+        final_right = np.convolve(np.pad(final_right, k2_rad, mode="edge"), k2, mode="valid")
+
+        out_mask = np.zeros((h, w), dtype=np.uint8)
+        grid_x = np.arange(w, dtype=np.float32)
+        for i, y in enumerate(range(y0, y1 + 1)):
+            l_val = final_left[i]
+            r_val = final_right[i]
+            if r_val > l_val + 4:
+                alpha_l = np.clip((grid_x - l_val + 1.0) / 1.8, 0.0, 1.0)
+                alpha_r = np.clip((r_val - grid_x + 1.0) / 1.8, 0.0, 1.0)
+                row_a = np.minimum(alpha_l, alpha_r) * (arr[y] / 255.0)
+                solid_span = (grid_x >= l_val + 1.2) & (grid_x <= r_val - 1.2)
+                row_a = np.where(solid_span, np.maximum(row_a, 1.0), row_a)
+                out_mask[y] = np.clip(row_a * 255.0, 0, 255).astype(np.uint8)
+
+        return Image.fromarray(out_mask, mode="L")
+    except Exception:
+        return mask_pil
+
+
+def _refine_product_edges_and_dehalo(rgba_img: Image.Image, mask_pil: Image.Image) -> Image.Image:
+    """
+    Eliminates wavy 320x320 neural mask stair-stepping and dark/grey room edge halos:
+    1. Smooths contour curvature with MedianFilter + 1D subpixel envelope regularization.
+    2. Chokes the mask edge inward by ~1.5px to shave off external background fringe.
+    3. Performs RGB Edge Color Decontamination: replaces the outer 3px boundary RGB
+       with clean interior product colors so zero dark background halo remains.
+    """
+    w, h = rgba_img.size
+    m = mask_pil.resize((w, h), Image.Resampling.BICUBIC)
+    m = m.filter(ImageFilter.MedianFilter(size=5))
+    m_eroded = m.filter(ImageFilter.MinFilter(size=3))
+    m = Image.blend(m, m_eroded, 0.60)
+    m = _regularize_contour_envelope(m)
+    m = m.filter(ImageFilter.GaussianBlur(radius=1.5))
+    m = m.point(lambda a: 0 if a < 72 else (255 if a > 218 else int((a - 72) * 255 / 146)))
+
+    try:
+        import numpy as np
+
+        rgb_orig = rgba_img.convert("RGB")
+        rgb_interior = rgb_orig.filter(ImageFilter.MinFilter(3)).filter(ImageFilter.MaxFilter(5))
+        orig_np = np.asarray(rgb_orig, dtype=np.float32)
+        int_np = np.asarray(rgb_interior, dtype=np.float32)
+        alpha_np = np.asarray(m, dtype=np.float32) / 255.0
+
+        is_edge = ((alpha_np > 0.02) & (alpha_np < 0.92))[:, :, np.newaxis]
+        clean_np = np.where(is_edge, 0.35 * orig_np + 0.65 * int_np, orig_np)
+        out = Image.fromarray(np.clip(clean_np, 0, 255).astype(np.uint8), mode="RGB").convert("RGBA")
+        out.putalpha(m)
+        return out
+    except Exception:
+        out = rgba_img.copy()
+        out.putalpha(m)
+        return out
+
+
 def _reconstruct_white_product_if_hollow(rgba_img: Image.Image, mask_arr):
     """
-    Handles the classic mobile studio failure mode where a white/bright container or bottle
-    (such as a white POND'S bottle or white gadget box) is photographed against a bright wall
-    with dark objects in the room:
-    - Detects when the central vertical product spine is predominantly white/bright (>215)
-      while the segmentation mask only captured interior markings (top brand logo + bottom rim)
-      or lateral dark background objects.
-    - Strips away peripheral & lateral background clutter.
-    - Reconstructs a solid, 3D studio-shaded pearl-white container silhouette while keeping
-      100% of the product's real brand text, logo, and surface details sharp.
+    Handles overexposed white/bright containers photographed against bright walls
+    where segmentation only captured interior markings (logo + bottom rim).
     """
     import numpy as np
 
     h, w = mask_arr.shape
-    # Composite over white first so if rgba_img came from a premultiplied PNG cutout where
-    # white bottle pixels were erased to (0,0,0,0), those pixels are evaluated as bright white.
     white_bg = Image.new("RGBA", (w, h), (250, 251, 253, 255))
     comp_rgb_img = Image.alpha_composite(white_bg, rgba_img.convert("RGBA")).convert("RGB")
     rgb = np.asarray(comp_rgb_img, dtype=np.float32)
     gray = 0.299 * rgb[:, :, 0] + 0.587 * rgb[:, :, 1] + 0.114 * rgb[:, :, 2]
 
-    # Also detect dark/colored markings directly from pixel luminance in case mask missed them
     dark_markings = gray < 205
     fg_bin = (mask_arr > 80) | dark_markings
 
-    # First, always strip isolated peripheral corner clutter (like top-right hanging cords/plants)
-    # that lie outside the central product framing zone
     corner_clutter = np.zeros((h, w), dtype=bool)
     corner_clutter[:int(h * 0.34), int(w * 0.68):] = True
     corner_clutter[:int(h * 0.34), :int(w * 0.32)] = True
@@ -277,8 +370,6 @@ def _reconstruct_white_product_if_hollow(rgba_img: Image.Image, mask_arr):
     bright_ratio = float((spine_gray > 216).mean())
     mask_fill_ratio = float(spine_mask.mean())
 
-    # Trigger reconstruction if the central product spine is mostly bright white (>68%)
-    # and the alpha mask is hollow/sparse (<50% filled)
     if bright_ratio > 0.68 and mask_fill_ratio < 0.50:
         lx1, lx2 = int(w * 0.40), int(w * 0.62)
         ly1, ly2 = int(h * 0.18), int(h * 0.44)
@@ -299,7 +390,6 @@ def _reconstruct_white_product_if_hollow(rgba_img: Image.Image, mask_arr):
                 rim_cx = (rim_left + rim_right) // 2
                 bottle_cx = int(0.55 * rim_cx + 0.45 * logo_cx)
 
-                # Detect inner occlusion edges if a dark background object sits behind the white product
                 mid_y1, mid_y2 = int(h * 0.35), int(h * 0.58)
                 inner_left = rim_left
                 for x in range(bottle_cx - 12, int(w * 0.24), -1):
@@ -376,15 +466,67 @@ def _reconstruct_white_product_if_hollow(rgba_img: Image.Image, mask_arr):
                 reconstructed_rgba.putalpha(new_mask)
                 return reconstructed_rgba, new_mask_np
 
-    out = rgba_img.copy()
-    out.putalpha(Image.fromarray(mask_arr, mode="L"))
-    return out, mask_arr
+    refined = _refine_product_edges_and_dehalo(rgba_img, Image.fromarray(mask_arr, mode="L"))
+    return refined, np.asarray(refined.getchannel("A"), dtype=np.uint8)
+
+
+def _apply_studio_relighting(prod_rgba: Image.Image) -> Image.Image:
+    """
+    Commercial Studio Softbox Relighting & Color Grading (applied strictly to isolated product):
+    - Automatically lifts dim indoor phone exposure (gamma & white-point normalization).
+    - Adds a subtle 3D vertical studio softbox specular sheen along the product surface.
+    - Enhances micro-contrast and typography sharpness (UnsharpMask).
+    """
+    r, g, b, a = prod_rgba.split()
+    rgb_img = Image.merge("RGB", (r, g, b))
+
+    try:
+        import numpy as np
+
+        rgb = np.asarray(rgb_img, dtype=np.float32)
+        alpha_np = np.asarray(a, dtype=np.float32) / 255.0
+        fg_mask = alpha_np > 0.5
+
+        if fg_mask.sum() > 50:
+            lum = 0.299 * rgb[:, :, 0] + 0.587 * rgb[:, :, 1] + 0.114 * rgb[:, :, 2]
+            fg_lum = lum[fg_mask]
+            p50 = float(np.percentile(fg_lum, 50))
+            p92 = float(np.percentile(fg_lum, 92))
+
+            # 1. White-point & exposure normalization if indoor photo is under-lit
+            gain = 1.0
+            if p92 < 238.0 and p92 > 40.0:
+                gain = min(1.26, 242.0 / p92)
+            gamma = 1.0
+            if p50 * gain < 155.0:
+                gamma = max(0.76, min(0.94, (p50 * gain) / 168.0))
+
+            norm = np.clip((rgb * gain) / 255.0, 0.0, 1.0)
+            if gamma < 0.99:
+                norm = norm ** gamma
+
+            # Gentle S-curve for studio pop without clipping white highlights
+            norm = np.clip(0.5 + (norm - 0.5) * 1.08, 0.0, 1.0)
+
+            # 2. Subtle 3D vertical softbox reflection highlight along left-center of product
+            h, w, _ = rgb.shape
+            xs = np.linspace(0.0, 1.0, w, dtype=np.float32)[np.newaxis, :, np.newaxis]
+            softbox_sheen = 1.0 + 0.055 * np.exp(-((xs - 0.36) ** 2) / (2.0 * (0.18 ** 2)))
+            norm = np.clip(norm * softbox_sheen, 0.0, 1.0)
+
+            rgb_img = Image.fromarray((norm * 255.0).astype(np.uint8), mode="RGB")
+    except Exception as e:
+        logger.debug("Studio relighting fallback: %s", e)
+
+    rgb_img = ImageEnhance.Color(rgb_img).enhance(1.12)
+    rgb_img = rgb_img.filter(ImageFilter.UnsharpMask(radius=1.8, percent=135, threshold=2))
+    r2, g2, b2 = rgb_img.split()
+    return Image.merge("RGBA", (r2, g2, b2, a))
 
 
 def _remove_background_edge_aware_fallback(img: Image.Image) -> Image.Image:
     """
     Upgraded pure-Pillow edge-stopped, multi-seed border flood-fill with interior hole filling.
-    Used only if ONNX Runtime is unavailable.
     """
     rgba = img.convert("RGBA")
     orig_w, orig_h = rgba.size
@@ -396,7 +538,6 @@ def _remove_background_edge_aware_fallback(img: Image.Image) -> Image.Image:
     small = rgba.resize((ww, wh), Image.Resampling.BILINEAR)
     px = small.load()
 
-    # Compute edge barrier map so flood-fill stops at subtle object contours (including white-on-white edges)
     gray_small = small.convert("L")
     edges = gray_small.filter(ImageFilter.FIND_EDGES).filter(ImageFilter.MaxFilter(3))
     edge_px = edges.load()
@@ -410,7 +551,6 @@ def _remove_background_edge_aware_fallback(img: Image.Image) -> Image.Image:
     bg_mask = [[False] * ww for _ in range(wh)]
     queue = deque()
 
-    # Seed from outer borders, carrying each seed's own local border color (sr, sg, sb)
     step = max(1, min(ww, wh) // 40)
     for x in range(0, ww, step):
         for sy in (0, wh - 1):
@@ -457,22 +597,12 @@ def _remove_background_edge_aware_fallback(img: Image.Image) -> Image.Image:
             if row[x]:
                 m_px[x, y] = 0
 
-    mask_full = mask_small.resize((orig_w, orig_h), Image.Resampling.BILINEAR)
-    mask_full = mask_full.filter(ImageFilter.GaussianBlur(radius=1.5))
-    mask_full = mask_full.point(lambda a: 0 if a < 28 else (255 if a > 225 else int((a - 28) * 255 / 197)))
-
-    out = rgba.copy()
-    out.putalpha(mask_full)
-    return out
+    return _refine_product_edges_and_dehalo(rgba, mask_small)
 
 
 def _remove_background_smart(img: Image.Image) -> Image.Image:
     """
-    Primary AI + Computer Vision studio background segmentation pipeline:
-    1. Dual-Pass U2Netp Deep Learning Salient Object Detection (natural RGB + local contrast/highlight enhanced).
-    2. Connected-Component Center Subject Selection & Peripheral Room Clutter Rejection.
-    3. White/Bright Product Hollow-Body Detection & 3D Studio Cylinder Reconstruction.
-    4. Soft Alpha Matting & Edge Feathering.
+    Primary AI + Computer Vision studio background segmentation pipeline.
     """
     rgba = img.convert("RGBA")
     orig_w, orig_h = rgba.size
@@ -483,16 +613,13 @@ def _remove_background_smart(img: Image.Image) -> Image.Image:
             import numpy as np
 
             rgb = rgba.convert("RGB")
-            # Pass 1: Natural RGB U2Netp salience
             pred1 = _run_u2net_pass(sess, rgb)
 
-            # Pass 2: Local contrast & highlight edge boosted pass (helps white-on-light products)
             boosted = ImageOps.autocontrast(rgb, cutoff=1)
             boosted = ImageEnhance.Contrast(boosted).enhance(1.35)
             boosted = boosted.filter(ImageFilter.UnsharpMask(radius=4, percent=180, threshold=2))
             pred2 = _run_u2net_pass(sess, boosted)
 
-            # Combine passes with a soft center framing prior
             yy, xx = np.mgrid[0:320, 0:320]
             dist_center = (((xx - 160.0) / 160.0) ** 2 + ((yy - 154.0) / 160.0) ** 2) ** 0.5
             center_prior = np.clip(1.12 - 0.42 * dist_center, 0.35, 1.05).astype(np.float32)
@@ -505,8 +632,6 @@ def _remove_background_smart(img: Image.Image) -> Image.Image:
             cleaned_320 = _filter_central_components_and_fill_holes(combined)
             mask_u8_small = Image.fromarray(np.clip(cleaned_320 * 255.0, 0, 255).astype(np.uint8), mode="L")
             mask_full = mask_u8_small.resize((orig_w, orig_h), Image.Resampling.BICUBIC)
-            mask_full = mask_full.filter(ImageFilter.GaussianBlur(radius=1.4))
-            mask_full = mask_full.point(lambda a: 0 if a < 36 else (255 if a > 215 else int((a - 36) * 255 / 179)))
             mask_np = np.asarray(mask_full, dtype=np.uint8)
 
             out, _ = _reconstruct_white_product_if_hollow(rgba, mask_np)
@@ -525,76 +650,106 @@ def _remove_background_smart(img: Image.Image) -> Image.Image:
 
 
 def _create_studio_stage(target_size: int, bg_style: str = "studio_white") -> Image.Image:
-    """Creates a professional photography studio backdrop with subtle radial spotlight."""
-    if bg_style == "studio_dark":
-        base_col = (6, 10, 20, 255)
-        center_col = (24, 38, 62, 255)
-        horizon_col = (12, 18, 34, 255)
-    else:
-        base_col = (232, 237, 244, 255)
-        center_col = (252, 253, 255, 255)
-        horizon_col = (240, 244, 249, 255)
+    """
+    Creates a seamless, artifact-free 3D photography studio cyclorama backdrop.
+    Uses a continuous 2D mathematical lighting shader so there is zero black alpha-blur bleeding.
+    """
+    try:
+        import numpy as np
 
-    stage = Image.new("RGBA", (target_size, target_size), base_col)
+        yy, xx = np.mgrid[0:target_size, 0:target_size].astype(np.float32)
+        nx = (xx - target_size * 0.50) / (target_size * 0.50)
+        ny = (yy - target_size * 0.42) / (target_size * 0.50)
+        rad = np.sqrt(nx ** 2 + ny ** 2)
+        spot = np.clip(1.0 - (rad / 1.35) ** 1.6, 0.0, 1.0)
 
-    glow = Image.new("RGBA", (target_size, target_size), (0, 0, 0, 0))
-    g_draw = ImageDraw.Draw(glow)
-    cx, cy = target_size // 2, int(target_size * 0.44)
-    max_r = int(target_size * 0.62)
-    steps = 18
-    for i in range(steps, 0, -1):
-        r = int(max_r * (i / steps))
-        alpha = int(255 * (1.0 - (i / steps) ** 1.6))
-        g_draw.ellipse(
-            [cx - r, cy - r, cx + r, cy + r],
-            fill=(center_col[0], center_col[1], center_col[2], min(255, alpha)),
-        )
-    glow = glow.filter(ImageFilter.GaussianBlur(radius=max(8, target_size // 24)))
-    stage = Image.alpha_composite(stage, glow)
+        # Smooth cyclorama floor curve below y = 70%
+        floor_t = np.clip((yy / target_size - 0.68) / 0.32, 0.0, 1.0)
+        horizon_dip = np.exp(-(((yy / target_size) - 0.74) ** 2) / (2.0 * (0.045 ** 2)))
 
-    floor = Image.new("RGBA", (target_size, target_size), (0, 0, 0, 0))
-    f_draw = ImageDraw.Draw(floor)
-    floor_y = int(target_size * 0.78)
-    f_draw.rectangle([0, floor_y, target_size, target_size], fill=(horizon_col[0], horizon_col[1], horizon_col[2], 150))
-    floor = floor.filter(ImageFilter.GaussianBlur(radius=max(6, target_size // 35)))
-    stage = Image.alpha_composite(stage, floor)
+        if bg_style == "studio_dark":
+            r = 8.0 + 22.0 * spot - 4.0 * horizon_dip + 6.0 * (floor_t ** 1.4)
+            g = 13.0 + 34.0 * spot - 6.0 * horizon_dip + 10.0 * (floor_t ** 1.4)
+            b = 26.0 + 58.0 * spot - 8.0 * horizon_dip + 18.0 * (floor_t ** 1.4)
+        else:
+            # Pure luxury porcelain studio stage: (255,255,255) center -> (238,242,248) outer corners
+            # with a whisper-soft studio floor horizon reflection
+            r = 238.0 + 17.0 * spot - 6.0 * horizon_dip - 3.0 * (floor_t ** 1.5)
+            g = 242.0 + 13.0 * spot - 5.0 * horizon_dip - 2.0 * (floor_t ** 1.5)
+            b = 248.0 + 7.0 * spot - 3.0 * horizon_dip - 1.0 * (floor_t ** 1.5)
 
-    return stage
+        rgb = np.stack([np.clip(r, 0, 255), np.clip(g, 0, 255), np.clip(b, 0, 255)], axis=-1).astype(np.uint8)
+        return Image.fromarray(rgb, mode="RGB").convert("RGBA")
+    except Exception:
+        base_col = (10, 15, 28, 255) if bg_style == "studio_dark" else (246, 248, 252, 255)
+        return Image.new("RGBA", (target_size, target_size), base_col)
+
+
+def _paste_soft_shadow_from_alpha(
+    canvas: Image.Image,
+    alpha_mask: Image.Image,
+    pos: tuple,
+    shadow_rgb: tuple = (15, 23, 42),
+    opacity_scale: float = 0.25,
+    blur_radius: int = 12,
+) -> Image.Image:
+    """
+    Renders a physically accurate soft shadow by blurring ONLY the 'L' alpha channel
+    and filling RGB with shadow_rgb, avoiding Pillow's RGBA (0,0,0,0) blur artifact.
+    """
+    w, h = canvas.size
+    full_alpha = Image.new("L", (w, h), 0)
+    scaled_a = alpha_mask.point(lambda v: int(min(255, v * opacity_scale)))
+    full_alpha.paste(scaled_a, pos)
+    full_alpha = full_alpha.filter(ImageFilter.GaussianBlur(radius=blur_radius))
+
+    shadow_layer = Image.new("RGBA", (w, h), (shadow_rgb[0], shadow_rgb[1], shadow_rgb[2], 0))
+    shadow_layer.putalpha(full_alpha)
+    return Image.alpha_composite(canvas, shadow_layer)
 
 
 def _apply_raqamiyat_branding(canvas: Image.Image, target_size: int, bg_style: str = "studio_white") -> Image.Image:
-    """Applies the official Raqamiyat logo & verified studio hallmark cleanly."""
+    """Applies the official Raqamiyat 3D luxury emblem & compact studio hallmark cleanly."""
+    # 1. Top-right subtle luxury emblem watermark
     if os.path.exists(EMBLEM_PATH):
         try:
             emblem = Image.open(EMBLEM_PATH).convert("RGBA")
-            emb_size = max(44, int(target_size * 0.10))
+            emb_size = max(42, int(target_size * 0.088))
             emblem_resized = emblem.resize((emb_size, emb_size), Image.Resampling.LANCZOS)
-            pad = int(target_size * 0.035)
-            canvas.paste(emblem_resized, (target_size - emb_size - pad, pad), emblem_resized)
+            pad = int(target_size * 0.032)
+            ex = target_size - emb_size - pad
+            ey = pad
+            canvas = _paste_soft_shadow_from_alpha(
+                canvas,
+                emblem_resized.getchannel("A"),
+                (ex, ey + 3),
+                shadow_rgb=(15, 23, 42),
+                opacity_scale=0.22 if bg_style == "studio_white" else 0.50,
+                blur_radius=6,
+            )
+            canvas.paste(emblem_resized, (ex, ey), emblem_resized)
         except Exception as ee:
             logger.warning("Could not apply emblem: %s", ee)
 
+    # 2. Bottom centered compact official Raqamiyat master badge
     if os.path.exists(MASTER_BADGE_PATH):
         try:
             badge = Image.open(MASTER_BADGE_PATH).convert("RGBA")
-            target_bw = int(target_size * 0.56)
+            target_bw = int(target_size * 0.46)
             target_bh = max(16, int(badge.height * (target_bw / badge.width)))
             badge_resized = badge.resize((target_bw, target_bh), Image.Resampling.LANCZOS)
 
             bx = (target_size - target_bw) // 2
-            by = target_size - target_bh - int(target_size * 0.032)
+            by = target_size - target_bh - int(target_size * 0.028)
 
-            b_shadow = Image.new("RGBA", (target_bw + 24, target_bh + 24), (0, 0, 0, 0))
-            bs_draw = ImageDraw.Draw(b_shadow)
-            shadow_alpha = 110 if bg_style == "studio_white" else 170
-            bs_draw.rounded_rectangle(
-                [12, 12, 12 + target_bw, 12 + target_bh],
-                radius=max(6, target_bh // 2),
-                fill=(0, 0, 0, shadow_alpha),
+            canvas = _paste_soft_shadow_from_alpha(
+                canvas,
+                badge_resized.getchannel("A"),
+                (bx, by + 4),
+                shadow_rgb=(15, 23, 42),
+                opacity_scale=0.28 if bg_style == "studio_white" else 0.60,
+                blur_radius=8,
             )
-            b_shadow = b_shadow.filter(ImageFilter.GaussianBlur(6))
-
-            canvas.paste(b_shadow, (bx - 12, by - 10), b_shadow)
             canvas.paste(badge_resized, (bx, by), badge_resized)
         except Exception as be:
             logger.warning("Could not apply hallmark badge: %s", be)
@@ -611,13 +766,13 @@ def process_camera_product_snapshot(
     bg_style="studio_white",
 ):
     """
-    Transforms a raw mobile camera product photo into a luxury e-commerce studio shot:
+    Transforms a raw mobile camera product photo into an ultra-luxury e-commerce studio shot:
     1. EXIF Auto-Orientation: Fixes mobile camera rotation.
-    2. Deep Learning AI + CV Background Isolation: Uses U2Netp Salient Object Detection,
-       Connected-Component Center Subject Filtering, and 3D White-Product Reconstruction.
-    3. 3D Silhouette Drop Shadow & Studio Stage: Ensures both dark and pure-white products
-       stand out with razor-sharp 3D studio depth.
-    4. Raqamiyat Branding: Adds official Raqamiyat emblem & verified hallmark.
+    2. Deep Learning AI + Edge De-Haloing Isolation: U2Netp Salient Object Detection,
+       Contour Curvature Smoothing, and RGB Edge Color Decontamination.
+    3. Studio Softbox Relighting: Lifts dim indoor phone lighting & adds 3D softbox sheen.
+    4. Seamless Cyclorama Stage & Multi-Layer Contact Shadow.
+    5. Official Raqamiyat 3D Luxury Branding.
     """
     try:
         if hasattr(image_file, "read"):
@@ -641,8 +796,6 @@ def process_camera_product_snapshot(
 
         if isolate_white:
             if _has_meaningful_alpha(img):
-                # Even if client sent an alpha cutout (e.g. Android ML Kit), clean peripheral
-                # clutter and reconstruct white product bodies if ML Kit hollowed them out!
                 try:
                     import numpy as np
                     alpha_np = np.asarray(img.getchannel("A"), dtype=np.uint8)
@@ -658,7 +811,7 @@ def process_camera_product_snapshot(
                 img = _remove_background_smart(img)
 
             alpha = img.getchannel("A")
-            bbox = alpha.point(lambda a: 255 if a > 24 else 0).getbbox()
+            bbox = alpha.point(lambda a: 255 if a > 32 else 0).getbbox()
             if bbox:
                 bw = bbox[2] - bbox[0]
                 bh = bbox[3] - bbox[1]
@@ -668,50 +821,53 @@ def process_camera_product_snapshot(
             w, h = img.size
             canvas = _create_studio_stage(target_size, bg_style=bg_style)
 
-            max_prod_w = int(target_size * 0.72)
-            max_prod_h = int(target_size * 0.66)
+            # Generous hero product sizing (up to 73% height, 75% width)
+            max_prod_w = int(target_size * 0.75)
+            max_prod_h = int(target_size * 0.72)
             scale = min(max_prod_w / w, max_prod_h / h)
             nw = max(16, int(w * scale))
             nh = max(16, int(h * scale))
             resized_prod = img.resize((nw, nh), Image.Resampling.LANCZOS)
 
-            # Adaptive Studio Polish: avoid blowing out highlights on white products
-            r, g, b, a = resized_prod.split()
-            rgb_prod = Image.merge("RGB", (r, g, b))
-            rgb_prod = ImageEnhance.Sharpness(rgb_prod).enhance(1.18)
-            rgb_prod = ImageEnhance.Color(rgb_prod).enhance(1.05)
-            r2, g2, b2 = rgb_prod.split()
-            resized_prod = Image.merge("RGBA", (r2, g2, b2, a))
+            # Studio Softbox Relighting & Clarity Polish
+            resized_prod = _apply_studio_relighting(resized_prod)
+            prod_alpha = resized_prod.getchannel("A")
 
             px = (target_size - nw) // 2
-            py = int(target_size * 0.43) - (nh // 2)
-            py = max(int(target_size * 0.06), py)
+            py = int(target_size * 0.435) - (nh // 2)
+            py = max(int(target_size * 0.045), py)
 
-            # 1. 360-degree 3D Silhouette Ambient Drop Shadow (crucial so white products pop on white studio stage)
-            sil_shadow = Image.new("RGBA", (target_size, target_size), (0, 0, 0, 0))
-            sil_layer = Image.new("RGBA", (nw, nh), (15, 23, 42, 255))
-            sil_layer.putalpha(a.point(lambda v: int(v * (0.25 if bg_style == "studio_white" else 0.45))))
-            sil_shadow.paste(sil_layer, (px, py + 7), sil_layer)
-            sil_shadow = sil_shadow.filter(ImageFilter.GaussianBlur(radius=max(10, target_size // 55)))
-            canvas = Image.alpha_composite(canvas, sil_shadow)
+            # 1. Soft 360-degree 3D Silhouette Ambient Drop Shadow (zero black-bleed artifact)
+            canvas = _paste_soft_shadow_from_alpha(
+                canvas,
+                prod_alpha,
+                (px, py + 6),
+                shadow_rgb=(15, 23, 42),
+                opacity_scale=0.16 if bg_style == "studio_white" else 0.42,
+                blur_radius=max(12, target_size // 48),
+            )
 
-            # 2. Multi-layer realistic floor contact shadow directly under product base
-            shadow = Image.new("RGBA", (target_size, target_size), (0, 0, 0, 0))
-            s_draw = ImageDraw.Draw(shadow)
-            shadow_w = max(28, int(nw * 0.80))
-            shadow_h = max(12, int(target_size * 0.042))
+            # 2. Grounding Studio Floor Contact Shadow directly under product base
+            shadow_w = max(32, int(nw * 0.84))
+            shadow_h = max(14, int(target_size * 0.038))
             sx1 = (target_size - shadow_w) // 2
-            sy1 = min(target_size - shadow_h - 40, py + nh - (shadow_h // 2))
-            s_draw.ellipse([sx1, sy1, sx1 + shadow_w, sy1 + shadow_h], fill=(15, 23, 42, 52))
-            core_w = int(shadow_w * 0.58)
+            sy1 = min(target_size - shadow_h - 46, py + nh - (shadow_h // 2))
+
+            floor_alpha = Image.new("L", (target_size, target_size), 0)
+            fa_draw = ImageDraw.Draw(floor_alpha)
+            fa_draw.ellipse([sx1, sy1, sx1 + shadow_w, sy1 + shadow_h], fill=55)
+            core_w = int(shadow_w * 0.56)
             core_h = max(6, shadow_h // 2)
             cx1 = (target_size - core_w) // 2
             cy1 = sy1 + (shadow_h - core_h) // 2
-            s_draw.ellipse([cx1, cy1, cx1 + core_w, cy1 + core_h], fill=(15, 23, 42, 75))
-            shadow = shadow.filter(ImageFilter.GaussianBlur(radius=max(6, shadow_h // 2)))
-            canvas = Image.alpha_composite(canvas, shadow)
+            fa_draw.ellipse([cx1, cy1, cx1 + core_w, cy1 + core_h], fill=95)
+            floor_alpha = floor_alpha.filter(ImageFilter.GaussianBlur(radius=max(7, shadow_h // 2)))
 
-            # 3. Composite isolated product
+            floor_shadow = Image.new("RGBA", (target_size, target_size), (15, 23, 42, 0))
+            floor_shadow.putalpha(floor_alpha)
+            canvas = Image.alpha_composite(canvas, floor_shadow)
+
+            # 3. Composite isolated & relit product
             canvas.paste(resized_prod, (px, py), resized_prod)
         else:
             w, h = img.size

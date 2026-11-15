@@ -1,11 +1,13 @@
 package com.raqamiyat.app;
 
+import android.app.NotificationChannel;
 import android.app.NotificationManager;
 import android.app.PendingIntent;
 import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.net.Uri;
+import android.os.Build;
 import android.os.Handler;
 import android.os.Looper;
 import android.webkit.CookieManager;
@@ -23,8 +25,9 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Scanner;
 import java.util.Set;
-import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
 
 public class AppNotificationSync {
 
@@ -52,26 +55,73 @@ public class AppNotificationSync {
     private static final String NOTIF_API = DOMAIN + "/api/app/notifications/";
     private static final String PREFS_NAME = "raqamiyat_notif_prefs";
     private static final String KEY_SEEN_IDS = "seen_notif_ids";
+    private static final String KEY_INITIAL_SEEDED = "initial_seeded_v2";
     private static final String CHANNEL_ID = "raqamiyat_notifications";
 
+    private static ScheduledExecutorService bgPoller;
+
     private final Context context;
-    private final ExecutorService executor = Executors.newSingleThreadExecutor();
     private final Handler mainHandler = new Handler(Looper.getMainLooper());
 
     public AppNotificationSync(Context context) {
         this.context = context.getApplicationContext();
+        ensureChannel();
+    }
+
+    public void startContinuousBackgroundSync() {
+        AppNotificationJobService.scheduleBackgroundSync(context);
+        synchronized (AppNotificationSync.class) {
+            if (bgPoller == null || bgPoller.isShutdown()) {
+                bgPoller = Executors.newSingleThreadScheduledExecutor();
+                bgPoller.scheduleWithFixedDelay(() -> syncNow(null), 15, 22, TimeUnit.SECONDS);
+            }
+        }
+    }
+
+    private void ensureChannel() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            try {
+                NotificationManager mgr = context.getSystemService(NotificationManager.class);
+                if (mgr != null && mgr.getNotificationChannel(CHANNEL_ID) == null) {
+                    NotificationChannel channel = new NotificationChannel(
+                            CHANNEL_ID,
+                            "إشعارات وعروض رقميات",
+                            NotificationManager.IMPORTANCE_HIGH
+                    );
+                    channel.setDescription("تنبيهات العروض والتحديثات والطلبات من منصة رقميات");
+                    mgr.createNotificationChannel(channel);
+                }
+            } catch (Exception ignored) {
+            }
+        }
+    }
+
+    private boolean isSecurityNoise(String title, String actionUrl) {
+        String t = (title != null ? title : "").toLowerCase();
+        String u = (actionUrl != null ? actionUrl : "").toLowerCase();
+        return t.contains("اختراق")
+                || t.contains("هجوم")
+                || t.contains("تم صد")
+                || t.contains("تنبيه أمني")
+                || t.contains("إنذار أمني")
+                || t.contains("خطأ في الخادم")
+                || t.contains("ماسح آلي")
+                || u.contains("audit-logs");
     }
 
     public void syncNow(NotificationsCallback callback) {
-        executor.execute(() -> {
+        Executors.newSingleThreadExecutor().execute(() -> {
             try {
                 HttpURLConnection conn = (HttpURLConnection) new URL(NOTIF_API).openConnection();
                 conn.setConnectTimeout(6000);
                 conn.setReadTimeout(7000);
-                conn.setRequestProperty("User-Agent", "RaqamiyatAndroid/3.0 NotifSync");
-                String cookies = CookieManager.getInstance().getCookie(DOMAIN);
-                if (cookies != null && !cookies.isEmpty()) {
-                    conn.setRequestProperty("Cookie", cookies);
+                conn.setRequestProperty("User-Agent", "RaqamiyatAndroid/3.2 NotifSync");
+                try {
+                    String cookies = CookieManager.getInstance().getCookie(DOMAIN);
+                    if (cookies != null && !cookies.isEmpty()) {
+                        conn.setRequestProperty("Cookie", cookies);
+                    }
+                } catch (Exception ignored) {
                 }
                 String appToken = new RaqamiyatLocalStore(context).getAppAuthToken();
                 if (appToken != null && !appToken.isEmpty()) {
@@ -90,31 +140,42 @@ public class AppNotificationSync {
                     if (arr != null) {
                         SharedPreferences prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE);
                         Set<String> seen = new HashSet<>(prefs.getStringSet(KEY_SEEN_IDS, new HashSet<>()));
+                        boolean isInitialSeeded = prefs.getBoolean(KEY_INITIAL_SEEDED, false);
                         boolean updated = false;
 
                         for (int i = 0; i < arr.length(); i++) {
                             JSONObject o = arr.getJSONObject(i);
+                            String title = o.optString("title");
+                            String actionUrl = o.optString("action_url", "");
+                            if (isSecurityNoise(title, actionUrl)) {
+                                continue;
+                            }
+
                             AppNotifItem item = new AppNotifItem(
                                     o.optString("id"),
                                     o.optString("category", "promo"),
-                                    o.optString("title"),
+                                    title,
                                     o.optString("body"),
-                                    o.optString("action_url", "")
+                                    actionUrl
                             );
                             list.add(item);
 
+                            boolean shouldPush = o.optBoolean("should_push", true);
                             if (!item.id.isEmpty() && !seen.contains(item.id)) {
                                 seen.add(item.id);
                                 updated = true;
-                                // Fire native Android system notification for the newest unseen item(s)
-                                if (i < 3) {
+                                // Only fire push notification for genuinely new notifications (not old history on first open)
+                                if (isInitialSeeded && shouldPush && i < 3) {
                                     fireSystemNotification(item);
                                 }
                             }
                         }
 
-                        if (updated) {
-                            prefs.edit().putStringSet(KEY_SEEN_IDS, seen).apply();
+                        if (!isInitialSeeded || updated) {
+                            prefs.edit()
+                                    .putStringSet(KEY_SEEN_IDS, seen)
+                                    .putBoolean(KEY_INITIAL_SEEDED, true)
+                                    .apply();
                         }
                     }
                     if (callback != null) {

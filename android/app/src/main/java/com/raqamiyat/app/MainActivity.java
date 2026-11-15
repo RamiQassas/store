@@ -191,6 +191,7 @@ public class MainActivity extends AppCompatActivity implements ConnectivityHelpe
         // Load native products & check admin session & sync notifications & check updates
         loadNativeCatalog(false);
         refreshAdminSessionBadge();
+        notificationSync.startContinuousBackgroundSync();
         syncAppNotifications();
         checkForAppUpdatesInBackground();
     }
