@@ -557,6 +557,8 @@ public class NativeCameraStudioActivity extends AppCompatActivity {
                 DataOutputStream dos = new DataOutputStream(conn.getOutputStream());
                 writeFormField(dos, boundary, "product_id", activeProductId);
                 writeFormField(dos, boundary, "isolate_white", "true");
+                writeFormField(dos, boundary, "auto_straighten", "true");
+                writeFormField(dos, boundary, "filter_mode", "auto_hdr");
                 writeFormField(dos, boundary, "add_hallmark", "true");
                 writeFormField(dos, boundary, "bg_style", selectedBgStyle);
 

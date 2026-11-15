@@ -169,6 +169,7 @@ urlpatterns = [
     path("control/products/<uuid:pk>/generate-ai-image/", views.control_product_generate_image, name="control_product_generate_image"),
     path("control/categories/<uuid:pk>/generate-ai-image/", views.control_category_generate_image, name="control_category_generate_image"),
     path("control/camera-studio/", views.control_camera_studio, name="control_camera_studio"),
+    path("control/studio/", views.control_camera_studio, name="control_pro_studio"),
     path("control/camera-studio/process-ajax/", views.control_camera_studio_process_ajax, name="control_camera_studio_process_ajax"),
     path("control/camera-studio/lookup-product/", views.control_camera_studio_lookup_product, name="control_camera_studio_lookup_product"),
     path("api/studio/lookup-product/", views.control_camera_studio_lookup_product, name="api_studio_lookup_product"),

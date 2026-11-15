@@ -71,9 +71,14 @@
 <script>
   (function() {
     var redirected = false;
+    var ssoTicket = "{{ app_sso_ticket|default:''|escapejs }}";
     function checkAppSessionSynced() {
       if (redirected) return;
-      fetch('/api/app/session/?_=' + Date.now(), {
+      var url = '/api/app/session/?app_poll=1&_=' + Date.now();
+      if (ssoTicket) {
+        url += '&ticket=' + encodeURIComponent(ssoTicket);
+      }
+      fetch(url, {
         credentials: 'same-origin',
         cache: 'no-store'
       })
@@ -81,11 +86,13 @@
       .then(function(data) {
         if (data && data.is_authenticated && !redirected) {
           redirected = true;
-          window.location.replace('/dashboard/');
+          window.location.replace(data.redirect_url || '/dashboard/');
         }
       })
       .catch(function() {});
     }
+
+    window.rqCheckAppSsoNow = checkAppSessionSynced;
 
     document.addEventListener('visibilitychange', function() {
       if (!document.hidden) {
@@ -93,7 +100,8 @@
       }
     });
     window.addEventListener('focus', checkAppSessionSynced);
-    setInterval(checkAppSessionSynced, 1500);
+    window.addEventListener('pageshow', checkAppSessionSynced);
+    setInterval(checkAppSessionSynced, 1000);
   })();
 </script>
 {% endblock %}

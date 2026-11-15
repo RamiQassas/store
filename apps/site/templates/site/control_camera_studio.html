@@ -1,14 +1,13 @@
 {% extends "site/control_base.html" %}
 {% load static site_tags %}
 
-{% block title %}استوديو تصوير المنتجات الذكي | Raqamiyat Studio{% endblock %}
+{% block title %}استوديو تصوير المنتجات الاحترافي | Raqamiyat Pro Studio{% endblock %}
 
 {% block extra_head %}
 {{ block.super }}
 <style>
-    /* Scoped Camera Studio Styling with Strict Sizing */
     .studio-root {
-        max-width: 1100px;
+        max-width: 1180px;
         margin: 0 auto;
         padding-bottom: 4rem;
         direction: rtl;
@@ -17,17 +16,19 @@
     .studio-viewfinder {
         position: relative;
         width: 100%;
-        max-width: 520px;
+        max-width: 540px;
         aspect-ratio: 1 / 1;
         margin: 0 auto;
         background: #030712;
-        border-radius: 20px;
+        border-radius: 22px;
         overflow: hidden;
-        border: 2px solid rgba(6, 182, 212, 0.3);
-        box-shadow: 0 15px 35px rgba(0, 0, 0, 0.6);
+        border: 2px solid rgba(6, 182, 212, 0.35);
+        box-shadow: 0 18px 40px rgba(0, 0, 0, 0.65);
         display: flex;
         align-items: center;
         justify-content: center;
+        touch-action: none;
+        user-select: none;
     }
 
     .studio-viewfinder video {
@@ -40,7 +41,17 @@
         width: 100%;
         height: 100%;
         object-fit: contain;
-        background: #ffffff;
+        background: #f8fafc;
+    }
+
+    #studio-editor-canvas {
+        position: absolute;
+        inset: 0;
+        width: 100%;
+        height: 100%;
+        z-index: 15;
+        cursor: crosshair;
+        touch-action: none;
     }
 
     .studio-grid-overlay {
@@ -70,11 +81,10 @@
         box-shadow: 0 0 25px rgba(6, 182, 212, 0.25);
     }
 
-    /* Fixed icon sizing across all devices */
     .studio-icon {
         width: 18px !important;
         height: 18px !important;
-        font-size: 16px !important;
+        font-size: 15px !important;
         display: inline-flex !important;
         align-items: center !important;
         justify-content: center !important;
@@ -91,7 +101,6 @@
         flex-shrink: 0 !important;
     }
 
-    /* Compact Product Card */
     .studio-prod-card {
         display: flex;
         align-items: center;
@@ -104,16 +113,41 @@
         transition: all 0.2s ease;
     }
     .studio-prod-card:hover {
-        background: rgba(30, 41, 59, 0.8);
+        background: rgba(30, 41, 59, 0.85);
         border-color: rgba(6, 182, 212, 0.4);
     }
     .studio-prod-card.is-selected {
-        background: rgba(6, 182, 212, 0.15) !important;
+        background: rgba(6, 182, 212, 0.16) !important;
         border-color: #06b6d4 !important;
-        box-shadow: 0 0 15px rgba(6, 182, 212, 0.2);
+        box-shadow: 0 0 15px rgba(6, 182, 212, 0.22);
     }
 
-    /* Custom Scrollbar */
+    .studio-pill-btn {
+        padding: 0.45rem 0.7rem;
+        border-radius: 11px;
+        font-size: 11px;
+        font-weight: 800;
+        border: 1px solid rgba(255, 255, 255, 0.12);
+        background: rgba(15, 23, 42, 0.75);
+        color: #cbd5e1;
+        transition: all 0.18s ease;
+        cursor: pointer;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.35rem;
+    }
+    .studio-pill-btn:hover {
+        border-color: rgba(6, 182, 212, 0.5);
+        color: #fff;
+    }
+    .studio-pill-btn.active {
+        background: linear-gradient(135deg, #06b6d4, #10b981);
+        color: #020617;
+        border-color: transparent;
+        box-shadow: 0 4px 14px rgba(6, 182, 212, 0.35);
+    }
+
     .studio-scroll::-webkit-scrollbar {
         width: 5px;
     }
@@ -128,41 +162,45 @@
 {% endblock %}
 
 {% block control_content %}
-<div class="studio-root space-y-6">
+<div class="studio-root space-y-5">
 
     <!-- Header Bar -->
-    <div class="flex flex-wrap items-center justify-between gap-4 p-4 sm:p-5 rounded-2xl bg-slate-900/70 border border-white/10 backdrop-blur-md">
+    <div class="flex flex-wrap items-center justify-between gap-4 p-4 sm:p-5 rounded-2xl bg-slate-900/75 border border-white/10 backdrop-blur-md">
         <div class="space-y-1">
-            <div class="flex items-center gap-2">
+            <div class="flex flex-wrap items-center gap-2">
                 <span class="px-2.5 py-0.5 rounded-full text-[11px] font-black bg-cyan/15 text-cyan border border-cyan/30 flex items-center gap-1.5">
-                    <i class="fas fa-camera-retro studio-icon"></i>
-                    <span>استوديو التصوير المباشر</span>
+                    <i class="fas fa-wand-magic-sparkles studio-icon"></i>
+                    <span>استوديو رقميات الاحترافي</span>
                 </span>
                 <span class="px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 flex items-center gap-1">
-                    <i class="fas fa-wand-magic-sparkles studio-icon"></i>
-                    <span>عزل أبيض + ختم رقميات</span>
+                    <i class="fas fa-crop-simple studio-icon"></i>
+                    <span>قص حر بكل الاتجاهات + تصحيح الميلان</span>
+                </span>
+                <span class="px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-amber-500/15 text-amber-300 border border-amber-500/30 flex items-center gap-1">
+                    <i class="fas fa-gem studio-icon"></i>
+                    <span>عرض متجر فخم + فلاتر</span>
                 </span>
             </div>
             <h1 class="text-xl sm:text-2xl font-black text-white">
-                تصوير وتحديث صور المنتجات
+                تصوير وتعديل صور المنتجات باحترافية
             </h1>
             <p class="text-xs text-slate-400">
-                التقط صور منتجاتك بكاميرا هاتفك أو اختر من المعرض، يتم عزل الخلفية بيضاء نقية وإضافة ختم رقميات الرسمي فوراً مع معاينة فورية قبل الحفظ.
+                تظهر الصورة القديمة للمنتج للمقارنة بنفس الصفحة، مع إمكانية تحديد القص الحر بكل الوضعيات والزوايا وتصحيح الميلان التلقائي وفلاتر المتجر الفخم.
             </p>
         </div>
         <a href="{% url 'control_products_list' %}" class="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-xs font-bold text-slate-300 hover:text-white transition-all">
             <i class="fas fa-arrow-right studio-icon"></i>
-            <span>العودة لإدارة المنتجات</span>
+            <span>العودة للمنتجات</span>
         </a>
     </div>
 
     <!-- Main Workflow Grid -->
     <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
-        
-        <!-- Left Column: Camera Viewfinder & Processed Preview (7 cols) -->
+
+        <!-- Left Column: Camera Viewfinder, Interactive Crop/Polygon Canvas & Side-by-Side Comparison (7 cols) -->
         <div class="lg:col-span-7 space-y-4">
-            
-            <div class="studio-viewfinder">
+
+            <div class="studio-viewfinder" id="studio-viewfinder">
                 <!-- Video Stream (Live Camera) -->
                 <video id="studio-video" autoplay playsinline class="w-full h-full object-cover"></video>
 
@@ -178,9 +216,12 @@
                     </span>
                 </div>
 
-                <!-- Dual Preview Images -->
+                <!-- Preview Images -->
                 <img id="studio-preview-processed" class="preview-img hidden" alt="Processed Product Preview">
                 <img id="studio-preview-original" class="w-full h-full object-contain bg-black hidden" alt="Original Photo">
+
+                <!-- Interactive Multi-Angle Crop / Polygon / Rotation Canvas -->
+                <canvas id="studio-editor-canvas" class="hidden"></canvas>
 
                 <!-- Processing Spinner Overlay -->
                 <div id="processing-overlay" class="absolute inset-0 bg-slate-950/90 backdrop-blur-md flex flex-col items-center justify-center gap-3 z-30 hidden">
@@ -188,46 +229,94 @@
                         <i class="fas fa-wand-magic-sparkles fa-spin studio-icon-lg"></i>
                     </div>
                     <div class="text-sm font-black text-white" id="processing-status-text">
-                        جاري عزل الخلفية وإضافة ختم رقميات...
+                        جاري العزل وتصحيح الميلان وإخراج المتجر الفخم...
                     </div>
-                    <div class="text-[11px] text-slate-400">تحسين جودة الصورة ونقاء العرض</div>
+                    <div class="text-[11px] text-slate-400">معالجة عالية الدقة مع انعكاس الأرضية وختم كفالة رقميات</div>
                 </div>
 
-                <!-- Preview Switcher Tabs (Only visible when image is captured) -->
-                <div id="preview-tabs" class="absolute top-3 inset-x-3 flex items-center justify-center gap-2 z-20 hidden">
+                <!-- Preview Switcher Tabs -->
+                <div id="preview-tabs" class="absolute top-3 inset-x-3 flex flex-wrap items-center justify-center gap-1.5 z-20 hidden">
                     <button type="button" id="tab-btn-processed" onclick="switchPreviewMode('processed')" class="px-3 py-1.5 rounded-xl bg-cyan text-black font-black text-xs shadow-lg flex items-center gap-1.5 transition-all">
                         <i class="fas fa-wand-magic-sparkles studio-icon"></i>
-                        <span>معاينة بعد التعديل</span>
+                        <span>النتيجة النهائية</span>
+                    </button>
+                    <button type="button" id="tab-btn-edit" onclick="switchPreviewMode('edit')" class="px-3 py-1.5 rounded-xl bg-black/75 hover:bg-black text-amber-300 font-bold text-xs backdrop-blur-md border border-amber-400/40 flex items-center gap-1.5 transition-all">
+                        <i class="fas fa-crop-simple studio-icon"></i>
+                        <span>قص وتحديد يدوي ✂️</span>
                     </button>
                     <button type="button" id="tab-btn-original" onclick="switchPreviewMode('original')" class="px-3 py-1.5 rounded-xl bg-black/70 hover:bg-black/90 text-slate-300 font-bold text-xs backdrop-blur-md flex items-center gap-1.5 transition-all">
                         <i class="fas fa-image studio-icon"></i>
-                        <span>الصورة الأصلية</span>
+                        <span>الأصلية</span>
                     </button>
                 </div>
             </div>
 
+            <!-- Interactive Manual Crop / Polygon / Rotation Toolbar (Shown in Edit Mode) -->
+            <div id="manual-editor-toolbar" class="p-3.5 rounded-2xl bg-slate-900/90 border border-amber-400/35 space-y-3 hidden">
+                <div class="flex flex-wrap items-center justify-between gap-2">
+                    <div class="text-xs font-black text-amber-300 flex items-center gap-1.5">
+                        <i class="fas fa-scissors studio-icon"></i>
+                        <span>تحديد القص بكل الوضعيات والاتجاهات (إذا لم يقص الذكاء بدقة)</span>
+                    </div>
+                    <button type="button" onclick="resetManualEdits()" class="text-[11px] font-bold text-rose-300 hover:text-rose-200 underline">
+                        إعادة ضبط التحديد
+                    </button>
+                </div>
+
+                <!-- Mode Selector: 8-Handle Box vs Freeform Polygon Lasso -->
+                <div class="grid grid-cols-2 gap-2">
+                    <button type="button" id="edit-mode-box-btn" onclick="setEditorTool('box')" class="studio-pill-btn active">
+                        <i class="fas fa-vector-square"></i>
+                        <span>إطار قص (8 اتجاهات)</span>
+                    </button>
+                    <button type="button" id="edit-mode-poly-btn" onclick="setEditorTool('poly')" class="studio-pill-btn">
+                        <i class="fas fa-draw-polygon"></i>
+                        <span>تحديد حر / مضلع بكل الزوايا</span>
+                    </button>
+                </div>
+
+                <div id="poly-hint" class="text-[11px] text-cyan-200 bg-cyan/10 border border-cyan/25 rounded-xl px-3 py-2 hidden">
+                    💡 ارسم بإصبعك أو اضغط نقاطاً حول المنتج بأي زاوية أو اتجاه لتحديده بدقة.
+                    <button type="button" onclick="clearPolygonPoints()" class="mr-2 text-amber-300 font-black underline">مسح النقاط</button>
+                </div>
+
+                <!-- Rotation & Tilt Slider -->
+                <div class="p-2.5 rounded-xl bg-slate-950/70 border border-white/10 space-y-2">
+                    <div class="flex items-center justify-between text-xs">
+                        <span class="font-bold text-slate-300">تدوير وتعديل زاوية الميلان:</span>
+                        <span id="rotate-deg-label" class="font-mono font-black text-cyan">0°</span>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <button type="button" onclick="nudgeRotate(-90)" class="studio-pill-btn" title="تدوير يسار 90°">↺ 90°</button>
+                        <input type="range" id="manual-rotate-slider" min="-45" max="45" step="0.5" value="0" class="flex-1 accent-cyan cursor-pointer">
+                        <button type="button" onclick="nudgeRotate(90)" class="studio-pill-btn" title="تدوير يمين 90°">90° ↻</button>
+                    </div>
+                </div>
+
+                <button type="button" onclick="applyEditsAndReprocess()" class="w-full py-2.5 px-4 rounded-xl bg-gradient-to-r from-amber-400 to-cyan-400 text-slate-950 font-black text-xs flex items-center justify-center gap-2 shadow-lg active:scale-95">
+                    <i class="fas fa-check-double studio-icon"></i>
+                    <span>تطبيق القص والزاوية وإعادة الإخراج فوراً ⚡</span>
+                </button>
+            </div>
+
             <!-- Camera Trigger Controls Bar -->
             <div id="capture-controls-bar" class="p-3 rounded-2xl bg-slate-900/80 border border-white/10 flex items-center justify-between gap-2.5">
-                <!-- Lens Switch -->
                 <button type="button" id="switch-camera-btn" class="p-2.5 rounded-xl bg-white/5 hover:bg-white/10 text-slate-300 hover:text-white border border-white/10 flex flex-col items-center justify-center gap-0.5 transition-all text-center min-w-[56px]" title="تبديل العدسة">
                     <i class="fas fa-rotate studio-icon"></i>
                     <span class="text-[9px] font-bold">تبديل</span>
                 </button>
 
-                <!-- Snap Shutter Button (In-Browser Live Snap) -->
                 <button type="button" id="snap-shutter-btn" class="flex-1 py-3 px-3 rounded-xl bg-gradient-to-r from-cyan-400 to-cyan-500 hover:brightness-110 text-slate-950 font-black text-xs sm:text-sm flex items-center justify-center gap-2 shadow-lg transition-all active:scale-95">
                     <i class="fas fa-camera studio-icon"></i>
                     <span>التقاط من الشاشة</span>
                 </button>
 
-                <!-- Native Phone Camera Trigger (Direct High-Res Phone App) -->
                 <label for="native-camera-direct-input" class="py-3 px-3 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black text-xs flex items-center justify-center gap-1.5 shadow-lg transition-all cursor-pointer active:scale-95" title="التقاط بواسطة تطبيق كاميرا الهاتف الأساسي">
                     <i class="fas fa-camera-retro studio-icon"></i>
                     <span class="hidden sm:inline">كاميرا الهاتف</span>
                     <input type="file" id="native-camera-direct-input" accept="image/*" capture="environment" class="hidden">
                 </label>
 
-                <!-- Gallery File Picker -->
                 <label for="native-gallery-input" class="p-2.5 rounded-xl bg-white/5 hover:bg-white/10 text-slate-300 hover:text-white border border-white/10 flex flex-col items-center justify-center gap-0.5 transition-all cursor-pointer text-center min-w-[56px]" title="اختيار من المعرض">
                     <i class="fas fa-images studio-icon"></i>
                     <span class="text-[9px] font-bold">معرض</span>
@@ -235,17 +324,17 @@
                 </label>
             </div>
 
-            <!-- Post-Capture Action Bar (Retake / Reprocess) -->
-            <div id="post-capture-bar" class="p-3 rounded-2xl bg-slate-900/80 border border-cyan/30 flex items-center justify-between gap-3 hidden">
+            <!-- Post-Capture Action Bar -->
+            <div id="post-capture-bar" class="p-3 rounded-2xl bg-slate-900/80 border border-cyan/30 flex flex-wrap items-center justify-between gap-2.5 hidden">
                 <button type="button" id="retake-btn" onclick="retakePhoto()" class="px-3 py-2 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-xs font-bold text-slate-300 hover:text-white flex items-center gap-1.5 transition-all">
                     <i class="fas fa-rotate-right studio-icon"></i>
                     <span>إعادة التقاط</span>
                 </button>
 
-                <div class="flex items-center gap-1.5 text-xs font-bold text-emerald-400">
-                    <i class="fas fa-check-circle studio-icon"></i>
-                    <span>تمت المعالجة بنجاح! اختر المنتج بالأسفل للتعيين</span>
-                </div>
+                <button type="button" onclick="switchPreviewMode('edit')" class="px-3 py-2 rounded-xl bg-amber-500/15 hover:bg-amber-500/25 border border-amber-400/40 text-xs font-black text-amber-300 flex items-center gap-1.5 transition-all">
+                    <i class="fas fa-crop-simple studio-icon"></i>
+                    <span>تعديل القص والزاوية</span>
+                </button>
 
                 <button type="button" id="reprocess-btn" onclick="reprocessPhoto()" class="px-3 py-2 rounded-xl bg-cyan/10 hover:bg-cyan/20 border border-cyan/30 text-xs font-bold text-cyan flex items-center gap-1.5 transition-all">
                     <i class="fas fa-wand-magic-sparkles studio-icon"></i>
@@ -253,51 +342,131 @@
                 </button>
             </div>
 
+            <!-- Old vs New Side-by-Side Thumbnail Comparison Card (Always visible on same page!) -->
+            <div id="old-new-compare-card" class="p-3.5 rounded-2xl bg-slate-900/75 border border-white/10 space-y-2.5">
+                <div class="flex items-center justify-between">
+                    <span class="text-xs font-black text-cyan flex items-center gap-1.5">
+                        <i class="fas fa-images studio-icon"></i>
+                        <span>مقارنة الصورة القديمة للمنتج مع الجديدة</span>
+                    </span>
+                    <span id="compare-product-badge" class="text-[11px] font-bold text-slate-400">
+                        {% if selected_product %}{{ selected_product.name }}{% else %}لم يتم اختيار منتج بعد{% endif %}
+                    </span>
+                </div>
+                <div class="grid grid-cols-2 gap-3">
+                    <div class="p-2 rounded-xl bg-slate-950/80 border border-white/10 flex flex-col items-center gap-1.5">
+                        <span class="text-[10px] font-bold text-slate-400">الصورة القديمة الحالية</span>
+                        <div class="w-full h-28 rounded-lg bg-slate-900 overflow-hidden flex items-center justify-center border border-white/5">
+                            <img id="old-thumb-img" src="{% if selected_product and selected_product.image_url %}{{ selected_product.image_url }}{% endif %}" alt="الصورة القديمة" class="w-full h-full object-contain {% if not selected_product or not selected_product.image_url %}hidden{% endif %}">
+                            <span id="old-thumb-empty" class="text-[11px] text-slate-500 {% if selected_product and selected_product.image_url %}hidden{% endif %}">لا توجد صورة قديمة</span>
+                        </div>
+                    </div>
+                    <div class="p-2 rounded-xl bg-slate-950/80 border border-cyan/25 flex flex-col items-center gap-1.5">
+                        <span class="text-[10px] font-bold text-emerald-400">معاينة الاستوديو الجديدة</span>
+                        <div class="w-full h-28 rounded-lg bg-slate-900 overflow-hidden flex items-center justify-center border border-white/5">
+                            <img id="new-thumb-img" src="" alt="الصورة الجديدة" class="w-full h-full object-contain hidden">
+                            <span id="new-thumb-empty" class="text-[11px] text-slate-500">بانتظار الالتقاط</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
         </div>
 
-        <!-- Right Column: Product Search & One-Click Assignment (5 cols) -->
+        <!-- Right Column: Luxury Store Backdrops, Studio Filters & Product Selection (5 cols) -->
         <div class="lg:col-span-5 space-y-4">
-            
-            <!-- Studio Enhancement Toggles -->
-            <div class="p-4 rounded-2xl bg-slate-900/70 border border-white/10 space-y-3">
+
+            <!-- Luxury Store Backdrop & Filter Presets -->
+            <div class="p-4 rounded-2xl bg-slate-900/75 border border-white/10 space-y-3.5">
                 <div class="text-xs font-black text-cyan uppercase tracking-wider flex items-center gap-1.5">
                     <i class="fas fa-sliders studio-icon"></i>
-                    <span>خيارات تحسين الاستوديو</span>
+                    <span>ديكور المتجر الفخم والفلاتر الاحترافية</span>
                 </div>
-                <div class="grid grid-cols-2 gap-2 text-xs">
-                    <label class="flex items-center gap-2 p-2.5 rounded-xl bg-slate-800/60 border border-white/5 cursor-pointer hover:border-cyan/30 transition-all">
+
+                <!-- Luxury Backdrops -->
+                <div class="space-y-1.5">
+                    <div class="text-[11px] font-bold text-slate-300">خلفية العرض (منصة المتجر):</div>
+                    <div class="grid grid-cols-2 gap-2" id="bg-style-group">
+                        <button type="button" data-bg="studio_white" onclick="selectBgStyle('studio_white')" class="studio-pill-btn active">🤍 استوديو أبيض نقي</button>
+                        <button type="button" data-bg="studio_marble" onclick="selectBgStyle('studio_marble')" class="studio-pill-btn">🏛️ رخام متجر فخم</button>
+                        <button type="button" data-bg="studio_gold" onclick="selectBgStyle('studio_gold')" class="studio-pill-btn">✨ لمسة ذهبية فاخرة</button>
+                        <button type="button" data-bg="studio_dark" onclick="selectBgStyle('studio_dark')" class="studio-pill-btn">🖤 استوديو ليلي فاخر</button>
+                    </div>
+                </div>
+
+                <!-- Studio Filters -->
+                <div class="space-y-1.5">
+                    <div class="text-[11px] font-bold text-slate-300">فلاتر الإضاءة والألوان:</div>
+                    <div class="grid grid-cols-3 gap-1.5" id="filter-mode-group">
+                        <button type="button" data-filter="auto_hdr" onclick="selectFilterMode('auto_hdr')" class="studio-pill-btn active">⚡ تلقائي HDR</button>
+                        <button type="button" data-filter="vivid_pop" onclick="selectFilterMode('vivid_pop')" class="studio-pill-btn">🎨 ألوان زاهية</button>
+                        <button type="button" data-filter="crisp_white" onclick="selectFilterMode('crisp_white')" class="studio-pill-btn">❄️ أبيض ناصع</button>
+                        <button type="button" data-filter="warm_luxury" onclick="selectFilterMode('warm_luxury')" class="studio-pill-btn">🌟 دفء فاخر</button>
+                        <button type="button" data-filter="sharp_detail" onclick="selectFilterMode('sharp_detail')" class="studio-pill-btn">🔍 تفاصيل حادة</button>
+                        <button type="button" data-filter="natural" onclick="selectFilterMode('natural')" class="studio-pill-btn">📷 طبيعي</button>
+                    </div>
+                </div>
+
+                <!-- Core Toggles -->
+                <div class="grid grid-cols-1 sm:grid-cols-3 gap-2 text-[11px]">
+                    <label class="flex items-center gap-2 p-2 rounded-xl bg-slate-800/60 border border-white/5 cursor-pointer hover:border-cyan/30 transition-all">
                         <input type="checkbox" id="opt-white-bg" class="accent-cyan w-4 h-4 rounded cursor-pointer" checked>
-                        <span class="font-bold text-slate-200">خلفية استوديو بيضاء</span>
+                        <span class="font-bold text-slate-200">عزل الخلفية</span>
                     </label>
-                    <label class="flex items-center gap-2 p-2.5 rounded-xl bg-slate-800/60 border border-white/5 cursor-pointer hover:border-cyan/30 transition-all">
+                    <label class="flex items-center gap-2 p-2 rounded-xl bg-slate-800/60 border border-white/5 cursor-pointer hover:border-cyan/30 transition-all">
+                        <input type="checkbox" id="opt-auto-straighten" class="accent-cyan w-4 h-4 rounded cursor-pointer" checked>
+                        <span class="font-bold text-slate-200">تصحيح الميلان</span>
+                    </label>
+                    <label class="flex items-center gap-2 p-2 rounded-xl bg-slate-800/60 border border-white/5 cursor-pointer hover:border-cyan/30 transition-all">
                         <input type="checkbox" id="opt-hallmark" class="accent-cyan w-4 h-4 rounded cursor-pointer" checked>
-                        <span class="font-bold text-slate-200">ختم رقميات الرسمي</span>
+                        <span class="font-bold text-slate-200">كفالة رقميات</span>
                     </label>
                 </div>
             </div>
 
             <!-- Target Product Selector Card -->
-            <div class="p-4 rounded-2xl bg-slate-900/70 border border-white/10 space-y-3">
+            <div class="p-4 rounded-2xl bg-slate-900/75 border border-white/10 space-y-3">
                 <div class="flex items-center justify-between">
                     <div class="text-xs font-black text-cyan uppercase tracking-wider flex items-center gap-1.5">
                         <i class="fas fa-box-open studio-icon"></i>
-                        <span>اختر المنتج المراد تعيين الصورة له</span>
+                        <span>اختر المنتج (بالكود أو الاسم)</span>
                     </div>
                     <span class="text-[10px] text-slate-400 font-mono">({{ total_products }} منتج)</span>
                 </div>
 
-                <!-- Search Filter Input -->
-                <div class="relative">
-                    <i class="fas fa-search absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-500 studio-icon"></i>
-                    <input type="text" id="product-search-input" placeholder="ابحث باسم المنتج (كابل، شاحن، Denmen، Kodak...)" class="w-full text-xs pr-9 pl-3 py-2.5 bg-slate-950/80 border border-white/15 rounded-xl text-white placeholder-slate-500 focus:border-cyan focus:ring-1 focus:ring-cyan transition-all">
+                <!-- Code Lookup + Search Filter -->
+                <div class="flex gap-2">
+                    <div class="relative flex-1">
+                        <i class="fas fa-search absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-500 studio-icon"></i>
+                        <input type="text" id="product-search-input" placeholder="ابحث بالاسم أو أدخل كود المنتج (SKU)..." class="w-full text-xs pr-9 pl-3 py-2.5 bg-slate-950/80 border border-white/15 rounded-xl text-white placeholder-slate-500 focus:border-cyan focus:ring-1 focus:ring-cyan transition-all">
+                    </div>
+                    <button type="button" onclick="lookupProductByCode()" class="px-3 py-2 rounded-xl bg-cyan/15 hover:bg-cyan/25 border border-cyan/40 text-cyan text-xs font-black whitespace-nowrap">
+                        بحث بالكود
+                    </button>
+                </div>
+
+                <!-- Selected Product Banner WITH Old Thumbnail -->
+                <div id="selected-product-banner" class="p-3 rounded-xl bg-cyan/10 border border-cyan/35 flex items-center justify-between gap-2.5 {% if not selected_product %}hidden{% endif %}">
+                    <div class="flex items-center gap-2.5 min-w-0">
+                        <img id="selected-product-thumb" src="{% if selected_product and selected_product.image_url %}{{ selected_product.image_url }}{% endif %}" alt="" class="w-11 h-11 rounded-lg object-cover bg-slate-950 border border-white/15 flex-shrink-0 {% if not selected_product or not selected_product.image_url %}hidden{% endif %}">
+                        <div class="min-w-0">
+                            <span class="text-[9px] font-black text-cyan uppercase block">المنتج المحدد حالياً (مع صورته القديمة):</span>
+                            <span id="selected-product-name" class="text-xs font-black text-white truncate block">
+                                {{ selected_product.name|default:"" }}
+                            </span>
+                        </div>
+                    </div>
+                    <button type="button" onclick="clearPickedProduct()" class="text-slate-400 hover:text-rose-400 p-1 flex-shrink-0">
+                        <i class="fas fa-times studio-icon"></i>
+                    </button>
                 </div>
 
                 <!-- Products Scrollable List -->
-                <div id="product-items-list" class="space-y-1.5 max-h-64 overflow-y-auto studio-scroll pr-1">
+                <div id="product-items-list" class="space-y-1.5 max-h-60 overflow-y-auto studio-scroll pr-1">
                     {% for p in products %}
-                    <div class="studio-prod-card {% if selected_product and selected_product.id == p.id %}is-selected{% endif %}" data-id="{{ p.id }}" data-name="{{ p.name }}" data-category="{{ p.category }}" onclick="pickProduct('{{ p.id }}', '{{ p.name|escapejs }}')">
+                    <div class="studio-prod-card {% if selected_product and selected_product.id == p.id %}is-selected{% endif %}" data-id="{{ p.id }}" data-name="{{ p.name }}" data-category="{{ p.category }}" data-image="{{ p.image_url }}" onclick="pickProduct('{{ p.id }}', '{{ p.name|escapejs }}', '{{ p.image_url|escapejs }}')">
                         <div class="flex items-center gap-2.5 min-w-0">
-                            <div class="w-9 h-9 rounded-lg bg-slate-950 border border-white/10 overflow-hidden flex items-center justify-center flex-shrink-0">
+                            <div class="w-10 h-10 rounded-lg bg-slate-950 border border-white/10 overflow-hidden flex items-center justify-center flex-shrink-0">
                                 {% if p.image_url %}
                                 <img src="{{ p.image_url }}" alt="{{ p.name }}" class="w-full h-full object-cover">
                                 {% else %}
@@ -318,23 +487,10 @@
                     {% endfor %}
                 </div>
 
-                <!-- Selected Product Banner -->
-                <div id="selected-product-banner" class="p-3 rounded-xl bg-cyan/10 border border-cyan/30 flex items-center justify-between {% if not selected_product %}hidden{% endif %}">
-                    <div class="min-w-0">
-                        <span class="text-[9px] font-black text-cyan uppercase block">المنتج المحدد حالياً:</span>
-                        <span id="selected-product-name" class="text-xs font-black text-white truncate block">
-                            {{ selected_product.name|default:"" }}
-                        </span>
-                    </div>
-                    <button type="button" onclick="clearPickedProduct()" class="text-slate-400 hover:text-rose-400 p-1">
-                        <i class="fas fa-times studio-icon"></i>
-                    </button>
-                </div>
-
                 <!-- Big Action Button: Assign and Save -->
                 <button type="button" id="btn-save-assign" disabled onclick="saveImageToProduct()" class="w-full py-3.5 px-4 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-500 hover:brightness-110 disabled:opacity-40 disabled:pointer-events-none text-slate-950 font-black text-sm flex items-center justify-center gap-2 shadow-xl transition-all active:scale-95">
                     <i class="fas fa-cloud-arrow-up studio-icon"></i>
-                    <span id="save-btn-text">حفظ وتعيين للمنتج فوراً</span>
+                    <span id="save-btn-text">حفظ وتعيين الصورة الجديدة للمنتج ⚡</span>
                 </button>
             </div>
 
@@ -350,11 +506,25 @@
     var capturedBase64 = null;
     var processedBase64 = null;
     var currentTargetProductId = "{{ selected_product.id|default:'' }}";
+    var currentTargetProductName = "{{ selected_product.name|default:''|escapejs }}";
+    var currentTargetOldImage = "{{ selected_product.image_url|default:''|escapejs }}";
+
+    // Pro Studio Parameters
+    var selectedBgStyle = "studio_white";
+    var selectedFilterMode = "auto_hdr";
+    var manualRotateDeg = 0;
+    var editorTool = "box"; // 'box' | 'poly'
+    var cropBox = { x1: 0.04, y1: 0.04, x2: 0.96, y2: 0.96 }; // normalized 0..1
+    var cropPolygon = []; // array of {x, y} normalized 0..1
+    var dragState = null;
+    var editorImgObj = null;
 
     // DOM Elements
     var videoEl = document.getElementById('studio-video');
     var previewProcessed = document.getElementById('studio-preview-processed');
     var previewOriginal = document.getElementById('studio-preview-original');
+    var editorCanvas = document.getElementById('studio-editor-canvas');
+    var editorToolbar = document.getElementById('manual-editor-toolbar');
     var processingOverlay = document.getElementById('processing-overlay');
     var processingText = document.getElementById('processing-status-text');
     var previewTabs = document.getElementById('preview-tabs');
@@ -364,11 +534,16 @@
     var saveBtnText = document.getElementById('save-btn-text');
     var selectedBanner = document.getElementById('selected-product-banner');
     var selectedNameText = document.getElementById('selected-product-name');
+    var selectedThumbImg = document.getElementById('selected-product-thumb');
     var searchInput = document.getElementById('product-search-input');
     var optWhiteBg = document.getElementById('opt-white-bg');
+    var optAutoStraighten = document.getElementById('opt-auto-straighten');
     var optHallmark = document.getElementById('opt-hallmark');
     var tabProcessed = document.getElementById('tab-btn-processed');
+    var tabEdit = document.getElementById('tab-btn-edit');
     var tabOriginal = document.getElementById('tab-btn-original');
+    var rotateSlider = document.getElementById('manual-rotate-slider');
+    var rotateLabel = document.getElementById('rotate-deg-label');
 
     function getCsrf() {
         var cookieValue = null;
@@ -383,6 +558,38 @@
             }
         }
         return cookieValue || '{{ csrf_token }}';
+    }
+
+    function updateComparisonThumbs(oldUrl, newUrl, prodName) {
+        var oldImg = document.getElementById('old-thumb-img');
+        var oldEmpty = document.getElementById('old-thumb-empty');
+        var newImg = document.getElementById('new-thumb-img');
+        var newEmpty = document.getElementById('new-thumb-empty');
+        var badge = document.getElementById('compare-product-badge');
+
+        if (badge && prodName !== undefined) {
+            badge.textContent = prodName || 'لم يتم اختيار منتج بعد';
+        }
+        if (oldUrl !== undefined) {
+            if (oldUrl) {
+                oldImg.src = oldUrl;
+                oldImg.classList.remove('hidden');
+                oldEmpty.classList.add('hidden');
+            } else {
+                oldImg.classList.add('hidden');
+                oldEmpty.classList.remove('hidden');
+            }
+        }
+        if (newUrl !== undefined) {
+            if (newUrl) {
+                newImg.src = newUrl;
+                newImg.classList.remove('hidden');
+                newEmpty.classList.add('hidden');
+            } else {
+                newImg.classList.add('hidden');
+                newEmpty.classList.remove('hidden');
+            }
+        }
     }
 
     // Start Live Viewfinder Camera
@@ -405,22 +612,18 @@
                     videoEl.srcObject = stream;
                     videoEl.play();
                 })
-                .catch(function(err) {
-                    console.warn("Camera fallback:", err);
+                .catch(function() {
                     navigator.mediaDevices.getUserMedia({ video: true, audio: false })
                         .then(function(stream) {
                             currentStream = stream;
                             videoEl.srcObject = stream;
                             videoEl.play();
                         })
-                        .catch(function(e) {
-                            console.warn("Could not start live video:", e);
-                        });
+                        .catch(function() {});
                 });
         }
     }
 
-    // Switch Camera Front / Back
     var switchBtn = document.getElementById('switch-camera-btn');
     if (switchBtn) {
         switchBtn.addEventListener('click', function() {
@@ -429,10 +632,9 @@
         });
     }
 
-    // Canvas Compression
     function compressImage(fileOrData, maxWidth, quality) {
         maxWidth = maxWidth || 1600;
-        quality = quality || 0.88;
+        quality = quality || 0.90;
         return new Promise(function(resolve, reject) {
             var img = new Image();
             img.onload = function() {
@@ -455,7 +657,6 @@
                 resolve(canvas.toDataURL('image/jpeg', quality));
             };
             img.onerror = function() { reject(new Error("تعذر قراءة الصورة")); };
-
             if (typeof fileOrData === 'string') {
                 img.src = fileOrData;
             } else {
@@ -467,12 +668,11 @@
         });
     }
 
-    // Capture from in-browser video
     var snapBtn = document.getElementById('snap-shutter-btn');
     if (snapBtn) {
         snapBtn.addEventListener('click', function() {
             if (!videoEl || !videoEl.videoWidth) {
-                alert("الكاميرا ليست جاهزة بعد، يرجى الانتظار أو استخدام خيار كاميرا الهاتف");
+                alert("الكاميرا ليست جاهزة بعد، يرجى الانتظار أو استخدام زر كاميرا الهاتف");
                 return;
             }
             var canvas = document.createElement('canvas');
@@ -480,50 +680,73 @@
             canvas.height = videoEl.videoHeight;
             var ctx = canvas.getContext('2d');
             ctx.drawImage(videoEl, 0, 0, canvas.width, canvas.height);
-            var rawBase64 = canvas.toDataURL('image/jpeg', 0.92);
-            onNewPhotoReceived(rawBase64);
+            resetManualEdits(true);
+            onNewPhotoReceived(canvas.toDataURL('image/jpeg', 0.92));
         });
     }
 
-    // Direct Phone Native Camera Input
     var directCameraInput = document.getElementById('native-camera-direct-input');
     if (directCameraInput) {
         directCameraInput.addEventListener('change', function(e) {
             if (e.target.files && e.target.files[0]) {
-                compressImage(e.target.files[0], 1600, 0.88).then(onNewPhotoReceived);
+                resetManualEdits(true);
+                compressImage(e.target.files[0], 1600, 0.90).then(onNewPhotoReceived);
             }
         });
     }
 
-    // Gallery Input
     var galleryInput = document.getElementById('native-gallery-input');
     if (galleryInput) {
         galleryInput.addEventListener('change', function(e) {
             if (e.target.files && e.target.files[0]) {
-                compressImage(e.target.files[0], 1600, 0.88).then(onNewPhotoReceived);
+                resetManualEdits(true);
+                compressImage(e.target.files[0], 1600, 0.90).then(onNewPhotoReceived);
             }
         });
     }
 
-    // Photo Received -> Send to Processing & Show Preview
+    function appendStudioFormParams(fd) {
+        fd.append('isolate_white', optWhiteBg.checked ? 'true' : 'false');
+        fd.append('auto_straighten', optAutoStraighten.checked ? 'true' : 'false');
+        fd.append('add_hallmark', optHallmark.checked ? 'true' : 'false');
+        fd.append('bg_style', selectedBgStyle);
+        fd.append('filter_mode', selectedFilterMode);
+        fd.append('manual_rotate', String(manualRotateDeg || 0));
+
+        var hasCustomBox = (cropBox.x1 > 0.045 || cropBox.y1 > 0.045 || cropBox.x2 < 0.955 || cropBox.y2 < 0.955);
+        if (cropPolygon.length >= 3) {
+            var polyPts = cropPolygon.map(function(p) { return [Number(p.x.toFixed(4)), Number(p.y.toFixed(4))]; });
+            fd.append('crop_polygon', JSON.stringify(polyPts));
+        } else if (hasCustomBox) {
+            fd.append('crop_box', JSON.stringify([
+                Number(cropBox.x1.toFixed(4)),
+                Number(cropBox.y1.toFixed(4)),
+                Number(cropBox.x2.toFixed(4)),
+                Number(cropBox.y2.toFixed(4))
+            ]));
+        }
+    }
+
     function onNewPhotoReceived(base64) {
         capturedBase64 = base64;
         previewOriginal.src = base64;
-        
-        // Hide viewfinder guides, pause video
+
+        editorImgObj = new Image();
+        editorImgObj.onload = function() { drawEditorCanvas(); };
+        editorImgObj.src = base64;
+
         videoEl.classList.add('hidden');
         document.getElementById('viewfinder-guides').classList.add('hidden');
         document.getElementById('viewfinder-box').classList.add('hidden');
-        
-        // Show processing indicator
-        processingOverlay.classList.remove('hidden');
-        processingText.textContent = "جاري عزل الخلفية وإضافة ختم رقميات...";
 
-        // Send to Studio Processing Endpoint
+        processingOverlay.classList.remove('hidden');
+        processingText.textContent = "جاري العزل وتصحيح الميلان وإخراج المتجر الفخم...";
+
         var fd = new FormData();
         fd.append('image_base64', base64);
-        fd.append('isolate_white', optWhiteBg.checked ? 'true' : 'false');
-        fd.append('add_hallmark', optHallmark.checked ? 'true' : 'false');
+        fd.append('preview_only', 'true');
+        if (currentTargetProductId) fd.append('product_id', currentTargetProductId);
+        appendStudioFormParams(fd);
 
         fetch('{% url "control_camera_studio_process_ajax" %}', {
             method: 'POST',
@@ -536,13 +759,11 @@
             if (data.status === 'success' && data.preview_url) {
                 processedBase64 = data.preview_url;
                 previewProcessed.src = processedBase64;
+                updateComparisonThumbs(data.old_image_url !== undefined ? data.old_image_url : currentTargetOldImage, processedBase64, currentTargetProductName);
                 switchPreviewMode('processed');
-                
-                // Show preview tabs & post capture bar
                 previewTabs.classList.remove('hidden');
                 captureControlsBar.classList.add('hidden');
                 postCaptureBar.classList.remove('hidden');
-
                 updateSaveButtonState();
             } else {
                 alert(data.message || "حدث خطأ أثناء معالجة الصورة");
@@ -556,51 +777,304 @@
         });
     }
 
-    // Switch between Processed and Original preview
+    window.selectBgStyle = function(style) {
+        selectedBgStyle = style;
+        document.querySelectorAll('#bg-style-group button').forEach(function(b) {
+            b.classList.toggle('active', b.getAttribute('data-bg') === style);
+        });
+        if (capturedBase64) reprocessPhoto();
+    };
+
+    window.selectFilterMode = function(mode) {
+        selectedFilterMode = mode;
+        document.querySelectorAll('#filter-mode-group button').forEach(function(b) {
+            b.classList.toggle('active', b.getAttribute('data-filter') === mode);
+        });
+        if (capturedBase64) reprocessPhoto();
+    };
+
     window.switchPreviewMode = function(mode) {
+        previewProcessed.classList.add('hidden');
+        previewOriginal.classList.add('hidden');
+        editorCanvas.classList.add('hidden');
+        editorToolbar.classList.add('hidden');
+
+        [tabProcessed, tabEdit, tabOriginal].forEach(function(btn) {
+            btn.classList.remove('bg-cyan', 'text-black', 'font-black');
+            btn.classList.add('bg-black/70', 'text-slate-300');
+        });
+
         if (mode === 'original') {
             previewOriginal.classList.remove('hidden');
-            previewProcessed.classList.add('hidden');
             tabOriginal.classList.remove('bg-black/70', 'text-slate-300');
             tabOriginal.classList.add('bg-cyan', 'text-black', 'font-black');
-            tabProcessed.classList.remove('bg-cyan', 'text-black', 'font-black');
-            tabProcessed.classList.add('bg-black/70', 'text-slate-300');
+        } else if (mode === 'edit') {
+            editorCanvas.classList.remove('hidden');
+            editorToolbar.classList.remove('hidden');
+            tabEdit.classList.remove('bg-black/70', 'text-slate-300');
+            tabEdit.classList.add('bg-cyan', 'text-black', 'font-black');
+            drawEditorCanvas();
         } else {
             previewProcessed.classList.remove('hidden');
-            previewOriginal.classList.add('hidden');
             tabProcessed.classList.remove('bg-black/70', 'text-slate-300');
             tabProcessed.classList.add('bg-cyan', 'text-black', 'font-black');
-            tabOriginal.classList.remove('bg-cyan', 'text-black', 'font-black');
-            tabOriginal.classList.add('bg-black/70', 'text-slate-300');
         }
     };
 
-    // Retake Photo
+    // --- Interactive Multi-Angle Crop & Polygon Lasso Canvas ---
+    window.setEditorTool = function(tool) {
+        editorTool = tool;
+        document.getElementById('edit-mode-box-btn').classList.toggle('active', tool === 'box');
+        document.getElementById('edit-mode-poly-btn').classList.toggle('active', tool === 'poly');
+        document.getElementById('poly-hint').classList.toggle('hidden', tool !== 'poly');
+        drawEditorCanvas();
+    };
+
+    window.clearPolygonPoints = function() {
+        cropPolygon = [];
+        drawEditorCanvas();
+    };
+
+    window.resetManualEdits = function(silent) {
+        cropBox = { x1: 0.04, y1: 0.04, x2: 0.96, y2: 0.96 };
+        cropPolygon = [];
+        manualRotateDeg = 0;
+        if (rotateSlider) rotateSlider.value = 0;
+        if (rotateLabel) rotateLabel.textContent = "0°";
+        if (!silent) drawEditorCanvas();
+    };
+
+    window.nudgeRotate = function(delta) {
+        manualRotateDeg = ((manualRotateDeg + delta + 180) % 360) - 180;
+        if (rotateLabel) rotateLabel.textContent = manualRotateDeg.toFixed(1).replace(/\.0$/, '') + "°";
+        drawEditorCanvas();
+    };
+
+    if (rotateSlider) {
+        rotateSlider.addEventListener('input', function() {
+            manualRotateDeg = parseFloat(this.value || 0);
+            rotateLabel.textContent = manualRotateDeg.toFixed(1).replace(/\.0$/, '') + "°";
+            drawEditorCanvas();
+        });
+    }
+
+    window.applyEditsAndReprocess = function() {
+        if (capturedBase64) {
+            onNewPhotoReceived(capturedBase64);
+        }
+    };
+
+    function drawEditorCanvas() {
+        if (!editorCanvas || !editorImgObj || !editorImgObj.width) return;
+        var rect = editorCanvas.getBoundingClientRect();
+        var cw = Math.max(300, Math.round(rect.width || 520));
+        var ch = Math.max(300, Math.round(rect.height || 520));
+        if (editorCanvas.width !== cw || editorCanvas.height !== ch) {
+            editorCanvas.width = cw;
+            editorCanvas.height = ch;
+        }
+        var ctx = editorCanvas.getContext('2d');
+        ctx.clearRect(0, 0, cw, ch);
+        ctx.fillStyle = "#020617";
+        ctx.fillRect(0, 0, cw, ch);
+
+        // Draw rotated preview image fitted inside canvas
+        var rad = (manualRotateDeg * Math.PI) / 180;
+        var scale = Math.min(cw / editorImgObj.width, ch / editorImgObj.height) * 0.92;
+        var dw = editorImgObj.width * scale;
+        var dh = editorImgObj.height * scale;
+
+        ctx.save();
+        ctx.translate(cw / 2, ch / 2);
+        ctx.rotate(rad);
+        ctx.drawImage(editorImgObj, -dw / 2, -dh / 2, dw, dh);
+        ctx.restore();
+
+        // Subtle alignment grid
+        ctx.strokeStyle = "rgba(255,255,255,0.16)";
+        ctx.lineWidth = 1;
+        for (var g = 1; g <= 2; g++) {
+            ctx.beginPath(); ctx.moveTo((cw * g) / 3, 0); ctx.lineTo((cw * g) / 3, ch); ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(0, (ch * g) / 3); ctx.lineTo(cw, (ch * g) / 3); ctx.stroke();
+        }
+
+        if (editorTool === 'poly') {
+            if (cropPolygon.length > 0) {
+                ctx.save();
+                ctx.beginPath();
+                cropPolygon.forEach(function(p, idx) {
+                    var px = p.x * cw, py = p.y * ch;
+                    if (idx === 0) ctx.moveTo(px, py); else ctx.lineTo(px, py);
+                });
+                if (cropPolygon.length >= 3) ctx.closePath();
+                ctx.fillStyle = "rgba(6, 182, 212, 0.18)";
+                ctx.fill();
+                ctx.strokeStyle = "#22d3ee";
+                ctx.lineWidth = 2.5;
+                ctx.stroke();
+
+                cropPolygon.forEach(function(p) {
+                    ctx.beginPath();
+                    ctx.arc(p.x * cw, p.y * ch, 5, 0, Math.PI * 2);
+                    ctx.fillStyle = "#f59e0b";
+                    ctx.fill();
+                    ctx.strokeStyle = "#fff";
+                    ctx.lineWidth = 1.5;
+                    ctx.stroke();
+                });
+                ctx.restore();
+            }
+            return;
+        }
+
+        // 8-Handle Crop Box Overlay
+        var x1 = cropBox.x1 * cw, y1 = cropBox.y1 * ch;
+        var x2 = cropBox.x2 * cw, y2 = cropBox.y2 * ch;
+
+        ctx.fillStyle = "rgba(2, 6, 23, 0.55)";
+        ctx.fillRect(0, 0, cw, y1);
+        ctx.fillRect(0, y2, cw, ch - y2);
+        ctx.fillRect(0, y1, x1, y2 - y1);
+        ctx.fillRect(x2, y1, cw - x2, y2 - y1);
+
+        ctx.strokeStyle = "#22d3ee";
+        ctx.lineWidth = 2.5;
+        ctx.strokeRect(x1, y1, x2 - x1, y2 - y1);
+
+        var handles = [
+            [x1, y1], [(x1 + x2) / 2, y1], [x2, y1],
+            [x2, (y1 + y2) / 2], [x2, y2], [(x1 + x2) / 2, y2],
+            [x1, y2], [x1, (y1 + y2) / 2]
+        ];
+        handles.forEach(function(hPt) {
+            ctx.beginPath();
+            ctx.arc(hPt[0], hPt[1], 8, 0, Math.PI * 2);
+            ctx.fillStyle = "#22d3ee";
+            ctx.fill();
+            ctx.strokeStyle = "#020617";
+            ctx.lineWidth = 2;
+            ctx.stroke();
+        });
+    }
+
+    function getCanvasNormPt(ev) {
+        var rect = editorCanvas.getBoundingClientRect();
+        var cx = ev.touches ? ev.touches[0].clientX : ev.clientX;
+        var cy = ev.touches ? ev.touches[0].clientY : ev.clientY;
+        return {
+            x: Math.max(0.01, Math.min(0.99, (cx - rect.left) / rect.width)),
+            y: Math.max(0.01, Math.min(0.99, (cy - rect.top) / rect.height))
+        };
+    }
+
+    function hitTestBoxHandle(pt) {
+        var tol = 0.065;
+        var nearL = Math.abs(pt.x - cropBox.x1) < tol;
+        var nearR = Math.abs(pt.x - cropBox.x2) < tol;
+        var nearT = Math.abs(pt.y - cropBox.y1) < tol;
+        var nearB = Math.abs(pt.y - cropBox.y2) < tol;
+        if (nearL && nearT) return 'tl';
+        if (nearR && nearT) return 'tr';
+        if (nearL && nearB) return 'bl';
+        if (nearR && nearB) return 'br';
+        if (nearT && pt.x > cropBox.x1 && pt.x < cropBox.x2) return 't';
+        if (nearB && pt.x > cropBox.x1 && pt.x < cropBox.x2) return 'b';
+        if (nearL && pt.y > cropBox.y1 && pt.y < cropBox.y2) return 'l';
+        if (nearR && pt.y > cropBox.y1 && pt.y < cropBox.y2) return 'r';
+        if (pt.x > cropBox.x1 && pt.x < cropBox.x2 && pt.y > cropBox.y1 && pt.y < cropBox.y2) return 'move';
+        return null;
+    }
+
+    function onEditorPointerDown(ev) {
+        ev.preventDefault();
+        var pt = getCanvasNormPt(ev);
+        if (editorTool === 'poly') {
+            dragState = { mode: 'poly' };
+            cropPolygon.push(pt);
+            drawEditorCanvas();
+            return;
+        }
+        var handle = hitTestBoxHandle(pt);
+        if (handle) {
+            dragState = {
+                mode: 'box',
+                handle: handle,
+                startPt: pt,
+                origBox: Object.assign({}, cropBox)
+            };
+        }
+    }
+
+    function onEditorPointerMove(ev) {
+        if (!dragState) return;
+        ev.preventDefault();
+        var pt = getCanvasNormPt(ev);
+        if (dragState.mode === 'poly') {
+            var last = cropPolygon[cropPolygon.length - 1];
+            if (!last || Math.hypot(pt.x - last.x, pt.y - last.y) > 0.025) {
+                cropPolygon.push(pt);
+                drawEditorCanvas();
+            }
+            return;
+        }
+        var h = dragState.handle;
+        var ob = dragState.origBox;
+        var dx = pt.x - dragState.startPt.x;
+        var dy = pt.y - dragState.startPt.y;
+        var minSpan = 0.12;
+        if (h === 'move') {
+            var bw = ob.x2 - ob.x1, bh = ob.y2 - ob.y1;
+            var nx1 = Math.max(0.01, Math.min(0.99 - bw, ob.x1 + dx));
+            var ny1 = Math.max(0.01, Math.min(0.99 - bh, ob.y1 + dy));
+            cropBox = { x1: nx1, y1: ny1, x2: nx1 + bw, y2: ny1 + bh };
+        } else {
+            if (h.includes('l')) cropBox.x1 = Math.max(0.01, Math.min(ob.x2 - minSpan, pt.x));
+            if (h.includes('r')) cropBox.x2 = Math.min(0.99, Math.max(ob.x1 + minSpan, pt.x));
+            if (h.includes('t')) cropBox.y1 = Math.max(0.01, Math.min(ob.y2 - minSpan, pt.y));
+            if (h.includes('b')) cropBox.y2 = Math.min(0.99, Math.max(ob.y1 + minSpan, pt.y));
+        }
+        drawEditorCanvas();
+    }
+
+    function onEditorPointerUp() {
+        dragState = null;
+    }
+
+    editorCanvas.addEventListener('mousedown', onEditorPointerDown);
+    window.addEventListener('mousemove', onEditorPointerMove);
+    window.addEventListener('mouseup', onEditorPointerUp);
+    editorCanvas.addEventListener('touchstart', onEditorPointerDown, { passive: false });
+    window.addEventListener('touchmove', onEditorPointerMove, { passive: false });
+    window.addEventListener('touchend', onEditorPointerUp);
+
     window.retakePhoto = function() {
         capturedBase64 = null;
         processedBase64 = null;
         previewProcessed.classList.add('hidden');
         previewOriginal.classList.add('hidden');
+        editorCanvas.classList.add('hidden');
+        editorToolbar.classList.add('hidden');
         previewTabs.classList.add('hidden');
         postCaptureBar.classList.add('hidden');
         captureControlsBar.classList.remove('hidden');
-        
+
         videoEl.classList.remove('hidden');
         document.getElementById('viewfinder-guides').classList.remove('hidden');
         document.getElementById('viewfinder-box').classList.remove('hidden');
+        updateComparisonThumbs(currentTargetOldImage, "", currentTargetProductName);
         updateSaveButtonState();
     };
 
-    // Reprocess with updated toggles
     window.reprocessPhoto = function() {
         if (capturedBase64) {
             onNewPhotoReceived(capturedBase64);
         }
     };
 
-    // Product Selection Handler
-    window.pickProduct = function(productId, productName) {
+    window.pickProduct = function(productId, productName, imageUrl) {
         currentTargetProductId = productId;
+        currentTargetProductName = productName;
+        currentTargetOldImage = imageUrl || "";
         document.querySelectorAll('.studio-prod-card').forEach(function(card) {
             var radio = card.querySelector('.card-radio');
             if (card.getAttribute('data-id') === productId) {
@@ -613,38 +1087,62 @@
         });
 
         if (selectedNameText) selectedNameText.textContent = productName;
+        if (selectedThumbImg) {
+            if (currentTargetOldImage) {
+                selectedThumbImg.src = currentTargetOldImage;
+                selectedThumbImg.classList.remove('hidden');
+            } else {
+                selectedThumbImg.classList.add('hidden');
+            }
+        }
         if (selectedBanner) selectedBanner.classList.remove('hidden');
+        updateComparisonThumbs(currentTargetOldImage, processedBase64 || "", currentTargetProductName);
         updateSaveButtonState();
     };
 
     window.clearPickedProduct = function() {
         currentTargetProductId = '';
+        currentTargetProductName = '';
+        currentTargetOldImage = '';
         document.querySelectorAll('.studio-prod-card').forEach(function(card) {
             card.classList.remove('is-selected');
             var radio = card.querySelector('.card-radio');
             if (radio) radio.innerHTML = '';
         });
         if (selectedBanner) selectedBanner.classList.add('hidden');
+        updateComparisonThumbs("", processedBase64 || "", "");
         updateSaveButtonState();
     };
 
+    window.lookupProductByCode = function() {
+        var code = (searchInput.value || '').trim();
+        if (!code) return;
+        fetch('{% url "control_camera_studio_lookup_product" %}?code=' + encodeURIComponent(code))
+            .then(function(r) { return r.json(); })
+            .then(function(data) {
+                if (data.status === 'success' && data.product) {
+                    pickProduct(data.product.id, data.product.name, data.product.image_url || '');
+                } else {
+                    alert(data.message || "لم يتم العثور على منتج بهذا الكود");
+                }
+            })
+            .catch(function() { alert("تعذر البحث عن الكود"); });
+    };
+
     function updateSaveButtonState() {
-        var isReady = !!(processedBase64 && currentTargetProductId);
-        btnSaveAssign.disabled = !isReady;
+        btnSaveAssign.disabled = !(capturedBase64 && processedBase64 && currentTargetProductId);
     }
 
-    // Save and Assign Image to Selected Product
     window.saveImageToProduct = function() {
-        if (!processedBase64 || !currentTargetProductId) return;
+        if (!capturedBase64 || !currentTargetProductId) return;
 
         btnSaveAssign.disabled = true;
-        saveBtnText.innerHTML = '<i class="fas fa-spinner fa-spin studio-icon"></i> جاري حفظ وتعيين الصورة...';
+        saveBtnText.innerHTML = '<i class="fas fa-spinner fa-spin studio-icon"></i> جاري حفظ وتعيين الصورة الجديدة...';
 
         var fd = new FormData();
-        fd.append('image_base64', processedBase64);
+        fd.append('image_base64', capturedBase64);
         fd.append('product_id', currentTargetProductId);
-        fd.append('isolate_white', optWhiteBg.checked ? 'true' : 'false');
-        fd.append('add_hallmark', optHallmark.checked ? 'true' : 'false');
+        appendStudioFormParams(fd);
 
         fetch('{% url "control_camera_studio_process_ajax" %}', {
             method: 'POST',
@@ -655,40 +1153,35 @@
         .then(function(data) {
             if (data.status === 'success') {
                 saveBtnText.innerHTML = '<i class="fas fa-check studio-icon"></i> تم الحفظ بنجاح!';
+                currentTargetOldImage = data.image_url || currentTargetOldImage;
+                updateComparisonThumbs(data.old_image_url || "", data.image_url || processedBase64, currentTargetProductName);
                 alert(data.message || "تم حفظ وتعيين الصورة للمنتج بنجاح!");
-                setTimeout(function() {
-                    window.location.href = "{% url 'control_products_list' %}";
-                }, 800);
+                btnSaveAssign.disabled = false;
+                saveBtnText.textContent = "حفظ وتعيين الصورة الجديدة للمنتج ⚡";
             } else {
                 alert(data.message || "فشل حفظ وتعيين الصورة");
                 btnSaveAssign.disabled = false;
-                saveBtnText.textContent = "حفظ وتعيين للمنتج فوراً";
+                saveBtnText.textContent = "حفظ وتعيين الصورة الجديدة للمنتج ⚡";
             }
         })
         .catch(function(err) {
             alert("خطأ أثناء الحفظ: " + err.message);
             btnSaveAssign.disabled = false;
-            saveBtnText.textContent = "حفظ وتعيين للمنتج فوراً";
+            saveBtnText.textContent = "حفظ وتعيين الصورة الجديدة للمنتج ⚡";
         });
     };
 
-    // Live Search Filter for Products
     if (searchInput) {
         searchInput.addEventListener('input', function(e) {
             var query = e.target.value.toLowerCase().trim();
             document.querySelectorAll('.studio-prod-card').forEach(function(card) {
                 var name = (card.getAttribute('data-name') || '').toLowerCase();
                 var cat = (card.getAttribute('data-category') || '').toLowerCase();
-                if (name.includes(query) || cat.includes(query)) {
-                    card.style.display = 'flex';
-                } else {
-                    card.style.display = 'none';
-                }
+                card.style.display = (name.includes(query) || cat.includes(query)) ? 'flex' : 'none';
             });
         });
     }
 
-    // Initialize camera on page load
     document.addEventListener('DOMContentLoaded', function() {
         startCamera();
         if (currentTargetProductId) {

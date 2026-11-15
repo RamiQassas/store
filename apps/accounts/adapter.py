@@ -395,14 +395,23 @@ class MySocialAccountAdapter(DefaultSocialAccountAdapter):
             if not next_url:
                 next_url = getattr(settings, "LOGIN_REDIRECT_URL", "/dashboard/")
 
-            # Bind Android WebView session ticket if present in next_url
+            # Bind Android WebView session ticket if present in next_url or pending IP cache
             try:
-                from urllib.parse import urlparse, parse_qs
+                from urllib.parse import urlparse, parse_qs, quote
+                from django.core.cache import cache
+                from apps.site.views import _bind_user_to_app_ticket, _get_client_ip_for_sso
                 parsed_next = urlparse(str(next_url))
                 ticket_vals = parse_qs(parsed_next.query).get("ticket")
-                if ticket_vals and ticket_vals[0]:
-                    from apps.site.views import _bind_user_to_app_ticket
-                    _bind_user_to_app_ticket(request, user, ticket_vals[0])
+                ticket_str = ticket_vals[0] if (ticket_vals and ticket_vals[0]) else ""
+                if not ticket_str:
+                    client_ip = _get_client_ip_for_sso(request)
+                    if client_ip:
+                        ticket_str = cache.get(f"app_sso_pending_ip_{client_ip}") or ""
+                if ticket_str:
+                    _bind_user_to_app_ticket(request, user, ticket_str)
+                    ua = (request.META.get("HTTP_USER_AGENT") or "")
+                    if "Android" in ua and "RaqamiyatAndroid" not in ua and not active_store:
+                        next_url = f"/auth/app-sso-handoff/?ticket={quote(ticket_str)}"
             except Exception as ticket_err:
                 logger.warning(f"Failed binding app ticket in pre_social_login: {ticket_err}")
 

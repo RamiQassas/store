@@ -371,38 +371,95 @@ def v3_verify_sp_view(request):
 # --- AUTHENTICATION (V3) ---
 # ==========================================
 
+def _get_client_ip_for_sso(request):
+    if not request:
+        return ""
+    xff = (request.META.get("HTTP_X_FORWARDED_FOR") or "").strip()
+    if xff:
+        return xff.split(",")[0].strip()
+    return (request.META.get("REMOTE_ADDR") or "").strip()
+
+
 def _bind_user_to_app_ticket(request, user, ticket):
     """
     Upgrades the Android WebView session stored inside a signed SSO ticket
     so that completing Google OAuth inside Chrome Custom Tabs authenticates
-    the in-app WebView session in the database as well.
+    the in-app WebView session in the database and cache simultaneously.
     """
-    if not user or not getattr(user, "is_authenticated", False) or not ticket:
+    if not user or not getattr(user, "is_authenticated", False):
         return False
     try:
+        import datetime
+        import time as _time
         from django.core import signing
+        from django.core.cache import cache
         from django.contrib.auth import SESSION_KEY, BACKEND_SESSION_KEY, HASH_SESSION_KEY
-        data = signing.loads(str(ticket).strip(), salt="raqamiyat_app_ticket", max_age=900)
+        from django.contrib.sessions.models import Session
+
+        data = {}
+        if ticket:
+            try:
+                data = signing.loads(str(ticket).strip(), salt="raqamiyat_app_ticket", max_age=1800) or {}
+            except Exception as sig_exc:
+                logger.warning("Ticket signature decode warning: %s", sig_exc)
+
         skey = (data.get("skey") or "").strip()
+        tid = (data.get("tid") or "").strip()
+        uid_str = user._meta.pk.value_to_string(user)
+
+        # Store in cache so /api/app/session/ can directly authenticate the WebView HTTP connection
+        try:
+            if tid:
+                cache.set(f"app_sso_tid_{tid}", uid_str, 900)
+            if skey:
+                cache.set(f"app_sso_skey_{skey}", uid_str, 900)
+            if ticket:
+                cache.set(f"app_sso_tkt_{str(ticket).strip()[:64]}", uid_str, 900)
+            client_ip = _get_client_ip_for_sso(request)
+            if client_ip:
+                cache.set(f"app_sso_ip_{client_ip}", {"uid": uid_str, "ts": _time.time()}, 180)
+        except Exception as cache_exc:
+            logger.warning("App SSO cache store warning: %s", cache_exc)
+
         if not skey:
-            return False
+            return True
+
         SessionCls = request.session.__class__
         wv_session = SessionCls(session_key=skey)
-        wv_session.load()
+        existing_data = {}
+        try:
+            sess_obj = Session.objects.filter(session_key=skey).first()
+            if sess_obj:
+                existing_data = wv_session.decode(sess_obj.session_data) or {}
+        except Exception:
+            existing_data = {}
+
         backend = "apps.stores.auth_backend.TenantModelBackend"
-        wv_session[SESSION_KEY] = user._meta.pk.value_to_string(user)
-        wv_session[BACKEND_SESSION_KEY] = backend
-        wv_session[HASH_SESSION_KEY] = user.get_session_auth_hash()
+        existing_data[SESSION_KEY] = uid_str
+        existing_data[BACKEND_SESSION_KEY] = backend
+        existing_data[HASH_SESSION_KEY] = user.get_session_auth_hash()
+
         active_store = getattr(request, "store", None)
         if not active_store and data.get("store_id"):
             from apps.stores.models import Store
             from apps.common.tenant_utils import bypass_tenant_filter
             with bypass_tenant_filter():
                 active_store = Store.objects.filter(pk=data.get("store_id")).first()
-        wv_session["session_scope"] = str(active_store.pk) if active_store else "main"
-        wv_session["last_activity"] = timezone.now().timestamp()
-        wv_session.pop("app_sso_pending", None)
-        wv_session.save()
+
+        existing_data["session_scope"] = str(active_store.pk) if active_store else "main"
+        existing_data["last_activity"] = timezone.now().timestamp()
+        existing_data.pop("app_sso_pending", None)
+
+        encoded_data = wv_session.encode(existing_data)
+        cookie_age = getattr(settings, "SESSION_COOKIE_AGE", 7 * 24 * 3600)
+        expire_date = timezone.now() + datetime.timedelta(seconds=cookie_age)
+        Session.objects.update_or_create(
+            session_key=skey,
+            defaults={
+                "session_data": encoded_data,
+                "expire_date": expire_date,
+            },
+        )
         try:
             if user.last_session_key != skey:
                 user.last_session_key = skey
@@ -416,20 +473,37 @@ def _bind_user_to_app_ticket(request, user, ticket):
 
 
 def _build_app_google_login_context(request, active_store=None):
+    import uuid
     from django.core import signing
     from urllib.parse import urlencode
     from allauth.socialaccount.models import SocialApp
 
-    if not request.session.get("app_sso_pending"):
-        request.session["app_sso_pending"] = True
-    if not request.session.session_key:
+    tid = request.session.get("app_sso_tid")
+    if not tid:
+        tid = uuid.uuid4().hex
+        request.session["app_sso_tid"] = tid
+    request.session["app_sso_pending"] = True
+    request.session.modified = True
+    try:
         request.session.save()
+    except Exception:
+        pass
 
     ticket_payload = {
-        "skey": request.session.session_key,
+        "skey": request.session.session_key or "",
+        "tid": tid,
         "store_id": str(active_store.pk) if active_store else "",
     }
     app_sso_ticket = signing.dumps(ticket_payload, salt="raqamiyat_app_ticket")
+
+    ua = (request.META.get("HTTP_USER_AGENT") or "")
+    client_ip = _get_client_ip_for_sso(request)
+    if client_ip and ("RaqamiyatAndroid" in ua or "wv" in ua.lower() or "Android" in ua):
+        try:
+            from django.core.cache import cache
+            cache.set(f"app_sso_pending_ip_{client_ip}", app_sso_ticket, 900)
+        except Exception:
+            pass
 
     client_id = getattr(settings, "GOOGLE_CLIENT_ID", "") or ""
     if not client_id:
@@ -7313,6 +7387,34 @@ def control_camera_studio_process_ajax(request):
         store = getattr(request, "store", None)
         store_name = store.name if store else "Raqamiyat"
         bg_style = request.POST.get("bg_style", "studio_white").strip() or "studio_white"
+        filter_mode = request.POST.get("filter_mode", "auto_hdr").strip() or "auto_hdr"
+        auto_straighten = request.POST.get("auto_straighten", "true").lower() in ("true", "1", "yes")
+        preview_only = request.POST.get("preview_only", "false").lower() in ("true", "1", "yes")
+
+        try:
+            manual_rotate = float(request.POST.get("manual_rotate", "0") or 0)
+        except (TypeError, ValueError):
+            manual_rotate = 0.0
+
+        crop_box = None
+        crop_box_raw = (request.POST.get("crop_box") or "").strip()
+        if crop_box_raw:
+            try:
+                parsed_box = json.loads(crop_box_raw)
+                if isinstance(parsed_box, list) and len(parsed_box) == 4:
+                    crop_box = parsed_box
+            except Exception:
+                pass
+
+        crop_polygon = None
+        crop_poly_raw = (request.POST.get("crop_polygon") or "").strip()
+        if crop_poly_raw:
+            try:
+                parsed_poly = json.loads(crop_poly_raw)
+                if isinstance(parsed_poly, list) and len(parsed_poly) >= 3:
+                    crop_polygon = parsed_poly
+            except Exception:
+                pass
 
         processed_bytes = process_camera_product_snapshot(
             raw_bytes,
@@ -7321,13 +7423,32 @@ def control_camera_studio_process_ajax(request):
             target_size=800,
             store_name=store_name,
             bg_style=bg_style,
+            manual_rotate=manual_rotate,
+            crop_box=crop_box,
+            crop_polygon=crop_polygon,
+            auto_straighten=auto_straighten,
+            filter_mode=filter_mode,
         )
+
+        preview_b64 = "data:image/jpeg;base64," + base64.b64encode(processed_bytes).decode("utf-8")
 
         if product_id:
             product = Product.all_objects.filter(id=product_id).first()
             if not product:
                 return JsonResponse({"status": "error", "message": "المنتج المحدد غير موجود"}, status=404)
-            
+
+            old_image_url = product.image.url if product.image else ""
+            if preview_only:
+                return JsonResponse({
+                    "status": "success",
+                    "preview_only": True,
+                    "message": "تمت معاينة صورة الاستوديو بنجاح",
+                    "preview_url": preview_b64,
+                    "old_image_url": old_image_url,
+                    "product_id": str(product.id),
+                    "product_name": product.name,
+                })
+
             filename = f"{slugify(product.name) or 'camera_prod'}_{str(product.id)[:8]}_studio.jpg"
             product.image.save(filename, ContentFile(processed_bytes), save=True)
 
@@ -7341,16 +7462,17 @@ def control_camera_studio_process_ajax(request):
                 "status": "success",
                 "message": f"تمت معالجة وتعيين صورة الاستوديو للمنتج '{product.name}' بنجاح!",
                 "image_url": product.image.url,
+                "old_image_url": old_image_url,
                 "product_id": str(product.id),
                 "product_name": product.name
             })
         
         # Return processed preview
-        preview_b64 = "data:image/jpeg;base64," + base64.b64encode(processed_bytes).decode("utf-8")
         return JsonResponse({
             "status": "success",
             "message": "تمت معالجة الصورة بنجاح على خلفية استوديو احترافية وبشعار رقميات!",
-            "preview_url": preview_b64
+            "preview_url": preview_b64,
+            "old_image_url": "",
         })
 
     except Exception as e:
@@ -7445,11 +7567,79 @@ def api_app_session_info(request):
     """
     Lightweight session/role info for the Native Android App so it knows
     if the user is authenticated and has Admin/Studio privileges.
+    Also acts as an active SSO bridge: if Google OAuth completed in Chrome Custom Tabs,
+    this endpoint directly upgrades and logs in the calling Android WebView HTTP session.
     """
     user = _get_app_user(request)
     is_auth = bool(user and user.is_authenticated)
     store = getattr(request, "store", None)
+
+    if not is_auth:
+        try:
+            import time as _time
+            from django.core import signing
+            from django.core.cache import cache
+            from django.contrib.auth import get_user_model
+            from apps.common.tenant_utils import bypass_tenant_filter
+
+            matched_uid = None
+            ticket = (request.GET.get("ticket") or "").strip()
+            if ticket:
+                matched_uid = cache.get(f"app_sso_tkt_{ticket[:64]}")
+                if not matched_uid:
+                    try:
+                        tdata = signing.loads(ticket, salt="raqamiyat_app_ticket", max_age=1800) or {}
+                        t_tid = (tdata.get("tid") or "").strip()
+                        t_skey = (tdata.get("skey") or "").strip()
+                        if t_tid:
+                            matched_uid = cache.get(f"app_sso_tid_{t_tid}")
+                        if not matched_uid and t_skey:
+                            matched_uid = cache.get(f"app_sso_skey_{t_skey}")
+                    except Exception:
+                        pass
+
+            if not matched_uid and hasattr(request, "session"):
+                req_tid = (request.session.get("app_sso_tid") or "").strip()
+                if req_tid:
+                    matched_uid = cache.get(f"app_sso_tid_{req_tid}")
+                if not matched_uid and request.session.session_key:
+                    matched_uid = cache.get(f"app_sso_skey_{request.session.session_key}")
+
+            ua = (request.META.get("HTTP_USER_AGENT") or "")
+            is_sso_waiting = bool(
+                ticket
+                or (hasattr(request, "session") and request.session.get("app_sso_pending"))
+                or "RaqamiyatAndroid" in ua
+                or request.GET.get("app_poll") == "1"
+            )
+            if not matched_uid and is_sso_waiting:
+                client_ip = _get_client_ip_for_sso(request)
+                if client_ip:
+                    ip_entry = cache.get(f"app_sso_ip_{client_ip}")
+                    if isinstance(ip_entry, dict) and (_time.time() - float(ip_entry.get("ts", 0))) < 180:
+                        matched_uid = ip_entry.get("uid")
+
+            if matched_uid:
+                UserModel = get_user_model()
+                with bypass_tenant_filter():
+                    synced_user = UserModel.all_objects.filter(id=matched_uid, is_active=True).first()
+                if synced_user:
+                    synced_user.backend = "apps.stores.auth_backend.TenantModelBackend"
+                    login(request, synced_user, backend="apps.stores.auth_backend.TenantModelBackend")
+                    request.session["session_scope"] = str(store.pk) if store else "main"
+                    request.session["last_activity"] = timezone.now().timestamp()
+                    request.session.pop("app_sso_pending", None)
+                    request.session.modified = True
+                    user = synced_user
+                    is_auth = True
+                    client_ip = _get_client_ip_for_sso(request)
+                    if client_ip:
+                        cache.delete(f"app_sso_ip_{client_ip}")
+        except Exception as sync_exc:
+            logger.warning("api_app_session_info SSO sync warning: %s", sync_exc)
+
     is_admin = _is_app_admin(user, store) if is_auth else False
+    redirect_url = "/control/" if (is_auth and getattr(user, "is_staff", False) and store is None) else "/dashboard/"
     return JsonResponse({
         "is_authenticated": is_auth,
         "username": user.username if is_auth else "",
@@ -7457,14 +7647,15 @@ def api_app_session_info(request):
         "is_admin": is_admin,
         "can_manage_studio": is_admin,
         "app_auth_token": _issue_app_auth_token(user) if is_auth else "",
+        "redirect_url": redirect_url if is_auth else "",
     })
 
 
 def _render_android_app_return_response(user, redirect_path="/dashboard/"):
     """
     Renders an auto-returning handoff page from Chrome Custom Tabs back into
-    the Raqamiyat Android app, passing a signed sso_token on /dashboard/ so
-    both older and newer APK deep-link filters authenticate cleanly.
+    the Raqamiyat Android app WITHOUT any S.browser_fallback_url to /dashboard/
+    (preventing Chrome Custom Tabs from staying open and navigating to the site in-browser).
     """
     from django.core import signing
     from django.http import HttpResponse
@@ -7472,41 +7663,61 @@ def _render_android_app_return_response(user, redirect_path="/dashboard/"):
 
     token = signing.dumps({"uid": str(user.id)}, salt="raqamiyat_app_sso")
     sep = "&" if "?" in redirect_path else "?"
-    dashboard_target = f"https://raqamiyatapp.com{redirect_path}{sep}sso_token={quote(token)}"
     intent_path = f"{redirect_path.lstrip('/')}{sep}sso_token={quote(token)}"
-    intent_url = (
-        f"intent://raqamiyatapp.com/{intent_path}"
-        f"#Intent;scheme=https;package=com.raqamiyat.app;"
-        f"S.browser_fallback_url={quote(dashboard_target, safe='')};end"
-    )
     deep_link = f"raqamiyat://auth?token={quote(token)}"
+    intent_custom = (
+        f"intent://auth?token={quote(token)}"
+        f"#Intent;scheme=raqamiyat;package=com.raqamiyat.app;end"
+    )
+    intent_https = (
+        f"intent://raqamiyatapp.com/{intent_path}"
+        f"#Intent;scheme=https;package=com.raqamiyat.app;end"
+    )
     html = f"""<!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>جاري العودة لتطبيق رقميات...</title>
+  <title>تم تسجيل الدخول في تطبيق رقميات</title>
   <style>
-    body {{ background:#030712; color:#f8fafc; font-family:sans-serif; display:flex; align-items:center; justify-content:center; min-height:100vh; margin:0; text-align:center; padding:24px; }}
-    .card {{ background:#111827; border:1px solid #1f2937; border-radius:20px; padding:28px 22px; max-width:380px; width:100%; }}
-    .btn {{ display:inline-block; margin-top:16px; padding:13px 22px; border-radius:12px; background:linear-gradient(135deg,#22d3ee,#10b981); color:#030712; font-weight:900; text-decoration:none; }}
-    .sub-btn {{ display:inline-block; margin-top:10px; color:#94a3b8; font-size:13px; text-decoration:underline; }}
+    body {{ background:#030712; color:#f8fafc; font-family:sans-serif; display:flex; align-items:center; justify-content:center; min-height:100vh; margin:0; text-align:center; padding:24px; cursor:pointer; }}
+    .card {{ background:#111827; border:1px solid #1f2937; border-radius:22px; padding:30px 22px; max-width:390px; width:100%; box-shadow:0 20px 50px rgba(0,0,0,0.6); }}
+    .badge {{ width:64px; height:64px; border-radius:50%; background:rgba(16,185,129,0.15); border:2px solid #10b981; color:#10b981; font-size:32px; display:flex; align-items:center; justify-content:center; margin:0 auto 16px; }}
+    .btn {{ display:block; width:100%; box-sizing:border-box; margin-top:18px; padding:15px 22px; border-radius:14px; background:linear-gradient(135deg,#22d3ee,#10b981); color:#030712; font-weight:900; font-size:16px; text-decoration:none; box-shadow:0 8px 25px rgba(34,211,238,0.3); }}
+    .hint {{ margin-top:14px; color:#94a3b8; font-size:13px; line-height:1.6; }}
   </style>
 </head>
 <body>
   <div class="card">
-    <h2>✓ تم تسجيل الدخول بنجاح</h2>
-    <p style="color:#94a3b8;font-size:14px;">تم ربط حسابك بتطبيق رقميات، جاري إعادتك تلقائياً الآن...</p>
-    <a class="btn" href="{intent_url}">العودة إلى التطبيق الآن ⚡</a>
-    <br>
-    <a class="sub-btn" href="{dashboard_target}">أو المتابعة هنا</a>
+    <div class="badge">✓</div>
+    <h2 style="margin:0 0 8px;">تم تسجيل الدخول في التطبيق بنجاح!</h2>
+    <p style="color:#cbd5e1;font-size:14px;margin:0;">تم تفعيل جلستك داخل تطبيق رقميات تلقائياً.</p>
+    <a id="appReturnBtn" class="btn" href="{intent_custom}">العودة إلى التطبيق الآن ⚡</a>
+    <p class="hint">اضغط على الزر أعلاه أو اضغط زر <b>الرجوع (✕)</b> أعلى المتصفح للعودة للتطبيق فوراً.</p>
   </div>
   <script>
     (function() {{
-      try {{ window.location.replace("{intent_url}"); }} catch (e) {{}}
-      setTimeout(function() {{
-        try {{ window.location.href = "{deep_link}"; }} catch (e) {{}}
-      }}, 350);
+      var deepLink = "{deep_link}";
+      var intentCustom = "{intent_custom}";
+      var intentHttps = "{intent_https}";
+      function jumpToApp() {{
+        try {{ window.location.replace(deepLink); }} catch (e) {{}}
+        setTimeout(function() {{
+          try {{ window.location.href = intentCustom; }} catch (e) {{}}
+        }}, 180);
+        setTimeout(function() {{
+          try {{ window.location.href = intentHttps; }} catch (e) {{}}
+        }}, 420);
+        setTimeout(function() {{
+          try {{ window.close(); }} catch (e) {{}}
+        }}, 700);
+      }}
+      jumpToApp();
+      document.addEventListener("click", function(ev) {{
+        if (!ev.target || !ev.target.closest("#appReturnBtn")) {{
+          try {{ window.location.href = intentCustom; }} catch (e) {{}}
+        }}
+      }});
     }})();
   </script>
 </body>
@@ -7709,15 +7920,16 @@ def google_oauth_callback_wrapper(request):
     request.session["session_scope"] = str(active_store.pk) if active_store else "main"
     request.session["last_activity"] = timezone.now().timestamp()
 
-    ticket_skey = (ticket_data.get("skey") or "").strip() if isinstance(ticket_data, dict) else ""
-    if ticket and ticket_skey and ticket_skey != prev_session_key:
-        _bind_user_to_app_ticket(request, user, ticket)
-    elif request.session.session_key:
+    if not ticket:
         try:
-            user.last_session_key = request.session.session_key
-            user.save(update_fields=["last_session_key"])
+            from django.core.cache import cache
+            client_ip = _get_client_ip_for_sso(request)
+            if client_ip:
+                ticket = cache.get(f"app_sso_pending_ip_{client_ip}") or ""
         except Exception:
             pass
+
+    _bind_user_to_app_ticket(request, user, ticket)
 
     if active_store:
         sso_token = signing.dumps({"uid": str(user.id)}, salt="raqamiyat_app_sso")
@@ -7745,12 +7957,20 @@ def app_sso_handoff(request):
     from urllib.parse import quote
 
     ticket = (request.GET.get("ticket") or "").strip()
+    if not ticket:
+        try:
+            from django.core.cache import cache
+            client_ip = _get_client_ip_for_sso(request)
+            if client_ip:
+                ticket = cache.get(f"app_sso_pending_ip_{client_ip}") or ""
+        except Exception:
+            pass
+
     if not request.user or not request.user.is_authenticated:
         handoff_target = f"/auth/app-sso-handoff/?ticket={quote(ticket)}" if ticket else "/auth/app-sso-handoff/"
         return redirect(f"/auth/login/?next={quote(handoff_target)}")
 
-    if ticket:
-        _bind_user_to_app_ticket(request, request.user, ticket)
+    _bind_user_to_app_ticket(request, request.user, ticket)
 
     ua = request.META.get("HTTP_USER_AGENT", "") or ""
     if "RaqamiyatAndroid" in ua or "Android" not in ua:

@@ -935,12 +935,18 @@ public class MainActivity extends AppCompatActivity implements ConnectivityHelpe
         syncAppNotifications();
         if (isWaitingForGoogleAuth) {
             isWaitingForGoogleAuth = false;
-            // Delay slightly so system auth cookies are flushed and page can reload authenticated
-            mainHandler.postDelayed(() -> {
+            Runnable checkSsoJs = () -> {
                 if (webView != null) {
-                    webView.reload();
+                    webView.evaluateJavascript(
+                            "if(window.rqCheckAppSsoNow){window.rqCheckAppSsoNow();}else{window.location.reload();}",
+                            null
+                    );
                 }
-            }, 600);
+                refreshAdminSessionBadge();
+            };
+            mainHandler.postDelayed(checkSsoJs, 150);
+            mainHandler.postDelayed(checkSsoJs, 750);
+            mainHandler.postDelayed(checkSsoJs, 1800);
         }
     }
 

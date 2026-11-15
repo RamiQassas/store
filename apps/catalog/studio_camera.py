@@ -826,15 +826,117 @@ def _reconstruct_white_product_if_hollow(rgba_img: Image.Image, mask_arr, run_gu
     return refined, np.asarray(refined.getchannel("A"), dtype=np.uint8)
 
 
-def _apply_studio_relighting(prod_rgba: Image.Image) -> Image.Image:
+def _auto_straighten_tilted_product(rgba_img: Image.Image) -> Image.Image:
     """
-    Commercial Studio Softbox Relighting & Color Grading (applied strictly to isolated product):
-    - Automatically lifts dim indoor phone exposure (gamma & white-point normalization).
-    - Adds a subtle 3D vertical studio softbox specular sheen along the product surface.
-    - Enhances micro-contrast and typography sharpness (UnsharpMask).
+    Automatically detects if a product was photographed at a slant/tilt (صور بمايل)
+    and counter-rotates the RGBA cutout so the product stands 100% plumb and vertical.
     """
+    try:
+        import numpy as np
+
+        w, h = rgba_img.size
+        alpha = np.asarray(rgba_img.getchannel("A"), dtype=np.uint8)
+        fg = alpha > 95
+        ys = np.where(fg.any(axis=1))[0]
+        if len(ys) < 40:
+            return rgba_img
+
+        y0, y1 = int(ys[0]), int(ys[-1])
+        fh = y1 - y0 + 1
+        if fh < 40:
+            return rgba_img
+
+        # Analyze the main torso (22%..78% of height) to measure vertical axis tilt
+        s_idx = int(fh * 0.22)
+        e_idx = int(fh * 0.78)
+        if e_idx - s_idx < 16:
+            return rgba_img
+
+        row_y = []
+        row_xl = []
+        row_xr = []
+        row_xm = []
+        row_span = []
+        for y in range(y0 + s_idx, y0 + e_idx):
+            xs = np.where(fg[y])[0]
+            if len(xs) >= 10:
+                xl = float(xs[0])
+                xr = float(xs[-1])
+                row_y.append(float(y))
+                row_xl.append(xl)
+                row_xr.append(xr)
+                row_xm.append(0.5 * (xl + xr))
+                row_span.append(xr - xl)
+
+        if len(row_y) < 16:
+            return rgba_img
+
+        ry = np.array(row_y, dtype=np.float32)
+        rxl = np.array(row_xl, dtype=np.float32)
+        rxr = np.array(row_xr, dtype=np.float32)
+        rxm = np.array(row_xm, dtype=np.float32)
+        rspan = np.array(row_span, dtype=np.float32)
+
+        med_span = float(np.median(rspan))
+        if med_span < 20:
+            return rgba_img
+
+        # Keep rows whose width is consistent with the main body so caps/shoulders don't skew slope
+        inliers = np.abs(rspan - med_span) <= (med_span * 0.18)
+        if int(inliers.sum()) < 12:
+            inliers = np.ones_like(rspan, dtype=bool)
+
+        y_in = ry[inliers]
+        if float(y_in.max() - y_in.min()) < fh * 0.25:
+            return rgba_img
+
+        slope_mid = float(np.polyfit(y_in, rxm[inliers], 1)[0])
+        slope_l = float(np.polyfit(y_in, rxl[inliers], 1)[0])
+        slope_r = float(np.polyfit(y_in, rxr[inliers], 1)[0])
+
+        # Left and right walls should tilt in the same direction (parallel walls tilted together)
+        if abs(slope_l - slope_r) > 0.18 and (slope_l * slope_r) < 0:
+            return rgba_img
+
+        avg_slope = 0.50 * slope_mid + 0.25 * slope_l + 0.25 * slope_r
+        angle_deg = float(np.degrees(np.arctan(avg_slope)))
+
+        # Only auto-correct meaningful tilts between 1.1° and 28.0°
+        if 1.1 <= abs(angle_deg) <= 28.0:
+            # In image coords (y downward), dx/dy > 0 means bottom shifts right (counter-clockwise tilt),
+            # while PIL Image.rotate(angle) rotates counter-clockwise for positive angles, so we rotate by -angle_deg.
+            straightened = rgba_img.rotate(
+                -angle_deg,
+                resample=Image.Resampling.BICUBIC,
+                expand=True,
+                fillcolor=(0, 0, 0, 0),
+            )
+            return straightened
+        return rgba_img
+    except Exception as e:
+        logger.debug("Auto-straighten skipped: %s", e)
+        return rgba_img
+
+
+def _apply_studio_relighting(prod_rgba: Image.Image, filter_mode: str = "auto_hdr") -> Image.Image:
+    """
+    Commercial Studio Softbox Relighting & Multi-Filter Engine (applied strictly to isolated product):
+    Supports filter_mode:
+    - 'auto_hdr': Balanced studio exposure lift, 3D softbox specular sheen, crisp micro-contrast.
+    - 'vivid_pop': Rich flagship store colors, deep contrast, vibrant packaging pop.
+    - 'crisp_white': Neutralizes warm/yellow indoor color casts and brightens white products.
+    - 'warm_luxury': Subtle golden-hour luxury boutique warmth and smooth contrast.
+    - 'sharp_detail': High-definition dual-band sharpening for fine text and electronics.
+    - 'natural': True-to-life original color tone with light optical sharpening.
+    """
+    filter_mode = (filter_mode or "auto_hdr").strip().lower()
     r, g, b, a = prod_rgba.split()
     rgb_img = Image.merge("RGB", (r, g, b))
+
+    if filter_mode == "natural":
+        rgb_img = rgb_img.filter(ImageFilter.UnsharpMask(radius=1.2, percent=95, threshold=2))
+        r2, g2, b2 = rgb_img.split()
+        return Image.merge("RGBA", (r2, g2, b2, a))
 
     try:
         import numpy as np
@@ -844,35 +946,67 @@ def _apply_studio_relighting(prod_rgba: Image.Image) -> Image.Image:
         fg_mask = alpha_np > 0.5
 
         if fg_mask.sum() > 50:
+            # Automatic gray-world / highlight white-balance correction for 'crisp_white' and 'auto_hdr'
+            if filter_mode in ("crisp_white", "auto_hdr"):
+                lum_pre = 0.299 * rgb[:, :, 0] + 0.587 * rgb[:, :, 1] + 0.114 * rgb[:, :, 2]
+                bright_neutral = fg_mask & (lum_pre > np.percentile(lum_pre[fg_mask], 70))
+                if bright_neutral.sum() > 30:
+                    mr = float(np.median(rgb[:, :, 0][bright_neutral]))
+                    mg = float(np.median(rgb[:, :, 1][bright_neutral]))
+                    mb = float(np.median(rgb[:, :, 2][bright_neutral]))
+                    m_avg = (mr + mg + mb) / 3.0
+                    if m_avg > 80.0:
+                        strength = 0.65 if filter_mode == "crisp_white" else 0.28
+                        wb_r = 1.0 + strength * ((m_avg / max(mr, 1.0)) - 1.0)
+                        wb_g = 1.0 + strength * ((m_avg / max(mg, 1.0)) - 1.0)
+                        wb_b = 1.0 + strength * ((m_avg / max(mb, 1.0)) - 1.0)
+                        rgb[:, :, 0] = np.clip(rgb[:, :, 0] * np.clip(wb_r, 0.88, 1.14), 0.0, 255.0)
+                        rgb[:, :, 1] = np.clip(rgb[:, :, 1] * np.clip(wb_g, 0.90, 1.12), 0.0, 255.0)
+                        rgb[:, :, 2] = np.clip(rgb[:, :, 2] * np.clip(wb_b, 0.88, 1.18), 0.0, 255.0)
+
+            if filter_mode == "warm_luxury":
+                rgb[:, :, 0] = np.clip(rgb[:, :, 0] * 1.045, 0.0, 255.0)
+                rgb[:, :, 1] = np.clip(rgb[:, :, 1] * 1.015, 0.0, 255.0)
+                rgb[:, :, 2] = np.clip(rgb[:, :, 2] * 0.955, 0.0, 255.0)
+
             lum = 0.299 * rgb[:, :, 0] + 0.587 * rgb[:, :, 1] + 0.114 * rgb[:, :, 2]
             fg_lum = lum[fg_mask]
             p50 = float(np.percentile(fg_lum, 50))
             p92 = float(np.percentile(fg_lum, 92))
 
+            target_peak = 246.0 if filter_mode == "crisp_white" else 242.0
             gain = 1.0
             if p92 < 238.0 and p92 > 40.0:
-                gain = min(1.24, 242.0 / p92)
+                gain = min(1.26, target_peak / p92)
             gamma = 1.0
-            if p50 * gain < 155.0:
-                gamma = max(0.78, min(0.95, (p50 * gain) / 168.0))
+            if p50 * gain < 158.0:
+                gamma = max(0.76, min(0.95, (p50 * gain) / 170.0))
 
             norm = np.clip((rgb * gain) / 255.0, 0.0, 1.0)
             if gamma < 0.99:
                 norm = norm ** gamma
 
-            norm = np.clip(0.5 + (norm - 0.5) * 1.07, 0.0, 1.0)
+            contrast_k = 1.12 if filter_mode == "vivid_pop" else (1.09 if filter_mode == "sharp_detail" else 1.07)
+            norm = np.clip(0.5 + (norm - 0.5) * contrast_k, 0.0, 1.0)
 
             h, w, _ = rgb.shape
             xs = np.linspace(0.0, 1.0, w, dtype=np.float32)[np.newaxis, :, np.newaxis]
-            softbox_sheen = 1.0 + 0.045 * np.exp(-((xs - 0.36) ** 2) / (2.0 * (0.18 ** 2)))
+            sheen_amp = 0.055 if filter_mode in ("vivid_pop", "warm_luxury") else 0.045
+            softbox_sheen = 1.0 + sheen_amp * np.exp(-((xs - 0.36) ** 2) / (2.0 * (0.18 ** 2)))
             norm = np.clip(norm * softbox_sheen, 0.0, 1.0)
 
             rgb_img = Image.fromarray((norm * 255.0).astype(np.uint8), mode="RGB")
     except Exception as e:
         logger.debug("Studio relighting fallback: %s", e)
 
-    rgb_img = ImageEnhance.Color(rgb_img).enhance(1.10)
-    rgb_img = rgb_img.filter(ImageFilter.UnsharpMask(radius=1.6, percent=130, threshold=2))
+    sat_factor = 1.24 if filter_mode == "vivid_pop" else (0.96 if filter_mode == "crisp_white" else 1.10)
+    rgb_img = ImageEnhance.Color(rgb_img).enhance(sat_factor)
+
+    if filter_mode == "sharp_detail":
+        rgb_img = rgb_img.filter(ImageFilter.UnsharpMask(radius=1.8, percent=165, threshold=2))
+    else:
+        rgb_img = rgb_img.filter(ImageFilter.UnsharpMask(radius=1.6, percent=130, threshold=2))
+
     r2, g2, b2 = rgb_img.split()
     return Image.merge("RGBA", (r2, g2, b2, a))
 
@@ -1020,9 +1154,10 @@ def _remove_background_smart(img: Image.Image) -> Image.Image:
 
 def _create_studio_stage(target_size: int, bg_style: str = "studio_white") -> Image.Image:
     """
-    Creates a seamless, artifact-free 3D photography studio cyclorama backdrop.
-    Uses a continuous 2D mathematical lighting shader so there is zero black alpha-blur bleeding.
+    Creates a seamless, artifact-free 3D luxury boutique photography stage.
+    Supports: 'studio_white', 'studio_dark', 'studio_gold', 'studio_marble'.
     """
+    bg_style = (bg_style or "studio_white").strip().lower()
     try:
         import numpy as np
 
@@ -1034,21 +1169,60 @@ def _create_studio_stage(target_size: int, bg_style: str = "studio_white") -> Im
 
         floor_t = np.clip((yy / target_size - 0.68) / 0.32, 0.0, 1.0)
         horizon_dip = np.exp(-(((yy / target_size) - 0.74) ** 2) / (2.0 * (0.045 ** 2)))
+        floor_sheen = np.exp(-(((yy / target_size) - 0.79) ** 2) / (2.0 * (0.07 ** 2))) * np.clip(1.0 - np.abs(nx) * 0.75, 0.0, 1.0)
 
         if bg_style == "studio_dark":
-            r = 8.0 + 22.0 * spot - 4.0 * horizon_dip + 6.0 * (floor_t ** 1.4)
-            g = 13.0 + 34.0 * spot - 6.0 * horizon_dip + 10.0 * (floor_t ** 1.4)
-            b = 26.0 + 58.0 * spot - 8.0 * horizon_dip + 18.0 * (floor_t ** 1.4)
+            r = 8.0 + 24.0 * spot - 4.0 * horizon_dip + 8.0 * (floor_t ** 1.4) + 10.0 * floor_sheen
+            g = 13.0 + 36.0 * spot - 6.0 * horizon_dip + 12.0 * (floor_t ** 1.4) + 16.0 * floor_sheen
+            b = 26.0 + 62.0 * spot - 8.0 * horizon_dip + 22.0 * (floor_t ** 1.4) + 28.0 * floor_sheen
+        elif bg_style == "studio_gold":
+            r = 240.0 + 15.0 * spot - 7.0 * horizon_dip - 4.0 * (floor_t ** 1.5) + 6.0 * floor_sheen
+            g = 234.0 + 17.0 * spot - 8.0 * horizon_dip - 6.0 * (floor_t ** 1.5) + 5.0 * floor_sheen
+            b = 220.0 + 16.0 * spot - 10.0 * horizon_dip - 9.0 * (floor_t ** 1.5) + 3.0 * floor_sheen
+        elif bg_style == "studio_marble":
+            vein = np.sin((xx * 0.015 + yy * 0.008) + np.sin(yy * 0.012) * 1.4) * 3.2
+            r = 228.0 + 20.0 * spot - 7.0 * horizon_dip - 4.0 * (floor_t ** 1.4) + vein * 0.6 + 6.0 * floor_sheen
+            g = 232.0 + 18.0 * spot - 6.0 * horizon_dip - 3.0 * (floor_t ** 1.4) + vein * 0.6 + 6.0 * floor_sheen
+            b = 238.0 + 15.0 * spot - 5.0 * horizon_dip - 2.0 * (floor_t ** 1.4) + vein * 0.8 + 7.0 * floor_sheen
         else:
-            r = 238.0 + 17.0 * spot - 6.0 * horizon_dip - 3.0 * (floor_t ** 1.5)
-            g = 242.0 + 13.0 * spot - 5.0 * horizon_dip - 2.0 * (floor_t ** 1.5)
-            b = 248.0 + 7.0 * spot - 3.0 * horizon_dip - 1.0 * (floor_t ** 1.5)
+            r = 238.0 + 17.0 * spot - 6.0 * horizon_dip - 3.0 * (floor_t ** 1.5) + 4.0 * floor_sheen
+            g = 242.0 + 13.0 * spot - 5.0 * horizon_dip - 2.0 * (floor_t ** 1.5) + 4.0 * floor_sheen
+            b = 248.0 + 7.0 * spot - 3.0 * horizon_dip - 1.0 * (floor_t ** 1.5) + 3.0 * floor_sheen
 
         rgb = np.stack([np.clip(r, 0, 255), np.clip(g, 0, 255), np.clip(b, 0, 255)], axis=-1).astype(np.uint8)
         return Image.fromarray(rgb, mode="RGB").convert("RGBA")
     except Exception:
         base_col = (10, 15, 28, 255) if bg_style == "studio_dark" else (246, 248, 252, 255)
         return Image.new("RGBA", (target_size, target_size), base_col)
+
+
+def _paste_luxury_floor_reflection(canvas: Image.Image, prod_rgba: Image.Image, px: int, py: int, bg_style: str = "studio_white") -> Image.Image:
+    """
+    Renders a subtle polished-showroom mirror reflection directly beneath the product base.
+    """
+    try:
+        import numpy as np
+
+        cw, ch = canvas.size
+        pw, ph = prod_rgba.size
+        ref_h = max(18, min(int(ph * 0.24), ch - (py + ph) - 12))
+        if ref_h < 18:
+            return canvas
+
+        flipped = ImageOps.flip(prod_rgba).crop((0, 0, pw, ref_h))
+        blurred = flipped.filter(ImageFilter.GaussianBlur(radius=2.2))
+
+        arr = np.asarray(blurred, dtype=np.float32)
+        fade = np.linspace(1.0, 0.0, ref_h, dtype=np.float32)[:, np.newaxis] ** 1.9
+        max_opacity = 0.17 if bg_style == "studio_dark" else 0.13
+        arr[:, :, 3] = np.clip(arr[:, :, 3] * fade * max_opacity, 0.0, 255.0)
+        ref_img = Image.fromarray(arr.astype(np.uint8), mode="RGBA")
+
+        layer = Image.new("RGBA", (cw, ch), (0, 0, 0, 0))
+        layer.paste(ref_img, (px, py + ph - 2), ref_img)
+        return Image.alpha_composite(canvas, layer)
+    except Exception:
+        return canvas
 
 
 def _paste_soft_shadow_from_alpha(
@@ -1162,9 +1336,16 @@ def process_camera_product_snapshot(
     target_size=800,
     store_name=None,
     bg_style="studio_white",
+    manual_rotate=0.0,
+    crop_box=None,
+    crop_polygon=None,
+    auto_straighten=True,
+    filter_mode="auto_hdr",
 ):
     """
     Transforms a raw mobile camera product photo into an ultra-luxury e-commerce studio shot.
+    Supports manual freeform polygon crop, multi-direction bounding box crop, manual rotation,
+    automatic tilt/slant correction, luxury showroom floor reflections, and studio filters.
     """
     try:
         if isinstance(image_file, Image.Image):
@@ -1188,8 +1369,59 @@ def process_camera_product_snapshot(
         if max(img.size) > max_dim:
             img.thumbnail((max_dim, max_dim), Image.Resampling.LANCZOS)
 
+        # 1. Apply user rotation first (if requested) so crop coordinates align with what the user sees
+        try:
+            rot_deg = float(manual_rotate or 0.0)
+        except (TypeError, ValueError):
+            rot_deg = 0.0
+        if abs(rot_deg) >= 0.2:
+            # Negative angle so positive slider rotates clockwise intuitively in UI
+            img = img.rotate(-rot_deg, resample=Image.Resampling.BICUBIC, expand=True, fillcolor=(0, 0, 0, 0))
+
+        # 2. Apply user freeform polygon selection (if provided) — overrides/guides AI around exact user boundary
+        user_poly_applied = False
+        if crop_polygon and isinstance(crop_polygon, (list, tuple)) and len(crop_polygon) >= 3:
+            try:
+                iw, ih = img.size
+                pts = []
+                for pt in crop_polygon:
+                    if isinstance(pt, (list, tuple)) and len(pt) >= 2:
+                        px_pt = max(0.0, min(float(iw), float(pt[0]) * iw))
+                        py_pt = max(0.0, min(float(ih), float(pt[1]) * ih))
+                        pts.append((px_pt, py_pt))
+                if len(pts) >= 3:
+                    poly_mask = Image.new("L", (iw, ih), 0)
+                    ImageDraw.Draw(poly_mask).polygon(pts, fill=255)
+                    poly_mask = poly_mask.filter(ImageFilter.GaussianBlur(radius=1.2))
+                    orig_a = img.getchannel("A")
+                    import numpy as np
+                    combined_a = np.minimum(np.asarray(orig_a, dtype=np.uint8), np.asarray(poly_mask, dtype=np.uint8))
+                    img.putalpha(Image.fromarray(combined_a, mode="L"))
+                    pb = poly_mask.getbbox()
+                    if pb and (pb[2] - pb[0]) > 20 and (pb[3] - pb[1]) > 20:
+                        img = img.crop(pb)
+                        user_poly_applied = True
+            except Exception as poly_exc:
+                logger.warning("Polygon crop skipped: %s", poly_exc)
+
+        # 3. Apply user 8-handle / multi-direction rectangular crop box (if provided)
+        if not user_poly_applied and crop_box and isinstance(crop_box, (list, tuple)) and len(crop_box) == 4:
+            try:
+                iw, ih = img.size
+                x1 = max(0, min(iw - 1, int(float(crop_box[0]) * iw)))
+                y1 = max(0, min(ih - 1, int(float(crop_box[1]) * ih)))
+                x2 = max(x1 + 20, min(iw, int(float(crop_box[2]) * iw)))
+                y2 = max(y1 + 20, min(ih, int(float(crop_box[3]) * ih)))
+                if (x2 - x1) > 20 and (y2 - y1) > 20:
+                    img = img.crop((x1, y1, x2, y2))
+            except Exception as box_exc:
+                logger.warning("Crop box skipped: %s", box_exc)
+
         if isolate_white:
-            if _has_meaningful_alpha(img):
+            if user_poly_applied:
+                # User manually drew the exact polygon cutout; heal edges without wiping user selection
+                img = _heal_transparent_rgb_fringe(img)
+            elif _has_meaningful_alpha(img):
                 try:
                     import numpy as np
 
@@ -1218,6 +1450,10 @@ def process_camera_product_snapshot(
             else:
                 img = _remove_background_smart(img)
 
+            # 4. Automatic tilt/slant correction (تصحيح الميلان التلقائي) if enabled & user didn't rotate manually
+            if auto_straighten and abs(rot_deg) < 0.2:
+                img = _auto_straighten_tilted_product(img)
+
             alpha = img.getchannel("A")
             bbox = alpha.point(lambda a: 255 if a > 32 else 0).getbbox()
             if bbox:
@@ -1229,31 +1465,34 @@ def process_camera_product_snapshot(
             w, h = img.size
             canvas = _create_studio_stage(target_size, bg_style=bg_style)
 
-            max_prod_w = int(target_size * 0.75)
-            max_prod_h = int(target_size * 0.72)
+            max_prod_w = int(target_size * 0.74)
+            max_prod_h = int(target_size * 0.70)
             scale = min(max_prod_w / w, max_prod_h / h)
             nw = max(16, int(w * scale))
             nh = max(16, int(h * scale))
             resized_prod = img.resize((nw, nh), Image.Resampling.LANCZOS)
 
-            resized_prod = _apply_studio_relighting(resized_prod)
+            resized_prod = _apply_studio_relighting(resized_prod, filter_mode=filter_mode)
             prod_alpha = resized_prod.getchannel("A")
 
             px = (target_size - nw) // 2
             py = int(target_size * 0.435) - (nh // 2)
             py = max(int(target_size * 0.045), py)
 
-            # 1. Soft 360-degree 3D Silhouette Ambient Drop Shadow
+            # 1. Luxury Showroom Floor Mirror Reflection
+            canvas = _paste_luxury_floor_reflection(canvas, resized_prod, px, py, bg_style=bg_style)
+
+            # 2. Soft 360-degree 3D Silhouette Ambient Drop Shadow
             canvas = _paste_soft_shadow_from_alpha(
                 canvas,
                 prod_alpha,
                 (px, py + 6),
                 shadow_rgb=(15, 23, 42),
-                opacity_scale=0.16 if bg_style == "studio_white" else 0.42,
+                opacity_scale=0.16 if bg_style != "studio_dark" else 0.42,
                 blur_radius=max(12, target_size // 48),
             )
 
-            # 2. Grounding Studio Floor Contact Shadow directly under product base
+            # 3. Grounding Studio Floor Contact Shadow directly under product base
             shadow_w = max(32, int(nw * 0.84))
             shadow_h = max(14, int(target_size * 0.038))
             sx1 = (target_size - shadow_w) // 2
@@ -1273,17 +1512,16 @@ def process_camera_product_snapshot(
             floor_shadow.putalpha(floor_alpha)
             canvas = Image.alpha_composite(canvas, floor_shadow)
 
-            # 3. Composite isolated & relit product
+            # 4. Composite isolated & relit product
             canvas.paste(resized_prod, (px, py), resized_prod)
         else:
+            img = _apply_studio_relighting(img, filter_mode=filter_mode)
             w, h = img.size
             min_side = min(w, h)
             crop_x = (w - min_side) // 2
             crop_y = (h - min_side) // 2
             square_img = img.crop((crop_x, crop_y, crop_x + min_side, crop_y + min_side))
             canvas = square_img.resize((target_size, target_size), Image.Resampling.LANCZOS)
-            canvas = ImageEnhance.Contrast(canvas).enhance(1.06)
-            canvas = ImageEnhance.Sharpness(canvas).enhance(1.18)
 
         if add_hallmark:
             canvas = _apply_raqamiyat_branding(canvas, target_size, bg_style=bg_style)
