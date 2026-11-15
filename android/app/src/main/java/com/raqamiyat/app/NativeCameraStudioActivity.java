@@ -451,9 +451,50 @@ public class NativeCameraStudioActivity extends AppCompatActivity {
         }
         if (totalCenter == 0) return false;
         float centerFill = (float) opaqueCenter / (float) totalCenter;
-        // If center fill < 0.52, ML Kit likely hollowed out a white/bright product body;
-        // send the full RGB image so the server AI reconstructs the full product body cleanly.
-        return centerFill >= 0.52f;
+        if (centerFill < 0.58f) return false;
+
+        // Also check that ML Kit did not carve away the upper-left/right white margins of a rectangular card/box
+        int topY1 = (int) (h * 0.22f);
+        int topY2 = (int) (h * 0.44f);
+        int botY1 = (int) (h * 0.56f);
+        int botY2 = (int) (h * 0.76f);
+        int topSpanSum = 0, topRows = 0;
+        int botSpanSum = 0, botRows = 0;
+        for (int y = topY1; y < topY2; y += step) {
+            int xl = -1, xr = -1;
+            for (int x = 0; x < w; x += step) {
+                if (((fg.getPixel(x, y) >>> 24) & 0xFF) > 150) {
+                    if (xl == -1) xl = x;
+                    xr = x;
+                }
+            }
+            if (xl != -1 && xr > xl) {
+                topSpanSum += (xr - xl);
+                topRows++;
+            }
+        }
+        for (int y = botY1; y < botY2; y += step) {
+            int xl = -1, xr = -1;
+            for (int x = 0; x < w; x += step) {
+                if (((fg.getPixel(x, y) >>> 24) & 0xFF) > 150) {
+                    if (xl == -1) xl = x;
+                    xr = x;
+                }
+            }
+            if (xl != -1 && xr > xl) {
+                botSpanSum += (xr - xl);
+                botRows++;
+            }
+        }
+        if (topRows > 0 && botRows > 0) {
+            float avgTopW = (float) topSpanSum / topRows;
+            float avgBotW = (float) botSpanSum / botRows;
+            if (avgBotW > w * 0.25f && avgTopW < avgBotW * 0.82f) {
+                // Likely white blister card whose upper sides blended into a bright wall on-device; send full RGB
+                return false;
+            }
+        }
+        return true;
     }
 
     private void processBitmapWithBackgroundRemoval(Bitmap bitmap) {

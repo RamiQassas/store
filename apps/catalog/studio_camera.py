@@ -2,6 +2,7 @@ import io
 import os
 import sys
 import logging
+import threading
 import subprocess
 from collections import deque
 from PIL import Image, ImageOps, ImageEnhance, ImageFilter, ImageDraw
@@ -12,23 +13,67 @@ logger = logging.getLogger(__name__)
 MASTER_BADGE_PATH = os.path.join(settings.BASE_DIR, "apps", "catalog", "assets", "raqamiyat_master_badge.png")
 EMBLEM_PATH = os.path.join(settings.BASE_DIR, "apps", "catalog", "assets", "raqamiyat_emblem.png")
 U2NETP_ONNX_PATH = os.path.join(settings.BASE_DIR, "apps", "catalog", "assets", "u2netp.onnx")
+ISNET_ONNX_PATH = os.path.join(settings.BASE_DIR, "apps", "catalog", "assets", "isnet-general-use.onnx")
+
 U2NETP_FALLBACK_URL = "https://github.com/danielgatis/rembg/releases/download/v0.0.0/u2netp.onnx"
+ISNET_FALLBACK_URL = "https://github.com/danielgatis/rembg/releases/download/v0.0.0/isnet-general-use.onnx"
 
 _ORT_SESSION = None
+_ORT_ISNET_SESSION = None
 _ORT_INIT_ATTEMPTED = False
+_ISNET_DOWNLOAD_STARTED = False
+
+
+def _download_isnet_in_background():
+    """Downloads the 1024x1024 IS-Net e-commerce segmentation model in the background if not present."""
+    global _ORT_ISNET_SESSION
+    try:
+        if not os.path.exists(ISNET_ONNX_PATH) or os.path.getsize(ISNET_ONNX_PATH) < 50_000_000:
+            os.makedirs(os.path.dirname(ISNET_ONNX_PATH), exist_ok=True)
+            import requests
+
+            tmp_path = ISNET_ONNX_PATH + ".tmp"
+            with requests.get(ISNET_FALLBACK_URL, stream=True, timeout=60) as r:
+                if r.status_code == 200:
+                    with open(tmp_path, "wb") as f:
+                        for chunk in r.iter_content(chunk_size=1024 * 512):
+                            if chunk:
+                                f.write(chunk)
+                    if os.path.exists(tmp_path) and os.path.getsize(tmp_path) > 50_000_000:
+                        os.replace(tmp_path, ISNET_ONNX_PATH)
+
+        if os.path.exists(ISNET_ONNX_PATH) and os.path.getsize(ISNET_ONNX_PATH) > 50_000_000:
+            import onnxruntime as ort
+
+            sess_opts = ort.SessionOptions()
+            sess_opts.intra_op_num_threads = 2
+            sess_opts.inter_op_num_threads = 1
+            _ORT_ISNET_SESSION = ort.InferenceSession(
+                ISNET_ONNX_PATH,
+                sess_options=sess_opts,
+                providers=["CPUExecutionProvider"],
+            )
+            logger.info("Loaded 1024x1024 IS-Net high-precision segmentation model for Studio Camera.")
+    except Exception as e:
+        logger.debug("Background IS-Net download/init skipped: %s", e)
 
 
 def _ensure_ai_runtime():
     """
-    Lazily loads the ONNX Runtime session for U2Netp Salient Object Detection.
-    If numpy/onnxruntime are not yet installed in the container, attempts a fast
-    one-time pip install so the live server upgrades without requiring Docker rebuild.
+    Lazily loads the ONNX Runtime session for Salient Object & Dichotomous Image Segmentation.
+    Uses 1024x1024 IS-Net when available on disk, and 320x320 U2Netp as immediate fast model.
     """
-    global _ORT_SESSION, _ORT_INIT_ATTEMPTED
+    global _ORT_SESSION, _ORT_ISNET_SESSION, _ORT_INIT_ATTEMPTED, _ISNET_DOWNLOAD_STARTED
+    if not _ISNET_DOWNLOAD_STARTED:
+        _ISNET_DOWNLOAD_STARTED = True
+        threading.Thread(target=_download_isnet_in_background, daemon=True).start()
+
+    if _ORT_ISNET_SESSION is not None:
+        return _ORT_ISNET_SESSION, "isnet"
     if _ORT_SESSION is not None:
-        return _ORT_SESSION
+        return _ORT_SESSION, "u2netp"
     if _ORT_INIT_ATTEMPTED:
-        return None
+        return None, None
     _ORT_INIT_ATTEMPTED = True
 
     try:
@@ -46,13 +91,28 @@ def _ensure_ai_runtime():
             import onnxruntime as ort
         except Exception as e:
             logger.warning("Could not load/install onnxruntime for studio camera: %s", e)
-            return None
+            return None, None
+
+    try:
+        if os.path.exists(ISNET_ONNX_PATH) and os.path.getsize(ISNET_ONNX_PATH) > 50_000_000:
+            sess_opts = ort.SessionOptions()
+            sess_opts.intra_op_num_threads = 2
+            sess_opts.inter_op_num_threads = 1
+            _ORT_ISNET_SESSION = ort.InferenceSession(
+                ISNET_ONNX_PATH,
+                sess_options=sess_opts,
+                providers=["CPUExecutionProvider"],
+            )
+            return _ORT_ISNET_SESSION, "isnet"
+    except Exception:
+        pass
 
     try:
         model_path = U2NETP_ONNX_PATH
         if not os.path.exists(model_path) or os.path.getsize(model_path) < 1000000:
             os.makedirs(os.path.dirname(model_path), exist_ok=True)
             import requests
+
             r = requests.get(U2NETP_FALLBACK_URL, timeout=25)
             if r.status_code == 200 and len(r.content) > 1000000:
                 with open(model_path, "wb") as f:
@@ -67,10 +127,10 @@ def _ensure_ai_runtime():
                 sess_options=sess_opts,
                 providers=["CPUExecutionProvider"],
             )
-            return _ORT_SESSION
+            return _ORT_SESSION, "u2netp"
     except Exception as e:
         logger.warning("Failed initializing U2Netp ONNX session: %s", e)
-    return None
+    return None, None
 
 
 def _has_meaningful_alpha(img: Image.Image) -> bool:
@@ -91,21 +151,30 @@ def _has_meaningful_alpha(img: Image.Image) -> bool:
     return sum(1 for c in corners if c < 40) >= 2
 
 
-def _run_u2net_pass(sess, rgb_img: Image.Image):
-    """Runs a single 320x320 U2Netp forward pass and returns a [0..1] float32 salience map."""
+def _run_ai_pass(sess, model_kind: str, rgb_img: Image.Image):
+    """Runs either 1024x1024 IS-Net or 320x320 U2Netp forward pass and returns a [0..1] float32 map."""
     import numpy as np
 
-    inp = rgb_img.resize((320, 320), Image.Resampling.BILINEAR)
-    arr = np.asarray(inp, dtype=np.float32)
-    max_val = float(arr.max())
-    if max_val > 0:
-        arr = arr / max_val
-    arr[:, :, 0] = (arr[:, :, 0] - 0.485) / 0.229
-    arr[:, :, 1] = (arr[:, :, 1] - 0.456) / 0.224
-    arr[:, :, 2] = (arr[:, :, 2] - 0.406) / 0.225
-    tensor = np.transpose(arr, (2, 0, 1))[np.newaxis, :, :, :].astype(np.float32)
-    input_name = sess.get_inputs()[0].name
-    pred = sess.run(None, {input_name: tensor})[0][0, 0]
+    if model_kind == "isnet":
+        inp = rgb_img.resize((1024, 1024), Image.Resampling.BILINEAR)
+        arr = np.asarray(inp, dtype=np.float32) / 255.0
+        arr = arr - 0.5
+        tensor = np.transpose(arr, (2, 0, 1))[np.newaxis, :, :, :].astype(np.float32)
+        input_name = sess.get_inputs()[0].name
+        pred = sess.run(None, {input_name: tensor})[0][0, 0]
+    else:
+        inp = rgb_img.resize((320, 320), Image.Resampling.BILINEAR)
+        arr = np.asarray(inp, dtype=np.float32)
+        max_val = float(arr.max())
+        if max_val > 0:
+            arr = arr / max_val
+        arr[:, :, 0] = (arr[:, :, 0] - 0.485) / 0.229
+        arr[:, :, 1] = (arr[:, :, 1] - 0.456) / 0.224
+        arr[:, :, 2] = (arr[:, :, 2] - 0.406) / 0.225
+        tensor = np.transpose(arr, (2, 0, 1))[np.newaxis, :, :, :].astype(np.float32)
+        input_name = sess.get_inputs()[0].name
+        pred = sess.run(None, {input_name: tensor})[0][0, 0]
+
     p_min, p_max = float(pred.min()), float(pred.max())
     if p_max - p_min > 1e-6:
         pred = (pred - p_min) / (p_max - p_min)
@@ -118,12 +187,12 @@ def _filter_central_components_and_fill_holes(mask_320):
     """
     Keeps only the primary foreground subject connected to the central camera guide frame,
     eliminating disconnected background room clutter (cords, plants, side boxes, wall marks),
-    and fills interior holes inside the subject.
+    and fills interior holes inside the subject body.
     """
     import numpy as np
 
     h, w = mask_320.shape
-    binary = mask_320 > 0.36
+    binary = mask_320 > 0.32
     if not binary.any():
         return mask_320
 
@@ -133,8 +202,8 @@ def _filter_central_components_and_fill_holes(mask_320):
     cur_label = 0
 
     cx_ideal, cy_ideal = w * 0.50, h * 0.48
-    core_x1, core_x2 = int(w * 0.28), int(w * 0.72)
-    core_y1, core_y2 = int(h * 0.18), int(h * 0.82)
+    core_x1, core_x2 = int(w * 0.26), int(w * 0.74)
+    core_y1, core_y2 = int(h * 0.16), int(h * 0.84)
 
     for y in range(h):
         for x in range(w):
@@ -176,9 +245,9 @@ def _filter_central_components_and_fill_holes(mask_320):
                 core_fraction = core_hits / float(area)
                 mean_prob = prob_sum / float(area)
 
-                if core_fraction < 0.15 and dist_norm > 0.24:
+                if core_fraction < 0.14 and dist_norm > 0.25:
                     continue
-                if touches_outer_edge and core_fraction < 0.35:
+                if touches_outer_edge and core_fraction < 0.32:
                     continue
 
                 center_weight = max(0.05, 1.0 - dist_norm * 1.65)
@@ -196,12 +265,15 @@ def _filter_central_components_and_fill_holes(mask_320):
         if lbl == best_label:
             continue
         horiz_dist = abs(mx - best_x) / float(w)
-        if cf > 0.55 and horiz_dist < 0.14 and sc >= best_score * 0.08:
-            keep_mask |= (labels == lbl)
+        # Keep vertically aligned parts of the same product (e.g. top arch/text of white packaging)
+        if (cf > 0.35 and horiz_dist < 0.22 and sc >= best_score * 0.015) or (
+            horiz_dist < 0.16 and 0.08 * h <= my <= 0.88 * h and area >= 18
+        ):
+            keep_mask |= labels == lbl
 
     cleaned = np.where(keep_mask, mask_320, 0.0).astype(np.float32)
 
-    fg_solid = cleaned > 0.30
+    fg_solid = cleaned > 0.28
     bg_reach = np.zeros((h, w), dtype=bool)
     bg_q = deque()
     for x in range(w):
@@ -231,6 +303,221 @@ def _filter_central_components_and_fill_holes(mask_320):
     return cleaned
 
 
+def _remove_bottom_display_stand(mask_arr):
+    """
+    Detects and removes physical display stands, metal clip holders, or pedestals underneath
+    a photographed product (such as the brass/wooden stand under the SanDisk blister card).
+    Signature: in the lower 42% of the product bounding box, the horizontal span drops sharply
+    from the wide product body (>= 0.72 * body_width) down to a narrow support stem (<= 0.42 * body_width).
+    """
+    try:
+        import numpy as np
+
+        h, w = mask_arr.shape
+        fg = mask_arr > 95
+        ys = np.where(fg.any(axis=1))[0]
+        if len(ys) < 40:
+            return mask_arr
+
+        y0, y1 = int(ys[0]), int(ys[-1])
+        fh = y1 - y0 + 1
+        spans = np.zeros(fh, dtype=np.float32)
+        xl_arr = np.zeros(fh, dtype=np.float32)
+        xr_arr = np.zeros(fh, dtype=np.float32)
+        for i, y in enumerate(range(y0, y1 + 1)):
+            xs = np.where(fg[y])[0]
+            if len(xs) > 0:
+                xl_arr[i] = float(xs[0])
+                xr_arr[i] = float(xs[-1])
+                spans[i] = float(xs[-1] - xs[0])
+
+        body_spans = spans[int(fh * 0.25) : int(fh * 0.72)]
+        if len(body_spans) < 10:
+            return mask_arr
+        w_body = float(np.percentile(body_spans, 75))
+        if w_body < 24:
+            return mask_arr
+
+        # Search in lower 42% of height for a narrow stand stem / neck
+        search_start = int(fh * 0.56)
+        search_end = int(fh * 0.96)
+        neck_thresh = w_body * 0.44
+
+        neck_idx = None
+        for i in range(search_start, search_end):
+            if spans[i] <= neck_thresh:
+                # Confirm there was a wide product body above this neck
+                above_max = float(np.max(spans[max(0, i - int(fh * 0.14)) : i])) if i > 4 else 0.0
+                if above_max >= w_body * 0.72:
+                    neck_idx = i
+                    break
+
+        if neck_idx is None:
+            return mask_arr
+
+        # Walk upward from neck_idx to find the exact flat bottom edge of the product body
+        cut_idx = neck_idx
+        target_full_w = float(np.percentile(spans[max(0, neck_idx - int(fh * 0.18)) : neck_idx], 85))
+        for j in range(neck_idx, max(search_start - 10, neck_idx - int(fh * 0.14)), -1):
+            if spans[j] >= target_full_w * 0.96:
+                cut_idx = j
+                break
+
+        # Trim ~3.2% of height above cut_idx to completely shave off metal stand clips gripping the bottom edge
+        clip_trim = max(7, int(fh * 0.034))
+        y_cut = max(y0 + int(fh * 0.50), y0 + cut_idx - clip_trim)
+        out = mask_arr.copy()
+        out[y_cut:, :] = 0
+        return out
+    except Exception:
+        return mask_arr
+
+
+def _restore_white_card_margins_and_hang_hole(rgba_img: Image.Image, mask_arr):
+    """
+    1. When a rectangular/trapezoidal white blister card (e.g. SanDisk package) has straight
+       lower walls (y in 50%..92%), but its white cardboard upper sides (y in 8%..55%) were
+       indented inward because white cardboard blended into a bright wall or was clipped by
+       on-device segmentation, restores the full symmetrical blister card profile.
+    2. Punches out any background/skin trapped inside the top-center Euro-slot hang hole.
+    """
+    try:
+        import numpy as np
+
+        h, w = mask_arr.shape
+        fg = mask_arr > 95
+        ys = np.where(fg.any(axis=1))[0]
+        if len(ys) < 40:
+            return rgba_img, mask_arr
+
+        y0, y1 = int(ys[0]), int(ys[-1])
+        fh = y1 - y0 + 1
+        xl = np.zeros(fh, dtype=np.float32)
+        xr = np.zeros(fh, dtype=np.float32)
+        for i, y in enumerate(range(y0, y1 + 1)):
+            xs = np.where(fg[y])[0]
+            if len(xs) > 0:
+                xl[i] = float(xs[0])
+                xr[i] = float(xs[-1])
+
+        # Check lower body (52%..92% of height) for straight vertical card walls
+        b_s, b_e = int(fh * 0.52), int(fh * 0.92)
+        if b_e - b_s < 12:
+            return rgba_img, mask_arr
+
+        xl_bot_med = float(np.median(xl[b_s:b_e]))
+        xr_bot_med = float(np.median(xr[b_s:b_e]))
+        w_bot = xr_bot_med - xl_bot_med
+        if w_bot < 36:
+            return rgba_img, mask_arr
+
+        std_l = float(np.std(xl[b_s:b_e]))
+        std_r = float(np.std(xr[b_s:b_e]))
+
+        white_bg = Image.new("RGBA", (w, h), (248, 249, 251, 255))
+        comp_rgb = np.asarray(Image.alpha_composite(white_bg, rgba_img.convert("RGBA")).convert("RGB"), dtype=np.float32)
+        lum = 0.299 * comp_rgb[:, :, 0] + 0.587 * comp_rgb[:, :, 1] + 0.114 * comp_rgb[:, :, 2]
+
+        # Check upper half brightness (12%..48% of height)
+        u_y1, u_y2 = y0 + int(fh * 0.12), y0 + int(fh * 0.48)
+        u_x1, u_x2 = int(xl_bot_med + w_bot * 0.15), int(xr_bot_med - w_bot * 0.15)
+        upper_bright = False
+        if u_y2 > u_y1 and u_x2 > u_x1:
+            upper_patch = lum[u_y1:u_y2, u_x1:u_x2]
+            upper_bright = float(np.percentile(upper_patch, 75)) > 205.0
+
+        # Check if upper sides (12%..48%) are indented compared to lower straight card walls
+        u_idx1, u_idx2 = int(fh * 0.12), int(fh * 0.48)
+        indent_l = float(np.median(xl[u_idx1:u_idx2]) - xl_bot_med)
+        indent_r = float(xr_bot_med - np.median(xr[u_idx1:u_idx2]))
+
+        out_rgb = comp_rgb.copy()
+        out_mask = mask_arr.copy()
+
+        # Distinguish a blister card from a narrow-capped bottle:
+        # On a blister card, the indentation extends deep down to 35%..50% of height AND the upper region is bright white card
+        mid_indent_l = float(np.median(xl[int(fh * 0.22) : int(fh * 0.45)]) - xl_bot_med)
+        mid_indent_r = float(xr_bot_med - np.median(xr[int(fh * 0.22) : int(fh * 0.45)]))
+
+        if upper_bright and std_l < w_bot * 0.045 and std_r < w_bot * 0.045 and (mid_indent_l > w_bot * 0.05 or mid_indent_r > w_bot * 0.05):
+            # Sample clean white card color from bright pixels in upper half
+            card_samples = comp_rgb[u_y1:u_y2, u_x1:u_x2][lum[u_y1:u_y2, u_x1:u_x2] > 215]
+            card_col = np.median(card_samples, axis=0) if len(card_samples) > 10 else np.array([244.0, 246.0, 244.0])
+
+            card_mask_pil = Image.new("L", (w, h), 0)
+            cdraw = ImageDraw.Draw(card_mask_pil)
+            # Gentle retail blister card taper in top 45% ( narrows by only ~5% at top shoulder with rounded top corners )
+            top_inset = w_bot * 0.045
+            corner_r = max(8, int(w_bot * 0.11))
+            pts_card = [
+                (xl_bot_med + top_inset + corner_r, y0 + 2),
+                (xr_bot_med - top_inset - corner_r, y0 + 2),
+                (xr_bot_med - top_inset, y0 + 2 + corner_r),
+                (xr_bot_med, y0 + int(fh * 0.46)),
+                (xr_bot_med, y1),
+                (xl_bot_med, y1),
+                (xl_bot_med, y0 + int(fh * 0.46)),
+                (xl_bot_med + top_inset, y0 + 2 + corner_r),
+            ]
+            cdraw.polygon(pts_card, fill=255)
+            card_mask_pil = card_mask_pil.filter(ImageFilter.GaussianBlur(radius=1.5))
+            card_env = np.asarray(card_mask_pil, dtype=np.uint8)
+
+            # Where card_env expands beyond the indented mask in the upper 60% of the card,
+            # fill ONLY completely transparent outer pixels (never overwrite interior text/graphics!)
+            orig_a = np.asarray(rgba_img.getchannel("A"), dtype=np.float32) / 255.0
+            in_upper = np.zeros((h, w), dtype=bool)
+            in_upper[y0 : y0 + int(fh * 0.62), :] = True
+            need_card_fill = in_upper & (card_env > 120) & (mask_arr < 35) & (orig_a < 0.08)
+
+            for c_i in range(3):
+                out_rgb[:, :, c_i] = np.where(need_card_fill, card_col[c_i], out_rgb[:, :, c_i])
+            out_mask = np.where(in_upper, np.maximum(out_mask, card_env), out_mask)
+
+        # 2. Clean top rim smudge & punch out trapped background inside top-center blister Euro-slot hang hole
+        if upper_bright:
+            cx_card = int(0.5 * (xl_bot_med + xr_bot_med))
+            # Clean any dark background fringe clinging to the very top edge of the white card arch
+            top_rim_y2 = y0 + max(4, int(fh * 0.045))
+            tr_x1 = max(0, int(cx_card - w_bot * 0.25))
+            tr_x2 = min(w, int(cx_card + w_bot * 0.25))
+            if top_rim_y2 > y0 and tr_x2 > tr_x1:
+                rim_dark = lum[y0:top_rim_y2, tr_x1:tr_x2] < 195.0
+                for c_i in range(3):
+                    patch_c = out_rgb[y0:top_rim_y2, tr_x1:tr_x2, c_i]
+                    out_rgb[y0:top_rim_y2, tr_x1:tr_x2, c_i] = np.where(rim_dark, card_col[c_i], patch_c)
+
+            hh_y1 = y0 + max(4, int(fh * 0.040))
+            hh_y2 = y0 + int(fh * 0.165)
+            hh_x1 = max(0, int(cx_card - w_bot * 0.22))
+            hh_x2 = min(w, int(cx_card + w_bot * 0.22))
+            if hh_y2 > hh_y1 + 4 and hh_x2 > hh_x1 + 8:
+                slot_rgb = out_rgb[hh_y1:hh_y2, hh_x1:hh_x2]
+                slot_lum = lum[hh_y1:hh_y2, hh_x1:hh_x2]
+                slot_sat = np.max(slot_rgb, axis=2) - np.min(slot_rgb, axis=2)
+                is_hole = (slot_lum < 212.0) | ((slot_sat > 14.0) & (slot_lum < 232.0))
+                if 0.05 < float(is_hole.mean()) < 0.85:
+                    hole_mask = np.zeros((h, w), dtype=np.uint8)
+                    hole_mask[hh_y1:hh_y2, hh_x1:hh_x2] = np.where(is_hole, 255, 0).astype(np.uint8)
+                    hole_pil = (
+                        Image.fromarray(hole_mask, mode="L")
+                        .filter(ImageFilter.MaxFilter(5))
+                        .filter(ImageFilter.GaussianBlur(1.2))
+                    )
+                    hole_np = np.asarray(hole_pil, dtype=np.float32) / 255.0
+                    # Replace RGB inside hang-hole with clean card/stage white so zero brown/skin halo remains
+                    for c_i in range(3):
+                        out_rgb[:, :, c_i] = np.where(hole_np > 0.15, 246.0, out_rgb[:, :, c_i])
+                    out_mask = np.clip(out_mask.astype(np.float32) * (1.0 - hole_np), 0, 255).astype(np.uint8)
+
+        out_rgba = Image.fromarray(np.clip(out_rgb, 0, 255).astype(np.uint8), mode="RGB").convert("RGBA")
+        out_rgba.putalpha(Image.fromarray(out_mask, mode="L"))
+        return out_rgba, out_mask
+    except Exception as e:
+        logger.debug("Restore white card margins fallback: %s", e)
+        return rgba_img, mask_arr
+
+
 def _box_filter_2d(img_2d, r: int):
     """Fast O(N) 2D box filter using cumulative sums for full-resolution Guided Filtering."""
     import numpy as np
@@ -250,17 +537,15 @@ def _box_filter_2d(img_2d, r: int):
     return out.astype(np.float32)
 
 
-def _guided_filter_fullres(rgb_img: Image.Image, alpha_01, radius: int = 8, eps: float = 1e-3):
+def _guided_filter_fullres(rgb_img: Image.Image, alpha_01, radius: int = 6, eps: float = 1e-3):
     """
     Full-Resolution Edge-Preserving Guided Filter (He et al.):
-    Uses the high-resolution Samsung Galaxy S26 Ultra RGB image as a guidance tensor
-    to snap the coarse neural alpha mask directly onto 1-pixel physical optical edges.
+    Snaps coarse neural masks to 1-pixel optical edges on high-res S26 Ultra images.
     """
     import numpy as np
 
     rgb = np.asarray(rgb_img.convert("RGB"), dtype=np.float32) / 255.0
     I_g = 0.299 * rgb[:, :, 0] + 0.587 * rgb[:, :, 1] + 0.114 * rgb[:, :, 2]
-    # Also incorporate chroma channels so colored caps/labels against neutral walls have strong edge guidance
     I_c1 = rgb[:, :, 0] - rgb[:, :, 1]
     I_c2 = rgb[:, :, 2] - 0.5 * (rgb[:, :, 0] + rgb[:, :, 1])
 
@@ -285,87 +570,11 @@ def _guided_filter_fullres(rgb_img: Image.Image, alpha_01, radius: int = 8, eps:
     return np.clip(q_accum, 0.0, 1.0)
 
 
-def _color_affinity_boundary_refinement(rgb_img: Image.Image, mask_pil: Image.Image) -> Image.Image:
+def _smooth_contour_non_destructive(mask_pil: Image.Image) -> Image.Image:
     """
-    High-precision scanline Foreground/Background Color-Affinity Trimap Matting:
-    For each horizontal band of the product, compares boundary pixels against local
-    interior product colors vs exterior background colors to strip attached wall/table shadows
-    while preserving 100% of product caps, shoulders, and curved edges.
-    """
-    try:
-        import numpy as np
-
-        rgb = np.asarray(rgb_img.convert("RGB"), dtype=np.float32)
-        m_arr = np.asarray(mask_pil, dtype=np.float32) / 255.0
-        h, w = m_arr.shape
-
-        # Build trimap bands using morphological erosion (sure FG) and dilation (sure BG)
-        sure_fg_pil = mask_pil.filter(ImageFilter.MinFilter(size=9))
-        sure_bg_pil = mask_pil.filter(ImageFilter.MaxFilter(size=13))
-        sure_fg = np.asarray(sure_fg_pil, dtype=np.float32) > 200
-        sure_bg = np.asarray(sure_bg_pil, dtype=np.float32) < 25
-        unknown = (~sure_fg) & (~sure_bg)
-
-        if not unknown.any() or not sure_fg.any():
-            return mask_pil
-
-        # Global background color reference from outer borders
-        border_mask = np.zeros((h, w), dtype=bool)
-        b_pad = max(6, min(h, w) // 25)
-        border_mask[:b_pad, :] = True
-        border_mask[:, :b_pad] = True
-        border_mask[:, w - b_pad :] = True
-        bg_samples = rgb[border_mask & sure_bg]
-        if len(bg_samples) < 20:
-            bg_samples = rgb[sure_bg]
-        bg_global = np.median(bg_samples, axis=0) if len(bg_samples) > 0 else np.array([235.0, 235.0, 235.0])
-
-        refined = m_arr.copy()
-        band_h = max(16, h // 24)
-        for y0 in range(0, h, band_h):
-            y1 = min(h, y0 + band_h)
-            unk_band = unknown[y0:y1, :]
-            if not unk_band.any():
-                continue
-            fg_band = sure_fg[y0:y1, :]
-            bg_band = sure_bg[y0:y1, :]
-
-            fg_pts = rgb[y0:y1, :][fg_band]
-            if len(fg_pts) < 10:
-                continue
-            fg_med = np.median(fg_pts, axis=0)
-
-            bg_pts = rgb[y0:y1, :][bg_band]
-            bg_med = np.median(bg_pts, axis=0) if len(bg_pts) >= 15 else bg_global
-
-            # Color separation between local product and local background
-            fg_bg_sep = float(np.linalg.norm(fg_med - bg_med))
-            if fg_bg_sep < 16.0:
-                continue
-
-            band_rgb = rgb[y0:y1, :]
-            d_fg = np.linalg.norm(band_rgb - fg_med[np.newaxis, np.newaxis, :], axis=2)
-            d_bg = np.linalg.norm(band_rgb - bg_med[np.newaxis, np.newaxis, :], axis=2)
-
-            affinity = np.clip((d_bg - d_fg) / (d_fg + d_bg + 6.0) + 0.5, 0.0, 1.0)
-            cur_a = refined[y0:y1, :]
-            blended_a = 0.62 * cur_a + 0.38 * affinity
-            # Suppress shadow/wall fringe where pixel strongly matches background color
-            blended_a = np.where((d_bg < d_fg * 0.62) & (cur_a < 0.78), cur_a * 0.25, blended_a)
-            refined[y0:y1, :] = np.where(unk_band, blended_a, cur_a)
-
-        return Image.fromarray(np.clip(refined * 255.0, 0, 255).astype(np.uint8), mode="L")
-    except Exception:
-        return mask_pil
-
-
-def _regularize_contour_envelope(mask_pil: Image.Image, rgb_img: Image.Image = None) -> Image.Image:
-    """
-    Piecewise Geometric & Subpixel Contour Envelope Regularization:
-    - Automatically detects top cap/neck shoulder transitions on bottles and containers.
-    - Regularizes the cap profile and main body profile independently using wide-window
-      robust median + degree-2 polynomial spline blending, completely eliminating
-      4px-8px side steps, white-label indentations, and 320x320 neural waviness.
+    Shape-Faithful Subpixel Contour Anti-Aliasing:
+    Removes small 2-6px jagged neural stair-steps along the product perimeter using a local
+    unbiased 50th-percentile filter without ever carving rectangular or blister packages into cones.
     """
     try:
         import numpy as np
@@ -373,8 +582,7 @@ def _regularize_contour_envelope(mask_pil: Image.Image, rgb_img: Image.Image = N
         arr = np.asarray(mask_pil, dtype=np.float32)
         h, w = arr.shape
         fg = arr > 110
-        row_has = fg.any(axis=1)
-        ys = np.where(row_has)[0]
+        ys = np.where(fg.any(axis=1))[0]
         if len(ys) < 24:
             return mask_pil
 
@@ -387,93 +595,52 @@ def _regularize_contour_envelope(mask_pil: Image.Image, rgb_img: Image.Image = N
             x_left[i] = float(xs[0])
             x_right[i] = float(xs[-1])
 
-        widths = x_right - x_left
-        med_body_w = float(np.median(widths[int(fh * 0.25) : int(fh * 0.85)])) if fh > 30 else float(np.median(widths))
+        # Local unbiased median window (only ~4% of height) removes tiny stair-steps while keeping corners & straight edges
+        win = max(7, min(19, int(fh * 0.045)))
+        half = win // 2
+        med_l = np.copy(x_left)
+        med_r = np.copy(x_right)
+        for i in range(fh):
+            s = max(0, i - half)
+            e = min(fh, i + half + 1)
+            med_l[i] = np.median(x_left[s:e])
+            med_r[i] = np.median(x_right[s:e])
 
-        # Detect if product has a narrower top cap/neck in the top 8%..24% of height
-        cap_end = 0
-        if fh >= 40 and med_body_w > 20:
-            s_cap, e_cap = int(fh * 0.06), int(fh * 0.24)
-            w_diff = np.diff(widths[s_cap:e_cap])
-            if len(w_diff) > 0 and float(np.max(w_diff)) > max(3.5, med_body_w * 0.055):
-                cap_end = s_cap + int(np.argmax(w_diff)) + 1
-
-        # Smooth main body (from shoulder to above rounded bottom corner) with wide-window + linear/quadratic fit
-        body_start = max(cap_end + 2, int(fh * 0.15)) if cap_end > 0 else int(fh * 0.06)
-        body_end = max(body_start + 10, int(fh * 0.92))
-
-        smooth_left = np.copy(x_left)
-        smooth_right = np.copy(x_right)
-
-        if body_end - body_start >= 12:
-            by = np.arange(body_start, body_end, dtype=np.float32)
-            win_b = max(19, int(fh * 0.55))
-            half_b = win_b // 2
-            med_l = np.zeros_like(by)
-            med_r = np.zeros_like(by)
-            for idx_i, i in enumerate(range(body_start, body_end)):
-                s = max(body_start, i - half_b)
-                e = min(body_end, i + half_b + 1)
-                # Use 65th percentile on left & 35th on right to shave outward bumps cleanly
-                med_l[idx_i] = np.percentile(x_left[s:e], 65)
-                med_r[idx_i] = np.percentile(x_right[s:e], 35)
-
-            poly_l = np.polyval(np.polyfit(by, med_l, deg=2), by)
-            poly_r = np.polyval(np.polyfit(by, med_r, deg=2), by)
-            smooth_left[body_start:body_end] = 0.20 * med_l + 0.80 * poly_l
-            smooth_right[body_start:body_end] = 0.20 * med_r + 0.80 * poly_r
-
-        sigma = max(2.0, fh * 0.020)
+        sigma = max(1.4, min(3.0, fh * 0.010))
         k_rad = max(2, int(sigma * 2.5))
         kx = np.arange(-k_rad, k_rad + 1, dtype=np.float32)
         kernel = np.exp(-(kx ** 2) / (2.0 * sigma * sigma))
         kernel /= kernel.sum()
 
-        # Smooth cap and body separately so the cap-to-shoulder corner never bleeds into the background
-        if cap_end >= 6:
-            cap_slice = slice(1, max(2, cap_end - 1))
-            cap_med_l = float(np.percentile(x_left[cap_slice], 60))
-            cap_med_r = float(np.percentile(x_right[cap_slice], 40))
-            final_left = np.copy(smooth_left)
-            final_right = np.copy(smooth_right)
-            final_left[:cap_end] = np.maximum(x_left[:cap_end], 0.25 * x_left[:cap_end] + 0.75 * cap_med_l)
-            final_right[:cap_end] = np.minimum(x_right[:cap_end], 0.25 * x_right[:cap_end] + 0.75 * cap_med_r)
-            final_left[cap_end:] = np.convolve(np.pad(smooth_left[cap_end:], k_rad, mode="edge"), kernel, mode="valid")
-            final_right[cap_end:] = np.convolve(np.pad(smooth_right[cap_end:], k_rad, mode="edge"), kernel, mode="valid")
-        else:
-            final_left = np.convolve(np.pad(smooth_left, k_rad, mode="edge"), kernel, mode="valid")
-            final_right = np.convolve(np.pad(smooth_right, k_rad, mode="edge"), kernel, mode="valid")
+        final_left = np.convolve(np.pad(med_l, k_rad, mode="edge"), kernel, mode="valid")
+        final_right = np.convolve(np.pad(med_r, k_rad, mode="edge"), kernel, mode="valid")
 
-        # Never expand into background by more than 1.5px beyond detected foreground
-        final_left = np.maximum(final_left, x_left - 1.5)
-        final_right = np.minimum(final_right, x_right + 1.5)
-
-        out_mask = np.zeros((h, w), dtype=np.uint8)
+        # Apply smoothed outer boundary while preserving interior holes (like blister hang-holes!)
+        out_mask = arr.copy()
         grid_x = np.arange(w, dtype=np.float32)
         for i, y in enumerate(range(y0, y1 + 1)):
             l_val = final_left[i]
             r_val = final_right[i]
             if r_val > l_val + 4:
-                alpha_l = np.clip((grid_x - l_val + 1.0) / 1.6, 0.0, 1.0)
-                alpha_r = np.clip((r_val - grid_x + 1.0) / 1.6, 0.0, 1.0)
-                row_a = np.minimum(alpha_l, alpha_r) * (arr[y] / 255.0)
-                solid_span = (grid_x >= l_val + 1.2) & (grid_x <= r_val - 1.2)
-                row_a = np.where(solid_span, np.maximum(row_a, 1.0), row_a)
-                out_mask[y] = np.clip(row_a * 255.0, 0, 255).astype(np.uint8)
+                env_l = np.clip((grid_x - l_val + 0.8) / 1.5, 0.0, 1.0)
+                env_r = np.clip((r_val - grid_x + 0.8) / 1.5, 0.0, 1.0)
+                env = np.minimum(env_l, env_r) * 255.0
+                # Smooth only within 4px of the left/right outer edges; keep interior holes untouched
+                near_outer = (grid_x < l_val + 4.0) | (grid_x > r_val - 4.0)
+                out_mask[y] = np.where(near_outer, np.minimum(arr[y], env), arr[y])
 
-        return Image.fromarray(out_mask, mode="L")
+        return Image.fromarray(np.clip(out_mask, 0, 255).astype(np.uint8), mode="L")
     except Exception:
         return mask_pil
 
 
-def _refine_product_edges_and_dehalo(rgba_img: Image.Image, mask_pil: Image.Image) -> Image.Image:
+def _refine_product_edges_and_dehalo(rgba_img: Image.Image, mask_pil: Image.Image, run_guided: bool = True) -> Image.Image:
     """
     S26 Ultra High-Definition Edge Refinement & De-Haloing Pipeline:
-    1. Full-Resolution RGB Guided Filter snaps coarse masks to 1-pixel optical edges.
-    2. Scanline FG/BG Color-Affinity Trimap Matting removes attached wall/floor shadows.
-    3. Optical-Edge-Locked Contour Regularization eliminates 320x320 neural waviness.
-    4. Multi-Pass RGB Edge Color Decontamination replaces outer 3.5px boundary colors
-       with clean interior product colors so zero grey/dark background halo remains.
+    1. Removes bottom display stands/holders and restores white blister card margins.
+    2. Optional Full-Resolution RGB Guided Filter (for raw camera JPEGs).
+    3. Shape-Faithful Subpixel Contour Anti-Aliasing (preserves boxes, blister cards, and bottles).
+    4. Multi-Pass RGB Edge Color Decontamination so zero dark/grey background halo remains.
     """
     w, h = rgba_img.size
     m = mask_pil.resize((w, h), Image.Resampling.BICUBIC)
@@ -481,32 +648,31 @@ def _refine_product_edges_and_dehalo(rgba_img: Image.Image, mask_pil: Image.Imag
     try:
         import numpy as np
 
-        rgb_for_guide = rgba_img.convert("RGB")
-        # 1. Full-resolution fast Guided Filter (snaps mask to sharp S26 Ultra optical edges)
-        guided_01 = _guided_filter_fullres(
-            rgb_for_guide,
-            np.asarray(m, dtype=np.float32) / 255.0,
-            radius=max(4, min(w, h) // 110),
-            eps=8e-4,
-        )
-        m = Image.fromarray(np.clip(guided_01 * 255.0, 0, 255).astype(np.uint8), mode="L")
-        # 2. Local scanline FG/BG color-affinity refinement
-        m = _color_affinity_boundary_refinement(rgb_for_guide, m)
-    except Exception as e:
-        logger.debug("Guided/affinity refinement fallback: %s", e)
+        if run_guided:
+            guided_01 = _guided_filter_fullres(
+                rgba_img.convert("RGB"),
+                np.asarray(m, dtype=np.float32) / 255.0,
+                radius=max(3, min(w, h) // 140),
+                eps=8e-4,
+            )
+            m = Image.fromarray(np.clip(guided_01 * 255.0, 0, 255).astype(np.uint8), mode="L")
 
-    m = m.filter(ImageFilter.MedianFilter(size=5))
-    m_eroded = m.filter(ImageFilter.MinFilter(size=3))
-    m = Image.blend(m, m_eroded, 0.55)
-    m = _regularize_contour_envelope(m, rgb_img=rgba_img)
-    m = m.filter(ImageFilter.GaussianBlur(radius=1.15))
-    m = m.point(lambda a: 0 if a < 82 else (255 if a > 212 else int((a - 82) * 255 / 130)))
+        m_np = np.asarray(m, dtype=np.uint8)
+        m_np = _remove_bottom_display_stand(m_np)
+        rgba_img, m_np = _restore_white_card_margins_and_hang_hole(rgba_img, m_np)
+        m = Image.fromarray(m_np, mode="L")
+    except Exception as e:
+        logger.debug("Stand/card refinement fallback: %s", e)
+
+    m = m.filter(ImageFilter.MedianFilter(size=3))
+    m = _smooth_contour_non_destructive(m)
+    m = m.filter(ImageFilter.GaussianBlur(radius=0.95))
+    m = m.point(lambda a: 0 if a < 78 else (255 if a > 216 else int((a - 78) * 255 / 138)))
 
     try:
         import numpy as np
 
         rgb_orig = rgba_img.convert("RGB")
-        # 2-pass morphological inward color propagation for zero-halo edge decontamination
         rgb_int1 = rgb_orig.filter(ImageFilter.MinFilter(3)).filter(ImageFilter.MaxFilter(5))
         rgb_int2 = rgb_int1.filter(ImageFilter.MinFilter(5)).filter(ImageFilter.MaxFilter(5))
         orig_np = np.asarray(rgb_orig, dtype=np.float32)
@@ -515,11 +681,11 @@ def _refine_product_edges_and_dehalo(rgba_img: Image.Image, mask_pil: Image.Imag
         alpha_np = np.asarray(m, dtype=np.float32) / 255.0
 
         outer_rim = ((alpha_np > 0.01) & (alpha_np < 0.65))[:, :, np.newaxis]
-        inner_rim = ((alpha_np >= 0.65) & (alpha_np < 0.96))[:, :, np.newaxis]
+        inner_rim = ((alpha_np >= 0.65) & (alpha_np < 0.95))[:, :, np.newaxis]
         clean_np = np.where(
             outer_rim,
-            0.15 * orig_np + 0.85 * int2_np,
-            np.where(inner_rim, 0.45 * orig_np + 0.55 * int1_np, orig_np),
+            0.18 * orig_np + 0.82 * int2_np,
+            np.where(inner_rim, 0.50 * orig_np + 0.50 * int1_np, orig_np),
         )
         out = Image.fromarray(np.clip(clean_np, 0, 255).astype(np.uint8), mode="RGB").convert("RGBA")
         out.putalpha(m)
@@ -530,9 +696,9 @@ def _refine_product_edges_and_dehalo(rgba_img: Image.Image, mask_pil: Image.Imag
         return out
 
 
-def _reconstruct_white_product_if_hollow(rgba_img: Image.Image, mask_arr):
+def _reconstruct_white_product_if_hollow(rgba_img: Image.Image, mask_arr, run_guided: bool = True):
     """
-    Handles overexposed white/bright containers photographed against bright walls
+    Handles overexposed white/bright cylindrical containers photographed against bright walls
     where segmentation only captured interior markings (logo + bottom rim).
     """
     import numpy as np
@@ -547,19 +713,20 @@ def _reconstruct_white_product_if_hollow(rgba_img: Image.Image, mask_arr):
     fg_bin = (mask_arr > 80) | dark_markings
 
     corner_clutter = np.zeros((h, w), dtype=bool)
-    corner_clutter[:int(h * 0.34), int(w * 0.68):] = True
-    corner_clutter[:int(h * 0.34), :int(w * 0.32)] = True
-    mask_arr = np.where(corner_clutter, 0, mask_arr).astype(np.uint8)
-    fg_bin = fg_bin & (~corner_clutter)
+    corner_clutter[: int(h * 0.34), int(w * 0.68) :] = True
+    corner_clutter[: int(h * 0.34), : int(w * 0.32)] = True
 
     cx1, cx2 = int(w * 0.38), int(w * 0.62)
     cy1, cy2 = int(h * 0.20), int(h * 0.68)
     spine_gray = gray[cy1:cy2, cx1:cx2]
-    spine_mask = (mask_arr[cy1:cy2, cx1:cx2] > 110)
+    spine_mask = mask_arr[cy1:cy2, cx1:cx2] > 110
     bright_ratio = float((spine_gray > 216).mean())
     mask_fill_ratio = float(spine_mask.mean())
 
-    if bright_ratio > 0.68 and mask_fill_ratio < 0.50:
+    if bright_ratio > 0.68 and mask_fill_ratio < 0.45:
+        mask_arr = np.where(corner_clutter, 0, mask_arr).astype(np.uint8)
+        fg_bin = fg_bin & (~corner_clutter)
+
         lx1, lx2 = int(w * 0.40), int(w * 0.62)
         ly1, ly2 = int(h * 0.18), int(h * 0.44)
         logo_ys, logo_xs = np.where(fg_bin[ly1:ly2, lx1:lx2])
@@ -655,7 +822,7 @@ def _reconstruct_white_product_if_hollow(rgba_img: Image.Image, mask_arr):
                 reconstructed_rgba.putalpha(new_mask)
                 return reconstructed_rgba, new_mask_np
 
-    refined = _refine_product_edges_and_dehalo(rgba_img, Image.fromarray(mask_arr, mode="L"))
+    refined = _refine_product_edges_and_dehalo(rgba_img, Image.fromarray(mask_arr, mode="L"), run_guided=run_guided)
     return refined, np.asarray(refined.getchannel("A"), dtype=np.uint8)
 
 
@@ -682,41 +849,36 @@ def _apply_studio_relighting(prod_rgba: Image.Image) -> Image.Image:
             p50 = float(np.percentile(fg_lum, 50))
             p92 = float(np.percentile(fg_lum, 92))
 
-            # 1. White-point & exposure normalization if indoor photo is under-lit
             gain = 1.0
             if p92 < 238.0 and p92 > 40.0:
-                gain = min(1.26, 242.0 / p92)
+                gain = min(1.24, 242.0 / p92)
             gamma = 1.0
             if p50 * gain < 155.0:
-                gamma = max(0.76, min(0.94, (p50 * gain) / 168.0))
+                gamma = max(0.78, min(0.95, (p50 * gain) / 168.0))
 
             norm = np.clip((rgb * gain) / 255.0, 0.0, 1.0)
             if gamma < 0.99:
                 norm = norm ** gamma
 
-            # Gentle S-curve for studio pop without clipping white highlights
-            norm = np.clip(0.5 + (norm - 0.5) * 1.08, 0.0, 1.0)
+            norm = np.clip(0.5 + (norm - 0.5) * 1.07, 0.0, 1.0)
 
-            # 2. Subtle 3D vertical softbox reflection highlight along left-center of product
             h, w, _ = rgb.shape
             xs = np.linspace(0.0, 1.0, w, dtype=np.float32)[np.newaxis, :, np.newaxis]
-            softbox_sheen = 1.0 + 0.055 * np.exp(-((xs - 0.36) ** 2) / (2.0 * (0.18 ** 2)))
+            softbox_sheen = 1.0 + 0.045 * np.exp(-((xs - 0.36) ** 2) / (2.0 * (0.18 ** 2)))
             norm = np.clip(norm * softbox_sheen, 0.0, 1.0)
 
             rgb_img = Image.fromarray((norm * 255.0).astype(np.uint8), mode="RGB")
     except Exception as e:
         logger.debug("Studio relighting fallback: %s", e)
 
-    rgb_img = ImageEnhance.Color(rgb_img).enhance(1.12)
-    rgb_img = rgb_img.filter(ImageFilter.UnsharpMask(radius=1.8, percent=135, threshold=2))
+    rgb_img = ImageEnhance.Color(rgb_img).enhance(1.10)
+    rgb_img = rgb_img.filter(ImageFilter.UnsharpMask(radius=1.6, percent=130, threshold=2))
     r2, g2, b2 = rgb_img.split()
     return Image.merge("RGBA", (r2, g2, b2, a))
 
 
 def _remove_background_edge_aware_fallback(img: Image.Image) -> Image.Image:
-    """
-    Upgraded pure-Pillow edge-stopped, multi-seed border flood-fill with interior hole filling.
-    """
+    """Upgraded pure-Pillow edge-stopped, multi-seed border flood-fill with interior hole filling."""
     rgba = img.convert("RGBA")
     orig_w, orig_h = rgba.size
 
@@ -786,53 +948,71 @@ def _remove_background_edge_aware_fallback(img: Image.Image) -> Image.Image:
             if row[x]:
                 m_px[x, y] = 0
 
-    return _refine_product_edges_and_dehalo(rgba, mask_small)
+    return _refine_product_edges_and_dehalo(rgba, mask_small, run_guided=True)
 
 
 def _remove_background_smart(img: Image.Image) -> Image.Image:
-    """
-    Primary AI + Computer Vision studio background segmentation pipeline.
-    """
+    """Primary AI + Computer Vision studio background segmentation pipeline."""
     rgba = img.convert("RGBA")
     orig_w, orig_h = rgba.size
 
-    sess = _ensure_ai_runtime()
+    sess, model_kind = _ensure_ai_runtime()
     if sess is not None:
         try:
             import numpy as np
 
             rgb = rgba.convert("RGB")
-            pred1 = _run_u2net_pass(sess, rgb)
+            pred1 = _run_ai_pass(sess, model_kind, rgb)
 
             boosted = ImageOps.autocontrast(rgb, cutoff=1)
-            boosted = ImageEnhance.Contrast(boosted).enhance(1.35)
-            boosted = boosted.filter(ImageFilter.UnsharpMask(radius=4, percent=180, threshold=2))
-            pred2 = _run_u2net_pass(sess, boosted)
+            boosted = ImageEnhance.Contrast(boosted).enhance(1.30)
+            boosted = boosted.filter(ImageFilter.UnsharpMask(radius=3, percent=160, threshold=2))
+            pred2 = _run_ai_pass(sess, model_kind, boosted)
 
-            yy, xx = np.mgrid[0:320, 0:320]
-            dist_center = (((xx - 160.0) / 160.0) ** 2 + ((yy - 154.0) / 160.0) ** 2) ** 0.5
-            center_prior = np.clip(1.12 - 0.42 * dist_center, 0.35, 1.05).astype(np.float32)
+            ph, pw = pred1.shape
+            yy, xx = np.mgrid[0:ph, 0:pw]
+            dist_center = (((xx - pw * 0.50) / (pw * 0.50)) ** 2 + ((yy - ph * 0.48) / (ph * 0.50)) ** 2) ** 0.5
+            center_prior = np.clip(1.12 - 0.40 * dist_center, 0.35, 1.05).astype(np.float32)
 
             combined = np.maximum(pred1, pred2 * 0.88) * center_prior
             c_min, c_max = float(combined.min()), float(combined.max())
             if c_max - c_min > 1e-6:
                 combined = (combined - c_min) / (c_max - c_min)
 
-            cleaned_320 = _filter_central_components_and_fill_holes(combined)
-            mask_u8_small = Image.fromarray(np.clip(cleaned_320 * 255.0, 0, 255).astype(np.uint8), mode="L")
+            # Component cleanup on 320x320 grid for fast O(N) flood fill
+            comb_320 = np.asarray(
+                Image.fromarray(np.clip(combined * 255.0, 0, 255).astype(np.uint8), mode="L").resize(
+                    (320, 320), Image.Resampling.BILINEAR
+                ),
+                dtype=np.float32,
+            ) / 255.0
+            cleaned_320 = _filter_central_components_and_fill_holes(comb_320)
+            gate_full = (
+                np.asarray(
+                    Image.fromarray(np.clip(cleaned_320 * 255.0, 0, 255).astype(np.uint8), mode="L").resize(
+                        (pw, ph), Image.Resampling.BICUBIC
+                    ),
+                    dtype=np.float32,
+                )
+                / 255.0
+            )
+            final_pred = np.where(gate_full > 0.15, np.maximum(combined, gate_full * 0.85), 0.0)
+
+            mask_u8_small = Image.fromarray(np.clip(final_pred * 255.0, 0, 255).astype(np.uint8), mode="L")
             mask_full = mask_u8_small.resize((orig_w, orig_h), Image.Resampling.BICUBIC)
             mask_np = np.asarray(mask_full, dtype=np.uint8)
 
-            out, _ = _reconstruct_white_product_if_hollow(rgba, mask_np)
+            out, _ = _reconstruct_white_product_if_hollow(rgba, mask_np, run_guided=True)
             return out
         except Exception as e:
-            logger.warning("U2Net segmentation fallback triggered: %s", e)
+            logger.warning("AI segmentation fallback triggered: %s", e)
 
     out_fb = _remove_background_edge_aware_fallback(rgba)
     try:
         import numpy as np
+
         mask_np = np.asarray(out_fb.getchannel("A"), dtype=np.uint8)
-        out_fb, _ = _reconstruct_white_product_if_hollow(out_fb, mask_np)
+        out_fb, _ = _reconstruct_white_product_if_hollow(out_fb, mask_np, run_guided=True)
     except Exception:
         pass
     return out_fb
@@ -852,7 +1032,6 @@ def _create_studio_stage(target_size: int, bg_style: str = "studio_white") -> Im
         rad = np.sqrt(nx ** 2 + ny ** 2)
         spot = np.clip(1.0 - (rad / 1.35) ** 1.6, 0.0, 1.0)
 
-        # Smooth cyclorama floor curve below y = 70%
         floor_t = np.clip((yy / target_size - 0.68) / 0.32, 0.0, 1.0)
         horizon_dip = np.exp(-(((yy / target_size) - 0.74) ** 2) / (2.0 * (0.045 ** 2)))
 
@@ -861,8 +1040,6 @@ def _create_studio_stage(target_size: int, bg_style: str = "studio_white") -> Im
             g = 13.0 + 34.0 * spot - 6.0 * horizon_dip + 10.0 * (floor_t ** 1.4)
             b = 26.0 + 58.0 * spot - 8.0 * horizon_dip + 18.0 * (floor_t ** 1.4)
         else:
-            # Pure luxury porcelain studio stage: (255,255,255) center -> (238,242,248) outer corners
-            # with a whisper-soft studio floor horizon reflection
             r = 238.0 + 17.0 * spot - 6.0 * horizon_dip - 3.0 * (floor_t ** 1.5)
             g = 242.0 + 13.0 * spot - 5.0 * horizon_dip - 2.0 * (floor_t ** 1.5)
             b = 248.0 + 7.0 * spot - 3.0 * horizon_dip - 1.0 * (floor_t ** 1.5)
@@ -898,14 +1075,14 @@ def _paste_soft_shadow_from_alpha(
 
 
 def _apply_raqamiyat_branding(canvas: Image.Image, target_size: int, bg_style: str = "studio_white") -> Image.Image:
-    """Applies the official Raqamiyat 3D luxury emblem & compact studio hallmark cleanly."""
-    # 1. Top-right 3D crystal luxury emblem watermark
+    """Applies the official Raqamiyat 3D die-cut crystal shield & 'كفالة رقميات' bottom hallmark."""
+    # 1. Top-right 3D die-cut crystal shield emblem
     if os.path.exists(EMBLEM_PATH):
         try:
             emblem = Image.open(EMBLEM_PATH).convert("RGBA")
-            emb_size = max(56, int(target_size * 0.108))
+            emb_size = max(58, int(target_size * 0.112))
             emblem_resized = emblem.resize((emb_size, emb_size), Image.Resampling.LANCZOS)
-            pad = int(target_size * 0.028)
+            pad = int(target_size * 0.026)
             ex = target_size - emb_size - pad
             ey = pad
             canvas = _paste_soft_shadow_from_alpha(
@@ -913,18 +1090,18 @@ def _apply_raqamiyat_branding(canvas: Image.Image, target_size: int, bg_style: s
                 emblem_resized.getchannel("A"),
                 (ex, ey + 4),
                 shadow_rgb=(15, 23, 42),
-                opacity_scale=0.26 if bg_style == "studio_white" else 0.55,
+                opacity_scale=0.28 if bg_style == "studio_white" else 0.58,
                 blur_radius=7,
             )
             canvas.paste(emblem_resized, (ex, ey), emblem_resized)
         except Exception as ee:
             logger.warning("Could not apply emblem: %s", ee)
 
-    # 2. Bottom centered official Raqamiyat 3D crystal & neon studio master badge
+    # 2. Bottom centered 'كفالة رقميات' official warranty badge
     if os.path.exists(MASTER_BADGE_PATH):
         try:
             badge = Image.open(MASTER_BADGE_PATH).convert("RGBA")
-            target_bw = int(target_size * 0.52)
+            target_bw = int(target_size * 0.48)
             target_bh = max(24, int(badge.height * (target_bw / badge.width)))
             badge_resized = badge.resize((target_bw, target_bh), Image.Resampling.LANCZOS)
 
@@ -949,9 +1126,8 @@ def _apply_raqamiyat_branding(canvas: Image.Image, target_size: int, bg_style: s
 def _heal_transparent_rgb_fringe(rgba_img: Image.Image) -> Image.Image:
     """
     When Android ML Kit uploads a PNG cutout, pixels with alpha=0 have RGB=(0,0,0) black.
-    Converting directly to RGB causes black edge bleeding during filtering and AI inference.
     This function fills transparent/semi-transparent pixels with dilated interior product colors
-    on a clean studio-neutral canvas while preserving the original alpha channel.
+    so edge anti-aliasing never bleeds black.
     """
     try:
         import numpy as np
@@ -960,12 +1136,10 @@ def _heal_transparent_rgb_fringe(rgba_img: Image.Image) -> Image.Image:
         rgb = arr[:, :, :3]
         a = arr[:, :, 3:4] / 255.0
 
-        # Un-premultiply semi-transparent edge pixels where RGB was darkened toward (0,0,0)
         safe_a = np.maximum(a, 0.15)
         unpremult = np.where((a > 0.05) & (a < 0.95), np.clip(rgb / safe_a, 0.0, 255.0), rgb)
         rgb_pil = Image.fromarray(unpremult.astype(np.uint8), mode="RGB")
 
-        # Dilate interior colors outward across boundary
         dilated = rgb_pil.filter(ImageFilter.MaxFilter(7)).filter(ImageFilter.MaxFilter(7))
         dil_np = np.asarray(dilated, dtype=np.float32)
 
@@ -990,16 +1164,12 @@ def process_camera_product_snapshot(
     bg_style="studio_white",
 ):
     """
-    Transforms a raw mobile camera product photo into an ultra-luxury e-commerce studio shot:
-    1. EXIF Auto-Orientation: Fixes mobile camera rotation.
-    2. Deep Learning AI + Edge De-Haloing Isolation: U2Netp Salient Object Detection,
-       Contour Curvature Smoothing, and RGB Edge Color Decontamination.
-    3. Studio Softbox Relighting: Lifts dim indoor phone lighting & adds 3D softbox sheen.
-    4. Seamless Cyclorama Stage & Multi-Layer Contact Shadow.
-    5. Official Raqamiyat 3D Luxury Branding.
+    Transforms a raw mobile camera product photo into an ultra-luxury e-commerce studio shot.
     """
     try:
-        if hasattr(image_file, "read"):
+        if isinstance(image_file, Image.Image):
+            img = image_file.copy()
+        elif hasattr(image_file, "read"):
             raw_bytes = image_file.read()
             img = Image.open(io.BytesIO(raw_bytes))
         elif isinstance(image_file, bytes):
@@ -1014,7 +1184,7 @@ def process_camera_product_snapshot(
 
         img = img.convert("RGBA")
 
-        max_dim = 1400
+        max_dim = 1440
         if max(img.size) > max_dim:
             img.thumbnail((max_dim, max_dim), Image.Resampling.LANCZOS)
 
@@ -1031,26 +1201,17 @@ def process_camera_product_snapshot(
                     cleaned_320 = _filter_central_components_and_fill_holes(
                         np.asarray(alpha_320, dtype=np.float32) / 255.0
                     )
-
-                    # Ensemble fusion with server-side U2Netp to strip any side shadow ML Kit included
-                    sess = _ensure_ai_runtime()
-                    if sess is not None:
-                        try:
-                            u2_pred = _run_u2net_pass(sess, img.convert("RGB"))
-                            u2_clean = _filter_central_components_and_fill_holes(u2_pred)
-                            # Suppress protrusions where U2Net is confident it is background (<0.20)
-                            cleaned_320 = np.where(u2_clean < 0.20, cleaned_320 * u2_clean * 2.0, 0.55 * cleaned_320 + 0.45 * u2_clean)
-                        except Exception:
-                            pass
-
                     gate_full_pil = Image.fromarray(
                         np.clip(cleaned_320 * 255.0, 0, 255).astype(np.uint8), mode="L"
                     ).resize(img.size, Image.Resampling.BICUBIC)
                     gate_full = np.asarray(gate_full_pil, dtype=np.float32) / 255.0
-                    # Keep full-resolution S26 Ultra edge sharpness gated by the cleaned component mask
-                    fused_full = np.clip(np.minimum(alpha_np, gate_full * 1.15) * 0.65 + gate_full * 0.35, 0.0, 1.0)
+
+                    # Preserve 100% of full-resolution ML Kit foreground inside the central component gate
+                    kept_full = np.where(gate_full > 0.15, np.maximum(alpha_np, gate_full * 0.90), 0.0)
                     img, _ = _reconstruct_white_product_if_hollow(
-                        img, np.clip(fused_full * 255.0, 0, 255).astype(np.uint8)
+                        img,
+                        np.clip(kept_full * 255.0, 0, 255).astype(np.uint8),
+                        run_guided=False,
                     )
                 except Exception as e:
                     logger.warning("Alpha refinement fallback: %s", e)
@@ -1068,7 +1229,6 @@ def process_camera_product_snapshot(
             w, h = img.size
             canvas = _create_studio_stage(target_size, bg_style=bg_style)
 
-            # Generous hero product sizing (up to 73% height, 75% width)
             max_prod_w = int(target_size * 0.75)
             max_prod_h = int(target_size * 0.72)
             scale = min(max_prod_w / w, max_prod_h / h)
@@ -1076,7 +1236,6 @@ def process_camera_product_snapshot(
             nh = max(16, int(h * scale))
             resized_prod = img.resize((nw, nh), Image.Resampling.LANCZOS)
 
-            # Studio Softbox Relighting & Clarity Polish
             resized_prod = _apply_studio_relighting(resized_prod)
             prod_alpha = resized_prod.getchannel("A")
 
@@ -1084,7 +1243,7 @@ def process_camera_product_snapshot(
             py = int(target_size * 0.435) - (nh // 2)
             py = max(int(target_size * 0.045), py)
 
-            # 1. Soft 360-degree 3D Silhouette Ambient Drop Shadow (zero black-bleed artifact)
+            # 1. Soft 360-degree 3D Silhouette Ambient Drop Shadow
             canvas = _paste_soft_shadow_from_alpha(
                 canvas,
                 prod_alpha,
