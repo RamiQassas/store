@@ -394,10 +394,25 @@ public class NativeCameraStudioActivity extends AppCompatActivity {
                 matrix.postRotate(rotation);
                 raw = Bitmap.createBitmap(raw, 0, 0, raw.getWidth(), raw.getHeight(), matrix, true);
             }
-            return scaleDownAndCropSquare(raw, 1024);
+            return cropCameraToFramingBox(raw, 1024);
         } catch (Exception e) {
             return null;
         }
+    }
+
+    private Bitmap cropCameraToFramingBox(Bitmap src, int maxDim) {
+        int w = src.getWidth();
+        int h = src.getHeight();
+        // Match the visual 270dp center framing_box inside the zoomed PreviewView
+        int baseSize = Math.min(w, h);
+        int size = Math.max(256, (int) (baseSize * 0.78f));
+        int x = (w - size) / 2;
+        int y = (h - size) / 2;
+        Bitmap square = Bitmap.createBitmap(src, x, y, size, size);
+        if (size > maxDim) {
+            return Bitmap.createScaledBitmap(square, maxDim, maxDim, true);
+        }
+        return square;
     }
 
     private Bitmap scaleDownAndCropSquare(Bitmap src, int maxDim) {
@@ -413,8 +428,36 @@ public class NativeCameraStudioActivity extends AppCompatActivity {
         return square;
     }
 
+    private boolean isCutoutSolidAndValid(Bitmap fg) {
+        if (fg == null) return false;
+        int w = fg.getWidth();
+        int h = fg.getHeight();
+        if (w < 32 || h < 32) return false;
+        int cx1 = (int) (w * 0.36f);
+        int cx2 = (int) (w * 0.64f);
+        int cy1 = (int) (h * 0.26f);
+        int cy2 = (int) (h * 0.68f);
+        int step = Math.max(2, w / 64);
+        int totalCenter = 0;
+        int opaqueCenter = 0;
+        for (int y = cy1; y < cy2; y += step) {
+            for (int x = cx1; x < cx2; x += step) {
+                totalCenter++;
+                int alpha = (fg.getPixel(x, y) >>> 24) & 0xFF;
+                if (alpha > 150) {
+                    opaqueCenter++;
+                }
+            }
+        }
+        if (totalCenter == 0) return false;
+        float centerFill = (float) opaqueCenter / (float) totalCenter;
+        // If center fill < 0.52, ML Kit likely hollowed out a white/bright product body;
+        // send the full RGB image so the server AI reconstructs the full product body cleanly.
+        return centerFill >= 0.52f;
+    }
+
     private void processBitmapWithBackgroundRemoval(Bitmap bitmap) {
-        processingLabel.setText("جاري عزل الخلفية وإضافة خلفية وشعار رقميات...");
+        processingLabel.setText("جاري عزل الخلفية بالذكاء الاصطناعي وتجهيز عرض رقميات...");
         try {
             SubjectSegmenterOptions options = new SubjectSegmenterOptions.Builder()
                     .enableForegroundBitmap()
@@ -425,14 +468,14 @@ public class NativeCameraStudioActivity extends AppCompatActivity {
             segmenter.process(inputImage)
                     .addOnSuccessListener(result -> {
                         Bitmap fg = result.getForegroundBitmap();
-                        if (fg != null) {
+                        if (fg != null && isCutoutSolidAndValid(fg)) {
                             uploadProcessedImage(fg, true);
                         } else {
                             uploadProcessedImage(bitmap, false);
                         }
                     })
                     .addOnFailureListener(e -> {
-                        // Fallback: server-side smart background removal in studio_camera.py
+                        // Server-side U2Net AI + 3D Studio background removal in studio_camera.py
                         uploadProcessedImage(bitmap, false);
                     });
         } catch (Exception e) {

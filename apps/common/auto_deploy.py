@@ -247,13 +247,18 @@ def apply_git_update():
         output = (proc.stdout or "") + "\n[STDERR]\n" + (proc.stderr or "")
 
         if git_success:
-            # Step 2: Post-update migrations and static files (non-fatal if long)
+            # Step 2: Ensure AI background segmentation runtime (numpy + onnxruntime) is installed
             try:
-                subprocess.run(f'\"{py_bin}\" manage.py migrate --noinput', shell=True, cwd=str(settings.BASE_DIR), capture_output=True, text=True, timeout=90)
+                subprocess.run(f'"{py_bin}" -m pip install --no-cache-dir -q numpy onnxruntime', shell=True, cwd=str(settings.BASE_DIR), capture_output=True, text=True, timeout=120)
+            except Exception as e_pip:
+                logger.warning(f"Auto-deploy pip notice: {e_pip}")
+            # Step 3: Post-update migrations and static files (non-fatal if long)
+            try:
+                subprocess.run(f'"{py_bin}" manage.py migrate --noinput', shell=True, cwd=str(settings.BASE_DIR), capture_output=True, text=True, timeout=90)
             except Exception as e_mig:
                 logger.warning(f"Auto-deploy migrate notice: {e_mig}")
             try:
-                subprocess.run(f'\"{py_bin}\" manage.py collectstatic --noinput', shell=True, cwd=str(settings.BASE_DIR), capture_output=True, text=True, timeout=90)
+                subprocess.run(f'"{py_bin}" manage.py collectstatic --noinput', shell=True, cwd=str(settings.BASE_DIR), capture_output=True, text=True, timeout=90)
             except Exception as e_cs:
                 logger.warning(f"Auto-deploy collectstatic notice: {e_cs}")
 
