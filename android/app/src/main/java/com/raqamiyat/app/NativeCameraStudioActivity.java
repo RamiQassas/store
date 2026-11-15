@@ -338,7 +338,7 @@ public class NativeCameraStudioActivity extends AppCompatActivity {
                 preview.setSurfaceProvider(cameraPreview.getSurfaceProvider());
 
                 imageCapture = new ImageCapture.Builder()
-                        .setCaptureMode(ImageCapture.CAPTURE_MODE_MINIMIZE_LATENCY)
+                        .setCaptureMode(ImageCapture.CAPTURE_MODE_MAXIMIZE_QUALITY)
                         .setFlashMode(flashEnabled ? ImageCapture.FLASH_MODE_ON : ImageCapture.FLASH_MODE_OFF)
                         .build();
 
@@ -394,7 +394,7 @@ public class NativeCameraStudioActivity extends AppCompatActivity {
                 matrix.postRotate(rotation);
                 raw = Bitmap.createBitmap(raw, 0, 0, raw.getWidth(), raw.getHeight(), matrix, true);
             }
-            return cropCameraToFramingBox(raw, 1024);
+            return cropCameraToFramingBox(raw, 1440);
         } catch (Exception e) {
             return null;
         }
@@ -488,7 +488,7 @@ public class NativeCameraStudioActivity extends AppCompatActivity {
             try {
                 ByteArrayOutputStream baos = new ByteArrayOutputStream();
                 bitmap.compress(isPngCutout ? Bitmap.CompressFormat.PNG : Bitmap.CompressFormat.JPEG,
-                        isPngCutout ? 100 : 90, baos);
+                        isPngCutout ? 100 : 95, baos);
                 byte[] imgBytes = baos.toByteArray();
 
                 String boundary = "----RaqamiyatStudio" + System.currentTimeMillis();
@@ -611,7 +611,7 @@ public class NativeCameraStudioActivity extends AppCompatActivity {
                     Bitmap bmp = BitmapFactory.decodeStream(is);
                     if (is != null) is.close();
                     if (bmp != null) {
-                        Bitmap squared = scaleDownAndCropSquare(bmp, 1024);
+                        Bitmap squared = scaleDownAndCropSquare(bmp, 1440);
                         mainHandler.post(() -> processBitmapWithBackgroundRemoval(squared));
                     } else {
                         mainHandler.post(this::showCameraStage);
