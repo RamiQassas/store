@@ -42,13 +42,13 @@
   <link rel="dns-prefetch" href="//cdnjs.cloudflare.com">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link rel="preload" href="{% static 'site/css/app.css' %}?v=20261106_apple_glass_v1" as="style">
-  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+  <link rel="preload" href="{% static 'site/css/app.css' %}?v=20261116_atelier_v1" as="style">
+  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800;900&family=Tajawal:wght@500;700;800;900&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" media="print" onload="this.media='all'">
   <noscript><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"></noscript>
 
-  <!-- Apple Spatial Glass Design System Stylesheet -->
-  <link rel="stylesheet" href="{% static 'site/css/app.css' %}?v=20261106_apple_glass_v1">
+  <!-- Raqamiyat Atelier 2026 Design System Stylesheet -->
+  <link rel="stylesheet" href="{% static 'site/css/app.css' %}?v=20261116_atelier_v1">
 
   <!-- Structured Data (Schema.org WebSite & SearchAction) -->
   {% block structured_data %}
@@ -87,6 +87,16 @@
   <div id="rqToastStack" class="rq-toast-stack" aria-live="polite"></div>
 
   {% if not '/control/' in request.path and not '/admin/' in request.path %}
+  <!-- ====================================================================
+       0. TOP VALUE & TRUST CONVERSION STRIP
+       ==================================================================== -->
+  <div class="rq-top-promo-strip">
+    <div class="rq-container rq-top-promo-inner">
+      <span class="rq-promo-pill"><i class="fas fa-shield-check"></i> كفالة رقميات الذهبية</span>
+      <span class="rq-promo-text">تجهيز فوري للطلبات • دفع آمن عبر شام كاش وبيميرا والمحفظة</span>
+      <a href="{% url 'catalog' %}" class="rq-promo-cta">اكتشف العروض <i class="fas fa-arrow-left"></i></a>
+    </div>
+  </div>
   <!-- ====================================================================
        1. TOP HEADER & ACTUAL CATEGORY NAVIGATION BAR
        ==================================================================== -->

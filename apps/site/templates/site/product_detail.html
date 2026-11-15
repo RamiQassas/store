@@ -624,6 +624,15 @@
             </div>
           </div>
 
+          <!-- 5.5. Value-Stacking Warranty & Social Proof Strip -->
+          <div style="display: flex; flex-wrap: wrap; gap: 0.45rem; margin: 0.85rem 0 0.75rem; padding: 0.65rem 0.8rem; border-radius: 12px; background: rgba(16, 185, 129, 0.08); border: 1px solid rgba(16, 185, 129, 0.22); font-size: 0.74rem; font-weight: 800; color: #34d399;">
+            <span><i class="fas fa-shield-check"></i> كفالة رقميات الذهبية</span>
+            <span style="opacity: 0.4;">•</span>
+            <span><i class="fas fa-bolt"></i> تنفيذ فوري</span>
+            <span style="opacity: 0.4;">•</span>
+            <span><i class="fas fa-rotate-left"></i> حماية كاملة للرصيد</span>
+          </div>
+
           <!-- 6. Action Buttons: Direct Purchase + Add to Cart -->
           <div class="rq-pdp-actions-row">
             
@@ -872,6 +881,34 @@
   // Initial calculation on load
   document.addEventListener('DOMContentLoaded', () => {
     recalcPdpTotal();
+    const totalEl = document.getElementById('pdp-total-val');
+    const stickyPriceEl = document.getElementById('rq-sticky-price');
+    if (totalEl && stickyPriceEl) {
+      stickyPriceEl.textContent = totalEl.textContent;
+      const obs = new MutationObserver(() => {
+        stickyPriceEl.textContent = totalEl.textContent;
+      });
+      obs.observe(totalEl, { childList: true, characterData: true, subtree: true });
+    }
   });
 </script>
+
+<!-- Sticky Mobile Quick Buy Bar -->
+<div class="rq-pdp-mobile-sticky" aria-label="شريط الشراء السريع">
+  <div style="min-width: 0;">
+    <span style="font-size: 0.68rem; color: var(--rq-text-muted); display: block; font-weight: 700;">الإجمالي النهائي</span>
+    <strong id="rq-sticky-price" class="font-mono tabular-nums" style="font-size: 1.05rem; font-weight: 900; color: #22d3ee;">{% product_starting_price product %}</strong>
+  </div>
+  {% if user.is_authenticated %}
+  <button type="button" onclick="document.getElementById('pdp-submit-btn')?.click();" class="rq-btn-auth-register" style="height: 44px; padding: 0 1.35rem; border-radius: 12px; font-weight: 900; flex: 1; justify-content: center; max-width: 220px;" {% if product.is_out_of_stock %}disabled{% endif %}>
+    <i class="fas fa-bolt"></i>
+    <span>{% if product.is_out_of_stock %}نفذت الكمية{% else %}اشترِ الآن ⚡{% endif %}</span>
+  </button>
+  {% else %}
+  <a href="{% url 'site_login' %}?next={{ request.path }}" class="rq-btn-auth-register" style="height: 44px; padding: 0 1.35rem; border-radius: 12px; font-weight: 900; flex: 1; justify-content: center; max-width: 220px;">
+    <i class="fas fa-sign-in-alt"></i>
+    <span>دخول للشراء ⚡</span>
+  </a>
+  {% endif %}
+</div>
 {% endblock %}

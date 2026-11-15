@@ -13,18 +13,18 @@
     <div class="rq-retail-hero-grid">
       <div>
         <span class="rq-hero-eyebrow">
-          <i class="fas fa-bolt"></i>
-          <span>{% if is_tenant %}{{ STORE_NAME }}{% else %}منصة رقميات للتجارة الإلكترونية والتقنية{% endif %}</span>
+          <i class="fas fa-crown"></i>
+          <span>{% if is_tenant %}{{ STORE_NAME }} • تجربة تسوق معتمدة{% else %}رقميات • الوجهة الأولى للتقنية والمنتجات الأصلية{% endif %}</span>
         </span>
         <h1 class="rq-hero-title">
           {% if is_tenant %}
-            تسوق أحدث المنتجات والخدمات من {{ STORE_NAME }}
+            اقتنِ أحدث المنتجات الأصلية من <span class="rq-hero-title-accent">{{ STORE_NAME }}</span> بثقة تامة
           {% else %}
-            كل ما تحتاجه من الأجهزة التقنية والمنتجات المادية في منصة واحدة
+            تقنية أصلية، <span class="rq-hero-title-accent">تسليم فوري</span>، وضمان رقميات الموثوق
           {% endif %}
         </h1>
         <p class="rq-hero-desc">
-          تصفح تشكيلة متكاملة من الأجهزة والمنتجات المادية، مع شحن وتوصيل موثوق ودفع آمن عبر شام كاش أو بيميرا أو المحفظة الإلكترونية.
+          تشكيلة منتقاة بعناية من الأجهزة والملحقات والخدمات الرقمية بأسعار شفافة، مع تغليف آمن وشحن موثوق ودفع مرن عبر شام كاش أو بيميرا أو رصيد المحفظة.
         </p>
 
         <!-- Hero Search & Quick CTA -->
@@ -61,6 +61,48 @@
           <span>استكشف جميع أقسام المتجر</span>
         </a>
         {% endfor %}
+      </div>
+    </div>
+  </section>
+
+  <!-- ====================================================================
+       1.5. LIVE TRUST & AUTHORITY CONVERSION BAR
+       ==================================================================== -->
+  <section class="rq-trust-bar" aria-label="ضمانات رقميات">
+    <div class="rq-trust-item">
+      <div class="rq-trust-icon" style="background: rgba(16, 185, 129, 0.14); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.28);">
+        <i class="fas fa-shield-check"></i>
+      </div>
+      <div>
+        <div class="rq-trust-title">كفالة رقميات الذهبية</div>
+        <div class="rq-trust-sub">فحص جودة وضمان استبدال فوري</div>
+      </div>
+    </div>
+    <div class="rq-trust-item">
+      <div class="rq-trust-icon" style="background: rgba(6, 182, 212, 0.14); color: #22d3ee; border: 1px solid rgba(6, 182, 212, 0.28);">
+        <i class="fas fa-bolt"></i>
+      </div>
+      <div>
+        <div class="rq-trust-title">تجهيز وتسليم فوري</div>
+        <div class="rq-trust-sub">معالجة آلية للطلبات على مدار الساعة</div>
+      </div>
+    </div>
+    <div class="rq-trust-item">
+      <div class="rq-trust-icon" style="background: rgba(234, 179, 8, 0.14); color: #fde047; border: 1px solid rgba(234, 179, 8, 0.28);">
+        <i class="fas fa-wallet"></i>
+      </div>
+      <div>
+        <div class="rq-trust-title">شام كاش وبيميرا</div>
+        <div class="rq-trust-sub">دفع مشفر وتأكيد فوري للرصيد</div>
+      </div>
+    </div>
+    <div class="rq-trust-item">
+      <div class="rq-trust-icon" style="background: rgba(168, 85, 247, 0.14); color: #c084fc; border: 1px solid rgba(168, 85, 247, 0.28);">
+        <i class="fas fa-headset"></i>
+      </div>
+      <div>
+        <div class="rq-trust-title">دعم مباشر 24/7</div>
+        <div class="rq-trust-sub">متابعة فورية عبر المحادثة المباشرة</div>
       </div>
     </div>
   </section>
@@ -128,9 +170,9 @@
           {% if prod.is_out_of_stock %}
           <span class="rq-badge rq-badge-out">نفذت الكمية</span>
           {% else %}
-          <span class="rq-badge rq-badge-stock">متوفر</span>
+          <span class="rq-badge rq-badge-stock">متوفر الآن</span>
           {% endif %}
-          <span class="rq-badge rq-badge-featured">مميز</span>
+          <span class="rq-badge rq-badge-hot"><i class="fas fa-fire"></i> الأكثر طلباً</span>
         </div>
 
         <a href="{% url 'product_detail' prod.id %}" class="rq-product-thumb">
@@ -444,6 +486,29 @@
           <p style="font-size: 0.78rem; color: var(--rq-text-secondary); margin: 0;">فريق دعم متخصص لمساعدتك في اختيار المنتج المناسب ومتابعة طلباتك خطوة بخطوة.</p>
         </div>
       </div>
+    </div>
+  </section>
+
+  <!-- ====================================================================
+       7. VALUE-STACKING GUARANTEE & CONVERSION CTA BANNER
+       ==================================================================== -->
+  <section class="rq-guarantee-banner">
+    <div>
+      <span style="font-size: 0.75rem; font-weight: 900; color: #34d399; display: inline-flex; align-items: center; gap: 0.35rem; margin-bottom: 0.35rem;">
+        <i class="fas fa-award"></i> ضمان الرضا الكامل من رقميات
+      </span>
+      <h3 style="margin: 0 0 0.35rem; font-size: 1.15rem; font-weight: 900; color: var(--rq-navy);">جاهز للارتقاء بتجربة تسوقك؟</h3>
+      <p style="margin: 0; font-size: 0.84rem; color: var(--rq-text-secondary);">اطلب الآن واستفد من التجهيز الفوري، كفالة رقميات الذهبية، واسترداد الرصيد التلقائي في حال تعذر أي طلب.</p>
+    </div>
+    <div style="display: flex; flex-wrap: wrap; gap: 0.75rem;">
+      <a href="{% url 'catalog' %}" class="rq-btn-auth-register" style="height: 44px; padding: 0 1.4rem;">
+        <i class="fas fa-shopping-bag"></i>
+        <span>تسوق الآن</span>
+      </a>
+      <a href="{% url 'site_product_suggestion' %}" class="rq-btn-secondary" style="height: 44px; padding: 0 1.25rem;">
+        <i class="fas fa-lightbulb"></i>
+        <span>اقترح منتجاً لتوفيره</span>
+      </a>
     </div>
   </section>
 
