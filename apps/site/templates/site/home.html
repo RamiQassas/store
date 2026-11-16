@@ -7,103 +7,73 @@
 <div class="rq-container">
 
   <!-- ====================================================================
-       1. INTERACTIVE HERO SHOWCASE (WITH REAL STORE CATEGORIES)
+       1. PRODUCT-FIRST HERO SHOWCASE
        ==================================================================== -->
   <section class="rq-retail-hero">
     <div class="rq-retail-hero-grid">
       <div>
         <span class="rq-hero-eyebrow">
-          <i class="fas fa-crown"></i>
-          <span>{% if is_tenant %}{{ STORE_NAME }} • تجربة تسوق معتمدة{% else %}رقميات • الوجهة الأولى للتقنية والمنتجات الأصلية{% endif %}</span>
+          <i class="fas fa-bolt"></i>
+          <span>{% if is_tenant %}{{ STORE_NAME }}{% else %}متجر رقميات للتقنية والمنتجات الأصلية{% endif %}</span>
         </span>
         <h1 class="rq-hero-title">
           {% if is_tenant %}
-            اقتنِ أحدث المنتجات الأصلية من <span class="rq-hero-title-accent">{{ STORE_NAME }}</span> بثقة تامة
+            اكتشف أحدث إصدارات <span class="rq-hero-title-accent">{{ STORE_NAME }}</span>
           {% else %}
-            تقنية أصلية، <span class="rq-hero-title-accent">تسليم فوري</span>، وضمان رقميات الموثوق
+            أجهزة وتقنية <span class="rq-hero-title-accent">بجودة أصلية</span> وتسليم فوري
           {% endif %}
         </h1>
         <p class="rq-hero-desc">
-          تشكيلة منتقاة بعناية من الأجهزة والملحقات والخدمات الرقمية بأسعار شفافة، مع تغليف آمن وشحن موثوق ودفع مرن عبر شام كاش أو بيميرا أو رصيد المحفظة.
+          منتجات منتقاة بعناية، أسعار واضحة، ودفع مرن عبر شام كاش أو بيميرا أو المحفظة الإلكترونية.
         </p>
 
-        <!-- Hero Search & Quick CTA -->
         <div class="rq-hero-actions">
           <a href="{% url 'catalog' %}" class="rq-btn-solid-white">
             <i class="fas fa-shopping-bag"></i>
-            <span>تصفح جميع المنتجات</span>
+            <span>تصفح المنتجات</span>
           </a>
-          <a href="{% url 'download_android_apk' %}" class="rq-btn-secondary" style="background: linear-gradient(135deg, #06b6d4 0%, #10b981 100%); border: none; color: #030712; font-weight: 900; height: 46px; padding: 0 1.35rem; box-shadow: 0 8px 25px rgba(6, 182, 212, 0.35);">
-            <i class="fab fa-android" style="font-size: 1.15rem;"></i>
-            <span>تحميل تطبيق الأندرويد</span>
-          </a>
-          <a href="{% url 'contact' %}" class="rq-btn-secondary" style="background: rgba(255, 255, 255, 0.1); border-color: rgba(255, 255, 255, 0.25); color: #ffffff; height: 46px; padding: 0 1.35rem;">
-            <i class="fas fa-headset"></i>
-            <span>خدمة العملاء</span>
+          <a href="{% url 'download_android_apk' %}" class="rq-btn-secondary" style="background: rgba(56, 189, 248, 0.14); border: 1px solid rgba(56, 189, 248, 0.35); color: #e0f2fe; font-weight: 800; height: 46px; padding: 0 1.25rem;">
+            <i class="fab fa-android" style="color: #38bdf8;"></i>
+            <span>تطبيق الأندرويد</span>
           </a>
         </div>
       </div>
 
-      <!-- Quick Category Access Cards (Real Categories from DB) -->
+      <!-- Product Spotlight Focal Point -->
+      {% if featured_products %}
+      {% with spot=featured_products.0 %}
+      {% product_display_image spot as spot_img %}
+      <a href="{% url 'product_detail' spot.id %}" class="rq-hero-spotlight">
+        <div class="rq-hero-spotlight-img">
+          {% if spot_img %}
+          <img src="{{ spot_img }}" alt="{{ spot.name }}">
+          {% else %}
+          <i class="fas fa-box-open" style="font-size: 2.5rem; color: #64748b;"></i>
+          {% endif %}
+        </div>
+        <div class="rq-hero-spotlight-info">
+          <span class="rq-hero-spotlight-tag">{{ spot.category.name|default:"مختارات رقميات" }}</span>
+          <h3 class="rq-hero-spotlight-title">{{ spot.name|truncatechars:42 }}</h3>
+          <div class="rq-hero-spotlight-foot">
+            <strong class="tabular-nums font-mono">{% product_starting_price spot %}</strong>
+            <span class="rq-hero-spotlight-btn">عرض المنتج <i class="fas fa-arrow-left"></i></span>
+          </div>
+        </div>
+      </a>
+      {% endwith %}
+      {% else %}
       <div class="rq-hero-feature-box">
         {% for hcat in categories|slice:":4" %}
         {% category_display_image hcat as hcat_img %}
         <a href="{% url 'catalog' %}?category={{ hcat.id }}&view=products" class="rq-hero-mini-card">
-          <div style="width: 36px; height: 36px; border-radius: 9px; overflow: hidden; margin: 0 auto 0.4rem; background: rgba(255,255,255,0.08); display: flex; align-items: center; justify-content: center;">
+          <div style="width: 38px; height: 38px; border-radius: 10px; overflow: hidden; margin: 0 auto 0.4rem; background: rgba(255,255,255,0.08); display: flex; align-items: center; justify-content: center;">
             <img src="{{ hcat_img }}" alt="{{ hcat.name }}" style="width: 100%; height: 100%; object-fit: cover;" onerror="this.onerror=null; this.src='/media/categories/raqamiyat_category_brand.jpg';">
           </div>
           <span>{{ hcat.name|truncatechars:18 }}</span>
-          <small style="font-size: 0.68rem; color: #93c5fd; display: block; margin-top: 0.15rem;">{{ hcat.product_count|default:1 }} منتج</small>
-        </a>
-        {% empty %}
-        <a href="{% url 'catalog' %}" class="rq-hero-mini-card" style="grid-column: span 2;">
-          <i class="fas fa-th-large"></i>
-          <span>استكشف جميع أقسام المتجر</span>
         </a>
         {% endfor %}
       </div>
-    </div>
-  </section>
-
-  <!-- ====================================================================
-       1.5. LIVE TRUST & AUTHORITY CONVERSION BAR
-       ==================================================================== -->
-  <section class="rq-trust-bar" aria-label="ضمانات رقميات">
-    <div class="rq-trust-item">
-      <div class="rq-trust-icon" style="background: rgba(16, 185, 129, 0.14); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.28);">
-        <i class="fas fa-shield-check"></i>
-      </div>
-      <div>
-        <div class="rq-trust-title">كفالة رقميات الذهبية</div>
-        <div class="rq-trust-sub">فحص جودة وضمان استبدال فوري</div>
-      </div>
-    </div>
-    <div class="rq-trust-item">
-      <div class="rq-trust-icon" style="background: rgba(6, 182, 212, 0.14); color: #22d3ee; border: 1px solid rgba(6, 182, 212, 0.28);">
-        <i class="fas fa-bolt"></i>
-      </div>
-      <div>
-        <div class="rq-trust-title">تجهيز وتسليم فوري</div>
-        <div class="rq-trust-sub">معالجة آلية للطلبات على مدار الساعة</div>
-      </div>
-    </div>
-    <div class="rq-trust-item">
-      <div class="rq-trust-icon" style="background: rgba(234, 179, 8, 0.14); color: #fde047; border: 1px solid rgba(234, 179, 8, 0.28);">
-        <i class="fas fa-wallet"></i>
-      </div>
-      <div>
-        <div class="rq-trust-title">شام كاش وبيميرا</div>
-        <div class="rq-trust-sub">دفع مشفر وتأكيد فوري للرصيد</div>
-      </div>
-    </div>
-    <div class="rq-trust-item">
-      <div class="rq-trust-icon" style="background: rgba(168, 85, 247, 0.14); color: #c084fc; border: 1px solid rgba(168, 85, 247, 0.28);">
-        <i class="fas fa-headset"></i>
-      </div>
-      <div>
-        <div class="rq-trust-title">دعم مباشر 24/7</div>
-        <div class="rq-trust-sub">متابعة فورية عبر المحادثة المباشرة</div>
-      </div>
+      {% endif %}
     </div>
   </section>
 
@@ -170,9 +140,8 @@
           {% if prod.is_out_of_stock %}
           <span class="rq-badge rq-badge-out">نفذت الكمية</span>
           {% else %}
-          <span class="rq-badge rq-badge-stock">متوفر الآن</span>
+          <span class="rq-badge rq-badge-stock">متوفر</span>
           {% endif %}
-          <span class="rq-badge rq-badge-hot"><i class="fas fa-fire"></i> الأكثر طلباً</span>
         </div>
 
         <a href="{% url 'product_detail' prod.id %}" class="rq-product-thumb">
@@ -486,29 +455,6 @@
           <p style="font-size: 0.78rem; color: var(--rq-text-secondary); margin: 0;">فريق دعم متخصص لمساعدتك في اختيار المنتج المناسب ومتابعة طلباتك خطوة بخطوة.</p>
         </div>
       </div>
-    </div>
-  </section>
-
-  <!-- ====================================================================
-       7. VALUE-STACKING GUARANTEE & CONVERSION CTA BANNER
-       ==================================================================== -->
-  <section class="rq-guarantee-banner">
-    <div>
-      <span style="font-size: 0.75rem; font-weight: 900; color: #34d399; display: inline-flex; align-items: center; gap: 0.35rem; margin-bottom: 0.35rem;">
-        <i class="fas fa-award"></i> ضمان الرضا الكامل من رقميات
-      </span>
-      <h3 style="margin: 0 0 0.35rem; font-size: 1.15rem; font-weight: 900; color: var(--rq-navy);">جاهز للارتقاء بتجربة تسوقك؟</h3>
-      <p style="margin: 0; font-size: 0.84rem; color: var(--rq-text-secondary);">اطلب الآن واستفد من التجهيز الفوري، كفالة رقميات الذهبية، واسترداد الرصيد التلقائي في حال تعذر أي طلب.</p>
-    </div>
-    <div style="display: flex; flex-wrap: wrap; gap: 0.75rem;">
-      <a href="{% url 'catalog' %}" class="rq-btn-auth-register" style="height: 44px; padding: 0 1.4rem;">
-        <i class="fas fa-shopping-bag"></i>
-        <span>تسوق الآن</span>
-      </a>
-      <a href="{% url 'site_product_suggestion' %}" class="rq-btn-secondary" style="height: 44px; padding: 0 1.25rem;">
-        <i class="fas fa-lightbulb"></i>
-        <span>اقترح منتجاً لتوفيره</span>
-      </a>
     </div>
   </section>
 
