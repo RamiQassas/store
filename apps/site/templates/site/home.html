@@ -136,13 +136,11 @@
       {% product_display_image prod as p_img %}
       {% with prod.variants.first as first_var %}
       <article class="rq-product-card">
+        {% if prod.is_out_of_stock %}
         <div class="rq-product-badges">
-          {% if prod.is_out_of_stock %}
           <span class="rq-badge rq-badge-out">نفذت الكمية</span>
-          {% else %}
-          <span class="rq-badge rq-badge-stock">متوفر</span>
-          {% endif %}
         </div>
+        {% endif %}
 
         <a href="{% url 'product_detail' prod.id %}" class="rq-product-thumb">
           {% if p_img %}
@@ -157,9 +155,6 @@
           <h3 class="rq-product-title">
             <a href="{% url 'product_detail' prod.id %}">{{ prod.name }}</a>
           </h3>
-          {% if prod.description %}
-          <p class="rq-product-desc">{{ prod.description|striptags|truncatechars:70 }}</p>
-          {% endif %}
 
           <div class="rq-product-footer">
             <div class="rq-product-price-row">
@@ -218,13 +213,11 @@
       {% product_display_image prod as p_img %}
       {% with prod.variants.first as first_var %}
       <article class="rq-product-card">
+        {% if prod.is_out_of_stock %}
         <div class="rq-product-badges">
-          {% if prod.is_out_of_stock %}
           <span class="rq-badge rq-badge-out">نفذت الكمية</span>
-          {% else %}
-          <span class="rq-badge rq-badge-stock">متوفر للشحن</span>
-          {% endif %}
         </div>
+        {% endif %}
 
         <a href="{% url 'product_detail' prod.id %}" class="rq-product-thumb">
           {% if p_img %}
@@ -239,9 +232,6 @@
           <h3 class="rq-product-title">
             <a href="{% url 'product_detail' prod.id %}">{{ prod.name }}</a>
           </h3>
-          {% if prod.description %}
-          <p class="rq-product-desc">{{ prod.description|striptags|truncatechars:70 }}</p>
-          {% endif %}
 
           <div class="rq-product-footer">
             <div class="rq-product-price-row">
@@ -300,13 +290,11 @@
       {% product_display_image prod as p_img %}
       {% with prod.variants.first as first_var %}
       <article class="rq-product-card">
+        {% if prod.is_out_of_stock %}
         <div class="rq-product-badges">
-          {% if prod.is_out_of_stock %}
           <span class="rq-badge rq-badge-out">غير متوفر</span>
-          {% else %}
-          <span class="rq-badge rq-badge-stock">جديد</span>
-          {% endif %}
         </div>
+        {% endif %}
 
         <a href="{% url 'product_detail' prod.id %}" class="rq-product-thumb">
           {% if p_img %}

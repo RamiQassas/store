@@ -21,28 +21,25 @@
 
       <div style="display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 0.75rem;">
         <div>
-          <h1 style="font-size: clamp(1.15rem, 2.5vw, 1.8rem); font-weight: 900; color: var(--rq-text-primary); margin: 0 0 0.25rem;">
+          <h1 style="font-size: clamp(1.2rem, 2.5vw, 1.75rem); font-weight: 900; color: var(--rq-text-primary); margin: 0;">
             {% if selected_category %}
               {{ selected_category.name }}
             {% elif query %}
-              نتائج البحث عن: «{{ query }}»
+              نتائج البحث: «{{ query }}»
             {% else %}
-              كتالوج الأجهزة والمنتجات التقنية
+              المنتجات والأقسام
             {% endif %}
           </h1>
-          <p class="hidden sm:block" style="font-size: 0.82rem; color: var(--rq-text-secondary); margin: 0; max-width: 600px;">
-            تصفح الأقسام والمنتجات الإلكترونية، الهواتف الذكية، الحواسيب، ملحقاتها، والمعدات الأصلية.
-          </p>
         </div>
 
         <!-- Search Input in Catalog Header -->
-        <div style="width: 100%; max-width: 360px;" class="w-full sm:w-auto">
+        <div style="width: 100%; max-width: 340px;" class="w-full sm:w-auto">
           <form method="get" action="{% url 'catalog' %}" style="position: relative; width: 100%;">
             {% if active_category %}<input type="hidden" name="category" value="{{ active_category }}">{% endif %}
             {% if product_type_filter %}<input type="hidden" name="type" value="{{ product_type_filter }}">{% endif %}
             <input type="hidden" name="view" value="products">
             <i class="fas fa-search" style="position: absolute; right: 0.95rem; top: 50%; transform: translateY(-50%); color: var(--rq-text-muted); font-size: 0.85rem; pointer-events: none;"></i>
-            <input type="text" name="q" value="{{ query }}" placeholder="ابحث عن هاتف، لابتوب، راوتر..." class="rq-search-input" style="padding-left: 2.4rem; padding-right: 2.6rem; height: 42px; font-size: 0.84rem;">
+            <input type="text" name="q" value="{{ query }}" placeholder="ابحث عن منتج..." class="rq-search-input" style="padding-left: 2.4rem; padding-right: 2.6rem; height: 42px; font-size: 0.84rem;">
             {% if query %}
             <a href="{% url 'catalog' %}{% if active_category %}?category={{ active_category }}&view=products{% endif %}" style="position: absolute; left: 0.85rem; top: 50%; transform: translateY(-50%); color: var(--rq-text-muted); font-size: 0.85rem;" title="مسح البحث">
               <i class="fas fa-times"></i>
@@ -51,44 +48,6 @@
           </form>
         </div>
       </div>
-    </div>
-
-    <!-- ── Promotional Storefront Banner & Trust Strip ── -->
-    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 0.65rem; margin-bottom: 1.25rem;">
-      <div style="display: flex; align-items: center; gap: 0.65rem; padding: 0.75rem 0.95rem; border-radius: 14px; background: linear-gradient(135deg, rgba(6, 182, 212, 0.12), rgba(15, 23, 42, 0.85)); border: 1px solid rgba(34, 211, 238, 0.25);">
-        <span style="width: 34px; height: 34px; border-radius: 10px; background: rgba(34, 211, 238, 0.16); color: #22d3ee; display: flex; align-items: center; justify-content: center; flex-shrink: 0;"><i class="fas fa-bolt"></i></span>
-        <div>
-          <div style="font-size: 0.78rem; font-weight: 900; color: var(--rq-text-primary);">تجهيز وشحن سريع</div>
-          <div style="font-size: 0.68rem; color: var(--rq-text-secondary);">توصيل موثوق لكافة المحافظات</div>
-        </div>
-      </div>
-
-      <div style="display: flex; align-items: center; gap: 0.65rem; padding: 0.75rem 0.95rem; border-radius: 14px; background: linear-gradient(135deg, rgba(251, 191, 36, 0.12), rgba(15, 23, 42, 0.85)); border: 1px solid rgba(251, 191, 36, 0.25);">
-        <span style="width: 34px; height: 34px; border-radius: 10px; background: rgba(251, 191, 36, 0.16); color: #fbbf24; display: flex; align-items: center; justify-content: center; flex-shrink: 0;"><i class="fas fa-credit-card"></i></span>
-        <div>
-          <div style="font-size: 0.78rem; font-weight: 900; color: var(--rq-text-primary);">دفع شام كاش وبيميرا</div>
-          <div style="font-size: 0.68rem; color: var(--rq-text-secondary);">دفع فوري وآمن بالدولار والليرة</div>
-        </div>
-      </div>
-
-      <div style="display: flex; align-items: center; gap: 0.65rem; padding: 0.75rem 0.95rem; border-radius: 14px; background: linear-gradient(135deg, rgba(16, 185, 129, 0.12), rgba(15, 23, 42, 0.85)); border: 1px solid rgba(16, 185, 129, 0.25);">
-        <span style="width: 34px; height: 34px; border-radius: 10px; background: rgba(16, 185, 129, 0.16); color: #34d399; display: flex; align-items: center; justify-content: center; flex-shrink: 0;"><i class="fas fa-shield-check"></i></span>
-        <div>
-          <div style="font-size: 0.78rem; font-weight: 900; color: var(--rq-text-primary);">جودة أصلية ومضمونة</div>
-          <div style="font-size: 0.68rem; color: var(--rq-text-secondary);">فحص وضمان رقميات المعتمد</div>
-        </div>
-      </div>
-
-      <a href="{% url 'download_android_apk' %}" style="display: flex; align-items: center; justify-content: space-between; gap: 0.65rem; padding: 0.75rem 0.95rem; border-radius: 14px; background: linear-gradient(135deg, rgba(14, 165, 233, 0.22), rgba(16, 185, 129, 0.2)); border: 1px solid rgba(34, 211, 238, 0.45); text-decoration: none;">
-        <div style="display: flex; align-items: center; gap: 0.6rem;">
-          <span style="width: 34px; height: 34px; border-radius: 10px; background: #22d3ee; color: #030712; display: flex; align-items: center; justify-content: center; flex-shrink: 0; font-size: 1.05rem;"><i class="fab fa-android"></i></span>
-          <div>
-            <div style="font-size: 0.78rem; font-weight: 900; color: #ffffff;">حمل تطبيق الأندرويد</div>
-            <div style="font-size: 0.68rem; color: #bae6fd;">تصفح أسرع وعروض حصرية</div>
-          </div>
-        </div>
-        <i class="fas fa-arrow-left" style="color: #22d3ee; font-size: 0.8rem;"></i>
-      </a>
     </div>
 
     <!-- ── Mobile Horizontal Category Pills ── -->
@@ -272,17 +231,17 @@
           
           <!-- Quick Filter Chips for Instant One-Tap Filtering -->
           <div style="display: flex; align-items: center; gap: 0.45rem; overflow-x: auto; -webkit-overflow-scrolling: touch; padding-bottom: 0.65rem; margin-bottom: 0.85rem; scrollbar-width: none;">
-            <a href="?view=products{% if query %}&q={{ query }}{% endif %}{% if active_category %}&category={{ active_category }}{% endif %}" style="flex-shrink: 0; padding: 0.38rem 0.85rem; border-radius: 9999px; font-size: 0.74rem; font-weight: 800; border: 1px solid {% if not product_type_filter and not in_stock_filter %}var(--rq-primary-light){% else %}var(--rq-border){% endif %}; background: {% if not product_type_filter and not in_stock_filter %}linear-gradient(135deg, rgba(37,99,235,0.25), rgba(14,165,233,0.25)){% else %}var(--rq-surface-card){% endif %}; color: {% if not product_type_filter and not in_stock_filter %}#38bdf8{% else %}var(--rq-text-secondary){% endif %}; transition: all 0.2s;">
-              ✨ الكل
+            <a href="?view=products{% if query %}&q={{ query }}{% endif %}{% if active_category %}&category={{ active_category }}{% endif %}" style="flex-shrink: 0; padding: 0.38rem 0.85rem; border-radius: 9999px; font-size: 0.74rem; font-weight: 800; border: 1px solid {% if not product_type_filter and not in_stock_filter %}var(--rq-primary-light){% else %}var(--rq-border){% endif %}; background: {% if not product_type_filter and not in_stock_filter %}rgba(56,189,248,0.16){% else %}var(--rq-surface-card){% endif %}; color: {% if not product_type_filter and not in_stock_filter %}#38bdf8{% else %}var(--rq-text-secondary){% endif %}; transition: all 0.2s;">
+              الكل
             </a>
-            <a href="?view=products&type=physical{% if query %}&q={{ query }}{% endif %}{% if active_category %}&category={{ active_category }}{% endif %}" style="flex-shrink: 0; padding: 0.38rem 0.85rem; border-radius: 9999px; font-size: 0.74rem; font-weight: 800; border: 1px solid {% if product_type_filter == 'physical' %}var(--rq-primary-light){% else %}var(--rq-border){% endif %}; background: {% if product_type_filter == 'physical' %}linear-gradient(135deg, rgba(37,99,235,0.25), rgba(14,165,233,0.25)){% else %}var(--rq-surface-card){% endif %}; color: {% if product_type_filter == 'physical' %}#38bdf8{% else %}var(--rq-text-secondary){% endif %}; transition: all 0.2s;">
-              💻 أجهزة وعتاد تقني
+            <a href="?view=products&type=physical{% if query %}&q={{ query }}{% endif %}{% if active_category %}&category={{ active_category }}{% endif %}" style="flex-shrink: 0; padding: 0.38rem 0.85rem; border-radius: 9999px; font-size: 0.74rem; font-weight: 800; border: 1px solid {% if product_type_filter == 'physical' %}var(--rq-primary-light){% else %}var(--rq-border){% endif %}; background: {% if product_type_filter == 'physical' %}rgba(56,189,248,0.16){% else %}var(--rq-surface-card){% endif %}; color: {% if product_type_filter == 'physical' %}#38bdf8{% else %}var(--rq-text-secondary){% endif %}; transition: all 0.2s;">
+              أجهزة وعتاد
             </a>
-            <a href="?view=products&type=digital{% if query %}&q={{ query }}{% endif %}{% if active_category %}&category={{ active_category }}{% endif %}" style="flex-shrink: 0; padding: 0.38rem 0.85rem; border-radius: 9999px; font-size: 0.74rem; font-weight: 800; border: 1px solid {% if product_type_filter == 'digital' %}var(--rq-primary-light){% else %}var(--rq-border){% endif %}; background: {% if product_type_filter == 'digital' %}linear-gradient(135deg, rgba(37,99,235,0.25), rgba(14,165,233,0.25)){% else %}var(--rq-surface-card){% endif %}; color: {% if product_type_filter == 'digital' %}#38bdf8{% else %}var(--rq-text-secondary){% endif %}; transition: all 0.2s;">
-              ⚡ منتجات وخدمات رقمية
+            <a href="?view=products&type=digital{% if query %}&q={{ query }}{% endif %}{% if active_category %}&category={{ active_category }}{% endif %}" style="flex-shrink: 0; padding: 0.38rem 0.85rem; border-radius: 9999px; font-size: 0.74rem; font-weight: 800; border: 1px solid {% if product_type_filter == 'digital' %}var(--rq-primary-light){% else %}var(--rq-border){% endif %}; background: {% if product_type_filter == 'digital' %}rgba(56,189,248,0.16){% else %}var(--rq-surface-card){% endif %}; color: {% if product_type_filter == 'digital' %}#38bdf8{% else %}var(--rq-text-secondary){% endif %}; transition: all 0.2s;">
+              خدمات رقمية
             </a>
-            <a href="?view=products&in_stock=1{% if query %}&q={{ query }}{% endif %}{% if active_category %}&category={{ active_category }}{% endif %}" style="flex-shrink: 0; padding: 0.38rem 0.85rem; border-radius: 9999px; font-size: 0.74rem; font-weight: 800; border: 1px solid {% if in_stock_filter == '1' %}#34d399{% else %}var(--rq-border){% endif %}; background: {% if in_stock_filter == '1' %}rgba(16,185,129,0.2){% else %}var(--rq-surface-card){% endif %}; color: {% if in_stock_filter == '1' %}#34d399{% else %}var(--rq-text-secondary){% endif %}; transition: all 0.2s;">
-              🟢 المتوفر حالياً فقط
+            <a href="?view=products&in_stock=1{% if query %}&q={{ query }}{% endif %}{% if active_category %}&category={{ active_category }}{% endif %}" style="flex-shrink: 0; padding: 0.38rem 0.85rem; border-radius: 9999px; font-size: 0.74rem; font-weight: 800; border: 1px solid {% if in_stock_filter == '1' %}var(--rq-primary-light){% else %}var(--rq-border){% endif %}; background: {% if in_stock_filter == '1' %}rgba(56,189,248,0.16){% else %}var(--rq-surface-card){% endif %}; color: {% if in_stock_filter == '1' %}#38bdf8{% else %}var(--rq-text-secondary){% endif %}; transition: all 0.2s;">
+              المتوفر فقط
             </a>
           </div>
 
@@ -292,14 +251,7 @@
             <article class="rq-product-card">
               <a href="{% url 'product_detail' p.id %}" class="rq-product-thumb">
                 {% if p.is_sale %}
-                <span class="rq-badge" style="position: absolute; top: 0.45rem; left: 0.45rem; z-index: 2; background: linear-gradient(135deg, #ef4444, #f97316); color: #fff;">🔥 عرض خاص</span>
-                {% elif p.is_featured %}
-                <span class="rq-badge" style="position: absolute; top: 0.45rem; left: 0.45rem; z-index: 2; background: linear-gradient(135deg, #f59e0b, #d97706); color: #030712;">⭐ مميز</span>
-                {% endif %}
-                {% if p.product_type == 'physical' %}
-                <span class="rq-badge rq-badge-stock" style="position: absolute; top: 0.45rem; right: 0.45rem; z-index: 2;"><i class="fas fa-truck"></i> شحن</span>
-                {% else %}
-                <span class="rq-badge rq-badge-featured" style="position: absolute; top: 0.45rem; right: 0.45rem; z-index: 2;"><i class="fas fa-bolt"></i> فوري</span>
+                <span class="rq-badge" style="position: absolute; top: 0.45rem; left: 0.45rem; z-index: 2; background: #0f172a; color: #f8fafc; font-size: 0.65rem;">عرض</span>
                 {% endif %}
                 <img src="{{ p_img }}" alt="{{ p.name }}" loading="lazy" onerror="this.onerror=null; this.src='{% static 'site/img/raqamiyat_logo_square.jpg' %}';">
               </a>
