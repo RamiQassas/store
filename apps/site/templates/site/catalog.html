@@ -1,27 +1,198 @@
 {% extends "site/base.html" %}
 {% load static site_tags %}
 
-{% block title %}كتالوج المنتجات والأقسام | {% if is_tenant %}{{ STORE_NAME }}{% else %}رقميات RAQAMIYAT{% endif %}{% endblock %}
+{% block title %}{% if selected_category %}{{ selected_category.name }} | {% endif %}المنتجات والأقسام | {% if is_tenant %}{{ STORE_NAME }}{% else %}رقميات{% endif %}{% endblock %}
+
+{% block extra_head %}
+<style>
+  .rq-cat-page {
+    min-height: 100vh;
+    padding: 1.25rem 0 4.5rem;
+    overflow-x: clip;
+  }
+
+  .rq-cat-hero-bar {
+    background: var(--rq-surface-card);
+    border: 1px solid var(--rq-border);
+    border-radius: 20px;
+    padding: 1.15rem 1.35rem;
+    margin-bottom: 1.25rem;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    backdrop-filter: var(--rq-glass-blur);
+  }
+
+  .rq-cat-breadcrumb {
+    display: flex;
+    align-items: center;
+    gap: 0.45rem;
+    font-size: 0.75rem;
+    color: var(--rq-text-muted);
+    margin-bottom: 0.35rem;
+    flex-wrap: wrap;
+  }
+
+  .rq-cat-breadcrumb a {
+    color: var(--rq-text-muted);
+    text-decoration: none;
+  }
+
+  .rq-cat-breadcrumb a:hover {
+    color: var(--rq-primary-light);
+  }
+
+  .rq-cat-title-row {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    flex-wrap: wrap;
+  }
+
+  .rq-cat-main-title {
+    font-size: clamp(1.2rem, 2.4vw, 1.7rem);
+    font-weight: 900;
+    color: var(--rq-text-primary);
+    margin: 0;
+  }
+
+  .rq-cat-count-pill {
+    font-size: 0.72rem;
+    font-weight: 800;
+    padding: 0.2rem 0.65rem;
+    border-radius: 999px;
+    background: var(--rq-primary-soft);
+    color: var(--rq-primary-light);
+    border: 1px solid rgba(56, 189, 248, 0.24);
+  }
+
+  .rq-cat-search-box {
+    width: 100%;
+    max-width: 340px;
+    position: relative;
+  }
+
+  .rq-cat-filter-chips {
+    display: flex;
+    align-items: center;
+    gap: 0.45rem;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    padding-bottom: 0.45rem;
+    margin-bottom: 0.9rem;
+    scrollbar-width: none;
+  }
+
+  .rq-cat-chip {
+    flex-shrink: 0;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    padding: 0.4rem 0.9rem;
+    border-radius: 999px;
+    font-size: 0.75rem;
+    font-weight: 800;
+    border: 1px solid var(--rq-border);
+    background: var(--rq-surface-card);
+    color: var(--rq-text-secondary);
+    text-decoration: none;
+    transition: all 0.2s ease;
+    white-space: nowrap;
+  }
+
+  .rq-cat-chip:hover {
+    border-color: var(--rq-primary-light);
+    color: var(--rq-text-primary);
+  }
+
+  .rq-cat-chip.is-active {
+    background: var(--rq-primary-soft);
+    border-color: var(--rq-primary-light);
+    color: var(--rq-primary-light);
+  }
+
+  .rq-cat-sidebar-card {
+    background: var(--rq-surface-card);
+    border: 1px solid var(--rq-border);
+    border-radius: 18px;
+    padding: 1.15rem;
+    display: flex;
+    flex-direction: column;
+    gap: 1.15rem;
+    position: sticky;
+    top: 90px;
+  }
+
+  .rq-cat-side-link {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem;
+    padding: 0.5rem 0.7rem;
+    border-radius: 10px;
+    font-size: 0.8rem;
+    font-weight: 700;
+    color: var(--rq-text-secondary);
+    text-decoration: none;
+    border: 1px solid transparent;
+    transition: all 0.18s ease;
+    min-width: 0;
+  }
+
+  .rq-cat-side-link:hover {
+    background: var(--rq-bg-elevated);
+    color: var(--rq-text-primary);
+  }
+
+  .rq-cat-side-link.is-active {
+    background: var(--rq-primary-soft);
+    color: var(--rq-primary-light);
+    border-color: rgba(56, 189, 248, 0.25);
+  }
+
+  .rq-cat-side-count {
+    font-size: 0.7rem;
+    font-weight: 800;
+    color: var(--rq-text-muted);
+    background: var(--rq-bg-elevated);
+    padding: 0.1rem 0.45rem;
+    border-radius: 999px;
+    flex-shrink: 0;
+  }
+
+  @media (max-width: 640px) {
+    .rq-cat-hero-bar {
+      padding: 0.9rem 1rem;
+      border-radius: 16px;
+    }
+    .rq-cat-search-box {
+      max-width: 100%;
+    }
+  }
+</style>
+{% endblock %}
 
 {% block content %}
-<div style="min-height: 100vh; padding: 1rem 0 4.5rem; overflow-x: clip; width: 100%; max-width: 100vw; box-sizing: border-box;">
+<div class="rq-cat-page">
   <div class="rq-container">
 
-    <!-- ── Breadcrumbs & Catalog Header ── -->
-    <div style="margin-bottom: 1.25rem; border-bottom: 1px solid var(--rq-border); padding-bottom: 1rem;">
-      <nav style="display: flex; align-items: center; gap: 0.45rem; font-size: 0.78rem; color: var(--rq-text-muted); margin-bottom: 0.65rem;" aria-label="مسار التصفح">
-        <a href="{% url 'home' %}" style="color: var(--rq-text-muted);"><i class="fas fa-home ml-1 text-xs"></i>الرئيسية</a>
-        <i class="fas fa-chevron-left text-xs opacity-60"></i>
-        <a href="{% url 'catalog' %}" style="color: var(--rq-primary-light); font-weight: 700;">الكتالوج</a>
-        {% if selected_category %}
-        <i class="fas fa-chevron-left text-xs opacity-60"></i>
-        <span style="color: var(--rq-text-primary); font-weight: 800;">{{ selected_category.name }}</span>
-        {% endif %}
-      </nav>
+    <!-- ── 1. Clean Catalog Header & Search ── -->
+    <header class="rq-cat-hero-bar">
+      <div style="min-width: 0;">
+        <nav class="rq-cat-breadcrumb" aria-label="مسار التصفح">
+          <a href="{% url 'home' %}"><i class="fas fa-home"></i> الرئيسية</a>
+          <i class="fas fa-chevron-left text-[10px] opacity-60"></i>
+          <a href="{% url 'catalog' %}" style="color: var(--rq-primary-light); font-weight: 800;">الكتالوج</a>
+          {% if selected_category %}
+          <i class="fas fa-chevron-left text-[10px] opacity-60"></i>
+          <span style="color: var(--rq-text-primary); font-weight: 800;">{{ selected_category.name }}</span>
+          {% endif %}
+        </nav>
 
-      <div style="display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 0.75rem;">
-        <div>
-          <h1 style="font-size: clamp(1.2rem, 2.5vw, 1.75rem); font-weight: 900; color: var(--rq-text-primary); margin: 0;">
+        <div class="rq-cat-title-row">
+          <h1 class="rq-cat-main-title">
             {% if selected_category %}
               {{ selected_category.name }}
             {% elif query %}
@@ -30,83 +201,81 @@
               المنتجات والأقسام
             {% endif %}
           </h1>
-        </div>
-
-        <!-- Search Input in Catalog Header -->
-        <div style="width: 100%; max-width: 340px;" class="w-full sm:w-auto">
-          <form method="get" action="{% url 'catalog' %}" style="position: relative; width: 100%;">
-            {% if active_category %}<input type="hidden" name="category" value="{{ active_category }}">{% endif %}
-            {% if product_type_filter %}<input type="hidden" name="type" value="{{ product_type_filter }}">{% endif %}
-            <input type="hidden" name="view" value="products">
-            <i class="fas fa-search" style="position: absolute; right: 0.95rem; top: 50%; transform: translateY(-50%); color: var(--rq-text-muted); font-size: 0.85rem; pointer-events: none;"></i>
-            <input type="text" name="q" value="{{ query }}" placeholder="ابحث عن منتج..." class="rq-search-input" style="padding-left: 2.4rem; padding-right: 2.6rem; height: 42px; font-size: 0.84rem;">
-            {% if query %}
-            <a href="{% url 'catalog' %}{% if active_category %}?category={{ active_category }}&view=products{% endif %}" style="position: absolute; left: 0.85rem; top: 50%; transform: translateY(-50%); color: var(--rq-text-muted); font-size: 0.85rem;" title="مسح البحث">
-              <i class="fas fa-times"></i>
-            </a>
-            {% endif %}
-          </form>
+          <span class="rq-cat-count-pill tabular-nums">{{ total_products_count }} منتج</span>
         </div>
       </div>
-    </div>
 
-    <!-- ── Mobile Horizontal Category Pills ── -->
-    <div id="mobile-categories-pills" class="rq-categories-scroller lg:hidden" style="margin-bottom: 1.15rem; display: {% if view_type == 'categories' %}none{% else %}flex{% endif %}; gap: 0.45rem; overflow-x: auto; -webkit-overflow-scrolling: touch; padding-bottom: 0.35rem; width: 100%; max-width: 100%; box-sizing: border-box;">
-      <a href="{% url 'catalog' %}{% if query %}?q={{ query }}&{% else %}?{% endif %}view=categories" style="flex-shrink: 0; display: inline-flex; align-items: center; gap: 0.35rem; padding: 0.4rem 0.85rem; border-radius: 9999px; font-size: 0.76rem; font-weight: 800; border: 1px solid {% if not active_category and view_type == 'categories' %}var(--rq-primary-light){% else %}var(--rq-border){% endif %}; background: {% if not active_category and view_type == 'categories' %}var(--rq-primary-soft){% else %}var(--rq-surface-card){% endif %}; color: {% if not active_category and view_type == 'categories' %}var(--rq-primary-light){% else %}var(--rq-text-secondary){% endif %}; transition: all 0.2s ease;">
-        <i class="fas fa-layer-group text-[11px]"></i>
+      <div class="rq-cat-search-box">
+        <form method="get" action="{% url 'catalog' %}" style="position: relative; width: 100%;">
+          {% if active_category %}<input type="hidden" name="category" value="{{ active_category }}">{% endif %}
+          {% if product_type_filter %}<input type="hidden" name="type" value="{{ product_type_filter }}">{% endif %}
+          <input type="hidden" name="view" value="products">
+          <i class="fas fa-search" style="position: absolute; right: 0.95rem; top: 50%; transform: translateY(-50%); color: var(--rq-text-muted); font-size: 0.85rem; pointer-events: none;"></i>
+          <input type="text" name="q" value="{{ query }}" placeholder="ابحث باسم المنتج أو الموديل..." class="rq-search-input" style="padding-left: 2.4rem; padding-right: 2.6rem; height: 42px; font-size: 0.84rem;">
+          {% if query %}
+          <a href="{% url 'catalog' %}{% if active_category %}?category={{ active_category }}&view=products{% endif %}" style="position: absolute; left: 0.85rem; top: 50%; transform: translateY(-50%); color: var(--rq-text-muted); font-size: 0.85rem;" title="مسح البحث">
+            <i class="fas fa-times"></i>
+          </a>
+          {% endif %}
+        </form>
+      </div>
+    </header>
+
+    <!-- ── 2. Mobile Horizontal Category Scroller ── -->
+    <div id="mobile-categories-pills" class="rq-cat-filter-chips lg:hidden" style="display: {% if view_type == 'categories' %}none{% else %}flex{% endif %};">
+      <a href="{% url 'catalog' %}{% if query %}?q={{ query }}&{% else %}?{% endif %}view=categories" class="rq-cat-chip {% if not active_category and view_type == 'categories' %}is-active{% endif %}">
+        <i class="fas fa-layer-group"></i>
         <span>الأقسام ({{ categories|length }})</span>
       </a>
-      <a href="{% url 'catalog' %}{% if query %}?q={{ query }}&{% else %}?{% endif %}view=products" style="flex-shrink: 0; display: inline-flex; align-items: center; gap: 0.35rem; padding: 0.4rem 0.85rem; border-radius: 9999px; font-size: 0.76rem; font-weight: 800; border: 1px solid {% if not active_category and view_type == 'products' %}var(--rq-primary-light){% else %}var(--rq-border){% endif %}; background: {% if not active_category and view_type == 'products' %}var(--rq-primary-soft){% else %}var(--rq-surface-card){% endif %}; color: {% if not active_category and view_type == 'products' %}var(--rq-primary-light){% else %}var(--rq-text-secondary){% endif %}; transition: all 0.2s ease;">
-        <i class="fas fa-table-cells-large text-[11px]"></i>
-        <span>كل المنتجات ({{ all_products_count }})</span>
+      <a href="{% url 'catalog' %}{% if query %}?q={{ query }}&{% else %}?{% endif %}view=products" class="rq-cat-chip {% if not active_category and view_type == 'products' %}is-active{% endif %}">
+        <i class="fas fa-table-cells-large"></i>
+        <span>الكل ({{ all_products_count }})</span>
       </a>
       {% for cat in categories %}
       {% if cat.product_count > 0 %}
-      <a href="?category={{ cat.id }}{% if query %}&q={{ query }}{% endif %}&view=products" style="flex-shrink: 0; display: inline-flex; align-items: center; padding: 0.4rem 0.85rem; border-radius: 9999px; font-size: 0.76rem; font-weight: 800; border: 1px solid {% if active_category == cat.id|stringformat:'s' %}var(--rq-primary-light){% else %}var(--rq-border){% endif %}; background: {% if active_category == cat.id|stringformat:'s' %}var(--rq-primary-soft){% else %}var(--rq-surface-card){% endif %}; color: {% if active_category == cat.id|stringformat:'s' %}var(--rq-primary-light){% else %}var(--rq-text-secondary){% endif %}; transition: all 0.2s ease;">
-        {{ cat.name }} ({{ cat.product_count }})
+      <a href="?category={{ cat.id }}{% if query %}&q={{ query }}{% endif %}&view=products" class="rq-cat-chip {% if active_category == cat.id|stringformat:'s' %}is-active{% endif %}">
+        <span>{{ cat.name }} ({{ cat.product_count }})</span>
       </a>
       {% endif %}
       {% endfor %}
     </div>
 
-    <!-- ── Main Catalog Layout (Sidebar Filters + Catalog Content) ── -->
+    <!-- ── 3. Main Catalog Layout (Sidebar + Content) ── -->
     <div class="rq-catalog-layout">
 
-      <!-- Desktop Filter Sidebar (Hidden on Mobile) -->
+      <!-- Desktop Filter Sidebar -->
       <aside class="rq-catalog-sidebar">
-        <div style="background: var(--rq-surface-card); border: 1px solid var(--rq-border); border-radius: 16px; padding: 1.25rem; display: flex; flex-direction: column; gap: 1.25rem; box-shadow: var(--rq-shadow-xs);">
-          
-          <!-- 1. Categories Filter -->
+        <div class="rq-cat-sidebar-card">
+
           <div>
             <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.65rem;">
               <h2 style="font-size: 0.88rem; font-weight: 900; color: var(--rq-text-primary); margin: 0; display: flex; align-items: center; gap: 0.45rem;">
                 <i class="fas fa-layer-group" style="color: var(--rq-primary-light);"></i>
                 <span>الأقسام</span>
               </h2>
-              <span class="tabular-nums" style="font-size: 0.72rem; color: var(--rq-text-muted);">{{ categories|length }} قسم</span>
+              <span class="tabular-nums" style="font-size: 0.72rem; color: var(--rq-text-muted);">{{ categories|length }}</span>
             </div>
 
             <div style="display: flex; flex-direction: column; gap: 0.25rem; max-height: 320px; overflow-y: auto;">
-              <a href="{% url 'catalog' %}{% if query %}?q={{ query }}{% endif %}&view=products" style="display: flex; align-items: center; justify-content: space-between; padding: 0.5rem 0.75rem; border-radius: 10px; font-size: 0.8rem; font-weight: 700; background: {% if not active_category and view_type == 'products' %}var(--rq-primary-soft){% else %}transparent{% endif %}; color: {% if not active_category and view_type == 'products' %}var(--rq-primary-light){% else %}var(--rq-text-secondary){% endif %}; border: 1px solid {% if not active_category and view_type == 'products' %}rgba(59,130,246,0.3){% else %}transparent{% endif %};">
+              <a href="{% url 'catalog' %}{% if query %}?q={{ query }}{% endif %}&view=products" class="rq-cat-side-link {% if not active_category and view_type == 'products' %}is-active{% endif %}">
                 <span>جميع المنتجات</span>
-                <span class="tabular-nums font-mono" style="font-size: 0.7rem; font-weight: 800; color: var(--rq-primary-light); background: var(--rq-surface-card); padding: 0.1rem 0.45rem; border-radius: 9999px; border: 1px solid var(--rq-border);">{{ all_products_count }}</span>
+                <span class="rq-cat-side-count tabular-nums font-mono">{{ all_products_count }}</span>
               </a>
 
               {% for cat in categories %}
               {% if cat.product_count > 0 %}
-              <a href="?category={{ cat.id }}{% if query %}&q={{ query }}{% endif %}&view=products" style="display: flex; align-items: center; justify-content: space-between; padding: 0.5rem 0.75rem; border-radius: 10px; font-size: 0.8rem; font-weight: 700; background: {% if active_category == cat.id|stringformat:'s' %}var(--rq-primary-soft){% else %}transparent{% endif %}; color: {% if active_category == cat.id|stringformat:'s' %}var(--rq-primary-light){% else %}var(--rq-text-secondary){% endif %}; border: 1px solid {% if active_category == cat.id|stringformat:'s' %}rgba(59,130,246,0.3){% else %}transparent{% endif %};">
+              <a href="?category={{ cat.id }}{% if query %}&q={{ query }}{% endif %}&view=products" class="rq-cat-side-link {% if active_category == cat.id|stringformat:'s' %}is-active{% endif %}">
                 <span style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">{{ cat.name }}</span>
-                <span class="tabular-nums font-mono" style="font-size: 0.7rem; font-weight: 700; color: var(--rq-text-muted); background: var(--rq-bg-elevated); padding: 0.1rem 0.45rem; border-radius: 9999px;">{{ cat.product_count }}</span>
+                <span class="rq-cat-side-count tabular-nums font-mono">{{ cat.product_count }}</span>
               </a>
               {% endif %}
               {% endfor %}
             </div>
           </div>
 
-          <!-- 2. Filters Form -->
-          <div style="border-top: 1px solid var(--rq-border); padding-top: 1.15rem;">
-            <h3 style="font-size: 0.85rem; font-weight: 900; color: var(--rq-text-primary); margin: 0 0 0.75rem; display: flex; align-items: center; gap: 0.45rem;">
-              <i class="fas fa-filter" style="color: var(--rq-primary-light);"></i>
+          <div style="border-top: 1px solid var(--rq-border); padding-top: 1rem;">
+            <h3 style="font-size: 0.84rem; font-weight: 900; color: var(--rq-text-primary); margin: 0 0 0.75rem; display: flex; align-items: center; gap: 0.45rem;">
+              <i class="fas fa-sliders" style="color: var(--rq-primary-light);"></i>
               <span>تصفية النتائج</span>
             </h3>
 
@@ -117,15 +286,16 @@
               <input type="hidden" name="view" value="products">
 
               <div>
-                <label class="rq-label" style="font-size: 0.74rem;">نوع المنتج</label>
+                <label class="rq-label" style="font-size: 0.74rem;">النوع</label>
                 <select name="type" class="rq-select" style="padding: 0.45rem 0.75rem; font-size: 0.78rem;">
-                  <option value="" {% if not product_type_filter %}selected{% endif %}>جميع الأجهزة والمعدات</option>
-                  <option value="physical" {% if product_type_filter == 'physical' %}selected{% endif %}>أجهزة ومعدات مادية (متوفر للشحن)</option>
+                  <option value="" {% if not product_type_filter %}selected{% endif %}>الكل</option>
+                  <option value="physical" {% if product_type_filter == 'physical' %}selected{% endif %}>أجهزة ومعدات</option>
+                  <option value="digital" {% if product_type_filter == 'digital' %}selected{% endif %}>خدمات رقمية</option>
                 </select>
               </div>
 
               <div>
-                <label class="rq-label" style="font-size: 0.74rem;">نطاق السعر ($)</label>
+                <label class="rq-label" style="font-size: 0.74rem;">السعر ($)</label>
                 <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.45rem;">
                   <input type="number" name="min_price" value="{{ min_price }}" placeholder="من" min="0" step="any" class="rq-input" style="padding: 0.4rem 0.55rem; font-size: 0.78rem;">
                   <input type="number" name="max_price" value="{{ max_price }}" placeholder="إلى" min="0" step="any" class="rq-input" style="padding: 0.4rem 0.55rem; font-size: 0.78rem;">
@@ -138,24 +308,19 @@
               </label>
 
               <div style="display: flex; gap: 0.45rem;">
-                <button type="submit" class="rq-btn-primary rq-btn-sm" style="flex: 1; height: 36px; font-size: 0.76rem;">تطبيق الفلتر</button>
+                <button type="submit" class="rq-btn-primary rq-btn-sm" style="flex: 1; height: 36px; font-size: 0.76rem;">تطبيق</button>
                 {% if product_type_filter or min_price or max_price or in_stock_filter %}
-                <a href="{% url 'catalog' %}{% if active_category %}?category={{ active_category }}{% endif %}&view=products" class="rq-btn-secondary rq-btn-sm" style="height: 36px; font-size: 0.76rem;">إعادة ضبط</a>
+                <a href="{% url 'catalog' %}{% if active_category %}?category={{ active_category }}{% endif %}&view=products" class="rq-btn-secondary rq-btn-sm" style="height: 36px; font-size: 0.76rem;">إلغاء</a>
                 {% endif %}
               </div>
             </form>
           </div>
 
-          <!-- 3. Suggestion Box -->
-          <div style="border-top: 1px solid var(--rq-border); padding-top: 1.15rem;">
-            <div style="background: var(--rq-bg-body); border: 1px dashed var(--rq-border); border-radius: 12px; padding: 0.85rem; text-align: center;">
-              <h4 style="font-size: 0.8rem; font-weight: 800; color: var(--rq-text-primary); margin: 0 0 0.2rem;">تبحث عن جهاز غير معروض؟</h4>
-              <p style="font-size: 0.72rem; color: var(--rq-text-muted); margin: 0 0 0.6rem; line-height: 1.4;">أرسل طلبك وسنوفره لك بأفضل سعر.</p>
-              <button type="button" onclick="openSuggestionModal()" class="rq-btn-secondary rq-btn-sm rq-btn-full" style="height: 34px; font-size: 0.74rem;">
-                <i class="fas fa-plus-circle" style="color: var(--rq-primary-light);"></i>
-                <span>اقتراح منتج جديد</span>
-              </button>
-            </div>
+          <div style="border-top: 1px solid var(--rq-border); padding-top: 1rem;">
+            <button type="button" onclick="openSuggestionModal()" class="rq-btn-secondary rq-btn-sm rq-btn-full" style="height: 36px; font-size: 0.76rem;">
+              <i class="fas fa-lightbulb" style="color: var(--rq-primary-light);"></i>
+              <span>اقترح منتجاً غير موجود</span>
+            </button>
           </div>
 
         </div>
@@ -166,8 +331,6 @@
 
         <!-- Controls Toolbar: Tabs & Sorting -->
         <div class="rq-catalog-toolbar">
-          
-          <!-- View Switcher Tabs: Categories First, Then All Products -->
           <div class="rq-catalog-tabs">
             <button type="button" id="tab-categories-btn" onclick="switchCatalogView('categories')" class="rq-catalog-tab-btn {% if view_type == 'categories' %}active{% endif %}">
               <i class="fas fa-layer-group"></i>
@@ -175,15 +338,11 @@
             </button>
             <button type="button" id="tab-products-btn" onclick="switchCatalogView('products')" class="rq-catalog-tab-btn {% if view_type != 'categories' %}active{% endif %}">
               <i class="fas fa-table-cells-large"></i>
-              <span>جميع المنتجات ({{ total_products_count }})</span>
+              <span>المنتجات ({{ total_products_count }})</span>
             </button>
           </div>
 
           <div class="rq-catalog-toolbar-right">
-            <span class="tabular-nums hidden sm:inline" style="font-size: 0.78rem; color: var(--rq-text-muted);">
-              النتائج: <strong style="color: var(--rq-text-primary);">{{ total_products_count }}</strong> منتج
-            </span>
-
             <form method="get" class="rq-catalog-sort-form">
               {% if active_category %}<input type="hidden" name="category" value="{{ active_category }}">{% endif %}
               {% if query %}<input type="hidden" name="q" value="{{ query }}">{% endif %}
@@ -195,23 +354,16 @@
               <label for="sort-select" class="rq-catalog-sort-label">الترتيب:</label>
               <select id="sort-select" name="sort" onchange="this.form.submit()" class="rq-currency-select rq-catalog-sort-select">
                 <option value="newest" {% if sort == "newest" or not sort %}selected{% endif %}>الأحدث أولاً</option>
-                <option value="price_low" {% if sort == "price_low" %}selected{% endif %}>السعر: الأقل أولاً</option>
-                <option value="price_high" {% if sort == "price_high" %}selected{% endif %}>السعر: الأعلى أولاً</option>
+                <option value="price_low" {% if sort == "price_low" %}selected{% endif %}>الأقل سعراً</option>
+                <option value="price_high" {% if sort == "price_high" %}selected{% endif %}>الأعلى سعراً</option>
               </select>
             </form>
           </div>
         </div>
 
-        <!-- ── SECTION 1: Categories Full Grid View (Default: Categories First) ── -->
+        <!-- ── SECTION 1: Categories Grid View ── -->
         <div id="catalog-categories-view" style="{% if view_type != 'categories' %}display: none;{% endif %}">
-          <div style="margin-bottom: 1rem; display: flex; align-items: center; justify-content: space-between;">
-            <div style="font-size: 0.88rem; font-weight: 800; color: var(--rq-text-primary); display: flex; align-items: center; gap: 0.4rem;">
-              <i class="fas fa-layer-group" style="color: var(--rq-primary-light);"></i>
-              <span>اختر قسماً لاستعراض منتجاته:</span>
-            </div>
-          </div>
-
-          <div class="rq-cats-grid" style="margin-bottom: 2.5rem;">
+          <div class="rq-cats-grid" style="margin-bottom: 2rem;">
             {% for cat in categories %}
             {% if cat.product_count > 0 %}
             {% category_display_image cat as cat_img %}
@@ -221,29 +373,29 @@
                 <span class="rq-cat-badge">{{ cat.product_count }} منتج</span>
               </div>
               <h3 class="rq-cat-clean-title">{{ cat.name }}</h3>
-              <span class="rq-cat-action">استعراض المنتجات <i class="fas fa-arrow-left text-[10px]"></i></span>
+              <span class="rq-cat-action">استعراض <i class="fas fa-arrow-left text-[10px]"></i></span>
             </a>
             {% endif %}
             {% endfor %}
           </div>
         </div>
 
-        <!-- ── SECTION 2: Products Grid View (Strictly 2 Products Per Row on Mobile) ── -->
+        <!-- ── SECTION 2: Products Grid View ── -->
         <div id="catalog-products-view" style="{% if view_type == 'categories' %}display: none;{% endif %}">
-          
-          <!-- Quick Filter Chips for Instant One-Tap Filtering -->
-          <div style="display: flex; align-items: center; gap: 0.45rem; overflow-x: auto; -webkit-overflow-scrolling: touch; padding-bottom: 0.65rem; margin-bottom: 0.85rem; scrollbar-width: none;">
-            <a href="?view=products{% if query %}&q={{ query }}{% endif %}{% if active_category %}&category={{ active_category }}{% endif %}" style="flex-shrink: 0; padding: 0.38rem 0.85rem; border-radius: 9999px; font-size: 0.74rem; font-weight: 800; border: 1px solid {% if not product_type_filter and not in_stock_filter %}var(--rq-primary-light){% else %}var(--rq-border){% endif %}; background: {% if not product_type_filter and not in_stock_filter %}rgba(56,189,248,0.16){% else %}var(--rq-surface-card){% endif %}; color: {% if not product_type_filter and not in_stock_filter %}#38bdf8{% else %}var(--rq-text-secondary){% endif %}; transition: all 0.2s;">
+
+          <!-- Quick Filter Chips -->
+          <div class="rq-cat-filter-chips">
+            <a href="?view=products{% if query %}&q={{ query }}{% endif %}{% if active_category %}&category={{ active_category }}{% endif %}" class="rq-cat-chip {% if not product_type_filter and not in_stock_filter %}is-active{% endif %}">
               الكل
             </a>
-            <a href="?view=products&type=physical{% if query %}&q={{ query }}{% endif %}{% if active_category %}&category={{ active_category }}{% endif %}" style="flex-shrink: 0; padding: 0.38rem 0.85rem; border-radius: 9999px; font-size: 0.74rem; font-weight: 800; border: 1px solid {% if product_type_filter == 'physical' %}var(--rq-primary-light){% else %}var(--rq-border){% endif %}; background: {% if product_type_filter == 'physical' %}rgba(56,189,248,0.16){% else %}var(--rq-surface-card){% endif %}; color: {% if product_type_filter == 'physical' %}#38bdf8{% else %}var(--rq-text-secondary){% endif %}; transition: all 0.2s;">
-              أجهزة وعتاد
+            <a href="?view=products&type=physical{% if query %}&q={{ query }}{% endif %}{% if active_category %}&category={{ active_category }}{% endif %}" class="rq-cat-chip {% if product_type_filter == 'physical' %}is-active{% endif %}">
+              <i class="fas fa-laptop"></i> أجهزة وعتاد
             </a>
-            <a href="?view=products&type=digital{% if query %}&q={{ query }}{% endif %}{% if active_category %}&category={{ active_category }}{% endif %}" style="flex-shrink: 0; padding: 0.38rem 0.85rem; border-radius: 9999px; font-size: 0.74rem; font-weight: 800; border: 1px solid {% if product_type_filter == 'digital' %}var(--rq-primary-light){% else %}var(--rq-border){% endif %}; background: {% if product_type_filter == 'digital' %}rgba(56,189,248,0.16){% else %}var(--rq-surface-card){% endif %}; color: {% if product_type_filter == 'digital' %}#38bdf8{% else %}var(--rq-text-secondary){% endif %}; transition: all 0.2s;">
-              خدمات رقمية
+            <a href="?view=products&type=digital{% if query %}&q={{ query }}{% endif %}{% if active_category %}&category={{ active_category }}{% endif %}" class="rq-cat-chip {% if product_type_filter == 'digital' %}is-active{% endif %}">
+              <i class="fas fa-bolt"></i> خدمات رقمية
             </a>
-            <a href="?view=products&in_stock=1{% if query %}&q={{ query }}{% endif %}{% if active_category %}&category={{ active_category }}{% endif %}" style="flex-shrink: 0; padding: 0.38rem 0.85rem; border-radius: 9999px; font-size: 0.74rem; font-weight: 800; border: 1px solid {% if in_stock_filter == '1' %}var(--rq-primary-light){% else %}var(--rq-border){% endif %}; background: {% if in_stock_filter == '1' %}rgba(56,189,248,0.16){% else %}var(--rq-surface-card){% endif %}; color: {% if in_stock_filter == '1' %}#38bdf8{% else %}var(--rq-text-secondary){% endif %}; transition: all 0.2s;">
-              المتوفر فقط
+            <a href="?view=products&in_stock=1{% if query %}&q={{ query }}{% endif %}{% if active_category %}&category={{ active_category }}{% endif %}" class="rq-cat-chip {% if in_stock_filter == '1' %}is-active{% endif %}">
+              <i class="fas fa-check-circle"></i> المتوفر فقط
             </a>
           </div>
 
@@ -252,7 +404,9 @@
             {% product_display_image p as p_img %}
             <article class="rq-product-card">
               <a href="{% url 'product_detail' p.id %}" class="rq-product-thumb">
-                {% if p.is_sale %}
+                {% if p.is_out_of_stock %}
+                <span class="rq-badge rq-badge-out" style="position: absolute; top: 0.45rem; right: 0.45rem; z-index: 2;">نفذت الكمية</span>
+                {% elif p.is_sale %}
                 <span class="rq-badge" style="position: absolute; top: 0.45rem; left: 0.45rem; z-index: 2; background: #0f172a; color: #f8fafc; font-size: 0.65rem;">عرض</span>
                 {% endif %}
                 <img src="{{ p_img }}" alt="{{ p.name }}" loading="lazy" onerror="this.onerror=null; this.src='{% static 'site/img/raqamiyat_logo_square.jpg' %}';">
@@ -266,12 +420,13 @@
                 </div>
                 <div class="rq-product-footer">
                   <div class="rq-product-price-row">
-                    <span class="rq-product-price-label">السعر:</span>
+                    <span class="rq-product-price-label">السعر</span>
                     <span class="tabular-nums font-mono rq-product-price">{% product_starting_price p %}</span>
                   </div>
                   <div class="rq-product-actions">
                     <button type="button" onclick="addToCartAjax('{{ p.id }}', '', 1, this)" class="rq-card-cart-btn" title="إضافة إلى السلة" aria-label="إضافة إلى السلة">
                       <i class="fas fa-cart-plus text-xs"></i>
+                      <span>أضف للسلة</span>
                     </button>
                     <a href="{% url 'product_detail' p.id %}" class="rq-card-buy-btn">
                       <span>شراء</span>
@@ -282,10 +437,10 @@
               </div>
             </article>
             {% empty %}
-            <div style="grid-column: 1 / -1; padding: 3.5rem 1.5rem; text-align: center; background: var(--rq-surface-card); border: 1px solid var(--rq-border); border-radius: 16px;">
-              <i class="fas fa-magnifying-glass text-3xl mb-3 block" style="color: var(--rq-text-muted);"></i>
-              <h3 style="font-size: 1.05rem; font-weight: 900; color: var(--rq-text-primary); margin: 0 0 0.4rem;">لم يتم العثور على منتجات مطابقة</h3>
-              <p style="font-size: 0.82rem; color: var(--rq-text-secondary); margin: 0 0 1.25rem;">جرب تغيير كلمات البحث أو استعراض الأقسام لاكتشاف المنتجات المتاحة.</p>
+            <div style="grid-column: 1 / -1; padding: 3rem 1.5rem; text-align: center; background: var(--rq-surface-card); border: 1px solid var(--rq-border); border-radius: 18px;">
+              <i class="fas fa-magnifying-glass text-2xl mb-3 block" style="color: var(--rq-text-muted);"></i>
+              <h3 style="font-size: 1rem; font-weight: 900; color: var(--rq-text-primary); margin: 0 0 0.35rem;">لم يتم العثور على منتجات مطابقة</h3>
+              <p style="font-size: 0.82rem; color: var(--rq-text-secondary); margin: 0 0 1.15rem;">جرب تغيير كلمات البحث أو استعراض الأقسام.</p>
               <button type="button" onclick="switchCatalogView('categories')" class="rq-btn-primary rq-btn-sm" style="display: inline-flex; align-items: center; gap: 0.4rem;">
                 <i class="fas fa-layer-group"></i>
                 <span>تصفح الأقسام</span>
@@ -294,79 +449,33 @@
             {% endfor %}
           </div>
 
-          <!-- Pagination Bar -->
-          {% if total_products_count > 0 %}
-          <div class="rq-catalog-pagination">
+          <!-- Pagination -->
+          {% if page_obj.has_other_pages %}
+          <nav class="rq-catalog-pagination" aria-label="صفحات الكتالوج" style="margin-top: 1.5rem;">
             {% if page_obj.has_previous %}
-            <a href="?start={{ prev_start }}{% if query %}&q={{ query }}{% endif %}{% if active_category %}&category={{ active_category }}{% endif %}{% if sort %}&sort={{ sort }}{% endif %}{% if product_type_filter %}&type={{ product_type_filter }}{% endif %}&view=products" class="rq-btn-secondary rq-btn-sm rq-pag-btn">
+            <a href="?page={{ page_obj.previous_page_number }}{% if active_category %}&category={{ active_category }}{% endif %}{% if query %}&q={{ query }}{% endif %}{% if product_type_filter %}&type={{ product_type_filter }}{% endif %}{% if sort %}&sort={{ sort }}{% endif %}&view=products" class="rq-btn-secondary rq-btn-sm">
               <i class="fas fa-chevron-right text-xs"></i>
               <span>السابق</span>
             </a>
             {% else %}
-            <span class="rq-btn-secondary rq-btn-sm rq-pag-btn disabled">
-              <i class="fas fa-chevron-right text-xs"></i>
-              <span>السابق</span>
-            </span>
+            <span></span>
             {% endif %}
 
-            <div class="rq-pag-info">
-              عرض <span class="tabular-nums font-mono" style="color: var(--rq-primary-light);">{{ start_num }} - {{ end_num }}</span> من أصل <span class="tabular-nums font-mono" style="color: var(--rq-text-primary);">{{ total_products_count }}</span> منتج
-            </div>
+            <span class="rq-pag-info tabular-nums">صفحة {{ page_obj.number }} من {{ page_obj.paginator.num_pages }}</span>
 
             {% if page_obj.has_next %}
-            <a href="?start={{ next_start }}{% if query %}&q={{ query }}{% endif %}{% if active_category %}&category={{ active_category }}{% endif %}{% if sort %}&sort={{ sort }}{% endif %}{% if product_type_filter %}&type={{ product_type_filter }}{% endif %}&view=products" class="rq-btn-secondary rq-btn-sm rq-pag-btn">
+            <a href="?page={{ page_obj.next_page_number }}{% if active_category %}&category={{ active_category }}{% endif %}{% if query %}&q={{ query }}{% endif %}{% if product_type_filter %}&type={{ product_type_filter }}{% endif %}{% if sort %}&sort={{ sort }}{% endif %}&view=products" class="rq-btn-secondary rq-btn-sm">
               <span>التالي</span>
               <i class="fas fa-chevron-left text-xs"></i>
             </a>
             {% else %}
-            <span class="rq-btn-secondary rq-btn-sm rq-pag-btn disabled">
-              <span>التالي</span>
-              <i class="fas fa-chevron-left text-xs"></i>
-            </span>
+            <span></span>
             {% endif %}
-          </div>
+          </nav>
           {% endif %}
         </div>
 
       </div>
-    </div>
-
-    <!-- ── Promotional Storefront Banner & Trust Strip ── -->
-    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 0.65rem; margin-bottom: 1.25rem;">
-      <div style="display: flex; align-items: center; gap: 0.65rem; padding: 0.75rem 0.95rem; border-radius: 14px; background: linear-gradient(135deg, rgba(6, 182, 212, 0.12), rgba(15, 23, 42, 0.85)); border: 1px solid rgba(34, 211, 238, 0.25);">
-        <span style="width: 34px; height: 34px; border-radius: 10px; background: rgba(34, 211, 238, 0.16); color: #22d3ee; display: flex; align-items: center; justify-content: center; flex-shrink: 0;"><i class="fas fa-bolt"></i></span>
-        <div>
-          <div style="font-size: 0.78rem; font-weight: 900; color: var(--rq-text-primary);">تجهيز وشحن سريع</div>
-          <div style="font-size: 0.68rem; color: var(--rq-text-secondary);">توصيل موثوق لكافة المحافظات</div>
-        </div>
-      </div>
-
-      <div style="display: flex; align-items: center; gap: 0.65rem; padding: 0.75rem 0.95rem; border-radius: 14px; background: linear-gradient(135deg, rgba(251, 191, 36, 0.12), rgba(15, 23, 42, 0.85)); border: 1px solid rgba(251, 191, 36, 0.25);">
-        <span style="width: 34px; height: 34px; border-radius: 10px; background: rgba(251, 191, 36, 0.16); color: #fbbf24; display: flex; align-items: center; justify-content: center; flex-shrink: 0;"><i class="fas fa-credit-card"></i></span>
-        <div>
-          <div style="font-size: 0.78rem; font-weight: 900; color: var(--rq-text-primary);">دفع شام كاش وبيميرا</div>
-          <div style="font-size: 0.68rem; color: var(--rq-text-secondary);">دفع فوري وآمن بالدولار والليرة</div>
-        </div>
-      </div>
-
-      <div style="display: flex; align-items: center; gap: 0.65rem; padding: 0.75rem 0.95rem; border-radius: 14px; background: linear-gradient(135deg, rgba(16, 185, 129, 0.12), rgba(15, 23, 42, 0.85)); border: 1px solid rgba(16, 185, 129, 0.25);">
-        <span style="width: 34px; height: 34px; border-radius: 10px; background: rgba(16, 185, 129, 0.16); color: #34d399; display: flex; align-items: center; justify-content: center; flex-shrink: 0;"><i class="fas fa-shield-check"></i></span>
-        <div>
-          <div style="font-size: 0.78rem; font-weight: 900; color: var(--rq-text-primary);">جودة أصلية ومضمونة</div>
-          <div style="font-size: 0.68rem; color: var(--rq-text-secondary);">فحص وضمان رقميات المعتمد</div>
-        </div>
-      </div>
-
-      <a href="{% url 'download_android_apk' %}" style="display: flex; align-items: center; justify-content: space-between; gap: 0.65rem; padding: 0.75rem 0.95rem; border-radius: 14px; background: linear-gradient(135deg, rgba(14, 165, 233, 0.22), rgba(16, 185, 129, 0.2)); border: 1px solid rgba(34, 211, 238, 0.45); text-decoration: none;">
-        <div style="display: flex; align-items: center; gap: 0.6rem;">
-          <span style="width: 34px; height: 34px; border-radius: 10px; background: #22d3ee; color: #030712; display: flex; align-items: center; justify-content: center; flex-shrink: 0; font-size: 1.05rem;"><i class="fab fa-android"></i></span>
-          <div>
-            <div style="font-size: 0.78rem; font-weight: 900; color: #ffffff;">حمل تطبيق الأندرويد</div>
-            <div style="font-size: 0.68rem; color: #bae6fd;">تصفح أسرع وعروض حصرية</div>
-          </div>
-        </div>
-        <i class="fas fa-arrow-left" style="color: #22d3ee; font-size: 0.8rem;"></i>
-      </a>
     </div>
 
   </div>
@@ -377,8 +486,8 @@
   <div style="background: var(--rq-surface-card); border: 1px solid var(--rq-border); border-radius: 18px; padding: 1.5rem; max-width: 460px; width: 100%; position: relative; box-shadow: var(--rq-shadow-lg);">
     <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 1rem; border-bottom: 1px solid var(--rq-border); padding-bottom: 0.75rem;">
       <h3 style="font-size: 0.95rem; font-weight: 900; color: var(--rq-text-primary); margin: 0; display: flex; align-items: center; gap: 0.45rem;">
-        <i class="fas fa-lightbulb" style="color: var(--rq-gold);"></i>
-        <span>اقتراح جهاز أو منتج تقني جديد</span>
+        <i class="fas fa-lightbulb" style="color: var(--rq-primary-light);"></i>
+        <span>اقتراح منتج جديد</span>
       </h3>
       <button type="button" onclick="closeSuggestionModal()" style="background: transparent; border: none; color: var(--rq-text-muted); font-size: 1.1rem; cursor: pointer;">
         <i class="fas fa-times"></i>
@@ -389,24 +498,24 @@
     <form id="suggestion-form" action="{% url 'site_product_suggestion' %}" method="post" style="display: flex; flex-direction: column; gap: 0.85rem;">
       {% csrf_token %}
       <div>
-        <label class="rq-label">اسم الجهاز أو القطعة المطلوبة</label>
-        <input type="text" name="product_name" class="rq-input" placeholder="مثال: هاتف سامسونج، لابتوب ديل، راوتر واي فاي 6..." required>
+        <label class="rq-label">اسم المنتج المطلوب</label>
+        <input type="text" name="product_name" class="rq-input" placeholder="مثال: هاتف سامسونج، لابتوب، راوتر..." required>
       </div>
       <div>
-        <label class="rq-label">تفاصيل إضافية أو مواصفات</label>
-        <textarea name="description" rows="3" class="rq-textarea" placeholder="اذكر أية تفاصيل أو المتطلبات الخاصة..." required></textarea>
+        <label class="rq-label">تفاصيل إضافية</label>
+        <textarea name="description" rows="3" class="rq-textarea" placeholder="اذكر التفاصيل والمواصفات المطلوبة..." required></textarea>
       </div>
       <button type="submit" id="suggestion-submit-btn" class="rq-btn-primary rq-btn-full">
-        <span>إرسال الاقتراح للإدارة</span>
+        <span>إرسال الاقتراح</span>
       </button>
       <div id="suggestion-feedback" style="font-size: 0.8rem; text-align: center; font-weight: 800;"></div>
     </form>
     {% else %}
     <div style="text-align: center; padding: 1.25rem 0; display: flex; flex-direction: column; align-items: center; gap: 0.85rem;">
       <i class="fas fa-lock text-2xl" style="color: var(--rq-primary-light);"></i>
-      <p style="font-size: 0.84rem; color: var(--rq-text-secondary); margin: 0;">يرجى تسجيل الدخول إلى حسابك أولاً لإرسال اقتراح لمنتج جديد.</p>
+      <p style="font-size: 0.84rem; color: var(--rq-text-secondary); margin: 0;">يرجى تسجيل الدخول أولاً لإرسال اقتراح لمنتج جديد.</p>
       <a href="{% url 'site_login' %}?next={{ request.path }}" class="rq-btn-primary">
-        <span>تسجيل الدخول الآن</span>
+        <span>تسجيل الدخول</span>
       </a>
     </div>
     {% endif %}
