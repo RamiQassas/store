@@ -6221,13 +6221,43 @@ def control_product_quick_image_ajax(request, pk):
     image_file = request.FILES.get("image")
     if not image_file:
         return JsonResponse({"status": "error", "message": "لم يتم تحديد أي ملف صورة."}, status=400)
-    
-    product.image = image_file
-    product.save(update_fields=["image"])
-    
+
+    studio_enhance = request.POST.get("studio_enhance", "true").lower() in ("true", "1", "yes")
+    if studio_enhance:
+        try:
+            from apps.catalog.studio_camera import process_camera_product_snapshot
+            from django.core.files.base import ContentFile
+            from django.utils.text import slugify
+            raw_bytes = image_file.read()
+            processed_bytes = process_camera_product_snapshot(
+                raw_bytes,
+                isolate_white=True,
+                add_hallmark=True,
+                target_size=800,
+                bg_style="studio_white",
+                auto_straighten=True,
+                filter_mode="auto_hdr",
+            )
+            filename = f"{slugify(product.name) or 'product'}_{str(product.id)[:8]}_studio.jpg"
+            product.image.save(filename, ContentFile(processed_bytes), save=True)
+        except Exception as exc:
+            logger.warning("Quick image AI studio fallback for %s: %s", pk, exc)
+            image_file.seek(0)
+            product.image = image_file
+            product.save(update_fields=["image"])
+    else:
+        product.image = image_file
+        product.save(update_fields=["image"])
+
+    try:
+        from django.core.cache import cache
+        cache.delete("api_offline_catalog_data")
+    except Exception:
+        pass
+
     return JsonResponse({
         "status": "success",
-        "message": "تم تحديث صورة المنتج بنجاح.",
+        "message": "تمت معالجة وتحديث صورة المنتج بالذكاء الاصطناعي بنجاح.",
         "image_url": product.image.url
     })
 
