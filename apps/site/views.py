@@ -2428,22 +2428,21 @@ def catalog(request):
     sort = request.GET.get("sort", "newest")
     cols = request.GET.get("cols", "2")
 
-    # Default to categories view if user opened /catalog/ directly without query or specific category
-    view_type = request.GET.get("view")
-    if not view_type:
-        if cat_id or q or request.GET.get("type") or request.GET.get("in_stock") or request.GET.get("min_price") or request.GET.get("max_price"):
-            view_type = "products"
-        else:
-            view_type = "categories"
+    # Default to showing ALL products directly so customers never have to click through extra pages
+    view_type = request.GET.get("view") or "products"
 
     if store:
         all_cats = list(Category.objects.filter(store=store, is_active=True, is_publicly_visible=True).order_by("sort_order", "name"))
         base_products = Product.objects.filter(store=store, is_active=True, is_publicly_visible=True).select_related("category").prefetch_related("variants")
     else:
-        all_cats = list(Category.objects.filter(is_active=True, is_publicly_visible=True).order_by("sort_order", "name"))
-        base_products = Product.objects.filter(is_active=True, is_publicly_visible=True).select_related("category").prefetch_related("variants")
+        all_cats = list(Category.objects.filter(store__isnull=True, is_active=True, is_publicly_visible=True).order_by("sort_order", "name"))
+        base_products = Product.objects.filter(store__isnull=True, is_active=True, is_publicly_visible=True).select_related("category").prefetch_related("variants")
+        if not base_products.exists():
+            all_cats = list(Category.objects.filter(is_active=True, is_publicly_visible=True).order_by("sort_order", "name"))
+            base_products = Product.objects.filter(is_active=True, is_publicly_visible=True).select_related("category").prefetch_related("variants")
 
     annotate_category_counts(all_cats)
+    all_cats = [c for c in all_cats if getattr(c, "product_count", 0) > 0]
     all_products_count = base_products.distinct().count()
 
     selected_category = None
@@ -2521,7 +2520,7 @@ def catalog(request):
 
     total_products_count = products.distinct().count()
 
-    PAGE_SIZE = 24
+    PAGE_SIZE = 1000
     start_param = request.GET.get("start") or request.GET.get("product_num")
     page_param = request.GET.get("page")
 
