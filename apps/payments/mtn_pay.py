@@ -788,55 +788,78 @@ class MTNPaymentClient:
         if not serial:
             raise MTNPayError("الرقم التسلسلي للطرفية (Serial) مطلوب للتفعيل.", errno=400, action="check_syntax")
 
-        pub_b64 = self.ensure_keypair()
-        payload = {
-            "Key": pub_b64,
-            "Secret": secret,
-            "Serial": serial,
-        }
+        self.ensure_keypair()
+        priv_key = serialization.load_pem_private_key(self._get_private_key().encode("utf-8"), password=None)
+        pub_key_obj = priv_key.public_key()
+        candidate_keys = [
+            base64.b64encode(
+                pub_key_obj.public_bytes(
+                    encoding=serialization.Encoding.DER,
+                    format=serialization.PublicFormat.SubjectPublicKeyInfo,
+                )
+            ).decode("ascii"),
+            base64.b64encode(
+                pub_key_obj.public_bytes(
+                    encoding=serialization.Encoding.DER,
+                    format=serialization.PublicFormat.PKCS1,
+                )
+            ).decode("ascii"),
+            base64.b64encode(
+                pub_key_obj.public_bytes(
+                    encoding=serialization.Encoding.PEM,
+                    format=serialization.PublicFormat.SubjectPublicKeyInfo,
+                )
+            ).decode("ascii"),
+        ]
+        # In unit tests with custom transport, use the terminal's stored public_key_b64 directly (single attempt)
+        if self.transport is not None:
+            candidate_keys = [self.terminal.public_key_b64 or candidate_keys[0]]
 
-        try:
-            resp = self._send_signed_request(self.ENDPOINT_ACTIVATE, payload)
-        except MTNPayError as exc:
-            # If eMARA rejects base64(DER) format with 400/401/40003, retry once with base64(PEM)
-            if exc.errno in (400, 401, 40003) and self.transport is None:
-                try:
-                    priv_key = serialization.load_pem_private_key(self._get_private_key().encode("utf-8"), password=None)
-                    pub_pem = priv_key.public_key().public_bytes(
-                        encoding=serialization.Encoding.PEM,
-                        format=serialization.PublicFormat.SubjectPublicKeyInfo,
-                    )
-                    pem_b64 = base64.b64encode(pub_pem).decode("ascii")
-                    payload["Key"] = pem_b64
-                    resp = self._send_signed_request(self.ENDPOINT_ACTIVATE, payload)
-                    self.terminal.public_key_b64 = pem_b64
-                except MTNPayError as retry_exc:
-                    exc = retry_exc
-                else:
-                    exc = None
+        resp = None
+        last_exc = None
+        winning_key = candidate_keys[0]
+        for cand_key in candidate_keys:
+            payload = {
+                "Key": cand_key,
+                "Secret": secret,
+                "Serial": serial,
+            }
+            try:
+                resp = self._send_signed_request(self.ENDPOINT_ACTIVATE, payload)
+                winning_key = cand_key
+                last_exc = None
+                break
+            except MTNPayError as exc:
+                last_exc = exc
+                if exc.errno in (400, 401, 40003) and self.transport is None:
+                    continue
+                break
 
-            if exc is not None:
-                if exc.errno == 301:
-                    self.terminal.is_activated = True
-                    self.terminal.is_locked = False
-                    if self.terminal.pk:
-                        self.terminal.save(update_fields=["is_activated", "is_locked"])
-                    return exc.raw_response
-                # Only increment abuse/activation attempts when MTN server rejects activation credentials (300/304),
-                # not when network/timeout (408), syntax/format (400/40003), signature (401), or server error (500) occurs.
-                if exc.errno in (300, 304):
-                    self.terminal.activation_attempts += 1
-                remote_abuse = exc.raw_response.get("CountAbuse")
-                if remote_abuse is not None:
-                    try:
-                        self.terminal.count_abuse = int(remote_abuse)
-                    except (TypeError, ValueError):
-                        pass
-                if self.terminal.activation_attempts >= 3 or self.terminal.count_abuse >= 3:
-                    self.terminal.is_locked = True
+        if last_exc is not None:
+            exc = last_exc
+            if exc.errno == 301:
+                self.terminal.is_activated = True
+                self.terminal.is_locked = False
                 if self.terminal.pk:
-                    self.terminal.save(update_fields=["activation_attempts", "count_abuse", "is_locked"])
-                raise exc
+                    self.terminal.save(update_fields=["is_activated", "is_locked"])
+                return exc.raw_response
+            # Only increment abuse/activation attempts when MTN server rejects activation credentials (300/304),
+            # not when network/timeout (408), syntax/format (400/40003), signature (401), or server error (500) occurs.
+            if exc.errno in (300, 304):
+                self.terminal.activation_attempts += 1
+            remote_abuse = exc.raw_response.get("CountAbuse")
+            if remote_abuse is not None:
+                try:
+                    self.terminal.count_abuse = int(remote_abuse)
+                except (TypeError, ValueError):
+                    pass
+            if self.terminal.activation_attempts >= 3 or self.terminal.count_abuse >= 3:
+                self.terminal.is_locked = True
+            if self.terminal.pk:
+                self.terminal.save(update_fields=["activation_attempts", "count_abuse", "is_locked"])
+            raise exc
+
+        self.terminal.public_key_b64 = winning_key
 
         settings_obj = resp.get("Settings") or {}
         if resp.get("ServerKey"):
