@@ -182,11 +182,16 @@ class MTNPayError(Exception):
     @classmethod
     def from_errno(cls, errno: int, raw_response: Optional[dict] = None, fallback_msg: str = "") -> "MTNPayError":
         spec = MTN_ERROR_CATALOG.get(errno)
+        remote_err = ""
+        if isinstance(raw_response, dict) and raw_response.get("Error"):
+            remote_err = str(raw_response.get("Error")).strip()
         if spec:
             msg = spec["message_ar"]
+            if remote_err and remote_err not in msg:
+                msg = f"{msg} [{remote_err}]"
             action = spec["action"]
         else:
-            msg = fallback_msg or f"خطأ من بوابة الدفع MTN برمز ({errno})."
+            msg = fallback_msg or remote_err or f"خطأ من بوابة الدفع MTN برمز ({errno})."
             action = "unknown_error"
         return cls(message=msg, errno=errno, action=action, raw_response=raw_response)
 
@@ -813,9 +818,9 @@ class MTNPaymentClient:
                     if self.terminal.pk:
                         self.terminal.save(update_fields=["is_activated", "is_locked"])
                     return exc.raw_response
-                # Only increment abuse/activation attempts when MTN server rejects credentials (e.g. 300/304),
-                # not when network/timeout (408) or server error (500) occurs.
-                if exc.errno not in (408, 500, 400, 40003):
+                # Only increment abuse/activation attempts when MTN server rejects activation credentials (300/304),
+                # not when network/timeout (408), syntax/format (400/40003), signature (401), or server error (500) occurs.
+                if exc.errno in (300, 304):
                     self.terminal.activation_attempts += 1
                 remote_abuse = exc.raw_response.get("CountAbuse")
                 if remote_abuse is not None:
