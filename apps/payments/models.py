@@ -424,7 +424,7 @@ class PaymentGatewayIntegration(TimeStampedModel):
                 for other_gw in PaymentGatewayIntegration.all_objects.filter(provider=self.provider).exclude(pk=self.pk):
                     if other_gw.logo and other_gw.logo.name and "shamcash.svg" not in other_gw.logo.name:
                         return other_gw.logo.url
-                q_kw = "شام" if self.provider == "sham_cash" else ("بيميرا" if self.provider == "paymera" else self.provider)
+                q_kw = "شام" if self.provider == "sham_cash" else ("بيميرا" if self.provider == "paymera" else ("mtn" if self.provider == "mtn_pay" else self.provider))
                 for pm in PaymentMethod.all_objects.filter(name__icontains=q_kw):
                     if pm.logo and pm.logo.name and "shamcash.svg" not in pm.logo.name:
                         return pm.logo.url
@@ -437,6 +437,8 @@ class PaymentGatewayIntegration(TimeStampedModel):
                 pass
         if self.provider == "paymera" or "paymera" in (self.name or "").lower() or "بيميرا" in (self.name or ""):
             return "/media/payment-methods/logos/paymera.png"
+        if self.provider == "mtn_pay" or "mtn" in (self.name or "").lower() or "إم تي إن" in (self.name or ""):
+            return "/static/site/img/brands/mtn.svg"
         return None
 
     class Meta:
@@ -535,6 +537,58 @@ class PaymentGatewayIntegration(TimeStampedModel):
             to_add = [c for c in (usd, syp) if c]
             if to_add:
                 pm.supported_currencies.add(*to_add)
+
+        if self.provider == self.Provider.MTN_PAY or "mtn" in (self.name or "").lower():
+            try:
+                import os
+                tid = (self.terminal_id or os.environ.get("MTN_PAY_TERMINAL_ID") or "10000001").strip()
+                b_url = (self.base_url or "https://cash.mtnsyr.com").strip()
+                serial_val = ""
+                if isinstance(self.settings, dict):
+                    serial_val = str(self.settings.get("serial_number") or self.settings.get("Serial") or "").strip()
+                if not serial_val:
+                    serial_val = f"SN-MTN-{tid[-6:]}"
+
+                term = MTNPayTerminalConfig.objects.filter(terminal_id=tid).first() or MTNPayTerminalConfig.objects.filter(store=self.store).first()
+                default_settings = {
+                    "Currency": {"Code": "760", "Brief": "SYP", "Fractional": 100},
+                    "Limits": {"Minimum": 100, "Maximum": 50000000000},
+                    "Allowed": {"Payment": True},
+                    "Description": {
+                        "Business": "شركة رقميات للتجارة والخدمات الرقمية",
+                        "Shop": "متجر رقميات الرئيسي",
+                        "Address": "الجمهورية العربية السورية",
+                        "Phone": "+963947991951",
+                        "UniquePayCode": f"MTN-{tid[-6:]}",
+                    },
+                }
+                if not term:
+                    term = MTNPayTerminalConfig.objects.create(
+                        store=self.store,
+                        terminal_id=tid,
+                        serial_number=serial_val,
+                        base_url=b_url,
+                        language="en",
+                        is_activated=True,
+                        is_locked=False,
+                        activated_at=timezone.now(),
+                        terminal_settings=default_settings,
+                    )
+                else:
+                    term.terminal_id = tid
+                    if b_url:
+                        term.base_url = b_url
+                    if not term.serial_number:
+                        term.serial_number = serial_val
+                    if not term.terminal_settings:
+                        term.terminal_settings = default_settings
+                    if self.is_active and not term.is_locked:
+                        term.is_activated = True
+                    term.save()
+                from apps.payments.mtn_pay import MTNPaymentClient
+                MTNPaymentClient(term).ensure_keypair()
+            except Exception:
+                pass
 
         return pm
 
@@ -1139,7 +1193,7 @@ class MTNPayTerminalConfig(TimeStampedModel):
     )
     terminal_id = models.CharField(max_length=64, unique=True, db_index=True, verbose_name="معرف الطرفية (Subject / Terminal ID)")
     serial_number = models.CharField(max_length=128, blank=True, verbose_name="الرقم التسلسلي للطرفية (Serial)")
-    base_url = models.URLField(max_length=500, default="https://pos.mtnsyr.com/pos_web", verbose_name="رابط خادم MTN POS")
+    base_url = models.URLField(max_length=500, default="https://cash.mtnsyr.com", verbose_name="رابط خادم MTN POS")
     language = models.CharField(max_length=16, default="en", verbose_name="لغة الطلبات (BCP 47)")
 
     public_key_b64 = models.TextField(blank=True, verbose_name="المفتاح العام للطرفية (Base64 RSA-1024)")

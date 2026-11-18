@@ -2035,11 +2035,102 @@ def process_order_refund_to_shamcash(order, actor=None, reason=None) -> tuple[bo
     return True, f"تمت عملية استرداد المبلغ بنجاح ({refund_amount} {meta.get('gateway_charge_currency', 'USD')}) وإعادته فورياً إلى حساب العميل عبر شام كاش."
 
 
+def process_order_refund_to_mtn_pay(order, actor=None, reason=None) -> tuple[bool, str]:
+    """
+    Cancels an order and executes a real-time refund back to the customer's MTN Cash account
+    via MTN Payment API (`pos_web/invoice/refund/initiate` + `confirm`).
+    """
+    from decimal import Decimal
+    from apps.notifications.services import notify_user, notify_staff
+    from apps.payments.gateways import gateway_for, PaymentGatewayError
+    from apps.wallets.services import debit_wallet
+
+    meta = dict(order.metadata or {})
+    ff = dict(order.fulfillment_data or {})
+
+    if meta.get("mtn_refunded"):
+        return False, "تم استرداد هذا الطلب بالفعل إلى حساب MTNPay مسبقاً."
+    if meta.get("wallet_refunded") or ff.get("api_refunded"):
+        return False, "تم استرداد هذا الطلب مسبقاً إلى المحفظة الداخلية."
+
+    try:
+        gw = gateway_for("mtn_pay")
+        refund_res = gw.refund_order_payment(order, reason=reason or "", actor=actor)
+    except PaymentGatewayError as exc:
+        err_msg = str(exc)
+        OrderLog.objects.create(
+            order=order,
+            status=order.status,
+            note=f"فشل طلب استرداد الأموال عبر MTNPay: {err_msg}",
+            created_by=actor,
+        )
+        return False, f"فشلت عملية استرداد الأموال عبر MTNPay: {err_msg}"
+    except Exception as exc:
+        return False, f"حدث خطأ أثناء الاتصال ببوابة MTNPay: {exc}"
+
+    with transaction.atomic():
+        old_status = order.status
+        new_status = Order.Status.CANCELLED if old_status == Order.Status.PENDING else Order.Status.REFUNDED
+        order.status = new_status
+        order.admin_note = (order.admin_note or "") + f"\n[استرداد عبر MTNPay]: تم إلغاء/استرداد المبلغ في {timezone.now().strftime('%Y-%m-%d %H:%M')}. السبب: {reason or 'طلب استرداد'}"
+        meta["mtn_refunded"] = True
+        meta["mtn_refund_timestamp"] = timezone.now().isoformat()
+        meta["mtn_refund_reason"] = reason or "استرداد لحساب MTNPay"
+        meta["mtn_refund_raw"] = refund_res
+        order.metadata = meta
+
+        profit_amt_str = meta.get("substore_profit_amount")
+        owner_wallet_id = meta.get("substore_owner_wallet_id")
+        if profit_amt_str and owner_wallet_id:
+            try:
+                profit_amt = Decimal(profit_amt_str)
+                if profit_amt > 0:
+                    debit_wallet(
+                        wallet_id=owner_wallet_id,
+                        amount=profit_amt,
+                        reference=f"reversal_substore_profit:{order.id}",
+                        description=f"خصم أرباح طلب مسترد #{order.number} (استرداد MTNPay)",
+                        created_by=actor,
+                        source="refund_reversal",
+                    )
+            except Exception:
+                pass
+
+        order.save(update_fields=["status", "admin_note", "metadata", "updated_at"])
+        OrderLog.objects.create(
+            order=order,
+            status=new_status,
+            note=f"تم استرداد كامل قيمة الطلب بنجاح إلى حساب MTNPay للعميل. السبب: {reason or 'طلب استرداد'}.",
+            created_by=actor,
+        )
+
+    try:
+        notify_user(
+            user=order.customer,
+            title="تم استرداد المبلغ إلى حسابك في MTNPay",
+            body=f"تم استرداد كامل قيمة طلبك رقم #{order.number} بنجاح إلى حسابك في إم تي إن كاش (MTNPay).",
+            action_url=f"/dashboard/orders/{order.id}/",
+            category="financial",
+            priority="high",
+        )
+        notify_staff(
+            title="استرداد ناجح عبر MTNPay",
+            body=f"تم استرداد الطلب رقم #{order.number} بنجاح إلى حساب العميل عبر MTNPay.",
+            action_url=f"/control/orders/{order.id}/",
+            category="financial",
+        )
+    except Exception:
+        pass
+
+    return True, "تمت عملية استرداد المبلغ بنجاح وإعادته فورياً إلى حساب العميل عبر بوابة MTNPay."
+
+
 def process_order_refund_to_gateway(order, actor=None, reason=None, otp=None) -> tuple[bool, str]:
     """
     Unified router that determines the original payment method and executes
     an immediate real-time refund to the exact gateway used:
     - ShamCash -> process_order_refund_to_shamcash
+    - MTNPay   -> process_order_refund_to_mtn_pay
     - Paymera  -> process_order_refund_to_paymera
     - Wallet   -> process_order_refund_to_wallet
     """
@@ -2051,11 +2142,15 @@ def process_order_refund_to_gateway(order, actor=None, reason=None, otp=None) ->
     if provider == "sham_cash" or meta.get("shamcash_bill_no") or gw_payment_id.startswith("ORD-"):
         return process_order_refund_to_shamcash(order, actor=actor, reason=reason)
 
-    # 2. Paymera detection
+    # 2. MTNPay detection
+    if provider in ("mtn_pay", "mtn") or meta.get("mtn_invoice_number"):
+        return process_order_refund_to_mtn_pay(order, actor=actor, reason=reason)
+
+    # 3. Paymera detection
     if provider == "paymera" or meta.get("paymera_payment_id") or (gw_payment_id and not gw_payment_id.startswith("ORD-")):
         return process_order_refund_to_paymera(order, actor=actor, reason=reason, otp=otp)
 
-    # 3. Platform wallet fallback
+    # 4. Platform wallet fallback
     return process_order_refund_to_wallet(order, actor=actor, old_status=order.status, source="admin_refund_approval", reason=reason)
 
 
@@ -2198,9 +2293,15 @@ def process_deposit_refund_to_gateway(deposit, actor=None, reason=None, otp=None
         is_shamcash = True
         bill_no = deposit.gateway_payment_id or deposit.transaction_id
 
+    is_mtn_pay = False
+    mtn_invoice_num = None
+    if provider in ("mtn_pay", "mtn") or meta.get("mtn_invoice_number"):
+        is_mtn_pay = True
+        mtn_invoice_num = meta.get("mtn_invoice_number") or deposit.gateway_payment_id
+
     is_paymera = False
     paymera_payment_id = None
-    if provider == "paymera" or meta.get("paymera_payment_id") or (deposit.gateway_payment_id and not str(deposit.gateway_payment_id).startswith("DEP-") and not is_shamcash):
+    if not is_mtn_pay and (provider == "paymera" or meta.get("paymera_payment_id") or (deposit.gateway_payment_id and not str(deposit.gateway_payment_id).startswith("DEP-") and not is_shamcash)):
         is_paymera = True
         paymera_payment_id = meta.get("paymera_payment_id") or deposit.gateway_payment_id
 
@@ -2226,6 +2327,20 @@ def process_deposit_refund_to_gateway(deposit, actor=None, reason=None, otp=None
             return False, f"فشلت عملية استرداد شام كاش: {exc.message} (كود: {exc.error_code})"
         except Exception as exc:
             return False, f"حدث خطأ أثناء الاتصال بشام كاش: {exc}"
+
+    elif is_mtn_pay and mtn_invoice_num:
+        try:
+            from apps.payments.gateways import gateway_for
+            from apps.payments.mtn_pay import MTNPayError
+            gw = gateway_for("mtn_pay")
+            client = gw.get_client(store=getattr(deposit, "store", None))
+            ref_rec, _ = client.initiate_refund(int(mtn_invoice_num))
+            conf_rec, raw_refund_res = client.confirm_refund(int(mtn_invoice_num), int(ref_rec.refund_invoice))
+            refund_tx_id = str(conf_rec.refund_invoice)
+        except MTNPayError as exc:
+            return False, f"فشلت عملية استرداد MTNPay: {exc}"
+        except Exception as exc:
+            return False, f"حدث خطأ أثناء الاتصال ببوابة MTNPay: {exc}"
 
     elif is_paymera and paymera_payment_id:
         try:

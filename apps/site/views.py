@@ -1490,6 +1490,18 @@ def deposits(request):
                         pm = PaymentMethod.all_objects.filter(gateway=gw_obj, is_active=True).first()
                         if pm:
                             method_id = str(pm.id)
+                elif str(method_id) in ("mtn_pay", "mtn", "direct_mtn_pay"):
+                    gw_obj = PaymentGatewayIntegration.all_objects.filter(provider=PaymentGatewayIntegration.Provider.MTN_PAY, is_active=True).first()
+                    if gw_obj:
+                        pm = PaymentMethod.all_objects.filter(gateway=gw_obj, is_active=True).first()
+                        if pm:
+                            method_id = str(pm.id)
+                elif str(method_id) in ("paymera", "direct_paymera"):
+                    gw_obj = PaymentGatewayIntegration.all_objects.filter(provider=PaymentGatewayIntegration.Provider.PAYMERA, is_active=True).first()
+                    if gw_obj:
+                        pm = PaymentMethod.all_objects.filter(gateway=gw_obj, is_active=True).first()
+                        if pm:
+                            method_id = str(pm.id)
 
         if not method_id:
             messages.error(request, "يرجى اختيار وسيلة الدفع أو الشحن.")
@@ -1688,7 +1700,9 @@ def deposits(request):
                 return 0
             if m.gateway.provider == 'paymera':
                 return 1
-            return 2
+            if m.gateway.provider == 'mtn_pay':
+                return 2
+            return 3
 
         deduped_methods.sort(key=_deposit_method_priority)
         methods = deduped_methods
@@ -1702,6 +1716,8 @@ def deposits(request):
                 display_name = "شام كاش (ShamCash)"
             elif gw_provider == "paymera":
                 display_name = "بيميرا (Paymera)"
+            elif gw_provider == "mtn_pay":
+                display_name = "إم تي إن كاش (MTNPay)"
             else:
                 display_name = m.name
 
@@ -3052,6 +3068,10 @@ def product_detail(request, pk):
                         selected_gateway = PaymentGatewayIntegration.all_objects.filter(provider=PaymentGatewayIntegration.Provider.PAYMERA, is_active=True).first()
                     elif payment_method in ("sham_cash", "shamcash", "direct_sham_cash"):
                         selected_gateway = PaymentGatewayIntegration.all_objects.filter(provider=PaymentGatewayIntegration.Provider.SHAM_CASH, is_active=True).first()
+                    elif payment_method in ("mtn_pay", "mtn", "direct_mtn_pay"):
+                        selected_gateway = PaymentGatewayIntegration.all_objects.filter(provider=PaymentGatewayIntegration.Provider.MTN_PAY, is_active=True).first()
+                    elif payment_method in ("mtn_pay", "mtn", "direct_mtn_pay"):
+                        selected_gateway = PaymentGatewayIntegration.all_objects.filter(provider=PaymentGatewayIntegration.Provider.MTN_PAY, is_active=True).first()
 
             if not selected_gateway:
                 err_msg = "بوابة الدفع الإلكتروني المحددة غير مفعلة حالياً."
@@ -3310,6 +3330,8 @@ def product_detail(request, pk):
                 default_gw_name = "شام كاش"
             elif gw.provider == "paymera":
                 default_gw_name = "بيميرا"
+            elif gw.provider == "mtn_pay":
+                default_gw_name = "إم تي إن كاش (MTNPay)"
             else:
                 default_gw_name = gw.get_provider_display() or gw.name
             gw_name = (gw.name if gw.name and not any(ch in gw.name for ch in ['\ufffd', '?']) else "") or (pm.name if pm and pm.name and not any(ch in pm.name for ch in ['\ufffd', '?']) else "") or default_gw_name
@@ -8157,6 +8179,9 @@ def api_app_wallet_info(request):
     paymera_on = PaymentGatewayIntegration.all_objects.filter(
         provider=PaymentGatewayIntegration.Provider.PAYMERA, is_active=True
     ).exists() or bool(getattr(settings, "PAYMERA_MERCHANT_KEY", ""))
+    mtn_pay_on = PaymentGatewayIntegration.all_objects.filter(
+        provider=PaymentGatewayIntegration.Provider.MTN_PAY, is_active=True
+    ).exists()
 
     return JsonResponse({
         "status": "success",
@@ -8165,6 +8190,7 @@ def api_app_wallet_info(request):
         "currency": wallet.currency.code if wallet.currency else "USD",
         "shamcash_enabled": shamcash_on,
         "paymera_enabled": paymera_on,
+        "mtn_pay_enabled": mtn_pay_on,
     })
 
 
@@ -8195,8 +8221,10 @@ def api_app_payment_deposit(request):
         payload = request.POST
 
     provider = str(payload.get("provider", "")).strip().lower()
-    if provider not in ("shamcash", "paymera"):
-        return JsonResponse({"status": "error", "message": "بوابة الدفع غير مدعومة. اختر شام كاش أو بيميرا"}, status=400)
+    if provider not in ("shamcash", "sham_cash", "paymera", "mtn_pay", "mtn"):
+        return JsonResponse({"status": "error", "message": "بوابة الدفع غير مدعومة. اختر شام كاش أو بيميرا أو MTNPay"}, status=400)
+    if provider == "mtn":
+        provider = "mtn_pay"
 
     try:
         amount = Decimal(str(payload.get("amount", "0")).strip())
@@ -8211,9 +8239,10 @@ def api_app_payment_deposit(request):
     if not currency:
         currency = Currency.objects.filter(is_active=True).first() or Currency.all_objects.first()
 
-    pm = PaymentMethod.all_objects.filter(is_active=True, gateway_provider=provider).first()
+    pm = PaymentMethod.all_objects.filter(is_active=True, gateway__provider=provider).first()
     if not pm:
-        pm = PaymentMethod.all_objects.filter(is_active=True, name__icontains=("شام" if provider == "shamcash" else "بيميرا")).first()
+        kw_map = "شام" if provider in ("shamcash", "sham_cash") else ("mtn" if provider == "mtn_pay" else "بيميرا")
+        pm = PaymentMethod.all_objects.filter(is_active=True, name__icontains=kw_map).first()
     if not pm:
         pm = PaymentMethod.all_objects.filter(is_active=True).first()
     if not pm:
@@ -8425,6 +8454,8 @@ def api_app_create_order(request):
             gw_provider = PaymentGatewayIntegration.Provider.SHAM_CASH
         elif payment_method in ("paymera", "direct_paymera"):
             gw_provider = PaymentGatewayIntegration.Provider.PAYMERA
+        elif payment_method in ("mtn_pay", "mtn", "direct_mtn_pay"):
+            gw_provider = PaymentGatewayIntegration.Provider.MTN_PAY
 
         selected_gateway = None
         if gw_provider:
@@ -13428,6 +13459,8 @@ def get_active_gateway_methods(store=None):
                 default_gw_name = "شام كاش"
             elif gw.provider in ("paymera", "direct_paymera"):
                 default_gw_name = "بيميرا"
+            elif gw.provider in ("mtn_pay", "mtn"):
+                default_gw_name = "إم تي إن كاش (MTNPay)"
             else:
                 default_gw_name = gw.get_provider_display() or gw.name
 
@@ -13457,7 +13490,7 @@ def get_active_gateway_methods(store=None):
 
             gateway_methods.append({
                 "id": f"gateway:{gw.id}",
-                "code": "sham_cash" if gw.provider in ("sham_cash", "shamcash") else ("paymera" if gw.provider in ("paymera", "direct_paymera") else gw.provider),
+                "code": "sham_cash" if gw.provider in ("sham_cash", "shamcash") else ("paymera" if gw.provider in ("paymera", "direct_paymera") else ("mtn_pay" if gw.provider in ("mtn_pay", "mtn") else gw.provider)),
                 "name": gw_name,
                 "provider_name": gw.get_provider_display(),
                 "logo": gw_logo,
@@ -13745,6 +13778,10 @@ def cart_checkout_view(request):
                         selected_gateway = PaymentGatewayIntegration.all_objects.filter(provider=PaymentGatewayIntegration.Provider.PAYMERA, is_active=True).first()
                     elif payment_method in ("sham_cash", "shamcash", "direct_sham_cash"):
                         selected_gateway = PaymentGatewayIntegration.all_objects.filter(provider=PaymentGatewayIntegration.Provider.SHAM_CASH, is_active=True).first()
+                    elif payment_method in ("mtn_pay", "mtn", "direct_mtn_pay"):
+                        selected_gateway = PaymentGatewayIntegration.all_objects.filter(provider=PaymentGatewayIntegration.Provider.MTN_PAY, is_active=True).first()
+                    elif payment_method in ("mtn_pay", "mtn", "direct_mtn_pay"):
+                        selected_gateway = PaymentGatewayIntegration.all_objects.filter(provider=PaymentGatewayIntegration.Provider.MTN_PAY, is_active=True).first()
 
         if not selected_gateway:
             messages.error(request, "بوابة الدفع الإلكتروني المحددة غير مفعلة حالياً.")
@@ -13998,6 +14035,8 @@ def payment_status_view(request):
             norm_code = "sham_cash"
         elif norm_code in ("direct_paymera", "paymera"):
             norm_code = "paymera"
+        elif norm_code in ("direct_mtn_pay", "mtn_pay", "mtn"):
+            norm_code = "mtn_pay"
 
         with bypass_tenant_filter():
             if pm_obj:
@@ -14060,6 +14099,8 @@ def payment_status_view(request):
                 resolved_title = "شام كاش (ShamCash)"
             elif norm_code == "paymera":
                 resolved_title = "بيميرا (Paymera)"
+            elif norm_code == "mtn_pay":
+                resolved_title = "إم تي إن كاش (MTNPay)"
             else:
                 resolved_title = "بوابة دفع إلكترونية"
         return resolved_title, resolved_logo
@@ -14124,6 +14165,15 @@ def payment_status_view(request):
                     except Exception as err:
                         import logging
                         logging.getLogger(__name__).warning(f"Could not actively check ShamCash bill in payment_status_view: {err}")
+                elif getattr(gw, "provider", "") == "mtn_pay":
+                    try:
+                        from apps.payments.gateways import gateway_for
+                        gw_inst = gateway_for(gw)
+                        gw_inst.verify_payment(deposit)
+                        deposit.refresh_from_db()
+                    except Exception as err:
+                        import logging
+                        logging.getLogger(__name__).warning(f"Could not actively check MTNPay deposit in payment_status_view: {err}")
 
             reference = deposit.gateway_payment_id or str(deposit.id)[:8]
             tran_id = deposit.transaction_id or ""
@@ -14245,6 +14295,16 @@ def payment_status_view(request):
                     except Exception as err:
                         import logging
                         logging.getLogger(__name__).warning(f"Could not actively check Paymera order in payment_status_view: {err}")
+
+                elif active_bill and order_provider in ("mtn_pay", "mtn"):
+                    try:
+                        from apps.payments.gateways import gateway_for
+                        gw_inst = gateway_for("mtn_pay")
+                        gw_inst.verify_order_payment(order)
+                        order.refresh_from_db()
+                    except Exception as err:
+                        import logging
+                        logging.getLogger(__name__).warning(f"Could not actively check MTNPay order in payment_status_view: {err}")
 
                 elif active_bill:
                     try:

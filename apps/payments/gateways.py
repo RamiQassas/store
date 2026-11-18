@@ -667,6 +667,293 @@ class ShamCashGateway(BasePaymentGateway):
             raise PaymentGatewayError(str(err)) from err
 
 
+class MTNPayGateway(BasePaymentGateway):
+    """
+    MTN Payment API (MTNPay / pos_web) Gateway implementation.
+    Works identically to ShamCashGateway and PaymeraGateway for:
+    - Instant Direct Product & Cart Checkouts
+    - Instant Wallet Deposits
+    - Status Verification (`pos_web/invoice/get`)
+    - Full Order & Deposit Refunds (`pos_web/invoice/refund/initiate` + `confirm`)
+    """
+    code = "mtn_pay"
+
+    def __init__(self, integration=None):
+        self.integration = integration
+
+    def get_terminal(self, store=None):
+        from django.utils import timezone
+        from apps.payments.models import MTNPayTerminalConfig, PaymentGatewayIntegration
+
+        if not self.integration:
+            self.integration = (
+                PaymentGatewayIntegration.all_objects.filter(
+                    provider=PaymentGatewayIntegration.Provider.MTN_PAY,
+                    is_active=True,
+                )
+                .order_by("-id")
+                .first()
+            )
+
+        import os
+        target_tid = (
+            (self.integration.terminal_id if self.integration and self.integration.terminal_id else "")
+            or os.environ.get("MTN_PAY_TERMINAL_ID", "")
+            or "10000001"
+        ).strip()
+        target_base_url = (
+            (self.integration.base_url if self.integration and self.integration.base_url else "")
+            or "https://cash.mtnsyr.com"
+        ).strip()
+
+        term = (
+            MTNPayTerminalConfig.objects.filter(terminal_id=target_tid).first()
+            or (MTNPayTerminalConfig.objects.filter(store=store).first() if store else None)
+            or MTNPayTerminalConfig.objects.first()
+        )
+        default_settings = {
+            "Currency": {"Code": "760", "Brief": "SYP", "Fractional": 100},
+            "Limits": {"Minimum": 100, "Maximum": 50000000000},
+            "Allowed": {"Payment": True},
+            "Description": {
+                "Business": "شركة رقميات للتجارة والخدمات الرقمية",
+                "Shop": "متجر رقميات الرئيسي",
+                "Address": "الجمهورية العربية السورية",
+                "Phone": "+963947991951",
+                "UniquePayCode": f"MTN-{target_tid[-6:]}",
+            },
+        }
+        if not term:
+            term = MTNPayTerminalConfig.objects.create(
+                store=store,
+                terminal_id=target_tid,
+                serial_number=f"SN-MTN-{target_tid[-6:]}",
+                base_url=target_base_url,
+                language="en",
+                is_activated=True,
+                is_locked=False,
+                activated_at=timezone.now(),
+                terminal_settings=default_settings,
+            )
+        else:
+            changed = False
+            if not term.terminal_settings:
+                term.terminal_settings = default_settings
+                changed = True
+            if not term.is_activated and not term.is_locked:
+                term.is_activated = True
+                term.activated_at = timezone.now()
+                changed = True
+            if changed:
+                term.save()
+        return term
+
+    def get_client(self, store=None):
+        from apps.payments.mtn_pay import MTNPaymentClient
+        term = self.get_terminal(store=store)
+        client = MTNPaymentClient(term)
+        client.ensure_keypair()
+        return client
+
+    def create_payment(self, deposit, request=None):
+        """Creates an MTNPay invoice for a wallet deposit and returns the checkout redirect URL."""
+        from django.urls import reverse
+        from apps.common.models import Currency
+        from apps.payments.mtn_pay import MTNPayError
+
+        store = getattr(deposit, "store", None)
+        client = self.get_client(store=store)
+
+        currency_code = deposit.currency.code if deposit.currency else "USD"
+        if currency_code == "SYP":
+            syp_amount = Decimal(str(deposit.amount))
+        else:
+            syp_currency = (
+                Currency.objects.filter(code="SYP", is_active=True).first()
+                or Currency.all_objects.filter(code="SYP", is_active=True).first()
+            )
+            if syp_currency and hasattr(deposit.currency, "to_base"):
+                usd_val = deposit.currency.to_base(deposit.amount, "deposit")
+                syp_amount = syp_currency.from_base(usd_val, "deposit")
+            else:
+                syp_amount = Decimal(str(deposit.amount)) * Decimal("15000")
+
+        clean_syp = max(1, int(round(float(syp_amount))))
+        try:
+            inv_record, raw_resp = client.create_invoice(
+                major_amount=Decimal(str(clean_syp)),
+                user=deposit.user,
+                deposit=deposit,
+                session_id=f"DEP-{deposit.id}",
+            )
+            checkout_url = reverse("mtn_invoice_checkout", args=[inv_record.invoice_number])
+            deposit.gateway_payment_id = str(inv_record.invoice_number)
+            if not isinstance(deposit.metadata, dict):
+                deposit.metadata = {}
+            deposit.metadata["mtn_invoice_number"] = inv_record.invoice_number
+            deposit.metadata["mtn_url"] = checkout_url
+            deposit.metadata["syp_amount"] = clean_syp
+            deposit.metadata["payment_provider"] = self.code
+            deposit.save(update_fields=["gateway_payment_id", "metadata"])
+            return {
+                "url": checkout_url,
+                "paymentUrl": checkout_url,
+                "payment_id": str(inv_record.invoice_number),
+                "invoice_number": inv_record.invoice_number,
+                "provider": self.code,
+                "status": "pending",
+                "raw": raw_resp,
+            }
+        except MTNPayError as err:
+            raise PaymentGatewayError(str(err)) from err
+
+    def verify_payment(self, deposit):
+        from apps.payments.models import MTNPayInvoiceRecord
+        from apps.payments.mtn_pay import MTNPayError
+
+        inv_num = deposit.gateway_payment_id or (
+            deposit.metadata.get("mtn_invoice_number") if isinstance(deposit.metadata, dict) else None
+        )
+        if not inv_num:
+            rec = MTNPayInvoiceRecord.objects.filter(deposit=deposit).order_by("-created_at").first()
+            if rec:
+                inv_num = rec.invoice_number
+        if not inv_num:
+            raise PaymentGatewayError("لا يوجد رقم فاتورة MTNPay مسجل لهذا الإيداع.")
+
+        client = self.get_client(store=getattr(deposit, "store", None))
+        try:
+            record, resp = client.get_invoice(int(inv_num))
+            return {
+                "status": "A" if (record and record.is_paid) else "P",
+                "is_paid": bool(record and record.is_paid),
+                "invoice": int(inv_num),
+                "transaction": record.transaction_id if record else "",
+                "raw": resp,
+            }
+        except MTNPayError as err:
+            raise PaymentGatewayError(str(err)) from err
+
+    def create_order_payment(self, order, request=None):
+        """Creates an MTNPay invoice for a direct product or cart order."""
+        from django.urls import reverse
+        from apps.common.models import Currency
+        from apps.payments.mtn_pay import MTNPayError
+
+        store = getattr(order, "store", None)
+        client = self.get_client(store=store)
+
+        syp_currency = None
+        if store:
+            syp_currency = Currency.all_objects.filter(store=store, code="SYP", is_active=True).first()
+        if not syp_currency:
+            syp_currency = Currency.all_objects.filter(code="SYP", is_active=True).first()
+
+        exact_amount = (
+            Decimal(str(order.total_amount))
+            if (order.total_amount and order.total_amount > Decimal("0.00"))
+            else Decimal("0.00")
+        )
+        if exact_amount <= Decimal("0.00"):
+            for item in order.items.all():
+                exact_amount += Decimal(str(item.unit_price)) * item.quantity
+        if exact_amount <= Decimal("0.00"):
+            exact_amount = Decimal("1.00")
+
+        syp_rate = Decimal(str(getattr(syp_currency, "buy_rate", 15000) or 15000))
+        if syp_rate <= Decimal("1.0"):
+            syp_rate = Decimal("15000")
+
+        if syp_currency and float(getattr(syp_currency, "buy_rate", 1) or 1) > 1.0:
+            syp_val = syp_currency.from_base(exact_amount, "deposit")
+            charge_amount = max(1, int(round(float(syp_val))))
+        else:
+            charge_amount = max(1, int(round(float(exact_amount * syp_rate))))
+
+        try:
+            inv_record, raw_resp = client.create_invoice(
+                major_amount=Decimal(str(charge_amount)),
+                user=order.customer,
+                order=order,
+                session_id=f"ORD-{order.number}",
+            )
+            checkout_url = reverse("mtn_invoice_checkout", args=[inv_record.invoice_number])
+            if not isinstance(order.metadata, dict):
+                order.metadata = {}
+            order.metadata["gateway_payment_id"] = str(inv_record.invoice_number)
+            order.metadata["mtn_invoice_number"] = inv_record.invoice_number
+            order.metadata["mtn_url"] = checkout_url
+            order.metadata["gateway_charge_amount"] = int(charge_amount)
+            order.metadata["gateway_charge_currency"] = "SYP"
+            order.metadata["base_usd_amount"] = str(exact_amount)
+            order.metadata["exchange_rate"] = str(syp_rate)
+            order.metadata["payment_provider"] = self.code
+            order.save(update_fields=["metadata"])
+            return {
+                "url": checkout_url,
+                "paymentUrl": checkout_url,
+                "payment_id": str(inv_record.invoice_number),
+                "invoice_number": inv_record.invoice_number,
+                "provider": self.code,
+                "status": "pending",
+                "raw": raw_resp,
+            }
+        except MTNPayError as err:
+            raise PaymentGatewayError(str(err)) from err
+
+    def verify_order_payment(self, order):
+        from apps.payments.models import MTNPayInvoiceRecord
+        from apps.payments.mtn_pay import MTNPayError
+
+        meta = order.metadata if isinstance(order.metadata, dict) else {}
+        inv_num = meta.get("mtn_invoice_number") or meta.get("gateway_payment_id")
+        if not inv_num:
+            rec = MTNPayInvoiceRecord.objects.filter(order=order).order_by("-created_at").first()
+            if rec:
+                inv_num = rec.invoice_number
+        if not inv_num:
+            raise PaymentGatewayError("لا يوجد رقم فاتورة MTNPay مسجل لهذا الطلب.")
+
+        client = self.get_client(store=getattr(order, "store", None))
+        try:
+            record, resp = client.get_invoice(int(inv_num))
+            return {
+                "status": "A" if (record and record.is_paid) else "P",
+                "is_paid": bool(record and record.is_paid),
+                "invoice": int(inv_num),
+                "transaction": record.transaction_id if record else "",
+                "raw": resp,
+            }
+        except MTNPayError as err:
+            raise PaymentGatewayError(str(err)) from err
+
+    def refund_order_payment(self, order, reason="", amount=None, actor=None):
+        """Initiates and confirms a refund for an MTNPay order (`pos_web/invoice/refund/initiate` + `confirm`)."""
+        from apps.payments.models import MTNPayInvoiceRecord
+        from apps.payments.mtn_pay import MTNPayError
+
+        meta = order.metadata if isinstance(order.metadata, dict) else {}
+        inv_num = meta.get("mtn_invoice_number") or meta.get("gateway_payment_id")
+        if not inv_num:
+            rec = MTNPayInvoiceRecord.objects.filter(order=order).order_by("-created_at").first()
+            if rec:
+                inv_num = rec.invoice_number
+        if not inv_num:
+            raise PaymentGatewayError("لا يوجد رقم فاتورة MTNPay مسجل لهذا الطلب.")
+
+        client = self.get_client(store=getattr(order, "store", None))
+        try:
+            refund_rec, _ = client.initiate_refund(int(inv_num))
+            confirmed_rec, res = client.confirm_refund(int(inv_num), int(refund_rec.refund_invoice))
+            order.metadata["mtn_refunded"] = True
+            order.metadata["mtn_refund_invoice"] = confirmed_rec.refund_invoice
+            order.metadata["mtn_refund_data"] = res
+            order.save(update_fields=["metadata"])
+            return res
+        except MTNPayError as err:
+            raise PaymentGatewayError(str(err)) from err
+
+
 def gateway_for(provider_or_obj):
     if hasattr(provider_or_obj, "provider"):
         code = provider_or_obj.provider
@@ -674,15 +961,19 @@ def gateway_for(provider_or_obj):
             return PaymeraGateway(integration=provider_or_obj)
         if code == "sham_cash":
             return ShamCashGateway(integration=provider_or_obj)
+        if code in ("mtn_pay", "mtn"):
+            return MTNPayGateway(integration=provider_or_obj)
     elif hasattr(provider_or_obj, "gateway") and provider_or_obj.gateway:
         return gateway_for(provider_or_obj.gateway)
     elif hasattr(provider_or_obj, "provider_type"):
         code = provider_or_obj.provider_type
     else:
-        code = str(provider_or_obj)
+        code = str(provider_or_obj).strip().lower()
 
-    if code == "paymera":
+    if code in ("paymera", "direct_paymera"):
         return PaymeraGateway()
-    if code == "sham_cash":
+    if code in ("mtn_pay", "mtn", "direct_mtn_pay"):
+        return MTNPayGateway()
+    if code in ("sham_cash", "shamcash", "direct_sham_cash"):
         return ShamCashGateway()
     return ShamCashGateway()

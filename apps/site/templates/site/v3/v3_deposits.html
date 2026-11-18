@@ -707,6 +707,7 @@ function updateMethodDetailsView() {
 
     const isSham = (activeMethodData.gatewayProvider === 'sham_cash');
     const isPaymera = (activeMethodData.gatewayProvider === 'paymera');
+    const isMtnPay = (activeMethodData.gatewayProvider === 'mtn_pay');
     const methodName = activeMethodData.name || 'بوابة الدفع';
 
     if (isSham) {
@@ -724,6 +725,14 @@ function updateMethodDetailsView() {
       if (gwBtn) {
         gwBtn.style.background = 'linear-gradient(135deg, #4f46e5, #4338ca)';
         gwBtn.style.borderColor = '#4f46e5';
+      }
+    } else if (isMtnPay) {
+      if (gwTitle) gwTitle.innerText = `شحن فوري مباشر عبر إم تي إن كاش (MTNPay)`;
+      if (gwDesc) gwDesc.innerText = `يتم إنشاء فاتورة MTNPay فوراً وإرسال رمز تحقق SMS لهاتفك، ويُضاف الرصيد لمحفظتك تلقائياً بمجرد التأكيد دون الحاجة لرفع إشعار.`;
+      if (gwBtnText) gwBtnText.innerText = `متابعة الشحن الفوري عبر إم تي إن كاش 📱`;
+      if (gwBtn) {
+        gwBtn.style.background = 'linear-gradient(135deg, #f59e0b, #d97706)';
+        gwBtn.style.borderColor = '#f59e0b';
       }
     } else {
       if (gwTitle) gwTitle.innerText = `شحن فوري مباشر عبر ${methodName}`;

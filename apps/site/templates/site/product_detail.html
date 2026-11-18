@@ -233,6 +233,12 @@
     box-shadow: 0 4px 16px rgba(79, 70, 229, 0.18);
   }
 
+  .rq-pdp-pm-card.selected.is-mtn_pay {
+    border-color: #f59e0b;
+    background: rgba(245, 158, 11, 0.1);
+    box-shadow: 0 4px 16px rgba(245, 158, 11, 0.22);
+  }
+
   /* Shipping Grid */
   .rq-pdp-shipping-grid {
     display: grid;
@@ -802,7 +808,7 @@
       cardEl.classList.add('selected');
       const ring = cardEl.querySelector('.pm-radio-ring');
       if (ring) {
-        const ringColor = (code === 'sham_cash') ? '#0d9488' : ((code === 'paymera') ? '#4f46e5' : 'var(--rq-primary)');
+        const ringColor = (code === 'sham_cash') ? '#0d9488' : ((code === 'paymera') ? '#4f46e5' : ((code === 'mtn_pay') ? '#f59e0b' : 'var(--rq-primary)'));
         ring.style.background = ringColor;
         ring.style.borderColor = ringColor;
       }
@@ -825,6 +831,13 @@
       if (submitBtn) {
         submitBtn.style.background = 'linear-gradient(135deg, #4f46e5 0%, #3730a3 100%)';
         submitBtn.style.boxShadow = '0 4px 18px rgba(79, 70, 229, 0.35)';
+      }
+    } else if (code === 'mtn_pay') {
+      if (scBox) scBox.style.display = 'none';
+      if (submitTxt) submitTxt.textContent = 'شراء فوري عبر إم تي إن كاش (MTNPay) 📱';
+      if (submitBtn) {
+        submitBtn.style.background = 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)';
+        submitBtn.style.boxShadow = '0 4px 18px rgba(245, 158, 11, 0.35)';
       }
     } else {
       if (scBox) scBox.style.display = 'none';

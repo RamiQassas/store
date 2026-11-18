@@ -334,3 +334,62 @@ class MTNPayIntegrationTests(TestCase):
         html_checkout = r_checkout.content.decode("utf-8")
         self.assertNotIn("BEGIN PRIVATE KEY", html_checkout)
         self.assertIn("RQ-POS-9988", html_checkout)
+
+    # ── 7. Unified Gateway Adapter (MTNPayGateway) & API Gateways Admin ──────
+    def test_mtn_pay_gateway_adapter_and_unified_api_list(self):
+        from apps.common.models import Currency
+        from apps.payments.gateways import MTNPayGateway, gateway_for
+        from apps.payments.models import DepositRequest, PaymentGatewayIntegration
+
+        usd, _ = Currency.objects.get_or_create(
+            code="USD",
+            defaults={"name": "US Dollar", "symbol": "$", "buy_rate": Decimal("1.0"), "sell_rate": Decimal("1.0"), "is_default": True, "is_active": True},
+        )
+        syp, _ = Currency.objects.get_or_create(
+            code="SYP",
+            defaults={"name": "Syrian Pound", "symbol": "ل.س", "buy_rate": Decimal("15000.0"), "sell_rate": Decimal("15000.0"), "is_active": True},
+        )
+
+        gw_obj = PaymentGatewayIntegration.objects.filter(provider="mtn_pay").first()
+        if not gw_obj:
+            gw_obj = PaymentGatewayIntegration.objects.create(
+                name="إم تي إن كاش (MTNPay)",
+                provider="mtn_pay",
+                mode="sandbox",
+                terminal_id=self.terminal.terminal_id,
+                base_url="https://cash.mtnsyr.com",
+                is_active=True,
+                can_deposit=True,
+            )
+        pm = gw_obj.sync_payment_method()
+        self.assertIsNotNone(pm)
+        self.assertEqual(gw_obj.logo_url, "/static/site/img/brands/mtn.svg")
+
+        gw = gateway_for("mtn_pay")
+        self.assertIsInstance(gw, MTNPayGateway)
+
+        User = get_user_model()
+        customer = User.objects.create_user(
+            email="mtn_cust@example.com",
+            username="mtn_cust",
+            password="StrongPassword123!",
+        )
+        dep = DepositRequest.objects.create(
+            user=customer,
+            payment_method=pm,
+            currency=usd,
+            amount=Decimal("2.00"),
+            final_amount=Decimal("2.00"),
+        )
+        res = gw.create_payment(dep)
+        self.assertIn("/payments/mtn/", res["url"])
+        self.assertTrue(res["payment_id"])
+
+        # Complete phone payment and verify wallet is credited automatically
+        inv_num = int(res["payment_id"])
+        client = gw.get_client()
+        client.initiate_phone_payment(invoice_number=inv_num, customer_phone="963947991951")
+        paid_rec, _ = client.confirm_phone_payment(invoice_number=inv_num, sms_code="123456")
+        self.assertTrue(paid_rec.is_paid)
+        dep.refresh_from_db()
+        self.assertEqual(dep.status, DepositRequest.Status.COMPLETED)

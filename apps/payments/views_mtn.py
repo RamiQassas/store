@@ -30,27 +30,66 @@ def _is_staff_or_admin(user) -> bool:
 
 
 def _get_or_create_default_terminal(store=None) -> MTNPayTerminalConfig:
-    qs = MTNPayTerminalConfig.objects.filter(store=store) if store else MTNPayTerminalConfig.objects.filter(store__isnull=True)
-    term = qs.first()
+    from apps.payments.models import PaymentGatewayIntegration
+    from django.utils import timezone
+
+    gw_qs = PaymentGatewayIntegration.all_objects.filter(provider=PaymentGatewayIntegration.Provider.MTN_PAY)
+    if store:
+        gw = gw_qs.filter(store=store).order_by("-is_active", "-id").first() or gw_qs.filter(store__isnull=True).order_by("-is_active", "-id").first()
+    else:
+        gw = gw_qs.filter(store__isnull=True).order_by("-is_active", "-id").first() or gw_qs.order_by("-is_active", "-id").first()
+
+    import os
+    target_tid = (
+        (gw.terminal_id if gw and gw.terminal_id else "")
+        or os.environ.get("MTN_PAY_TERMINAL_ID", "")
+        or "10000001"
+    ).strip()
+    target_base_url = (gw.base_url if gw and gw.base_url else "https://cash.mtnsyr.com").strip()
+
+    term = (
+        MTNPayTerminalConfig.objects.filter(terminal_id=target_tid).first()
+        or (MTNPayTerminalConfig.objects.filter(store=store).first() if store else MTNPayTerminalConfig.objects.filter(store__isnull=True).first())
+        or MTNPayTerminalConfig.objects.first()
+    )
+    default_settings = {
+        "Currency": {"Code": "760", "Brief": "SYP", "Fractional": 100},
+        "Limits": {"Minimum": 100, "Maximum": 50000000000},
+        "Allowed": {"Payment": True},
+        "Description": {
+            "Business": "شركة رقميات للتجارة والخدمات الرقمية",
+            "Shop": "متجر رقميات الرئيسي",
+            "Address": "الجمهورية العربية السورية",
+            "Phone": "+963947991951",
+            "UniquePayCode": f"MTN-{target_tid[-6:]}",
+        },
+    }
     if not term:
         term = MTNPayTerminalConfig.objects.create(
             store=store,
-            terminal_id="10000001",
-            serial_number="SN-RAQAMIYAT-001",
+            terminal_id=target_tid,
+            serial_number=f"SN-MTN-{target_tid[-6:]}",
+            base_url=target_base_url,
             language="en",
-            terminal_settings={
-                "Currency": {"Code": "760", "Brief": "SYP", "Fractional": 100},
-                "Limits": {"Minimum": 10000, "Maximum": 500000000},
-                "Allowed": {"Payment": True},
-                "Description": {
-                    "Business": "شركة رقميات للتجارة والخدمات الرقمية",
-                    "Shop": "متجر رقميات الرئيسي",
-                    "Address": "الجمهورية العربية السورية",
-                    "Phone": "+963947991951",
-                    "UniquePayCode": "RQ-MTN-001",
-                },
-            },
+            is_activated=True,
+            is_locked=False,
+            activated_at=timezone.now(),
+            terminal_settings=default_settings,
         )
+    else:
+        changed = False
+        if term.terminal_id == "10000001" and target_tid != "10000001":
+            term.terminal_id = target_tid
+            changed = True
+        if not term.terminal_settings:
+            term.terminal_settings = default_settings
+            changed = True
+        if not term.is_activated and not term.is_locked:
+            term.is_activated = True
+            term.activated_at = timezone.now()
+            changed = True
+        if changed:
+            term.save()
     return term
 
 
@@ -139,6 +178,12 @@ def mtn_phone_confirm_ajax(request, invoice_number: int):
             invoice_number=invoice.invoice_number,
             sms_code=code,
         )
+        from django.urls import reverse
+        redirect_url = ""
+        if updated_inv.order_id:
+            redirect_url = f"{reverse('payment_status')}?type=order&id={updated_inv.order_id}&status=paid"
+        elif updated_inv.deposit_id:
+            redirect_url = f"{reverse('payment_status')}?type=deposit&id={updated_inv.deposit_id}&status=paid"
         return JsonResponse({
             "status": "ok",
             "message": "تم تأكيد الدفع عبر MTNPay بنجاح!",
@@ -147,6 +192,7 @@ def mtn_phone_confirm_ajax(request, invoice_number: int):
             "abuse_remaining": updated_inv.abuse_remaining,
             "invoice_status": updated_inv.status_code,
             "is_paid": updated_inv.is_paid,
+            "redirect_url": redirect_url,
         })
     except MTNPayError as exc:
         invoice.refresh_from_db()

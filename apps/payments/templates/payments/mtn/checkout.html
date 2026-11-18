@@ -174,7 +174,13 @@ function confirmMtnPhonePayment() {
     btn.disabled = false;
     if (data.status === 'ok' && data.is_paid) {
       showMtnFeedback(data.message, false);
-      setTimeout(function() { window.location.reload(); }, 700);
+      setTimeout(function() {
+        if (data.redirect_url) {
+          window.location.href = data.redirect_url;
+        } else {
+          window.location.reload();
+        }
+      }, 650);
     } else {
       var extra = (data.abuse_remaining !== null && data.abuse_remaining !== undefined)
         ? ' (المحاولات المتبقية: ' + data.abuse_remaining + ')'

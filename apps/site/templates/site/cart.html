@@ -339,12 +339,12 @@
       }
     });
 
-    el.style.borderColor = (code === 'sham_cash') ? '#0d9488' : (code === 'paymera' ? '#4f46e5' : 'var(--rq-primary)');
-    el.style.background = (code === 'sham_cash') ? 'rgba(13, 148, 136, 0.08)' : (code === 'paymera' ? 'rgba(79, 70, 229, 0.08)' : 'var(--rq-primary-soft)');
+    el.style.borderColor = (code === 'sham_cash') ? '#0d9488' : (code === 'paymera' ? '#4f46e5' : (code === 'mtn_pay' ? '#f59e0b' : 'var(--rq-primary)'));
+    el.style.background = (code === 'sham_cash') ? 'rgba(13, 148, 136, 0.08)' : (code === 'paymera' ? 'rgba(79, 70, 229, 0.08)' : (code === 'mtn_pay' ? 'rgba(245, 158, 11, 0.08)' : 'var(--rq-primary-soft)'));
     
     var activeRing = el.querySelector('.cart-pm-radio');
     if (activeRing) {
-      var activeColor = (code === 'sham_cash') ? '#0d9488' : (code === 'paymera' ? '#4f46e5' : 'var(--rq-primary)');
+      var activeColor = (code === 'sham_cash') ? '#0d9488' : (code === 'paymera' ? '#4f46e5' : (code === 'mtn_pay' ? '#f59e0b' : 'var(--rq-primary)'));
       activeRing.style.borderColor = activeColor;
       activeRing.style.background = activeColor;
       activeRing.innerHTML = '<span style="width: 6px; height: 6px; border-radius: 50%; background: #ffffff;"></span>';
@@ -363,6 +363,10 @@
       if (scBox) scBox.style.display = 'none';
       if (btnText) btnText.textContent = 'المتابعة للدفع عبر بيميرا';
       if (submitBtn) submitBtn.style.background = 'linear-gradient(135deg, #4f46e5 0%, #4338ca 100%)';
+    } else if (code === 'mtn_pay') {
+      if (scBox) scBox.style.display = 'none';
+      if (btnText) btnText.textContent = 'المتابعة للدفع عبر إم تي إن كاش (MTNPay)';
+      if (submitBtn) submitBtn.style.background = 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)';
     } else if (code === 'wallet') {
       if (scBox) scBox.style.display = 'none';
       if (btnText) btnText.textContent = 'تأكيد وشراء من المحفظة';
