@@ -60,52 +60,54 @@
 
         <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div class="field-group">
-                <label>{{ form.name.label }}</label>
+                <label id="lbl-gw-name">{{ form.name.label }}</label>
                 {{ form.name }}
             </div>
             <div class="field-group">
-                <label>{{ form.provider.label }}</label>
+                <label id="lbl-gw-provider">{{ form.provider.label }}</label>
                 {{ form.provider }}
             </div>
             <div class="field-group">
-                <label>{{ form.mode.label }}</label>
+                <label id="lbl-gw-mode">{{ form.mode.label }}</label>
                 {{ form.mode }}
             </div>
-            <div class="field-group">
-                <label>{{ form.terminal_id.label }}</label>
+            <div class="field-group" id="wrap-terminal-id">
+                <label id="lbl-terminal-id">{{ form.terminal_id.label }}</label>
                 {{ form.terminal_id }}
-                {% if form.terminal_id.help_text %}<span class="text-xs text-muted">{{ form.terminal_id.help_text }}</span>{% endif %}
+                <span id="hint-terminal-id" class="text-xs text-muted">{% if form.terminal_id.help_text %}{{ form.terminal_id.help_text }}{% endif %}</span>
             </div>
-            <div class="field-group md:col-span-2">
-                <label>{{ form.base_url.label }}</label>
+            <div class="field-group md:col-span-2" id="wrap-base-url">
+                <label id="lbl-base-url">{{ form.base_url.label }}</label>
                 {{ form.base_url }}
-                <span class="text-xs text-muted">للبيئة التجريبية (Sandbox): https://egate-t.paymera.cc | للبيئة الحية (Live): https://egate.paymera.cc</span>
+                <span id="hint-base-url" class="text-xs text-muted"></span>
             </div>
         </div>
 
         <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div class="field-group">
-                <label>{{ form.api_key.label }}</label>
+            <div class="field-group" id="wrap-api-key">
+                <label id="lbl-api-key">{{ form.api_key.label }}</label>
                 {{ form.api_key }}
+                <span id="hint-api-key" class="text-xs text-muted"></span>
             </div>
-            <div class="field-group">
-                <label>{{ form.api_secret.label }}</label>
+            <div class="field-group" id="wrap-api-secret">
+                <label id="lbl-api-secret">{{ form.api_secret.label }}</label>
                 {{ form.api_secret }}
+                <span id="hint-api-secret" class="text-xs text-muted"></span>
             </div>
         </div>
 
-        <div class="field-group">
-            <label>{{ form.webhook_secret.label }}</label>
+        <div class="field-group" id="wrap-webhook-secret">
+            <label id="lbl-webhook-secret">{{ form.webhook_secret.label }}</label>
             {{ form.webhook_secret }}
         </div>
 
         <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div class="field-group">
+            <div class="field-group" id="wrap-supported-assets">
                 <label>{{ form.supported_assets.label }}</label>
                 {{ form.supported_assets }}
             </div>
-            <div class="field-group">
-                <label>{{ form.settings.label }}</label>
+            <div class="field-group" id="wrap-settings">
+                <label id="lbl-settings">{{ form.settings.label }}</label>
                 {{ form.settings }}
             </div>
         </div>
@@ -151,6 +153,69 @@ document.addEventListener('DOMContentLoaded', function() {
                 reader.readAsDataURL(this.files[0]);
             }
         });
+    }
+    const providerSelect = document.querySelector('select[name="provider"]');
+    function applyProviderSpecificUI() {
+        const provider = providerSelect ? providerSelect.value : '';
+        const lblTid = document.getElementById('lbl-terminal-id');
+        const hintTid = document.getElementById('hint-terminal-id');
+        const lblBase = document.getElementById('lbl-base-url');
+        const hintBase = document.getElementById('hint-base-url');
+        const lblKey = document.getElementById('lbl-api-key');
+        const hintKey = document.getElementById('hint-api-key');
+        const lblSecret = document.getElementById('lbl-api-secret');
+        const hintSecret = document.getElementById('hint-api-secret');
+        const wrapKey = document.getElementById('wrap-api-key');
+        const wrapWebhook = document.getElementById('wrap-webhook-secret');
+        const wrapAssets = document.getElementById('wrap-supported-assets');
+
+        // Reset visibility
+        if (wrapKey) wrapKey.style.display = '';
+        if (wrapWebhook) wrapWebhook.style.display = '';
+        if (wrapAssets) wrapAssets.style.display = '';
+
+        if (provider === 'mtn_pay') {
+            if (lblTid) lblTid.textContent = 'رقم نقطة البيع (Terminal ID / Subject)';
+            if (hintTid) hintTid.textContent = 'رقم الطرفية المخصص من MTN Cash Mobile (مثال: 9001000000064683).';
+            if (lblBase) lblBase.textContent = 'رابط خادم MTN Cash Mobile (eMARA API)';
+            if (hintBase) hintBase.textContent = 'رابط خادم MTN الرسمي: https://cash.mtnsyr.com:9000 (لا علاقة له ببيميرا أو شام كاش).';
+            if (lblSecret) lblSecret.textContent = 'رمز التفعيل السري (Activation Code / Secret - 8 أرقام)';
+            if (hintSecret) hintSecret.textContent = 'رمز التفعيل المكون من 8 أرقام المرسل من MTN لتفعيل نقطة البيع.';
+            if (wrapKey) wrapKey.style.display = 'none';
+            if (wrapWebhook) wrapWebhook.style.display = 'none';
+            if (wrapAssets) wrapAssets.style.display = 'none';
+        } else if (provider === 'paymera') {
+            if (lblTid) lblTid.textContent = 'معرف الطرفية (Paymera Terminal ID)';
+            if (hintTid) hintTid.textContent = 'معرف الطرفية الخاص بحساب بيميرا.';
+            if (lblBase) lblBase.textContent = 'رابط خادم بيميرا (Paymera API URL)';
+            if (hintBase) hintBase.textContent = 'للبيئة التجريبية (Sandbox): https://egate-t.paymera.cc | للبيئة الحية (Live): https://egate.paymera.cc';
+            if (lblKey) lblKey.textContent = 'مفتاح بيميرا (Paymera API Key / Username)';
+            if (hintKey) hintKey.textContent = '';
+            if (lblSecret) lblSecret.textContent = 'كلمة مرور / سر بيميرا (Paymera API Secret)';
+            if (hintSecret) hintSecret.textContent = '';
+        } else if (provider === 'sham_cash') {
+            if (lblTid) lblTid.textContent = 'معرف الحساب / نقطة البيع في شام كاش';
+            if (hintTid) hintTid.textContent = 'معرف التاجر المعتمد لدى شام كاش (ShamCash).';
+            if (lblBase) lblBase.textContent = 'رابط خادم شام كاش (ShamCash API URL)';
+            if (hintBase) hintBase.textContent = 'رابط واجهة برمجة التطبيقات الرسمية لشام كاش.';
+            if (lblKey) lblKey.textContent = 'مفتاح API لشام كاش';
+            if (hintKey) hintKey.textContent = '';
+            if (lblSecret) lblSecret.textContent = 'المفتاح السري لشام كاش (Secret / JWE)';
+            if (hintSecret) hintSecret.textContent = '';
+        } else {
+            if (lblTid) lblTid.textContent = 'معرف الطرفية (Terminal ID)';
+            if (hintTid) hintTid.textContent = '';
+            if (lblBase) lblBase.textContent = 'رابط خادم البوابة (Base URL)';
+            if (hintBase) hintBase.textContent = 'أدخل رابط API الخاص بمزود هذه البوابة.';
+            if (lblKey) lblKey.textContent = 'مفتاح API (API Key)';
+            if (hintKey) hintKey.textContent = '';
+            if (lblSecret) lblSecret.textContent = 'المفتاح السري (API Secret)';
+            if (hintSecret) hintSecret.textContent = '';
+        }
+    }
+    if (providerSelect) {
+        providerSelect.addEventListener('change', applyProviderSpecificUI);
+        applyProviderSpecificUI();
     }
 });
 </script>

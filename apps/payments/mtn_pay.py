@@ -435,7 +435,11 @@ class MTNPaymentClient:
         3. `Settings.Limits.Minimum <= minor_amount <= Settings.Limits.Maximum`.
         """
         if self.terminal.is_locked:
-            raise MTNPayError.from_errno(302)
+            raise MTNPayError(
+                f"الطرفية مقفلة حالياً (CountAbuse={self.terminal.count_abuse}, attempts={self.terminal.activation_attempts}). يرجى مراجعة لوحة تحكم MTNPay أو التواصل مع MTN.",
+                errno=302,
+                action="terminal_blocked",
+            )
         if not self.terminal.is_activated:
             raise MTNPayError.from_errno(303)
         if not self.terminal.is_payment_allowed:
