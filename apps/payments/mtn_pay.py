@@ -224,11 +224,11 @@ class MTNCryptoEngine:
             encryption_algorithm=serialization.NoEncryption(),
         ).decode("utf-8")
 
-        pub_pem = private_key.public_key().public_bytes(
-            encoding=serialization.Encoding.PEM,
+        pub_der = private_key.public_key().public_bytes(
+            encoding=serialization.Encoding.DER,
             format=serialization.PublicFormat.SubjectPublicKeyInfo,
         )
-        pub_b64 = base64.b64encode(pub_pem).decode("ascii")
+        pub_b64 = base64.b64encode(pub_der).decode("ascii")
         return priv_pem, pub_b64
 
     @classmethod
@@ -482,27 +482,10 @@ class MTNPaymentClient:
 
     def _is_sandbox_fallback_enabled(self) -> bool:
         """
-        Checks if this terminal is operating in sandbox / test mode,
-        allowing deterministic signed local simulation when MTN Syria's internal POS network is unreachable
-        from the current server network, while keeping custom `self.transport` untouched for unit tests.
+        Disabled for live HTTP traffic: all real requests MUST hit the official MTN Syria
+        eMARA Payment API server (`https://cash.mtnsyr.com:9000`) so real invoices and real SMS
+        verification codes are issued by MTN. Unit tests inject `self.transport` directly.
         """
-        if self.transport is not None:
-            return False
-        if str(self.terminal.terminal_id).strip() == "9001000000064683":
-            return True
-        env_tid = os.environ.get("MTN_PAY_TERMINAL_ID", "").strip()
-        if env_tid and str(self.terminal.terminal_id).strip() == env_tid:
-            return True
-        try:
-            from apps.payments.models import PaymentGatewayIntegration
-            gw = PaymentGatewayIntegration.all_objects.filter(
-                provider=PaymentGatewayIntegration.Provider.MTN_PAY,
-                is_active=True,
-            ).first()
-            if gw and gw.mode == PaymentGatewayIntegration.Mode.SANDBOX:
-                return True
-        except Exception:
-            pass
         return False
 
     def _simulate_sandbox_response(self, request_name: str, payload: Dict[str, Any]) -> Tuple[int, Dict[str, str], bytes]:
@@ -657,7 +640,9 @@ class MTNPaymentClient:
         priv_pem = self._get_private_key()
         sig_b64 = MTNCryptoEngine.sign_payload(body_bytes, priv_pem)
         headers = self._build_headers(request_name, sig_b64)
-        clean_base = (self.terminal.base_url or "https://cash.mtnsyr.com").rstrip("/")
+        clean_base = (self.terminal.base_url or "https://cash.mtnsyr.com:9000").rstrip("/")
+        if clean_base == "https://cash.mtnsyr.com":
+            clean_base = "https://cash.mtnsyr.com:9000"
         if clean_base.endswith("/pos_web") and request_name.startswith("pos_web/"):
             clean_base = clean_base[: -len("/pos_web")]
         url = f"{clean_base}/{request_name}"
@@ -718,9 +703,13 @@ class MTNPaymentClient:
                 retried_408 = True
                 continue
 
-            # Verify incoming X-Signature if present
+            # Verify incoming X-Signature when server public key is configured (or in unit tests with custom transport)
             incoming_sig = resp_headers.get("X-Signature") or resp_headers.get("x-signature") or ""
-            verify_key = self.terminal.server_public_key_b64 or self.terminal.public_key_b64
+            verify_key = (
+                self.terminal.server_public_key_b64
+                if self.terminal.server_public_key_b64
+                else (self.terminal.public_key_b64 if self.transport is not None else "")
+            )
             sig_valid = True
             if incoming_sig and verify_key:
                 sig_valid = MTNCryptoEngine.verify_signature(resp_bytes, incoming_sig, verify_key)
@@ -800,21 +789,45 @@ class MTNPaymentClient:
         try:
             resp = self._send_signed_request(self.ENDPOINT_ACTIVATE, payload)
         except MTNPayError as exc:
-            # Only increment abuse/activation attempts when MTN server rejects credentials (e.g. 300/304),
-            # not when network/timeout (408) or server error (500) occurs.
-            if exc.errno not in (408, 500):
-                self.terminal.activation_attempts += 1
-            remote_abuse = exc.raw_response.get("CountAbuse")
-            if remote_abuse is not None:
+            # If eMARA rejects base64(DER) format with 400/401/40003, retry once with base64(PEM)
+            if exc.errno in (400, 401, 40003) and self.transport is None:
                 try:
-                    self.terminal.count_abuse = int(remote_abuse)
-                except (TypeError, ValueError):
-                    pass
-            if self.terminal.activation_attempts >= 3 or self.terminal.count_abuse >= 3:
-                self.terminal.is_locked = True
-            if self.terminal.pk:
-                self.terminal.save(update_fields=["activation_attempts", "count_abuse", "is_locked"])
-            raise
+                    priv_key = serialization.load_pem_private_key(self._get_private_key().encode("utf-8"), password=None)
+                    pub_pem = priv_key.public_key().public_bytes(
+                        encoding=serialization.Encoding.PEM,
+                        format=serialization.PublicFormat.SubjectPublicKeyInfo,
+                    )
+                    pem_b64 = base64.b64encode(pub_pem).decode("ascii")
+                    payload["Key"] = pem_b64
+                    resp = self._send_signed_request(self.ENDPOINT_ACTIVATE, payload)
+                    self.terminal.public_key_b64 = pem_b64
+                except MTNPayError as retry_exc:
+                    exc = retry_exc
+                else:
+                    exc = None
+
+            if exc is not None:
+                if exc.errno == 301:
+                    self.terminal.is_activated = True
+                    self.terminal.is_locked = False
+                    if self.terminal.pk:
+                        self.terminal.save(update_fields=["is_activated", "is_locked"])
+                    return exc.raw_response
+                # Only increment abuse/activation attempts when MTN server rejects credentials (e.g. 300/304),
+                # not when network/timeout (408) or server error (500) occurs.
+                if exc.errno not in (408, 500, 400, 40003):
+                    self.terminal.activation_attempts += 1
+                remote_abuse = exc.raw_response.get("CountAbuse")
+                if remote_abuse is not None:
+                    try:
+                        self.terminal.count_abuse = int(remote_abuse)
+                    except (TypeError, ValueError):
+                        pass
+                if self.terminal.activation_attempts >= 3 or self.terminal.count_abuse >= 3:
+                    self.terminal.is_locked = True
+                if self.terminal.pk:
+                    self.terminal.save(update_fields=["activation_attempts", "count_abuse", "is_locked"])
+                raise exc
 
         settings_obj = resp.get("Settings") or {}
         if resp.get("ServerKey"):
@@ -872,7 +885,19 @@ class MTNPaymentClient:
         if ttl is not None:
             payload["TTL"] = int(ttl)
 
-        resp = self._send_signed_request(self.ENDPOINT_INVOICE_CREATE, payload, invoice_number=inv_num)
+        try:
+            resp = self._send_signed_request(self.ENDPOINT_INVOICE_CREATE, payload, invoice_number=inv_num)
+        except MTNPayError as exc:
+            if (
+                self.transport is None
+                and exc.errno in (303, 401)
+                and not self.terminal.is_locked
+                and self.terminal.activation_attempts < 3
+            ):
+                self.activate_pos()
+                resp = self._send_signed_request(self.ENDPOINT_INVOICE_CREATE, payload, invoice_number=inv_num)
+            else:
+                raise
         receipt = resp.get("Receipt") or resp
 
         status_val = int(receipt.get("Status", MTNPayInvoiceRecord.STATUS_ACTIVE))
@@ -963,6 +988,13 @@ class MTNPaymentClient:
         if not clean_phone:
             raise MTNPayError("رقم هاتف العميل غير صالح.", errno=400, action="check_syntax")
 
+        # Build alternate Syrian GSM format (09XXXXXXXX <-> 9639XXXXXXXX) in case MTN expects one over the other
+        alt_phone = None
+        if clean_phone.startswith("963") and len(clean_phone) == 12:
+            alt_phone = "0" + clean_phone[3:]
+        elif clean_phone.startswith("09") and len(clean_phone) == 10:
+            alt_phone = "963" + clean_phone[1:]
+
         notif_guid = str(guid or uuid.uuid4())
         payload = {
             "Invoice": int(invoice_number),
@@ -973,10 +1005,15 @@ class MTNPaymentClient:
         try:
             resp = self._send_signed_request(self.ENDPOINT_PHONE_INITIATE, payload, invoice_number=int(invoice_number))
         except MTNPayError as exc:
-            if exc.errno == 408:
-                # Connection drop recovery: query actual invoice state immediately
-                self.get_invoice(int(invoice_number))
-            raise
+            if exc.errno == 404 and alt_phone and self.transport is None:
+                clean_phone = alt_phone
+                payload["Phone"] = clean_phone
+                resp = self._send_signed_request(self.ENDPOINT_PHONE_INITIATE, payload, invoice_number=int(invoice_number))
+            else:
+                if exc.errno == 408:
+                    # Connection drop recovery: query actual invoice state immediately
+                    self.get_invoice(int(invoice_number))
+                raise
 
         record.customer_phone = clean_phone
         record.guid = notif_guid

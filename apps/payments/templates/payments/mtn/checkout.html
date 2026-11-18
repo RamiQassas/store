@@ -507,8 +507,7 @@
         showMtnFeedback('يرجى إدخال رقم هاتف حساب Cash Mobile أولاً.', true);
         return;
       }
-      var phone = normalizeSyrianPhone(rawPhone);
-      if (inputEl) inputEl.value = phone;
+      var phone = rawPhone.replace(/[^0-9]/g, '') || rawPhone;
 
       var btn = document.getElementById('mtn-btn-initiate');
       if (btn) btn.disabled = true;

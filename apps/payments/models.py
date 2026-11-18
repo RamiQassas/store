@@ -1193,7 +1193,7 @@ class MTNPayTerminalConfig(TimeStampedModel):
     )
     terminal_id = models.CharField(max_length=64, unique=True, db_index=True, verbose_name="معرف الطرفية (Subject / Terminal ID)")
     serial_number = models.CharField(max_length=128, blank=True, verbose_name="الرقم التسلسلي للطرفية (Serial)")
-    base_url = models.URLField(max_length=500, default="https://cash.mtnsyr.com", verbose_name="رابط خادم MTN POS")
+    base_url = models.URLField(max_length=500, default="https://cash.mtnsyr.com:9000", verbose_name="رابط خادم MTN POS")
     language = models.CharField(max_length=16, default="en", verbose_name="لغة الطلبات (BCP 47)")
 
     public_key_b64 = models.TextField(blank=True, verbose_name="المفتاح العام للطرفية (Base64 RSA-1024)")

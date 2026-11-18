@@ -368,6 +368,41 @@ class MTNPayIntegrationTests(TestCase):
         gw = gateway_for("mtn_pay")
         self.assertIsInstance(gw, MTNPayGateway)
 
+        # Inject deterministic in-memory signed transport so unit test never calls live internet
+        def mock_gw_transport(req_name, headers, body_bytes):
+            data = json.loads(body_bytes.decode("utf-8"))
+            if req_name == "pos_web/invoice/create":
+                return self._make_signed_server_response({
+                    "Errno": 0,
+                    "Receipt": {
+                        "Invoice": data["Invoice"],
+                        "Amount": data["Amount"],
+                        "QR": f"MTNPAY://{data['Invoice']}",
+                        "Status": 1,
+                        "Transaction": f"TX-{data['Invoice']}",
+                    },
+                })
+            if req_name == "pos_web/payment_phone/initiate":
+                return self._make_signed_server_response({
+                    "Errno": 0,
+                    "OperationNumber": 778899,
+                    "PaySystem": "MTNPay",
+                })
+            if req_name == "pos_web/payment_phone/confirm":
+                return self._make_signed_server_response({
+                    "Errno": 0,
+                    "Status": 9,
+                    "Transaction": f"TX-PAID-{data['Invoice']}",
+                    "Abuse": 3,
+                })
+            return self._make_signed_server_response({"Errno": 0})
+
+        orig_get_client = gw.get_client
+        def patched_get_client(store=None):
+            c = MTNPaymentClient(self.terminal, private_key_pem=self.priv_pem, transport=mock_gw_transport)
+            return c
+        gw.get_client = patched_get_client
+
         User = get_user_model()
         customer = User.objects.create_user(
             email="mtn_cust@example.com",

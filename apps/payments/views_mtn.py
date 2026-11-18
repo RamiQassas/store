@@ -45,7 +45,9 @@ def _get_or_create_default_terminal(store=None) -> MTNPayTerminalConfig:
         or os.environ.get("MTN_PAY_TERMINAL_ID", "")
         or "9001000000064683"
     ).strip()
-    target_base_url = (gw.base_url if gw and gw.base_url else "https://cash.mtnsyr.com").strip()
+    target_base_url = (gw.base_url if gw and gw.base_url else "https://cash.mtnsyr.com:9000").strip()
+    if target_base_url.rstrip("/") == "https://cash.mtnsyr.com":
+        target_base_url = "https://cash.mtnsyr.com:9000"
 
     term = (
         MTNPayTerminalConfig.objects.filter(terminal_id=target_tid).first()

@@ -703,8 +703,10 @@ class MTNPayGateway(BasePaymentGateway):
         ).strip()
         target_base_url = (
             (self.integration.base_url if self.integration and self.integration.base_url else "")
-            or "https://cash.mtnsyr.com"
+            or "https://cash.mtnsyr.com:9000"
         ).strip()
+        if target_base_url.rstrip("/") == "https://cash.mtnsyr.com":
+            target_base_url = "https://cash.mtnsyr.com:9000"
 
         term = (
             MTNPayTerminalConfig.objects.filter(terminal_id=target_tid).first()
