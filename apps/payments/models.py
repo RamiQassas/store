@@ -359,6 +359,7 @@ class PaymentGatewayIntegration(TimeStampedModel):
     class Provider(models.TextChoices):
         PAYMERA = "paymera", "Paymera (بيميرا)"
         SHAM_CASH = "sham_cash", "شام كاش (ShamCash)"
+        MTN_PAY = "mtn_pay", "MTN Payment API (إم تي إن كاش)"
         BANIYAS_CRYPTO = "baniyas_crypto", "Baniyas Crypto"
         CUSTOM = "custom", "Custom API"
 
@@ -461,6 +462,10 @@ class PaymentGatewayIntegration(TimeStampedModel):
             target_name = "بيميرا (Paymera)"
             method_type = "بوابة دفع إلكترونية"
             description = "إيداع ودفع فوري عبر بوابة بيميرا الإلكترونية"
+        elif self.provider == self.Provider.MTN_PAY or "mtn" in (self.name or "").lower():
+            target_name = "إم تي إن كاش (MTNPay)"
+            method_type = "بوابة دفع إلكترونية"
+            description = "دفع فوري عبر رقم هاتف العميل ورمز التحقق SMS من MTN"
         elif self.provider == self.Provider.BANIYAS_CRYPTO:
             target_name = "Baniyas Crypto"
             method_type = "بوابة عملات رقمية"
@@ -1110,3 +1115,256 @@ class ShamCashReconciliationBatch(TimeStampedModel):
 
     def __str__(self):
         return f"Reconciliation {self.from_date} to {self.to_date} - {self.get_status_display()}"
+
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# MTN PAYMENT API (MTNPay / pos_web) MODELS
+# RSA-1024 + SHA-256 Signed POS Terminal, Invoice, Phone Payment & Refund Models
+# ══════════════════════════════════════════════════════════════════════════════
+
+class MTNPayTerminalConfig(TimeStampedModel):
+    """
+    Stores the activated MTN POS Terminal configuration and the Settings object
+    received from `pos_web/pos/activate` (Currency, Limits, Allowed, Description).
+    Private key and activation secret are never exposed to the UI.
+    """
+    store = models.ForeignKey(
+        "stores.Store",
+        on_delete=models.CASCADE,
+        null=True,
+        blank=True,
+        related_name="mtn_pay_terminals",
+        verbose_name="المتجر",
+    )
+    terminal_id = models.CharField(max_length=64, unique=True, db_index=True, verbose_name="معرف الطرفية (Subject / Terminal ID)")
+    serial_number = models.CharField(max_length=128, blank=True, verbose_name="الرقم التسلسلي للطرفية (Serial)")
+    base_url = models.URLField(max_length=500, default="https://pos.mtnsyr.com/pos_web", verbose_name="رابط خادم MTN POS")
+    language = models.CharField(max_length=16, default="en", verbose_name="لغة الطلبات (BCP 47)")
+
+    public_key_b64 = models.TextField(blank=True, verbose_name="المفتاح العام للطرفية (Base64 RSA-1024)")
+    server_public_key_b64 = models.TextField(blank=True, verbose_name="المفتاح العام لخادم MTN (Base64 RSA-1024)")
+
+    is_activated = models.BooleanField(default=False, db_index=True, verbose_name="مفعلة")
+    is_locked = models.BooleanField(default=False, verbose_name="موقوفة بسبب تجاوز محاولات التفعيل (3 مرات)")
+    activation_attempts = models.IntegerField(default=0, verbose_name="عدد محاولات التفعيل الفاشلة")
+    count_abuse = models.IntegerField(default=0, verbose_name="عداد المحاولات الفاشلة من الخادم (CountAbuse)")
+    activated_at = models.DateTimeField(null=True, blank=True, verbose_name="تاريخ التفعيل")
+
+    # Full Settings object returned by pos_web/pos/activate
+    terminal_settings = models.JSONField(default=dict, blank=True, verbose_name="كائن الإعدادات (Settings)")
+
+    class Meta:
+        ordering = ["-created_at"]
+        verbose_name = "إعداد طرفية MTN Payment"
+        verbose_name_plural = "إعدادات طرفيات MTN Payment"
+
+    def __str__(self):
+        status_str = "مفعلة" if self.is_activated else ("مقفلة" if self.is_locked else "غير مفعلة")
+        return f"MTN POS #{self.terminal_id} ({status_str})"
+
+    @property
+    def currency_info(self) -> dict:
+        if isinstance(self.terminal_settings, dict):
+            return self.terminal_settings.get("Currency") or {}
+        return {}
+
+    @property
+    def limits_info(self) -> dict:
+        if isinstance(self.terminal_settings, dict):
+            return self.terminal_settings.get("Limits") or {}
+        return {}
+
+    @property
+    def allowed_info(self) -> dict:
+        if isinstance(self.terminal_settings, dict):
+            return self.terminal_settings.get("Allowed") or {}
+        return {}
+
+    @property
+    def description_info(self) -> dict:
+        if isinstance(self.terminal_settings, dict):
+            return self.terminal_settings.get("Description") or {}
+        return {}
+
+    @property
+    def is_payment_allowed(self) -> bool:
+        allowed = self.allowed_info
+        return bool(allowed.get("Payment") is True)
+
+    @property
+    def fractional_factor(self) -> int:
+        """
+        Returns the multiplier to convert major currency units to minor units
+        based on Settings.Currency.Fractional (e.g. 100 for SYP).
+        """
+        frac = self.currency_info.get("Fractional", 100)
+        try:
+            f_int = int(frac)
+            if f_int <= 0:
+                return 1
+            if f_int in (1, 10, 100, 1000):
+                return f_int
+            if f_int <= 6:
+                return 10 ** f_int
+            return f_int
+        except (TypeError, ValueError):
+            return 100
+
+
+class MTNPayInvoiceRecord(TimeStampedModel):
+    """
+    Represents a single MTN Payment API Invoice and its authorization lifecycle.
+    Statuses: 0=Cancelled, 1=Active/Pending Auth, 5=Processing, 8=Failed, 9=Paid.
+    """
+    STATUS_CANCELLED = 0
+    STATUS_ACTIVE = 1
+    STATUS_PROCESSING = 5
+    STATUS_FAILED = 8
+    STATUS_PAID = 9
+
+    STATUS_CHOICES = [
+        (STATUS_CANCELLED, "ملغاة (0)"),
+        (STATUS_ACTIVE, "نشطة بانتظار التفويض (1)"),
+        (STATUS_PROCESSING, "قيد المعالجة (5)"),
+        (STATUS_FAILED, "فاشلة (8)"),
+        (STATUS_PAID, "مدفوعة بنجاح (9)"),
+    ]
+
+    terminal = models.ForeignKey(
+        MTNPayTerminalConfig,
+        on_delete=models.CASCADE,
+        related_name="invoices",
+        verbose_name="الطرفية",
+    )
+    invoice_number = models.BigIntegerField(unique=True, db_index=True, verbose_name="رقم الفاتورة الفريد (Invoice)")
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="mtn_pay_invoices",
+        verbose_name="العميل",
+    )
+    order = models.ForeignKey(
+        "orders.Order",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="mtn_pay_invoices",
+        verbose_name="الطلب المرتبط",
+    )
+    deposit = models.ForeignKey(
+        DepositRequest,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="mtn_pay_invoices",
+        verbose_name="طلب الإيداع المرتبط",
+    )
+
+    amount_major = models.DecimalField(max_digits=18, decimal_places=2, verbose_name="المبلغ بالوحدة الأساسية")
+    amount_minor = models.BigIntegerField(verbose_name="المبلغ بأصغر وحدة نقدية (Amount)")
+    currency_code = models.CharField(max_length=12, default="SYP", verbose_name="رمز العملة")
+
+    session_id = models.CharField(max_length=128, blank=True, verbose_name="معرف الجلسة الاختياري (Session)")
+    ttl_seconds = models.IntegerField(null=True, blank=True, verbose_name="مدة صلاحية الفاتورة (TTL)")
+
+    status_code = models.IntegerField(choices=STATUS_CHOICES, default=STATUS_ACTIVE, db_index=True, verbose_name="حالة الفاتورة (Status)")
+    transaction_id = models.CharField(max_length=128, blank=True, db_index=True, verbose_name="رقم المعاملة الداخلي (Transaction)")
+
+    # Receipt details from pos_web/invoice/create & pos_web/invoice/get
+    qr_code = models.TextField(blank=True, verbose_name="رمز QR للفاتورة")
+    commission_minor = models.BigIntegerField(default=0, verbose_name="العمولة (Commission)")
+    tax_minor = models.BigIntegerField(default=0, verbose_name="الضريبة (Tax)")
+    created_remote = models.CharField(max_length=64, blank=True, verbose_name="تاريخ الإنشاء (Created)")
+    expired_remote = models.CharField(max_length=64, blank=True, verbose_name="تاريخ الانتهاء (Expired)")
+    processed_remote = models.CharField(max_length=64, blank=True, verbose_name="تاريخ المعالجة (Processed)")
+    receipt_raw = models.JSONField(default=dict, blank=True, verbose_name="كائن الإيصال الكامل (Receipt)")
+
+    # Phone payment fields (pos_web/payment_phone/initiate & confirm)
+    customer_phone = models.CharField(max_length=32, blank=True, db_index=True, verbose_name="رقم هاتف العميل (Phone)")
+    guid = models.CharField(max_length=128, blank=True, db_index=True, verbose_name="معرف الإشعار الفريد (Guid)")
+    operation_number = models.CharField(max_length=128, blank=True, verbose_name="رقم عملية الإصدار (OperationNumber)")
+    pay_system = models.CharField(max_length=64, default="MTNPay", verbose_name="نظام الدفع (PaySystem)")
+    abuse_remaining = models.IntegerField(null=True, blank=True, verbose_name="المحاولات المتبقية لرمز التأكيد (Abuse)")
+
+    is_refunded = models.BooleanField(default=False, verbose_name="تم الاسترداد")
+
+    class Meta:
+        ordering = ["-created_at"]
+        verbose_name = "فاتورة MTN Payment"
+        verbose_name_plural = "فواتير MTN Payment"
+
+    def __str__(self):
+        return f"MTN Invoice #{self.invoice_number} - {self.amount_major} {self.currency_code} (Status={self.status_code})"
+
+    @property
+    def is_paid(self) -> bool:
+        return self.status_code == self.STATUS_PAID
+
+
+class MTNPayRefundRecord(TimeStampedModel):
+    """
+    Tracks refund initiation (`pos_web/invoice/refund/initiate`),
+    confirmation (`pos_web/invoice/refund/confirm`), and cancellation (`pos_web/invoice/refund/cancel`).
+    """
+    class RefundStatus(models.TextChoices):
+        INITIATED = "initiated", "بدأ الاسترداد (بانتظار التأكيد)"
+        CONFIRMED = "confirmed", "تم تأكيد الاسترداد بنجاح"
+        CANCELLED = "cancelled", "تم إلغاء الاسترداد"
+        FAILED = "failed", "فشل الاسترداد"
+
+    invoice_record = models.ForeignKey(
+        MTNPayInvoiceRecord,
+        on_delete=models.CASCADE,
+        related_name="refunds",
+        verbose_name="الفاتورة الأصلية",
+    )
+    base_invoice = models.BigIntegerField(db_index=True, verbose_name="رقم الفاتورة الأصلية (BaseInvoice)")
+    refund_invoice = models.BigIntegerField(unique=True, db_index=True, verbose_name="معرف فاتورة الاسترداد (RefundInvoice)")
+    refund_invoice_date = models.CharField(max_length=64, blank=True, verbose_name="تاريخ فاتورة الاسترداد (RefundInvoiceDate)")
+
+    refund_amount_minor = models.BigIntegerField(default=0, verbose_name="مبلغ الاسترداد (RefundAmount)")
+    amount_minor = models.BigIntegerField(default=0, verbose_name="المبلغ النهائي المسترد (Amount)")
+    commission_minor = models.BigIntegerField(default=0, verbose_name="العمولة المستردة (Commission)")
+    tax_sender_minor = models.BigIntegerField(default=0, verbose_name="ضريبة المرسل (TaxSender)")
+    is_same_day = models.BooleanField(default=True, verbose_name="نفس يوم عملية الدفع")
+    parameters = models.JSONField(default=list, blank=True, verbose_name="معاملات إضافية (Parameters)")
+
+    status = models.CharField(max_length=24, choices=RefundStatus.choices, default=RefundStatus.INITIATED, verbose_name="حالة الاسترداد")
+    errno = models.IntegerField(default=0, verbose_name="رمز النتيجة (Errno)")
+    raw_response = models.JSONField(default=dict, blank=True, verbose_name="استجابة الخادم")
+
+    class Meta:
+        ordering = ["-created_at"]
+        verbose_name = "سجل استرداد MTN Payment"
+        verbose_name_plural = "سجلات استرداد MTN Payment"
+
+    def __str__(self):
+        return f"MTN Refund #{self.refund_invoice} for Base #{self.base_invoice} ({self.status})"
+
+
+class MTNPayApiLog(TimeStampedModel):
+    """
+    Technical audit trail for all outgoing & incoming MTN Payment API calls.
+    """
+    request_name = models.CharField(max_length=120, db_index=True, verbose_name="اسم الطلب (Request-Name)")
+    subject_terminal = models.CharField(max_length=64, blank=True, db_index=True, verbose_name="معرف الطرفية (Subject)")
+    invoice_number = models.BigIntegerField(null=True, blank=True, db_index=True, verbose_name="رقم الفاتورة")
+    request_payload_sanitized = models.JSONField(default=dict, blank=True, verbose_name="بيانات الطلب (محمية)")
+    request_signature = models.TextField(blank=True, verbose_name="توقيع الطلب الصادر (X-Signature)")
+    response_status_code = models.IntegerField(default=200, verbose_name="حالة HTTP")
+    response_errno = models.IntegerField(null=True, blank=True, db_index=True, verbose_name="رمز الخطأ (Errno)")
+    response_payload = models.JSONField(default=dict, blank=True, verbose_name="بيانات الاستجابة")
+    response_signature_valid = models.BooleanField(default=True, verbose_name="صحة توقيع الاستجابة")
+    retried_on_timeout = models.BooleanField(default=False, verbose_name="تمت إعادة المحاولة بعد 408")
+    recovered_via_get = models.BooleanField(default=False, verbose_name="تمت استعادة الحالة عبر invoice/get")
+    is_success = models.BooleanField(default=False, db_index=True, verbose_name="نجاح العملية")
+    error_message = models.TextField(blank=True, verbose_name="رسالة الخطأ")
+    duration_ms = models.IntegerField(default=0, verbose_name="زمن التنفيذ (ms)")
+
+    class Meta:
+        ordering = ["-created_at"]
+        verbose_name = "سجل تدقيق MTN Payment API"
+        verbose_name_plural = "سجلات تدقيق MTN Payment API"

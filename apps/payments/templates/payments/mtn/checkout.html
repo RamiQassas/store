@@ -1,0 +1,191 @@
+{% extends "site/base.html" %}
+{% load static %}
+
+{% block title %}الدفع عبر MTNPay | فاتورة #{{ invoice.invoice_number }}{% endblock %}
+
+{% block content %}
+<div class="rq-container" style="max-width: 680px; padding: 2rem 1rem 4rem;">
+  <div style="background: var(--rq-surface-card); border: 1px solid var(--rq-border); border-radius: 22px; padding: 1.5rem; box-shadow: var(--rq-shadow-md);">
+
+    <!-- Header & Store Description (Business, Shop, Address, Phone, UniquePayCode) -->
+    <div style="display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 1rem; padding-bottom: 1.15rem; border-bottom: 1px solid var(--rq-border);">
+      <div style="display: flex; align-items: center; gap: 0.75rem;">
+        <div style="width: 48px; height: 48px; border-radius: 14px; background: #ffcc00; color: #030712; display: flex; align-items: center; justify-content: center; font-weight: 900; font-size: 0.95rem;">
+          MTN
+        </div>
+        <div>
+          <h1 style="font-size: 1.15rem; font-weight: 900; color: var(--rq-text-primary); margin: 0;">بوابة الدفع الإلكتروني MTNPay</h1>
+          <div style="font-size: 0.78rem; color: var(--rq-text-secondary);">
+            {{ description.Business|default:"منصة رقميات" }} • {{ description.Shop|default:"الفرع الرئيسي" }}
+          </div>
+        </div>
+      </div>
+
+      <span id="mtn-status-badge" style="padding: 0.35rem 0.85rem; border-radius: 999px; font-size: 0.76rem; font-weight: 800; background: {% if invoice.status_code == 9 %}rgba(16,185,129,0.16){% elif invoice.status_code == 0 or invoice.status_code == 8 %}rgba(239,68,68,0.16){% else %}rgba(56,189,248,0.16){% endif %}; color: {% if invoice.status_code == 9 %}#10b981{% elif invoice.status_code == 0 or invoice.status_code == 8 %}#ef4444{% else %}#38bdf8{% endif %};">
+        {{ invoice.get_status_code_display }}
+      </span>
+    </div>
+
+    <!-- Store Merchant Description Details -->
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 0.65rem; margin: 1rem 0; padding: 0.85rem; border-radius: 14px; background: var(--rq-bg-elevated); font-size: 0.76rem;">
+      <div>
+        <span style="color: var(--rq-text-muted); display: block;">رمز الدفع الموحد (UniquePayCode)</span>
+        <strong class="font-mono" style="color: var(--rq-text-primary);">{{ description.UniquePayCode|default:"-" }}</strong>
+      </div>
+      <div>
+        <span style="color: var(--rq-text-muted); display: block;">العنوان</span>
+        <strong style="color: var(--rq-text-primary);">{{ description.Address|default:"-" }}</strong>
+      </div>
+      <div>
+        <span style="color: var(--rq-text-muted); display: block;">هاتف نقطة البيع</span>
+        <strong class="font-mono" style="color: var(--rq-text-primary);">{{ description.Phone|default:"-" }}</strong>
+      </div>
+    </div>
+
+    <!-- Invoice Financial Summary -->
+    <div style="padding: 1.15rem; border-radius: 16px; border: 1px solid var(--rq-border); margin-bottom: 1.25rem; display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 1rem;">
+      <div>
+        <span style="font-size: 0.75rem; color: var(--rq-text-muted); display: block;">رقم الفاتورة الفريد (Invoice)</span>
+        <strong class="font-mono tabular-nums" style="font-size: 1.05rem; color: var(--rq-text-primary);">#{{ invoice.invoice_number }}</strong>
+      </div>
+      <div style="text-align: left;">
+        <span style="font-size: 0.75rem; color: var(--rq-text-muted); display: block;">المبلغ المستحق</span>
+        <strong class="font-mono tabular-nums" style="font-size: 1.35rem; font-weight: 900; color: #38bdf8;">
+          {{ invoice.amount_major }} {{ invoice.currency_code }}
+        </strong>
+        <small class="font-mono" style="display: block; font-size: 0.68rem; color: var(--rq-text-muted);">
+          ({{ invoice.amount_minor }} بالوحدة الصغرى)
+        </small>
+      </div>
+    </div>
+
+    {% if invoice.status_code == 9 %}
+    <!-- Paid State -->
+    <div style="padding: 1.5rem; border-radius: 16px; background: rgba(16, 185, 129, 0.12); border: 1px solid rgba(16, 185, 129, 0.35); text-align: center;">
+      <i class="fas fa-check-circle" style="font-size: 2.2rem; color: #10b981; margin-bottom: 0.5rem;"></i>
+      <h3 style="margin: 0 0 0.35rem; font-size: 1.1rem; font-weight: 900; color: var(--rq-text-primary);">تم سداد الفاتورة بنجاح</h3>
+      <p style="margin: 0; font-size: 0.82rem; color: var(--rq-text-secondary);">رقم عملية MTNPay: <strong class="font-mono">{{ invoice.transaction_id }}</strong></p>
+    </div>
+    {% else %}
+    <!-- Step 1: Initiate Payment by Phone -->
+    <div id="mtn-step-phone" style="{% if invoice.operation_number %}display: none;{% endif %}">
+      <label class="rq-label" for="mtn-phone-input">رقم هاتف العميل (MTN Cash)</label>
+      <div style="display: flex; gap: 0.6rem; margin-bottom: 0.75rem;">
+        <input type="tel" id="mtn-phone-input" class="rq-input font-mono" placeholder="96394XXXXXXX" value="{{ invoice.customer_phone }}" dir="ltr" style="text-align: left; height: 46px;">
+        <button type="button" id="mtn-btn-initiate" onclick="initiateMtnPhonePayment()" class="rq-btn-primary" style="height: 46px; padding: 0 1.4rem; white-space: nowrap;">
+          <i class="fas fa-paper-plane"></i>
+          <span>إرسال رمز الدفع</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- Step 2: Confirm Payment by SMS Code -->
+    <div id="mtn-step-otp" style="{% if not invoice.operation_number %}display: none;{% endif %}">
+      <div style="margin-bottom: 0.75rem; font-size: 0.82rem; color: var(--rq-text-secondary);">
+        أدخل رمز التحقق SMS المرسل إلى الرقم <strong id="mtn-phone-display" class="font-mono">{{ invoice.customer_phone }}</strong>
+        (رقم العملية: <code id="mtn-op-display" class="font-mono">{{ invoice.operation_number }}</code>)
+      </div>
+      <div style="display: flex; gap: 0.6rem; margin-bottom: 0.75rem;">
+        <input type="text" id="mtn-otp-input" class="rq-input font-mono" placeholder="رمز التحقق SMS" dir="ltr" style="text-align: center; letter-spacing: 0.2em; height: 46px; font-weight: 900;">
+        <button type="button" id="mtn-btn-confirm" onclick="confirmMtnPhonePayment()" class="rq-btn-primary" style="height: 46px; padding: 0 1.5rem; white-space: nowrap; background: #10b981;">
+          <i class="fas fa-check"></i>
+          <span>تأكيد الدفع</span>
+        </button>
+      </div>
+      <button type="button" onclick="document.getElementById('mtn-step-otp').style.display='none'; document.getElementById('mtn-step-phone').style.display='block';" style="background: none; border: none; color: var(--rq-primary-light); font-size: 0.76rem; font-weight: 800; cursor: pointer; padding: 0;">
+        تغيير رقم الهاتف أو إعادة إرسال الرمز
+      </button>
+    </div>
+
+    <div id="mtn-feedback-box" style="display: none; margin-top: 1rem; padding: 0.85rem 1rem; border-radius: 12px; font-size: 0.82rem; font-weight: 800;"></div>
+    {% endif %}
+
+  </div>
+</div>
+
+<script>
+function getCsrfToken() {
+  return '{{ csrf_token }}';
+}
+
+function showMtnFeedback(msg, isError) {
+  var box = document.getElementById('mtn-feedback-box');
+  if (!box) return;
+  box.style.display = 'block';
+  box.style.background = isError ? 'rgba(239, 68, 68, 0.14)' : 'rgba(16, 185, 129, 0.14)';
+  box.style.border = isError ? '1px solid rgba(239, 68, 68, 0.35)' : '1px solid rgba(16, 185, 129, 0.35)';
+  box.style.color = isError ? '#f87171' : '#34d399';
+  box.textContent = msg;
+}
+
+function initiateMtnPhonePayment() {
+  var phone = (document.getElementById('mtn-phone-input').value || '').trim();
+  if (!phone) {
+    showMtnFeedback('يرجى إدخال رقم هاتف العميل أولاً.', true);
+    return;
+  }
+  var btn = document.getElementById('mtn-btn-initiate');
+  btn.disabled = true;
+  var fd = new FormData();
+  fd.append('phone', phone);
+
+  fetch('{% url "mtn_phone_initiate_ajax" invoice.invoice_number %}', {
+    method: 'POST',
+    headers: { 'X-CSRFToken': getCsrfToken() },
+    body: fd
+  })
+  .then(function(r) { return r.json(); })
+  .then(function(data) {
+    btn.disabled = false;
+    if (data.status === 'ok') {
+      document.getElementById('mtn-phone-display').textContent = phone;
+      document.getElementById('mtn-op-display').textContent = data.operation_number || '';
+      document.getElementById('mtn-step-phone').style.display = 'none';
+      document.getElementById('mtn-step-otp').style.display = 'block';
+      showMtnFeedback(data.message, false);
+    } else {
+      showMtnFeedback(data.message || 'تعذر بدء عملية الدفع.', true);
+    }
+  })
+  .catch(function() {
+    btn.disabled = false;
+    showMtnFeedback('انقطع الاتصال، جاري التحقق من حالة الفاتورة...', true);
+  });
+}
+
+function confirmMtnPhonePayment() {
+  var code = (document.getElementById('mtn-otp-input').value || '').trim();
+  if (!code) {
+    showMtnFeedback('يرجى إدخال رمز التحقق SMS.', true);
+    return;
+  }
+  var btn = document.getElementById('mtn-btn-confirm');
+  btn.disabled = true;
+  var fd = new FormData();
+  fd.append('code', code);
+
+  fetch('{% url "mtn_phone_confirm_ajax" invoice.invoice_number %}', {
+    method: 'POST',
+    headers: { 'X-CSRFToken': getCsrfToken() },
+    body: fd
+  })
+  .then(function(r) { return r.json(); })
+  .then(function(data) {
+    btn.disabled = false;
+    if (data.status === 'ok' && data.is_paid) {
+      showMtnFeedback(data.message, false);
+      setTimeout(function() { window.location.reload(); }, 700);
+    } else {
+      var extra = (data.abuse_remaining !== null && data.abuse_remaining !== undefined)
+        ? ' (المحاولات المتبقية: ' + data.abuse_remaining + ')'
+        : '';
+      showMtnFeedback((data.message || 'فشل تأكيد الدفع.') + extra, true);
+    }
+  })
+  .catch(function() {
+    btn.disabled = false;
+    showMtnFeedback('انقطع الاتصال أثناء التأكيد، جاري استعادة حالة الفاتورة...', true);
+  });
+}
+</script>
+{% endblock %}

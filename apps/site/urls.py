@@ -1,6 +1,6 @@
 from django.urls import path
 from apps.site import views, api_views
-from apps.payments import views_paymera, views_shamcash, views_shamcash_admin
+from apps.payments import views_mtn, views_paymera, views_shamcash, views_shamcash_admin
 from apps.stores import views_admin, views_saas
 
 urlpatterns = [
@@ -104,6 +104,16 @@ urlpatterns = [
     path("payments/paymera/callback/", views_paymera.paymera_callback_view, name="paymera_callback"),
     path("payments/paymera/trigger/", views_paymera.paymera_trigger_view, name="paymera_trigger"),
     path("payments/paymera/refund/", views_paymera.paymera_refund_view, name="paymera_refund"),
+
+    # MTN Payment API (MTNPay / pos_web) Endpoints
+    path("payments/mtn/<int:invoice_number>/", views_mtn.mtn_invoice_checkout_view, name="mtn_invoice_checkout"),
+    path("payments/mtn/<int:invoice_number>/initiate/", views_mtn.mtn_phone_initiate_ajax, name="mtn_phone_initiate_ajax"),
+    path("payments/mtn/<int:invoice_number>/confirm/", views_mtn.mtn_phone_confirm_ajax, name="mtn_phone_confirm_ajax"),
+    path("payments/mtn/<int:invoice_number>/status/", views_mtn.mtn_invoice_status_ajax, name="mtn_invoice_status_ajax"),
+    path("control/mtn-pay/", views_mtn.mtn_admin_dashboard_view, name="mtn_admin_dashboard"),
+    path("control/mtn-pay/activate/", views_mtn.mtn_admin_activate_pos_view, name="mtn_admin_activate_pos"),
+    path("control/mtn-pay/invoices/create/", views_mtn.mtn_admin_create_invoice_view, name="mtn_admin_create_invoice"),
+    path("control/mtn-pay/refund/", views_mtn.mtn_admin_refund_action_view, name="mtn_admin_refund_action"),
 
     # AUTHENTICATION (STANDARDIZED NAMES)
     path("auth/login/", views.v3_login_view, name="site_login"),

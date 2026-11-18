@@ -19,3 +19,6 @@ artifacts/
 .pytest_cache/
 .mypy_cache/
 scratch/
+
+.mtn_keys/
+backups/
