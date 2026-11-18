@@ -239,23 +239,25 @@
               {% endif %}
               {% endfor %}
 
-              <!-- 4. أي بوابات دفع أخرى مفعلة -->
+              <!-- 4. أي بوابات دفع أخرى مفعلة (Cash Mobile / MTN) -->
               {% for gw in gateway_methods %}
               {% if gw.code != 'sham_cash' and gw.code != 'paymera' %}
               <div class="cart-pm-card" id="cart-pm-{{ gw.code }}" data-gw-id="{{ gw.id }}" data-gw-code="{{ gw.code }}" onclick="selectCartPaymentMethod('{{ gw.id }}', '{{ gw.code }}', this)"
                    style="border: 1.5px solid var(--rq-border); background: var(--rq-surface-card); border-radius: 12px; padding: 0.85rem 1rem; cursor: pointer; transition: all 0.2s ease;">
                 <div style="display: flex; align-items: center; justify-content: space-between;">
                   <div style="display: flex; align-items: center; gap: 0.55rem;">
-                    <div style="width: 32px; height: 32px; border-radius: 8px; background: rgba(100, 116, 139, 0.12); display: flex; align-items: center; justify-content: center; overflow: hidden;">
+                    <div style="width: 32px; height: 32px; border-radius: 8px; background: {% if gw.code == 'mtn_pay' %}rgba(245, 158, 11, 0.14){% else %}rgba(100, 116, 139, 0.12){% endif %}; display: flex; align-items: center; justify-content: center; overflow: hidden;">
                       {% if gw.logo %}
-                      <img src="{{ gw.logo }}" alt="{{ gw.name }}" style="max-height: 20px; max-width: 20px; object-fit: contain;">
+                      <img src="{{ gw.logo }}" alt="{% if gw.code == 'mtn_pay' %}Cash Mobile{% else %}{{ gw.name }}{% endif %}" style="max-height: 24px; max-width: 24px; object-fit: contain; border-radius: 4px;">
+                      {% elif gw.code == 'mtn_pay' %}
+                      <img src="/static/site/img/brands/mtn.svg" alt="Cash Mobile" style="max-height: 24px; max-width: 24px; object-fit: contain; border-radius: 4px;">
                       {% else %}
                       <i class="fas fa-credit-card" style="color: #64748b;"></i>
                       {% endif %}
                     </div>
                     <div>
-                      <span style="font-size: 0.88rem; font-weight: 900; color: var(--rq-navy); display: block;">{{ gw.name }}</span>
-                      <span style="font-size: 0.73rem; color: var(--rq-text-muted);">بوابة دفع إلكترونية</span>
+                      <span style="font-size: 0.88rem; font-weight: 900; color: var(--rq-navy); display: block;">{% if gw.code == 'mtn_pay' %}Cash Mobile{% else %}{{ gw.name }}{% endif %}</span>
+                      <span style="font-size: 0.73rem; color: var(--rq-text-muted);">{% if gw.code == 'mtn_pay' %}دفع إلكتروني فوري (MTN Cash){% else %}بوابة دفع إلكترونية{% endif %}</span>
                     </div>
                   </div>
                   <span class="cart-pm-radio" style="width: 18px; height: 18px; border-radius: 50%; border: 2px solid var(--rq-border-strong); background: transparent; display: flex; align-items: center; justify-content: center;"></span>
@@ -365,7 +367,7 @@
       if (submitBtn) submitBtn.style.background = 'linear-gradient(135deg, #4f46e5 0%, #4338ca 100%)';
     } else if (code === 'mtn_pay') {
       if (scBox) scBox.style.display = 'none';
-      if (btnText) btnText.textContent = 'المتابعة للدفع عبر إم تي إن كاش (MTNPay)';
+      if (btnText) btnText.textContent = 'المتابعة للدفع عبر Cash Mobile';
       if (submitBtn) submitBtn.style.background = 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)';
     } else if (code === 'wallet') {
       if (scBox) scBox.style.display = 'none';

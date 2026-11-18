@@ -585,7 +585,7 @@
               {% endif %}
               {% endfor %}
 
-              <!-- 4. Other Gateways (if any) -->
+              <!-- 4. Other Gateways (Cash Mobile / MTN & others) -->
               {% for gw in gateway_methods %}
               {% if gw.code != 'sham_cash' and gw.code != 'paymera' %}
               <div class="rq-pdp-pm-card is-{{ gw.code }}"
@@ -596,15 +596,17 @@
                 <div style="display: flex; align-items: center; justify-content: space-between;">
                   <div style="display: flex; align-items: center; gap: 0.45rem;">
                     {% if gw.logo %}
-                    <img src="{{ gw.logo }}" alt="{{ gw.name }}" style="height: 20px; width: auto; object-fit: contain;">
+                    <img src="{{ gw.logo }}" alt="{% if gw.code == 'mtn_pay' %}Cash Mobile{% else %}{{ gw.name }}{% endif %}" style="height: 22px; width: auto; object-fit: contain; border-radius: 5px;">
+                    {% elif gw.code == 'mtn_pay' %}
+                    <img src="/static/site/img/brands/mtn.svg" alt="Cash Mobile" style="height: 22px; width: auto; object-fit: contain; border-radius: 5px;">
                     {% else %}
                     <i class="fas fa-credit-card" style="color: #6366f1;"></i>
                     {% endif %}
-                    <span style="font-size: 0.86rem; font-weight: 900; color: var(--rq-navy);">{{ gw.name }}</span>
+                    <span style="font-size: 0.86rem; font-weight: 900; color: var(--rq-navy);">{% if gw.code == 'mtn_pay' %}Cash Mobile{% else %}{{ gw.name }}{% endif %}</span>
                   </div>
                   <span class="pm-radio-ring" style="width: 16px; height: 16px; border-radius: 50%; border: 2px solid var(--rq-border-strong); background: transparent; display: inline-block;"></span>
                 </div>
-                <span style="font-size: 0.72rem; color: var(--rq-text-muted); font-weight: 700;">دفع إلكتروني</span>
+                <span style="font-size: 0.72rem; color: {% if gw.code == 'mtn_pay' %}#d97706{% else %}var(--rq-text-muted){% endif %}; font-weight: 800;">{% if gw.code == 'mtn_pay' %}⚡ دفع فوري (MTN Cash){% else %}دفع إلكتروني{% endif %}</span>
               </div>
               {% endif %}
               {% endfor %}
@@ -834,7 +836,7 @@
       }
     } else if (code === 'mtn_pay') {
       if (scBox) scBox.style.display = 'none';
-      if (submitTxt) submitTxt.textContent = 'شراء فوري عبر إم تي إن كاش (MTNPay) 📱';
+      if (submitTxt) submitTxt.textContent = 'شراء فوري عبر Cash Mobile 📱';
       if (submitBtn) {
         submitBtn.style.background = 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)';
         submitBtn.style.boxShadow = '0 4px 18px rgba(245, 158, 11, 0.35)';

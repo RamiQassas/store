@@ -359,7 +359,7 @@ class PaymentGatewayIntegration(TimeStampedModel):
     class Provider(models.TextChoices):
         PAYMERA = "paymera", "Paymera (بيميرا)"
         SHAM_CASH = "sham_cash", "شام كاش (ShamCash)"
-        MTN_PAY = "mtn_pay", "MTN Payment API (إم تي إن كاش)"
+        MTN_PAY = "mtn_pay", "Cash Mobile (MTN كاش موبايل)"
         BANIYAS_CRYPTO = "baniyas_crypto", "Baniyas Crypto"
         CUSTOM = "custom", "Custom API"
 
@@ -437,7 +437,7 @@ class PaymentGatewayIntegration(TimeStampedModel):
                 pass
         if self.provider == "paymera" or "paymera" in (self.name or "").lower() or "بيميرا" in (self.name or ""):
             return "/media/payment-methods/logos/paymera.png"
-        if self.provider == "mtn_pay" or "mtn" in (self.name or "").lower() or "إم تي إن" in (self.name or ""):
+        if self.provider == "mtn_pay" or "mtn" in (self.name or "").lower() or "cash mobile" in (self.name or "").lower() or "كاش موبايل" in (self.name or ""):
             return "/static/site/img/brands/mtn.svg"
         return None
 
@@ -464,10 +464,10 @@ class PaymentGatewayIntegration(TimeStampedModel):
             target_name = "بيميرا (Paymera)"
             method_type = "بوابة دفع إلكترونية"
             description = "إيداع ودفع فوري عبر بوابة بيميرا الإلكترونية"
-        elif self.provider == self.Provider.MTN_PAY or "mtn" in (self.name or "").lower():
-            target_name = "إم تي إن كاش (MTNPay)"
+        elif self.provider == self.Provider.MTN_PAY or "mtn" in (self.name or "").lower() or "cash mobile" in (self.name or "").lower():
+            target_name = "Cash Mobile (كاش موبايل)"
             method_type = "بوابة دفع إلكترونية"
-            description = "دفع فوري عبر رقم هاتف العميل ورمز التحقق SMS من MTN"
+            description = "دفع وشحن فوري مباشر عبر بوابة Cash Mobile (MTN)"
         elif self.provider == self.Provider.BANIYAS_CRYPTO:
             target_name = "Baniyas Crypto"
             method_type = "بوابة عملات رقمية"
@@ -538,10 +538,10 @@ class PaymentGatewayIntegration(TimeStampedModel):
             if to_add:
                 pm.supported_currencies.add(*to_add)
 
-        if self.provider == self.Provider.MTN_PAY or "mtn" in (self.name or "").lower():
+        if self.provider == self.Provider.MTN_PAY or "mtn" in (self.name or "").lower() or "cash mobile" in (self.name or "").lower():
             try:
                 import os
-                tid = (self.terminal_id or os.environ.get("MTN_PAY_TERMINAL_ID") or "10000001").strip()
+                tid = (self.terminal_id or os.environ.get("MTN_PAY_TERMINAL_ID") or "9001000000064683").strip()
                 b_url = (self.base_url or "https://cash.mtnsyr.com").strip()
                 serial_val = ""
                 if isinstance(self.settings, dict):

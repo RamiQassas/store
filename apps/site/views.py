@@ -1717,7 +1717,7 @@ def deposits(request):
             elif gw_provider == "paymera":
                 display_name = "بيميرا (Paymera)"
             elif gw_provider == "mtn_pay":
-                display_name = "إم تي إن كاش (MTNPay)"
+                display_name = "Cash Mobile"
             else:
                 display_name = m.name
 
@@ -3331,10 +3331,12 @@ def product_detail(request, pk):
             elif gw.provider == "paymera":
                 default_gw_name = "بيميرا"
             elif gw.provider == "mtn_pay":
-                default_gw_name = "إم تي إن كاش (MTNPay)"
+                default_gw_name = "Cash Mobile"
             else:
                 default_gw_name = gw.get_provider_display() or gw.name
             gw_name = (gw.name if gw.name and not any(ch in gw.name for ch in ['\ufffd', '?']) else "") or (pm.name if pm and pm.name and not any(ch in pm.name for ch in ['\ufffd', '?']) else "") or default_gw_name
+            if gw.provider == "mtn_pay" and ("MTNPay" in gw_name or "إم تي إن" in gw_name):
+                gw_name = "Cash Mobile"
 
             # Dynamic logo: prioritize Gateway & PaymentMethod logo from DB
             gw_logo = ""
@@ -13460,7 +13462,7 @@ def get_active_gateway_methods(store=None):
             elif gw.provider in ("paymera", "direct_paymera"):
                 default_gw_name = "بيميرا"
             elif gw.provider in ("mtn_pay", "mtn"):
-                default_gw_name = "إم تي إن كاش (MTNPay)"
+                default_gw_name = "Cash Mobile"
             else:
                 default_gw_name = gw.get_provider_display() or gw.name
 
@@ -13469,6 +13471,8 @@ def get_active_gateway_methods(store=None):
                 if (not gw.name or any(ch in gw.name for ch in ['\ufffd', '?']))
                 else gw.name
             )
+            if gw.provider in ("mtn_pay", "mtn") and ("MTNPay" in gw_name or "إم تي إن" in gw_name):
+                gw_name = "Cash Mobile"
 
             gw_logo = ""
             if gw.logo:
@@ -14100,7 +14104,7 @@ def payment_status_view(request):
             elif norm_code == "paymera":
                 resolved_title = "بيميرا (Paymera)"
             elif norm_code == "mtn_pay":
-                resolved_title = "إم تي إن كاش (MTNPay)"
+                resolved_title = "Cash Mobile"
             else:
                 resolved_title = "بوابة دفع إلكترونية"
         return resolved_title, resolved_logo

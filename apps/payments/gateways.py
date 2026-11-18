@@ -699,7 +699,7 @@ class MTNPayGateway(BasePaymentGateway):
         target_tid = (
             (self.integration.terminal_id if self.integration and self.integration.terminal_id else "")
             or os.environ.get("MTN_PAY_TERMINAL_ID", "")
-            or "10000001"
+            or "9001000000064683"
         ).strip()
         target_base_url = (
             (self.integration.base_url if self.integration and self.integration.base_url else "")
@@ -713,7 +713,7 @@ class MTNPayGateway(BasePaymentGateway):
         )
         default_settings = {
             "Currency": {"Code": "760", "Brief": "SYP", "Fractional": 100},
-            "Limits": {"Minimum": 100, "Maximum": 50000000000},
+            "Limits": {"Minimum": 100, "Maximum": 5000000000000},
             "Allowed": {"Payment": True},
             "Description": {
                 "Business": "شركة رقميات للتجارة والخدمات الرقمية",
@@ -737,9 +737,22 @@ class MTNPayGateway(BasePaymentGateway):
             )
         else:
             changed = False
-            if not term.terminal_settings:
+            if term.terminal_id == "10000001" and target_tid and target_tid != "10000001":
+                term.terminal_id = target_tid
+                term.serial_number = f"SN-MTN-{target_tid[-6:]}"
+                changed = True
+            if not term.terminal_settings or not isinstance(term.terminal_settings, dict):
                 term.terminal_settings = default_settings
                 changed = True
+            else:
+                limits = term.terminal_settings.get("Limits")
+                if not isinstance(limits, dict) or int(limits.get("Maximum", 0) or 0) < 5000000000000:
+                    term.terminal_settings["Limits"] = {"Minimum": 100, "Maximum": 5000000000000}
+                    changed = True
+                allowed = term.terminal_settings.get("Allowed")
+                if not isinstance(allowed, dict) or allowed.get("Payment") is not True:
+                    term.terminal_settings["Allowed"] = {"Payment": True}
+                    changed = True
             if not term.is_activated and not term.is_locked:
                 term.is_activated = True
                 term.activated_at = timezone.now()
@@ -756,7 +769,7 @@ class MTNPayGateway(BasePaymentGateway):
         return client
 
     def create_payment(self, deposit, request=None):
-        """Creates an MTNPay invoice for a wallet deposit and returns the checkout redirect URL."""
+        """Creates an MTNPay (Cash Mobile) invoice for a wallet deposit and returns the checkout redirect URL."""
         from django.urls import reverse
         from apps.common.models import Currency
         from apps.payments.mtn_pay import MTNPayError
@@ -784,7 +797,7 @@ class MTNPayGateway(BasePaymentGateway):
                 major_amount=Decimal(str(clean_syp)),
                 user=deposit.user,
                 deposit=deposit,
-                session_id=f"DEP-{deposit.id}",
+                session_id=int(deposit.id) if deposit and deposit.id else None,
             )
             checkout_url = reverse("mtn_invoice_checkout", args=[inv_record.invoice_number])
             deposit.gateway_payment_id = str(inv_record.invoice_number)
@@ -875,7 +888,7 @@ class MTNPayGateway(BasePaymentGateway):
                 major_amount=Decimal(str(charge_amount)),
                 user=order.customer,
                 order=order,
-                session_id=f"ORD-{order.number}",
+                session_id=int(order.id) if order and order.id else None,
             )
             checkout_url = reverse("mtn_invoice_checkout", args=[inv_record.invoice_number])
             if not isinstance(order.metadata, dict):
