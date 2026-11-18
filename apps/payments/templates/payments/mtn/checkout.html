@@ -337,12 +337,12 @@
           رقم معاملة الدفع (Transaction): <strong class="font-mono" style="color: #34d399;">{{ invoice.transaction_id }}</strong>
         </p>
         {% if invoice.order %}
-        <a href="{% url 'payment_status_view' %}?type=order&id={{ invoice.order.id }}&status=paid" class="cm-btn-primary cm-btn-confirm" style="text-decoration: none;">
+        <a href="{% url 'payment_status' %}?type=order&id={{ invoice.order.id }}&status=paid" class="cm-btn-primary cm-btn-confirm" style="text-decoration: none;">
           <i class="fas fa-check-double"></i>
           <span>العودة لصفحة إيصال الطلب</span>
         </a>
         {% elif invoice.deposit %}
-        <a href="{% url 'payment_status_view' %}?type=deposit&id={{ invoice.deposit.id }}&status=paid" class="cm-btn-primary cm-btn-confirm" style="text-decoration: none;">
+        <a href="{% url 'payment_status' %}?type=deposit&id={{ invoice.deposit.id }}&status=paid" class="cm-btn-primary cm-btn-confirm" style="text-decoration: none;">
           <i class="fas fa-wallet"></i>
           <span>العودة للمحفظة وإيصال الإيداع</span>
         </a>
@@ -432,12 +432,12 @@
       <!-- Footer Links: Cancel or Return to Store -->
       <div class="cm-footer-actions">
         {% if invoice.order %}
-        <a href="{% url 'payment_status_view' %}?type=order&id={{ invoice.order.id }}&action=cancel" class="cm-link-cancel">
+        <a href="{% url 'payment_status' %}?type=order&id={{ invoice.order.id }}&action=cancel" class="cm-link-cancel">
           <i class="fas fa-times-circle"></i>
           <span>إلغاء العملية والعودة للمتجر</span>
         </a>
         {% elif invoice.deposit %}
-        <a href="{% url 'payment_status_view' %}?type=deposit&id={{ invoice.deposit.id }}&action=cancel" class="cm-link-cancel">
+        <a href="{% url 'payment_status' %}?type=deposit&id={{ invoice.deposit.id }}&action=cancel" class="cm-link-cancel">
           <i class="fas fa-times-circle"></i>
           <span>إلغاء العملية والعودة للمحفظة</span>
         </a>
@@ -591,9 +591,9 @@
           showMtnFeedback('تم التحقق من سداد الفاتورة بنجاح! جاري تحويلك...', false);
           setTimeout(function() {
             {% if invoice.order %}
-            window.location.href = '{% url "payment_status_view" %}?type=order&id={{ invoice.order.id }}&status=paid';
+            window.location.href = '{% url "payment_status" %}?type=order&id={{ invoice.order.id }}&status=paid';
             {% elif invoice.deposit %}
-            window.location.href = '{% url "payment_status_view" %}?type=deposit&id={{ invoice.deposit.id }}&status=paid';
+            window.location.href = '{% url "payment_status" %}?type=deposit&id={{ invoice.deposit.id }}&status=paid';
             {% else %}
             window.location.reload();
             {% endif %}
