@@ -557,10 +557,10 @@ class PaymentGatewayIntegration(TimeStampedModel):
                     "Limits": {"Minimum": 100, "Maximum": 50000000000},
                     "Allowed": {"Payment": True},
                     "Description": {
-                        "Business": "شركة رقميات للتجارة والخدمات الرقمية",
-                        "Shop": "متجر رقميات الرئيسي",
-                        "Address": "الجمهورية العربية السورية",
-                        "Phone": "+963947991951",
+                        "Business": "رقميات",
+                        "Shop": "متجر رقميات",
+                        "Address": "سوريا",
+                        "Phone": "+963962685312",
                         "UniquePayCode": f"MTN-{tid[-6:]}",
                     },
                 }
