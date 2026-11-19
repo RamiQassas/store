@@ -975,16 +975,22 @@ class MTNPaymentClient:
         if record.status_code == MTNPayInvoiceRecord.STATUS_CANCELLED:
             raise MTNPayError.from_errno(609)
 
-        clean_phone = "".join(c for c in str(customer_phone) if c.isdigit())
-        if not clean_phone:
+        arabic_digits = str.maketrans("٠١٢٣٤٥٦٧٨٩۰۱۲۳۴۵۶۷۸۹", "01234567890123456789")
+        raw_digits = "".join(c for c in str(customer_phone).translate(arabic_digits) if c.isdigit())
+        if not raw_digits:
             raise MTNPayError("رقم هاتف العميل غير صالح.", errno=400, action="check_syntax")
 
-        # Build alternate Syrian GSM format (09XXXXXXXX <-> 9639XXXXXXXX) in case MTN expects one over the other
-        alt_phone = None
-        if clean_phone.startswith("963") and len(clean_phone) == 12:
-            alt_phone = "0" + clean_phone[3:]
-        elif clean_phone.startswith("09") and len(clean_phone) == 10:
-            alt_phone = "963" + clean_phone[1:]
+        # Normalize Syrian mobile number to international 9639XXXXXXXX format required by MTN Cash Mobile
+        if raw_digits.startswith("00963") and len(raw_digits) >= 14:
+            clean_phone = raw_digits[2:]
+        elif raw_digits.startswith("09") and len(raw_digits) == 10:
+            clean_phone = "963" + raw_digits[1:]
+        elif raw_digits.startswith("9") and len(raw_digits) == 9:
+            clean_phone = "963" + raw_digits
+        else:
+            clean_phone = raw_digits
+
+        alt_phone = ("0" + clean_phone[3:]) if (clean_phone.startswith("963") and len(clean_phone) == 12) else None
 
         notif_guid = str(guid or uuid.uuid4())
         payload = {
@@ -996,7 +1002,7 @@ class MTNPaymentClient:
         try:
             resp = self._send_signed_request(self.ENDPOINT_PHONE_INITIATE, payload, invoice_number=int(invoice_number))
         except MTNPayError as exc:
-            if exc.errno == 404 and alt_phone and self.transport is None:
+            if (exc.errno == 404 or "not found" in str(exc).lower()) and alt_phone and self.transport is None:
                 clean_phone = alt_phone
                 payload["Phone"] = clean_phone
                 resp = self._send_signed_request(self.ENDPOINT_PHONE_INITIATE, payload, invoice_number=int(invoice_number))
