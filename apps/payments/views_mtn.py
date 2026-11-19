@@ -111,6 +111,14 @@ def mtn_invoice_checkout_view(request, invoice_number: int):
     item_summary = ""
     usd_amount = None
     try:
+        from apps.common.models import Currency
+        active_curr_code = "USD"
+        pref_cid = request.session.get("preferred_currency_id")
+        if pref_cid:
+            pref_curr = Currency.all_objects.filter(id=pref_cid).first()
+            if pref_curr and pref_curr.code:
+                active_curr_code = pref_curr.code.upper()
+
         if invoice.order:
             names = []
             for item in invoice.order.items.select_related("variant", "variant__product").all()[:4]:
@@ -125,13 +133,15 @@ def mtn_invoice_checkout_view(request, invoice_number: int):
                     names.append(label)
             item_summary = "، ".join(names) or f"طلب شراء #{invoice.order.number}"
             meta = invoice.order.metadata if isinstance(invoice.order.metadata, dict) else {}
-            raw_usd = meta.get("base_usd_amount") or invoice.order.total_amount
-            if raw_usd:
-                usd_amount = f"{Decimal(str(raw_usd)):,.2f}"
+            order_disp_curr = str(meta.get("display_currency") or active_curr_code).upper()
+            if order_disp_curr == "USD":
+                raw_usd = meta.get("base_usd_amount") or invoice.order.total_amount
+                if raw_usd:
+                    usd_amount = f"{Decimal(str(raw_usd)):,.2f}"
         elif invoice.deposit:
             item_summary = "شحن رصيد محفظة رقميات"
-            dep_curr = invoice.deposit.currency.code.upper() if invoice.deposit.currency else "USD"
-            if dep_curr == "USD":
+            dep_curr = invoice.deposit.currency.code.upper() if invoice.deposit.currency else active_curr_code
+            if dep_curr == "USD" and active_curr_code == "USD":
                 usd_amount = f"{Decimal(str(invoice.deposit.amount)):,.2f}"
     except Exception:
         pass
