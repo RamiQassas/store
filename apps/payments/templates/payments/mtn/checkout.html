@@ -410,12 +410,12 @@
       <!-- Phone + SMS OTP Pane -->
       <div id="cm-pane-phone">
         <div id="mtn-step-phone" style="{% if invoice.operation_number %}display: none;{% endif %}">
-          <label class="gw-label" for="mtn-phone-input">رقم هاتف كاش موبايل (MTN)</label>
+          <label class="gw-label" for="mtn-phone-input">رقم هاتف كاش موبايل (MTN — 10 أرقام)</label>
           <div class="gw-input-group" dir="ltr">
-            <span class="gw-prefix">+963</span>
-            <input type="tel" id="mtn-phone-input" class="gw-phone-field font-mono" placeholder="09XXXXXXXX" value="{{ invoice.customer_phone }}" inputmode="tel">
+            <span class="gw-prefix">MTN SY</span>
+            <input type="tel" id="mtn-phone-input" class="gw-phone-field font-mono" placeholder="094XXXXXXX" maxlength="10" value="{% if invoice.customer_phone|slice:':3' == '963' %}0{{ invoice.customer_phone|slice:'3:' }}{% else %}{{ invoice.customer_phone }}{% endif %}" inputmode="numeric" oninput="enforceMtnPhoneInput(this)">
           </div>
-          <p class="gw-hint">سيصلك رمز تحقق عبر رسالة SMS لإتمام الدفع.</p>
+          <p class="gw-hint">يجب أن يتكون الرقم من <strong>10 أرقام فقط</strong> ويبدأ بـ <strong dir="ltr">094</strong> أو <strong dir="ltr">095</strong> أو <strong dir="ltr">096</strong>.</p>
           <button type="button" id="mtn-btn-initiate" onclick="initiateMtnPhonePayment()" class="gw-btn">
             <i class="fas fa-paper-plane"></i>
             <span>إرسال رمز التحقق</span>
@@ -520,20 +520,25 @@
       box.textContent = msg;
     }
 
+    function enforceMtnPhoneInput(el) {
+      if (!el) return '';
+      var map = {'٠':'0','١':'1','٢':'2','٣':'3','٤':'4','٥':'5','٦':'6','٧':'7','٨':'8','٩':'9'};
+      var ascii = (el.value || '').replace(/[٠-٩]/g, function(d) { return map[d] || d; });
+      var digits = ascii.replace(/[^0-9]/g, '').slice(0, 10);
+      if (el.value !== digits) {
+        el.value = digits;
+      }
+      return digits;
+    }
+
     function normalizeSyrianPhone(raw) {
       var map = {'٠':'0','١':'1','٢':'2','٣':'3','٤':'4','٥':'5','٦':'6','٧':'7','٨':'8','٩':'9'};
       var ascii = (raw || '').replace(/[٠-٩]/g, function(d) { return map[d] || d; });
       var digits = ascii.replace(/[^0-9]/g, '');
-      if (digits.startsWith('00963') && digits.length >= 14) {
-        return digits.substring(2);
+      if (digits.startsWith('963') && digits.length === 12) {
+        digits = '0' + digits.substring(3);
       }
-      if (digits.startsWith('09') && digits.length === 10) {
-        return '963' + digits.substring(1);
-      }
-      if (digits.startsWith('9') && digits.length === 9) {
-        return '963' + digits;
-      }
-      return digits || ascii;
+      return digits.slice(0, 10);
     }
 
     function cleanOtpCode(raw) {
@@ -546,18 +551,21 @@
     function initiateMtnPhonePayment() {
       if (mtnSendingInProgress) return;
       var inputEl = document.getElementById('mtn-phone-input');
-      var rawPhone = (inputEl ? inputEl.value : '').trim();
-      if (!rawPhone) {
-        showMtnFeedback('يرجى إدخال رقم الهاتف أولاً.', true);
+      var phone10 = enforceMtnPhoneInput(inputEl);
+      if (!phone10 || phone10.length !== 10) {
+        showMtnFeedback('يجب إدخال رقم موبايل مكون من 10 أرقام فقط (مثال: 094XXXXXXX).', true);
         return;
       }
-      var phone = normalizeSyrianPhone(rawPhone);
+      if (!/^(094|095|096)\d{7}$/.test(phone10)) {
+        showMtnFeedback('عذراً، هذا الرقم ليس من شبكة MTN. يجب أن يبدأ الرقم بـ 094 أو 095 أو 096.', true);
+        return;
+      }
 
       mtnSendingInProgress = true;
       var btn = document.getElementById('mtn-btn-initiate');
       if (btn) btn.disabled = true;
       var fd = new FormData();
-      fd.append('phone', phone);
+      fd.append('phone', phone10);
 
       fetch('{% url "mtn_phone_initiate_ajax" invoice.invoice_number %}', {
         method: 'POST',
@@ -569,7 +577,7 @@
         mtnSendingInProgress = false;
         if (btn) btn.disabled = false;
         if (data.status === 'ok') {
-          document.getElementById('mtn-phone-display').textContent = phone;
+          document.getElementById('mtn-phone-display').textContent = phone10;
           document.getElementById('mtn-step-phone').style.display = 'none';
           document.getElementById('mtn-step-otp').style.display = 'block';
           showMtnFeedback('تم إرسال رمز التحقق عبر رسالة SMS إلى هاتفك.', false);

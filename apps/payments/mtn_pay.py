@@ -185,13 +185,20 @@ class MTNPayError(Exception):
         remote_err = ""
         if isinstance(raw_response, dict) and raw_response.get("Error"):
             remote_err = str(raw_response.get("Error")).strip()
-        if spec:
+        if not remote_err and fallback_msg:
+            remote_err = str(fallback_msg).strip()
+
+        if remote_err and (errno >= 700 or errno not in MTN_ERROR_CATALOG):
+            # Transaction authorization / balance / remote errors: show exact Error from MTN response
+            msg = f"{remote_err} (رمز {errno})"
+            action = "transaction_error"
+        elif spec:
             msg = spec["message_ar"]
             if remote_err and remote_err not in msg:
-                msg = f"{msg} [{remote_err}]"
+                msg = f"{msg} — [{remote_err}]"
             action = spec["action"]
         else:
-            msg = fallback_msg or remote_err or f"خطأ من بوابة الدفع MTN برمز ({errno})."
+            msg = remote_err or f"خطأ من بوابة الدفع MTN برمز ({errno})."
             action = "unknown_error"
         return cls(message=msg, errno=errno, action=action, raw_response=raw_response)
 
@@ -978,19 +985,26 @@ class MTNPaymentClient:
         arabic_digits = str.maketrans("٠١٢٣٤٥٦٧٨٩۰۱۲۳۴۵۶۷۸۹", "01234567890123456789")
         raw_digits = "".join(c for c in str(customer_phone).translate(arabic_digits) if c.isdigit())
         if not raw_digits:
-            raise MTNPayError("رقم هاتف العميل غير صالح.", errno=400, action="check_syntax")
+            raise MTNPayError("يرجى إدخال رقم هاتف MTN مكون من 10 أرقام.", errno=400, action="check_syntax")
 
-        # Normalize Syrian mobile number to international 9639XXXXXXXX format required by MTN Cash Mobile
-        if raw_digits.startswith("00963") and len(raw_digits) >= 14:
-            clean_phone = raw_digits[2:]
-        elif raw_digits.startswith("09") and len(raw_digits) == 10:
-            clean_phone = "963" + raw_digits[1:]
-        elif raw_digits.startswith("9") and len(raw_digits) == 9:
-            clean_phone = "963" + raw_digits
+        # Normalize to local 10-digit format (09XXXXXXXX) to validate MTN prefix (094, 095, 096) & exact length
+        if raw_digits.startswith("00963") and len(raw_digits) == 14:
+            local_10 = "0" + raw_digits[5:]
+        elif raw_digits.startswith("963") and len(raw_digits) == 12:
+            local_10 = "0" + raw_digits[3:]
         else:
-            clean_phone = raw_digits
+            local_10 = raw_digits
 
-        alt_phone = ("0" + clean_phone[3:]) if (clean_phone.startswith("963") and len(clean_phone) == 12) else None
+        if len(local_10) != 10 or not local_10.startswith(("094", "095", "096")):
+            raise MTNPayError(
+                "يرجى إدخال رقم MTN صحيح مكون من 10 أرقام فقط ويبدأ بـ 094 أو 095 أو 096.",
+                errno=400,
+                action="invalid_mtn_phone",
+            )
+
+        # MTN Cash API expects 9639XXXXXXXX (international without +)
+        clean_phone = "963" + local_10[1:]
+        alt_phone = local_10
 
         notif_guid = str(guid or uuid.uuid4())
         payload = {
