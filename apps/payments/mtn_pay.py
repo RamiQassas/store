@@ -789,6 +789,19 @@ class MTNPaymentClient:
             raise MTNPayError("الرقم التسلسلي للطرفية (Serial) مطلوب للتفعيل.", errno=400, action="check_syntax")
 
         pub_b64 = self.ensure_keypair()
+        if self.transport is None:
+            priv_obj = serialization.load_pem_private_key(self._get_private_key().encode("utf-8"), password=None)
+            pub_b64 = base64.b64encode(
+                priv_obj.public_key().public_bytes(
+                    encoding=serialization.Encoding.DER,
+                    format=serialization.PublicFormat.SubjectPublicKeyInfo,
+                )
+            ).decode("ascii")
+            if self.terminal.public_key_b64 != pub_b64:
+                self.terminal.public_key_b64 = pub_b64
+                if self.terminal.pk:
+                    self.terminal.save(update_fields=["public_key_b64"])
+
         payload = {
             "Key": pub_b64,
             "Secret": secret,
