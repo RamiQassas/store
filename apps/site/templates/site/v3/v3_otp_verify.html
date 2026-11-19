@@ -3,24 +3,48 @@
 {% block title %}التحقق من الحساب | {% if is_tenant %}{{ STORE_NAME }}{% else %}رقميات{% endif %}{% endblock %}
 
 {% block auth_content %}
-<div class="glass-panel p-8 md:p-12 text-center">
-    <div class="w-24 h-24 bg-cyan/10 border border-cyan/20 rounded-[2rem] flex items-center justify-center mx-auto mb-8 shadow-inner">
-        <i class="fas fa-shield-halved text-5xl text-cyan animate-pulse"></i>
+<style>
+  .otp-input {
+    width: 46px;
+    height: 54px;
+    border-radius: 12px;
+    border: 1.5px solid var(--rq-border-strong);
+    background: var(--rq-bg-elevated);
+    color: var(--rq-navy);
+    font-size: 1.35rem;
+    font-weight: 900;
+    font-family: monospace;
+    text-align: center;
+    outline: none;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+  }
+  .otp-input:focus {
+    border-color: var(--rq-primary);
+    box-shadow: 0 0 0 3px var(--rq-primary-soft);
+  }
+  @media (max-width: 420px) {
+    .otp-input { width: 40px; height: 48px; font-size: 1.15rem; }
+  }
+</style>
+<div style="text-align: center;">
+    <div style="width: 60px; height: 60px; border-radius: 18px; background: var(--rq-primary-soft); border: 1px solid rgba(37, 99, 235, 0.3); color: var(--rq-primary-light); display: flex; align-items: center; justify-content: center; font-size: 1.65rem; margin: 0 auto 1rem;">
+        <i class="fas fa-shield-halved"></i>
     </div>
     
-    <div class="mb-8">
-        <h2 class="text-2xl font-black text-white mb-2">تأكيد الهوية</h2>
-        <p class="text-slate-400 text-sm leading-relaxed">
-            لقد أرسلنا رمز التحقق إلى بريدك الإلكتروني.<br>
-            يرجى إدخال الرمز المكون من 6 أرقام للمتابعة.
+    <div style="margin-bottom: 1.35rem;">
+        <h2 style="font-size: 1.35rem; font-weight: 900; color: var(--rq-navy); margin: 0 0 0.35rem;">تأكيد الهوية</h2>
+        <p style="font-size: 0.84rem; color: var(--rq-text-muted); margin: 0; line-height: 1.6;">
+            لقد أرسلنا رمز التحقق إلى بريدك الإلكتروني
+            {% if user_email %}<br><strong dir="ltr" style="color: var(--rq-primary-light);">{{ user_email }}</strong>{% endif %}
+            <br>يرجى إدخال الرمز المكون من 6 أرقام للمتابعة.
         </p>
     </div>
 
-    <form method="post" id="otp-form" class="space-y-8">
+    <form method="post" id="otp-form">
         {% csrf_token %}
         <input type="hidden" name="action" value="verify" id="form-action">
         
-        <div class="flex justify-center gap-2 md:gap-3" dir="ltr">
+        <div style="display: flex; justify-content: center; gap: 0.45rem; margin-bottom: 1rem;" dir="ltr">
             <input type="text" inputmode="numeric" pattern="[0-9]*" maxlength="1" class="otp-input" data-index="0" autofocus>
             <input type="text" inputmode="numeric" pattern="[0-9]*" maxlength="1" class="otp-input" data-index="1">
             <input type="text" inputmode="numeric" pattern="[0-9]*" maxlength="1" class="otp-input" data-index="2">
@@ -29,8 +53,8 @@
             <input type="text" inputmode="numeric" pattern="[0-9]*" maxlength="1" class="otp-input" data-index="5">
         </div>
 
-        <div class="flex justify-center">
-            <button type="button" id="paste-btn" class="text-[10px] font-bold text-slate-500 hover:text-cyan flex items-center gap-2 bg-white/5 px-3 py-1.5 rounded-lg border border-white/5 transition-all">
+        <div style="display: flex; justify-content: center; margin-bottom: 1.15rem;">
+            <button type="button" id="paste-btn" style="font-size: 0.78rem; font-weight: 800; color: var(--rq-text-secondary); background: var(--rq-bg-elevated); padding: 0.4rem 0.85rem; border-radius: 9px; border: 1px solid var(--rq-border); cursor: pointer; display: inline-flex; align-items: center; gap: 0.4rem;">
                 <i class="fas fa-paste"></i>
                 <span>لصق الرمز من الحافظة</span>
             </button>
@@ -38,16 +62,16 @@
         
         <input type="hidden" name="code" id="full-otp">
 
-        <button type="submit" class="btn-premium w-full group py-5">
+        <button type="submit" class="rq-pdp-buy-now" style="height: 48px;">
             <span>تأكيد الرمز</span>
-            <i class="fas fa-check-double group-hover:scale-110 transition-transform"></i>
+            <i class="fas fa-check-double"></i>
         </button>
     </form>
 
-    <div class="mt-8 pt-6 border-t border-slate-800/50">
-        <p class="text-xs text-slate-500 mb-4">لم يصلك الرمز؟</p>
+    <div style="margin-top: 1.25rem; padding-top: 1rem; border-top: 1px solid var(--rq-border);">
+        <p style="font-size: 0.78rem; color: var(--rq-text-muted); margin: 0 0 0.4rem;">لم يصلك الرمز؟</p>
         <div id="resend-container">
-            <button type="button" id="resend-btn" class="text-cyan font-bold hover:underline disabled:opacity-50 disabled:no-underline" disabled>
+            <button type="button" id="resend-btn" style="background: none; border: none; color: var(--rq-primary-light); font-weight: 800; font-size: 0.84rem; cursor: pointer;" disabled>
                 إعادة الإرسال (<span id="timer">{{ remaining_cooldown|default:60 }}</span>ث)
             </button>
         </div>
