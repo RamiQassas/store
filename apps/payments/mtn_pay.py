@@ -483,7 +483,7 @@ class MTNPaymentClient:
     @staticmethod
     def _sanitize_for_log(payload: Dict[str, Any]) -> Dict[str, Any]:
         sanitized = dict(payload)
-        for sensitive_key in ("Secret", "Key", "Code"):
+        for sensitive_key in ("Secret", "Key"):
             if sensitive_key in sanitized and sanitized[sensitive_key]:
                 val = str(sanitized[sensitive_key])
                 sanitized[sensitive_key] = f"{val[:2]}***(len={len(val)})" if len(val) > 2 else f"***(len={len(val)})"
