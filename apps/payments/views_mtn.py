@@ -277,8 +277,13 @@ def mtn_admin_activate_pos_view(request):
         terminal.is_locked = False
         terminal.activation_attempts = 0
         terminal.count_abuse = 0
-        terminal.save(update_fields=["is_locked", "activation_attempts", "count_abuse"])
-        messages.success(request, "تمت إعادة ضبط قفل محاولات التفعيل. يمكنك الآن إدخال رمز التفعيل الجديد (8 أرقام).")
+        if (terminal.public_key_b64 or "").startswith("LS0tLS1"):
+            from apps.payments.mtn_pay import MTNCryptoEngine
+            priv_pem, pub_b64 = MTNCryptoEngine.generate_rsa1024_keypair()
+            MTNCryptoEngine.save_private_key_securely(terminal.terminal_id, priv_pem)
+            terminal.public_key_b64 = pub_b64
+        terminal.save(update_fields=["is_locked", "activation_attempts", "count_abuse", "public_key_b64"])
+        messages.success(request, "تمت إعادة ضبط قفل محاولات التفعيل وتجهيز المفتاح العام القياسي. يمكنك الآن إدخال رمز التفعيل الجديد (8 أرقام).")
         return redirect("mtn_admin_dashboard")
 
     terminal.terminal_id = terminal_id

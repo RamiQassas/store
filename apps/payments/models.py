@@ -542,7 +542,9 @@ class PaymentGatewayIntegration(TimeStampedModel):
             try:
                 import os
                 tid = (self.terminal_id or os.environ.get("MTN_PAY_TERMINAL_ID") or "9001000000064683").strip()
-                b_url = (self.base_url or "https://cash.mtnsyr.com").strip()
+                b_url = (self.base_url or "https://cash.mtnsyr.com:9000").strip()
+                if b_url.rstrip("/") == "https://cash.mtnsyr.com":
+                    b_url = "https://cash.mtnsyr.com:9000"
                 serial_val = ""
                 if isinstance(self.settings, dict):
                     serial_val = str(self.settings.get("serial_number") or self.settings.get("Serial") or "").strip()
