@@ -908,7 +908,7 @@ class MTNPaymentClient:
                 "ttl_seconds": ttl,
                 "status_code": status_val,
                 "transaction_id": str(receipt.get("Transaction") or ""),
-                "qr_code": str(receipt.get("QR") or ""),
+                "qr_code": str(receipt.get("QR") or receipt.get("Qr") or ""),
                 "commission_minor": int(receipt.get("Commission") or 0),
                 "tax_minor": int(receipt.get("Tax") or 0),
                 "created_remote": str(receipt.get("Created") or ""),

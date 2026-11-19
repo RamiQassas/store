@@ -113,9 +113,11 @@ def mtn_invoice_checkout_view(request, invoice_number: int):
     try:
         if invoice.order:
             names = []
-            for item in invoice.order.items.select_related("product", "variant").all()[:4]:
-                p_name = item.product.name if item.product else ""
-                v_name = item.variant.name if item.variant else ""
+            for item in invoice.order.items.select_related("variant", "variant__product").all()[:4]:
+                v_obj = item.variant
+                p_obj = v_obj.product if v_obj else None
+                p_name = p_obj.name if p_obj else ""
+                v_name = v_obj.name if v_obj else ""
                 label = f"{p_name} ({v_name})" if (p_name and v_name and v_name != p_name) else (p_name or v_name)
                 if label:
                     if item.quantity and item.quantity > 1:
