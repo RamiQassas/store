@@ -10,9 +10,17 @@
     <h1>إدارة بوابة الدفع MTNPay ونقطة البيع</h1>
     <p class="text-slate-400 text-xs mt-1">تفعيل الطرفية بتشفير RSA 1024 + SHA-256، إدارة الفواتير، الدفع عبر الهاتف، وعمليات الاسترداد.</p>
   </div>
-  <a href="{% url 'payment_gateway_integrations_list' %}" class="btn btn-outline btn-sm">
-    <i class="fas fa-arrow-right ml-1"></i> العودة لبوابات دفع API
-  </a>
+  <div class="flex flex-wrap items-center gap-2">
+    <form method="post" action="{% url 'mtn_admin_check_status' %}">
+      {% csrf_token %}
+      <button type="submit" class="btn btn-sm bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 font-bold">
+        <i class="fas fa-satellite-dish ml-1"></i> التحقق من حالة مزود API
+      </button>
+    </form>
+    <a href="{% url 'payment_gateway_integrations_list' %}" class="btn btn-outline btn-sm">
+      <i class="fas fa-arrow-right ml-1"></i> العودة لبوابات دفع API
+    </a>
+  </div>
 </div>
 
 <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 mb-8">

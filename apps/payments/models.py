@@ -548,18 +548,18 @@ class PaymentGatewayIntegration(TimeStampedModel):
                 serial_val = ""
                 if isinstance(self.settings, dict):
                     serial_val = str(self.settings.get("serial_number") or self.settings.get("Serial") or "").strip()
-                if not serial_val:
-                    serial_val = f"SN-MTN-{tid[-6:]}"
+                if not serial_val or serial_val.startswith("SN-MTN-"):
+                    serial_val = "RAQAMIYAT"
 
                 term = MTNPayTerminalConfig.objects.filter(terminal_id=tid).first() or MTNPayTerminalConfig.objects.filter(store=self.store).first()
                 default_settings = {
                     "Currency": {"Code": "760", "Brief": "SYP", "Fractional": 100},
-                    "Limits": {"Minimum": 100, "Maximum": 50000000000},
+                    "Limits": {"Minimum": 100, "Maximum": 5000000000000},
                     "Allowed": {"Payment": True},
                     "Description": {
                         "Business": "رقميات",
                         "Shop": "متجر رقميات",
-                        "Address": "سوريا",
+                        "Address": "حلب - الأنصاري الشرقي - جانب حلويات الأفراح",
                         "Phone": "+963962685312",
                         "UniquePayCode": f"MTN-{tid[-6:]}",
                     },

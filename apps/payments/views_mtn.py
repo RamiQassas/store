@@ -61,7 +61,7 @@ def _get_or_create_default_terminal(store=None) -> MTNPayTerminalConfig:
         "Description": {
             "Business": "رقميات",
             "Shop": "متجر رقميات",
-            "Address": "سوريا",
+            "Address": "حلب - الأنصاري الشرقي - جانب حلويات الأفراح",
             "Phone": "+963962685312",
             "UniquePayCode": f"MTN-{target_tid[-6:]}",
         },
@@ -70,7 +70,7 @@ def _get_or_create_default_terminal(store=None) -> MTNPayTerminalConfig:
         term = MTNPayTerminalConfig.objects.create(
             store=store,
             terminal_id=target_tid,
-            serial_number=f"SN-MTN-{target_tid[-6:]}",
+            serial_number="RAQAMIYAT",
             base_url=target_base_url,
             language="en",
             is_activated=True,
@@ -298,6 +298,45 @@ def mtn_admin_activate_pos_view(request):
         messages.success(request, f"تم تفعيل نقطة البيع MTN (#{terminal.terminal_id}) وحفظ إعدادات العملة والحدود بنجاح.")
     except MTNPayError as exc:
         messages.error(request, f"فشل تفعيل الطرفية: {exc}")
+
+    return redirect("mtn_admin_dashboard")
+
+
+@login_required
+@require_POST
+def mtn_admin_check_status_view(request):
+    """
+    Safely probes the MTN eMARA API server (`pos_web/invoice/get`) without touching
+    `pos_web/pos/activate` or consuming activation attempts.
+    """
+    if not _is_staff_or_admin(request.user):
+        return redirect("dashboard")
+
+    store = getattr(request, "store", None)
+    terminal = _get_or_create_default_terminal(store=store)
+    client = MTNPaymentClient(terminal)
+    client.ensure_keypair()
+
+    try:
+        # Query a harmless probe invoice ID to test live connectivity & RSA signature acceptance
+        _, resp = client.get_invoice(1)
+        messages.success(
+            request,
+            f"اتصال خادم MTN يعمل بنجاح والتوقيع مقبول! (URL: {terminal.base_url} | Errno: {resp.get('Errno', 0)})",
+        )
+    except MTNPayError as exc:
+        if exc.errno == 404:
+            messages.success(
+                request,
+                f"اتصال خادم MTN يعمل والتوقيع الرقمي RSA-1024 مقبول من الخادم! (الرد: 404 الفاتورة التجريبية غير موجودة، وهذا طبيعي). ({terminal.base_url})",
+            )
+        else:
+            messages.warning(
+                request,
+                f"تم الوصول إلى خادم MTN ({terminal.base_url}) وردّ بالرمز {exc.errno}: {exc}",
+            )
+    except Exception as exc:
+        messages.error(request, f"تعذر الاتصال بخادم MTN ({terminal.base_url}): {exc}")
 
     return redirect("mtn_admin_dashboard")
 

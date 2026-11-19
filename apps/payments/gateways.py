@@ -720,7 +720,7 @@ class MTNPayGateway(BasePaymentGateway):
             "Description": {
                 "Business": "رقميات",
                 "Shop": "متجر رقميات",
-                "Address": "سوريا",
+                "Address": "حلب - الأنصاري الشرقي - جانب حلويات الأفراح",
                 "Phone": "+963962685312",
                 "UniquePayCode": f"MTN-{target_tid[-6:]}",
             },
@@ -729,7 +729,7 @@ class MTNPayGateway(BasePaymentGateway):
             term = MTNPayTerminalConfig.objects.create(
                 store=store,
                 terminal_id=target_tid,
-                serial_number=f"SN-MTN-{target_tid[-6:]}",
+                serial_number="RAQAMIYAT",
                 base_url=target_base_url,
                 language="en",
                 is_activated=True,
