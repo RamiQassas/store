@@ -168,11 +168,13 @@ document.addEventListener('DOMContentLoaded', function() {
         const wrapKey = document.getElementById('wrap-api-key');
         const wrapWebhook = document.getElementById('wrap-webhook-secret');
         const wrapAssets = document.getElementById('wrap-supported-assets');
+        const wrapSettings = document.getElementById('wrap-settings');
 
         // Reset visibility
         if (wrapKey) wrapKey.style.display = '';
         if (wrapWebhook) wrapWebhook.style.display = '';
         if (wrapAssets) wrapAssets.style.display = '';
+        if (wrapSettings) wrapSettings.style.display = '';
 
         if (provider === 'mtn_pay') {
             if (lblTid) lblTid.textContent = 'رقم نقطة البيع (Terminal ID / Subject)';
@@ -180,10 +182,11 @@ document.addEventListener('DOMContentLoaded', function() {
             if (lblBase) lblBase.textContent = 'رابط خادم MTN Cash Mobile (eMARA API)';
             if (hintBase) hintBase.textContent = 'رابط خادم MTN الرسمي: https://cash.mtnsyr.com:9000 (لا علاقة له ببيميرا أو شام كاش).';
             if (lblSecret) lblSecret.textContent = 'رمز التفعيل السري (Activation Code / Secret - 8 أرقام)';
-            if (hintSecret) hintSecret.textContent = 'رمز التفعيل المكون من 8 أرقام المرسل من MTN لتفعيل نقطة البيع.';
+            if (hintSecret) hintSecret.textContent = 'رمز التفعيل المكون من 8 أرقام المرسل من MTN (مثل 45699847).';
             if (wrapKey) wrapKey.style.display = 'none';
             if (wrapWebhook) wrapWebhook.style.display = 'none';
             if (wrapAssets) wrapAssets.style.display = 'none';
+            if (wrapSettings) wrapSettings.style.display = 'none';
         } else if (provider === 'paymera') {
             if (lblTid) lblTid.textContent = 'معرف الطرفية (Paymera Terminal ID)';
             if (hintTid) hintTid.textContent = 'معرف الطرفية الخاص بحساب بيميرا.';
