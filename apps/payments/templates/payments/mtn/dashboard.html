@@ -205,7 +205,8 @@
             {% endif %}
           </td>
           <td class="font-mono text-[11px] text-slate-300" style="max-width: 420px; word-break: break-all;">
-            {{ log.response_payload|default:log.error_message }}
+            {% if log.request_payload_sanitized %}<div class="text-slate-400 text-[10px] mb-1">REQ: {{ log.request_payload_sanitized }}</div>{% endif %}
+            <div>RES: {{ log.response_payload|default:log.error_message }}</div>
           </td>
         </tr>
         {% empty %}
