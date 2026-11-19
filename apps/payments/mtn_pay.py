@@ -486,7 +486,7 @@ class MTNPaymentClient:
         for sensitive_key in ("Secret", "Key", "Code"):
             if sensitive_key in sanitized and sanitized[sensitive_key]:
                 val = str(sanitized[sensitive_key])
-                sanitized[sensitive_key] = val[:2] + "***" if len(val) > 2 else "***"
+                sanitized[sensitive_key] = f"{val[:2]}***(len={len(val)})" if len(val) > 2 else f"***(len={len(val)})"
         return sanitized
 
     def _is_sandbox_fallback_enabled(self) -> bool:

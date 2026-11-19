@@ -102,12 +102,38 @@ def _get_or_create_default_terminal(store=None) -> MTNPayTerminalConfig:
 @login_required
 def mtn_invoice_checkout_view(request, invoice_number: int):
     """
-    Renders the customer-facing MTN Cash / MTNPay invoice payment page,
-    displaying store Description (Business, Shop, Address, Phone, UniquePayCode),
-    Receipt details, and the Phone -> SMS OTP payment flow.
+    Renders the customer-facing Raqamiyat x Cash Mobile invoice payment page,
+    displaying product/deposit summary, USD & SYP pricing, and Phone/QR payment flow.
     """
     invoice = get_object_or_404(MTNPayInvoiceRecord, invoice_number=invoice_number)
     terminal = invoice.terminal
+
+    item_summary = ""
+    usd_amount = None
+    try:
+        if invoice.order:
+            names = []
+            for item in invoice.order.items.select_related("product", "variant").all()[:4]:
+                p_name = item.product.name if item.product else ""
+                v_name = item.variant.name if item.variant else ""
+                label = f"{p_name} ({v_name})" if (p_name and v_name and v_name != p_name) else (p_name or v_name)
+                if label:
+                    if item.quantity and item.quantity > 1:
+                        label = f"{label} × {item.quantity}"
+                    names.append(label)
+            item_summary = "، ".join(names) or f"طلب شراء #{invoice.order.number}"
+            meta = invoice.order.metadata if isinstance(invoice.order.metadata, dict) else {}
+            raw_usd = meta.get("base_usd_amount") or invoice.order.total_amount
+            if raw_usd:
+                usd_amount = f"{Decimal(str(raw_usd)):,.2f}"
+        elif invoice.deposit:
+            item_summary = "شحن رصيد محفظة رقميات"
+            dep_curr = invoice.deposit.currency.code.upper() if invoice.deposit.currency else "USD"
+            if dep_curr == "USD":
+                usd_amount = f"{Decimal(str(invoice.deposit.amount)):,.2f}"
+    except Exception:
+        pass
+
     return render(
         request,
         "payments/mtn/checkout.html",
@@ -116,6 +142,8 @@ def mtn_invoice_checkout_view(request, invoice_number: int):
             "terminal": terminal,
             "description": terminal.description_info,
             "currency": terminal.currency_info,
+            "item_summary": item_summary or "دفع فاتورة رقميات",
+            "usd_amount": usd_amount,
         },
     )
 
