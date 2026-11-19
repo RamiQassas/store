@@ -165,4 +165,46 @@
     </table>
   </div>
 </div>
+
+<!-- API Logs Table (MTNPayApiLog) -->
+<div class="glass-panel overflow-hidden">
+  <div class="p-4 border-b border-white/5 flex items-center justify-between">
+    <h3 class="text-xs font-black text-white uppercase">سجل اتصالات API مع خادم MTN (MTNPayApiLog)</h3>
+    <span class="text-[11px] text-slate-400">يعرض الرد الفعلي القادم من خادم MTN (`https://cash.mtnsyr.com:9000`)</span>
+  </div>
+  <div class="overflow-x-auto">
+    <table class="admin-table">
+      <thead>
+        <tr>
+          <th>الوقت</th>
+          <th>الطلب (Request-Name)</th>
+          <th>HTTP / Errno</th>
+          <th>الحالة</th>
+          <th>الرد الكامل من MTN</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for log in logs %}
+        <tr>
+          <td class="font-mono text-[11px] text-slate-400 whitespace-nowrap">{{ log.created_at|date:"Y-m-d H:i:s" }}</td>
+          <td class="font-mono text-xs text-cyan">{{ log.request_name }}</td>
+          <td class="font-mono text-xs">{{ log.response_status_code }} / {{ log.response_errno }}</td>
+          <td>
+            {% if log.is_success %}
+            <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/20 text-emerald-400">نجح</span>
+            {% else %}
+            <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-rose-500/20 text-rose-400">فشل</span>
+            {% endif %}
+          </td>
+          <td class="font-mono text-[11px] text-slate-300" style="max-width: 420px; word-break: break-all;">
+            {{ log.response_payload|default:log.error_message }}
+          </td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="5" class="text-center text-slate-500 py-6">لا توجد سجلات API مسجلة بعد.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
 {% endblock %}

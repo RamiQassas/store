@@ -788,55 +788,16 @@ class MTNPaymentClient:
         if not serial:
             raise MTNPayError("الرقم التسلسلي للطرفية (Serial) مطلوب للتفعيل.", errno=400, action="check_syntax")
 
-        self.ensure_keypair()
-        priv_key = serialization.load_pem_private_key(self._get_private_key().encode("utf-8"), password=None)
-        pub_key_obj = priv_key.public_key()
-        candidate_keys = [
-            base64.b64encode(
-                pub_key_obj.public_bytes(
-                    encoding=serialization.Encoding.DER,
-                    format=serialization.PublicFormat.SubjectPublicKeyInfo,
-                )
-            ).decode("ascii"),
-            base64.b64encode(
-                pub_key_obj.public_bytes(
-                    encoding=serialization.Encoding.DER,
-                    format=serialization.PublicFormat.PKCS1,
-                )
-            ).decode("ascii"),
-            base64.b64encode(
-                pub_key_obj.public_bytes(
-                    encoding=serialization.Encoding.PEM,
-                    format=serialization.PublicFormat.SubjectPublicKeyInfo,
-                )
-            ).decode("ascii"),
-        ]
-        # In unit tests with custom transport, use the terminal's stored public_key_b64 directly (single attempt)
-        if self.transport is not None:
-            candidate_keys = [self.terminal.public_key_b64 or candidate_keys[0]]
+        pub_b64 = self.ensure_keypair()
+        payload = {
+            "Key": pub_b64,
+            "Secret": secret,
+            "Serial": serial,
+        }
 
-        resp = None
-        last_exc = None
-        winning_key = candidate_keys[0]
-        for cand_key in candidate_keys:
-            payload = {
-                "Key": cand_key,
-                "Secret": secret,
-                "Serial": serial,
-            }
-            try:
-                resp = self._send_signed_request(self.ENDPOINT_ACTIVATE, payload)
-                winning_key = cand_key
-                last_exc = None
-                break
-            except MTNPayError as exc:
-                last_exc = exc
-                if exc.errno in (400, 401, 40003) and self.transport is None:
-                    continue
-                break
-
-        if last_exc is not None:
-            exc = last_exc
+        try:
+            resp = self._send_signed_request(self.ENDPOINT_ACTIVATE, payload)
+        except MTNPayError as exc:
             if exc.errno == 301:
                 self.terminal.is_activated = True
                 self.terminal.is_locked = False
@@ -858,8 +819,6 @@ class MTNPaymentClient:
             if self.terminal.pk:
                 self.terminal.save(update_fields=["activation_attempts", "count_abuse", "is_locked"])
             raise exc
-
-        self.terminal.public_key_b64 = winning_key
 
         settings_obj = resp.get("Settings") or {}
         if resp.get("ServerKey"):
@@ -917,19 +876,7 @@ class MTNPaymentClient:
         if ttl is not None:
             payload["TTL"] = int(ttl)
 
-        try:
-            resp = self._send_signed_request(self.ENDPOINT_INVOICE_CREATE, payload, invoice_number=inv_num)
-        except MTNPayError as exc:
-            if (
-                self.transport is None
-                and exc.errno in (303, 401)
-                and not self.terminal.is_locked
-                and self.terminal.activation_attempts < 3
-            ):
-                self.activate_pos()
-                resp = self._send_signed_request(self.ENDPOINT_INVOICE_CREATE, payload, invoice_number=inv_num)
-            else:
-                raise
+        resp = self._send_signed_request(self.ENDPOINT_INVOICE_CREATE, payload, invoice_number=inv_num)
         receipt = resp.get("Receipt") or resp
 
         status_val = int(receipt.get("Status", MTNPayInvoiceRecord.STATUS_ACTIVE))
