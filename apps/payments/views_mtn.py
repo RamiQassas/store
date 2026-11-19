@@ -325,10 +325,10 @@ def mtn_admin_check_status_view(request):
             f"اتصال خادم MTN يعمل بنجاح والتوقيع مقبول! (URL: {terminal.base_url} | Errno: {resp.get('Errno', 0)})",
         )
     except MTNPayError as exc:
-        if exc.errno == 404:
+        if exc.errno in (404, 40401):
             messages.success(
                 request,
-                f"اتصال خادم MTN يعمل والتوقيع الرقمي RSA-1024 مقبول من الخادم! (الرد: 404 الفاتورة التجريبية غير موجودة، وهذا طبيعي). ({terminal.base_url})",
+                f"اتصال خادم MTN يعمل والتوقيع الرقمي RSA-1024 مقبول من الخادم! (الرد: {exc.errno} الفاتورة التجريبية غير موجودة، وهذا يؤكد نجاح الاتصال والتوقيع). ({terminal.base_url})",
             )
         else:
             messages.warning(

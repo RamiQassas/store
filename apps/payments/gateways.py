@@ -799,7 +799,7 @@ class MTNPayGateway(BasePaymentGateway):
                 major_amount=Decimal(str(clean_syp)),
                 user=deposit.user,
                 deposit=deposit,
-                session_id=int(deposit.id) if deposit and deposit.id else None,
+                ttl=600,
             )
             checkout_url = reverse("mtn_invoice_checkout", args=[inv_record.invoice_number])
             deposit.gateway_payment_id = str(inv_record.invoice_number)
@@ -890,7 +890,7 @@ class MTNPayGateway(BasePaymentGateway):
                 major_amount=Decimal(str(charge_amount)),
                 user=order.customer,
                 order=order,
-                session_id=int(order.id) if order and order.id else None,
+                ttl=600,
             )
             checkout_url = reverse("mtn_invoice_checkout", args=[inv_record.invoice_number])
             if not isinstance(order.metadata, dict):

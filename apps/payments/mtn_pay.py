@@ -463,10 +463,10 @@ class MTNPaymentClient:
 
     @staticmethod
     def generate_unique_invoice_id() -> int:
-        """Generates a unique numeric Invoice ID on the merchant side."""
-        ts_ms = int(time.time() * 1000)
+        """Generates a unique numeric Invoice ID (<= 9 digits, safe for 32-bit/64-bit JSON parsers)."""
+        sec_part = int(time.time()) % 1000000
         rand_tail = random.randint(100, 999)
-        return int(f"{ts_ms}{rand_tail}")
+        return int(f"{sec_part:06d}{rand_tail}")
 
     # ── Core Signed Transport with 408 Auto-Retry & Signature Verification ───
 
@@ -880,12 +880,11 @@ class MTNPaymentClient:
         }
         if session_id is not None and str(session_id).strip() != "":
             try:
-                payload["Session"] = int(session_id)
+                sess_int = int(session_id)
+                if 0 <= sess_int <= 2000000000:
+                    payload["Session"] = sess_int
             except (TypeError, ValueError):
-                # Strip non-digits or omit if not numeric per Section 3.1.1 (Session is number)
-                digits_only = "".join(c for c in str(session_id) if c.isdigit())
-                if digits_only:
-                    payload["Session"] = int(digits_only[:9])
+                pass
         if ttl is not None:
             payload["TTL"] = int(ttl)
 
