@@ -943,10 +943,12 @@ class MTNPaymentClient:
         if record:
             if "Status" in receipt:
                 record.status_code = int(receipt["Status"])
+            if receipt.get("Paid") is True:
+                record.status_code = MTNPayInvoiceRecord.STATUS_PAID
             if receipt.get("Transaction"):
                 record.transaction_id = str(receipt["Transaction"])
-            if receipt.get("QR"):
-                record.qr_code = str(receipt["QR"])
+            if receipt.get("QR") or receipt.get("Qr"):
+                record.qr_code = str(receipt.get("QR") or receipt.get("Qr"))
             if "Commission" in receipt:
                 record.commission_minor = int(receipt["Commission"] or 0)
             if "Tax" in receipt:

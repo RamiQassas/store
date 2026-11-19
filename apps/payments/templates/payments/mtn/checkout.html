@@ -492,6 +492,7 @@
       return '{{ csrf_token }}';
     }
 
+    var qrPollTimer = null;
     function switchCashMobileTab(tab) {
       var phonePane = document.getElementById('cm-pane-phone');
       var qrPane = document.getElementById('cm-pane-qr');
@@ -502,11 +503,18 @@
         if (qrPane) qrPane.style.display = 'block';
         if (btnPhone) btnPhone.classList.remove('active');
         if (btnQr) btnQr.classList.add('active');
+        if (!qrPollTimer) {
+          qrPollTimer = setInterval(checkMtnInvoiceStatus, 4000);
+        }
       } else {
         if (phonePane) phonePane.style.display = 'block';
         if (qrPane) qrPane.style.display = 'none';
         if (btnPhone) btnPhone.classList.add('active');
         if (btnQr) btnQr.classList.remove('active');
+        if (qrPollTimer) {
+          clearInterval(qrPollTimer);
+          qrPollTimer = null;
+        }
       }
     }
 

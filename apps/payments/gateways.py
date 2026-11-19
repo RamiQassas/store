@@ -718,10 +718,10 @@ class MTNPayGateway(BasePaymentGateway):
             "Limits": {"Minimum": 100, "Maximum": 5000000000000},
             "Allowed": {"Payment": True},
             "Description": {
-                "Business": "رقميات",
-                "Shop": "متجر رقميات",
-                "Address": "حلب - الأنصاري الشرقي - جانب حلويات الأفراح",
-                "Phone": "+963962685312",
+                "Business": "E payment section",
+                "Shop": "Raqmyat",
+                "Address": "Damascus",
+                "Phone": "963957222109",
                 "UniquePayCode": f"MTN-{target_tid[-6:]}",
             },
         }
