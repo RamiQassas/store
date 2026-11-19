@@ -3,19 +3,19 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>الدفع عبر كاش موبايل | Cash Mobile</title>
-  <link rel="icon" href="{% static 'site/img/brands/cash-mobile.jpg' %}">
+  <title>رقميات × كاش موبايل | بوابة الدفع الآمن</title>
+  <link rel="icon" href="{% static 'site/img/raqamiyat_logo_square.jpg' %}">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@500;600;700;800;900&family=JetBrains+Mono:wght@600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
   <style>
     :root {
+      --rq-navy: #0b1426;
+      --rq-blue: #2563eb;
+      --rq-blue-soft: rgba(37, 99, 235, 0.12);
       --cm-gold: #f5b400;
       --cm-gold-deep: #d49600;
-      --cm-navy: #0f172a;
-      --cm-slate: #1e293b;
-      --bg-page: #f1f5f9;
       --bg-card: #ffffff;
       --border-soft: #e2e8f0;
       --text-main: #0f172a;
@@ -27,9 +27,9 @@
       min-height: 100vh;
       font-family: 'Cairo', system-ui, -apple-system, sans-serif;
       background:
-        radial-gradient(circle at 10% 10%, rgba(245, 180, 0, 0.16), transparent 38%),
-        radial-gradient(circle at 90% 90%, rgba(15, 23, 42, 0.08), transparent 42%),
-        linear-gradient(160deg, #f8fafc 0%, #eef2f6 100%);
+        radial-gradient(circle at 12% 14%, rgba(37, 99, 235, 0.22), transparent 40%),
+        radial-gradient(circle at 88% 84%, rgba(245, 180, 0, 0.18), transparent 42%),
+        linear-gradient(155deg, #070d1a 0%, #0f1b33 55%, #091121 100%);
       color: var(--text-main);
       display: flex;
       align-items: center;
@@ -41,76 +41,102 @@
     }
     .cm-shell {
       width: 100%;
-      max-width: 450px;
+      max-width: 455px;
       background: var(--bg-card);
       border-radius: 28px;
-      border: 1px solid rgba(15, 23, 42, 0.07);
-      box-shadow:
-        0 25px 50px -12px rgba(15, 23, 42, 0.14),
-        0 0 0 1px rgba(255, 255, 255, 0.8) inset;
+      border: 1px solid rgba(255, 255, 255, 0.25);
+      box-shadow: 0 28px 60px -15px rgba(0, 0, 0, 0.55);
       overflow: hidden;
     }
-    .cm-top-accent {
-      height: 5px;
-      background: linear-gradient(90deg, #f5b400, #ffcc33, #d97706);
+    .cm-top-ribbon {
+      height: 6px;
+      background: linear-gradient(90deg, #2563eb 0%, #3b82f6 45%, #f5b400 55%, #ffcc00 100%);
     }
+    /* Co-branded Raqamiyat x Cash Mobile Header */
     .cm-header {
-      padding: 1.35rem 1.5rem 1rem;
+      padding: 1.35rem 1.4rem 1.05rem;
       text-align: center;
-      background: linear-gradient(180deg, rgba(245, 180, 0, 0.06) 0%, #ffffff 100%);
+      background: linear-gradient(180deg, #f8fafc 0%, #ffffff 100%);
+      border-bottom: 1px solid #f1f5f9;
     }
-    .cm-logo-wrap {
-      width: 88px;
-      height: 88px;
-      margin: 0 auto 0.65rem;
-      border-radius: 22px;
+    .cm-cobrand {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.75rem;
+      margin-bottom: 0.75rem;
+    }
+    .cm-brand-tile {
+      width: 68px;
+      height: 68px;
+      border-radius: 18px;
       background: #ffffff;
-      border: 1px solid rgba(245, 180, 0, 0.25);
-      box-shadow: 0 10px 24px rgba(245, 180, 0, 0.16);
+      border: 1px solid #e2e8f0;
+      box-shadow: 0 8px 20px rgba(15, 23, 42, 0.08);
       display: flex;
       align-items: center;
       justify-content: center;
       overflow: hidden;
       padding: 5px;
     }
-    .cm-logo-wrap img {
+    .cm-brand-tile.is-rq {
+      border-color: rgba(37, 99, 235, 0.28);
+    }
+    .cm-brand-tile.is-cm {
+      border-color: rgba(245, 180, 0, 0.4);
+    }
+    .cm-brand-tile img {
       width: 100%;
       height: 100%;
       object-fit: contain;
+      border-radius: 12px;
+    }
+    .cm-link-dot {
+      width: 30px;
+      height: 30px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, #2563eb, #f5b400);
+      color: #ffffff;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.72rem;
+      box-shadow: 0 4px 12px rgba(37, 99, 235, 0.25);
     }
     .cm-title {
-      font-size: 1.15rem;
+      font-size: 1.12rem;
       font-weight: 900;
-      color: var(--text-main);
+      color: var(--rq-navy);
       margin: 0;
     }
     .cm-merchant-pill {
       display: inline-flex;
       align-items: center;
       gap: 0.4rem;
-      margin-top: 0.45rem;
-      padding: 0.25rem 0.85rem;
+      margin-top: 0.4rem;
+      padding: 0.24rem 0.85rem;
       border-radius: 999px;
-      background: #f8fafc;
-      border: 1px solid #e2e8f0;
+      background: #eff6ff;
+      border: 1px solid #bfdbfe;
       font-size: 0.78rem;
-      font-weight: 700;
-      color: var(--text-muted);
+      font-weight: 800;
+      color: #1e40af;
     }
     .cm-amount-card {
-      margin: 0.35rem 1.35rem 0;
-      padding: 1.05rem 1.25rem;
+      margin: 1rem 1.35rem 0;
+      padding: 1rem 1.2rem;
       border-radius: 20px;
-      background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+      background: linear-gradient(135deg, #0b1426 0%, #172554 100%);
       color: #ffffff;
       display: flex;
       align-items: center;
       justify-content: space-between;
       gap: 0.75rem;
-      box-shadow: 0 12px 24px -8px rgba(15, 23, 42, 0.35);
+      box-shadow: 0 12px 26px -8px rgba(15, 23, 42, 0.35);
+      border: 1px solid rgba(59, 130, 246, 0.3);
     }
     .cm-body {
-      padding: 1.25rem 1.35rem 1.35rem;
+      padding: 1.15rem 1.35rem 1.35rem;
     }
     .cm-tabs {
       display: grid;
@@ -119,7 +145,7 @@
       background: #f1f5f9;
       padding: 0.35rem;
       border-radius: 15px;
-      margin-bottom: 1.2rem;
+      margin-bottom: 1.15rem;
     }
     .cm-tab-btn {
       border: none;
@@ -128,7 +154,7 @@
       font-family: inherit;
       font-size: 0.83rem;
       font-weight: 800;
-      padding: 0.62rem 0.5rem;
+      padding: 0.6rem 0.5rem;
       border-radius: 11px;
       cursor: pointer;
       display: flex;
@@ -140,11 +166,11 @@
     }
     .cm-tab-btn.active {
       background: #ffffff;
-      color: var(--text-main);
+      color: var(--rq-navy);
       box-shadow: 0 3px 10px rgba(15, 23, 42, 0.08);
     }
     .cm-tab-btn.active i {
-      color: #d97706;
+      color: #2563eb;
     }
     .cm-label {
       display: block;
@@ -161,23 +187,22 @@
       background: #f8fafc;
       overflow: hidden;
       transition: border-color 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
-      margin-bottom: 0.55rem;
+      margin-bottom: 0.5rem;
     }
     .cm-phone-group:focus-within {
-      border-color: var(--cm-gold);
+      border-color: var(--rq-blue);
       background: #ffffff;
-      box-shadow: 0 0 0 3px rgba(245, 180, 0, 0.2);
+      box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.16);
     }
     .cm-phone-prefix {
       padding: 0 0.85rem;
-      height: 52px;
+      height: 50px;
       display: flex;
       align-items: center;
-      gap: 0.35rem;
       background: #eef2f6;
-      color: var(--cm-slate);
+      color: #1e293b;
       font-family: 'JetBrains Mono', monospace;
-      font-size: 0.85rem;
+      font-size: 0.82rem;
       font-weight: 800;
       border-right: 1px solid #cbd5e1;
       direction: ltr;
@@ -185,12 +210,12 @@
     }
     .cm-phone-input {
       width: 100%;
-      height: 52px;
+      height: 50px;
       border: none;
       background: transparent;
       color: var(--text-main);
-      padding: 0 1rem;
-      font-size: 1.08rem;
+      padding: 0 0.95rem;
+      font-size: 1.06rem;
       font-weight: 800;
       outline: none;
       direction: ltr;
@@ -204,30 +229,30 @@
       background: #f8fafc;
       color: var(--text-main);
       padding: 0 1rem;
-      font-size: 1.25rem;
-      font-weight: 800;
+      font-size: 1.3rem;
+      font-weight: 900;
       outline: none;
       transition: border-color 0.2s ease, box-shadow 0.2s ease;
       margin-bottom: 0.85rem;
     }
     .cm-input:focus {
-      border-color: var(--cm-gold);
+      border-color: var(--rq-blue);
       background: #ffffff;
-      box-shadow: 0 0 0 3px rgba(245, 180, 0, 0.2);
+      box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.16);
     }
     .cm-hint {
       font-size: 0.74rem;
       color: var(--text-muted);
-      margin: 0 0 0.9rem;
+      margin: 0 0 0.85rem;
       font-weight: 600;
     }
     .cm-btn {
       width: 100%;
-      height: 52px;
+      height: 50px;
       border: none;
       border-radius: 15px;
-      background: linear-gradient(135deg, #ffcc00 0%, #f59e0b 100%);
-      color: #0f172a;
+      background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
+      color: #ffffff;
       font-family: inherit;
       font-size: 0.96rem;
       font-weight: 900;
@@ -236,7 +261,7 @@
       align-items: center;
       justify-content: center;
       gap: 0.55rem;
-      box-shadow: 0 10px 22px -6px rgba(245, 158, 11, 0.45);
+      box-shadow: 0 10px 22px -6px rgba(37, 99, 235, 0.42);
       transition: transform 0.15s ease, opacity 0.15s ease;
     }
     .cm-btn:hover:not(:disabled) {
@@ -261,7 +286,7 @@
       line-height: 1.55;
     }
     .cm-footer {
-      padding: 0.95rem 1.35rem 1.25rem;
+      padding: 0.9rem 1.35rem 1.2rem;
       border-top: 1px solid var(--border-soft);
       display: flex;
       align-items: center;
@@ -282,9 +307,9 @@
       text-decoration: underline;
     }
     .cm-secure-note {
-      font-size: 0.75rem;
+      font-size: 0.74rem;
       color: var(--text-muted);
-      font-weight: 700;
+      font-weight: 800;
       display: inline-flex;
       align-items: center;
       gap: 0.35rem;
@@ -294,17 +319,25 @@
 <body>
 
   <div class="cm-shell" data-pay-code="{{ description.UniquePayCode|default:'' }}">
-    <div class="cm-top-accent"></div>
+    <div class="cm-top-ribbon"></div>
 
-    <!-- Clean Brand Header -->
+    <!-- Co-branded Raqamiyat x Cash Mobile Header -->
     <div class="cm-header">
-      <div class="cm-logo-wrap">
-        <img src="{% static 'site/img/brands/cash-mobile.jpg' %}" alt="Cash Mobile كاش موبايل">
+      <div class="cm-cobrand">
+        <div class="cm-brand-tile is-rq">
+          <img src="{% static 'site/img/raqamiyat_logo_square.jpg' %}" alt="رقميات Raqamiyat">
+        </div>
+        <div class="cm-link-dot">
+          <i class="fas fa-shield-halved"></i>
+        </div>
+        <div class="cm-brand-tile is-cm">
+          <img src="{% static 'site/img/brands/cash-mobile.jpg' %}" alt="كاش موبايل Cash Mobile">
+        </div>
       </div>
-      <h1 class="cm-title">الدفع الآمن عبر كاش موبايل</h1>
+      <h1 class="cm-title">بوابة الدفع الفوري • رقميات × كاش موبايل</h1>
       <div class="cm-merchant-pill">
-        <i class="fas fa-store" style="color: #d97706;"></i>
-        <span>{{ description.Business|default:"متجر رقميات" }}</span>
+        <i class="fas fa-bag-shopping"></i>
+        <span>متجر رقميات</span>
         {% if invoice.order %}
         <span>• طلب #{{ invoice.order.number }}</span>
         {% elif invoice.deposit %}
@@ -313,13 +346,13 @@
       </div>
     </div>
 
-    <!-- Luxury Dark Amount Card -->
+    <!-- Amount Card -->
     <div class="cm-amount-card">
       <div>
-        <div style="font-size: 0.76rem; color: #94a3b8; font-weight: 700;">المبلغ المستحق للدفع</div>
-        <div style="font-size: 0.74rem; color: #f5b400; font-weight: 800; margin-top: 0.15rem;">فاتورة #{{ invoice.invoice_number }}</div>
+        <div style="font-size: 0.75rem; color: #93c5fd; font-weight: 700;">المبلغ المطلوب</div>
+        <div style="font-size: 0.74rem; color: #cbd5e1; font-weight: 700; margin-top: 0.15rem;">فاتورة #{{ invoice.invoice_number }}</div>
       </div>
-      <div class="font-mono" style="font-size: 1.55rem; font-weight: 900; color: #ffffff; letter-spacing: -0.02em;">
+      <div class="font-mono" style="font-size: 1.5rem; font-weight: 900; color: #ffffff;">
         {{ invoice.amount_major|floatformat:0 }} <span style="font-size: 0.88rem; color: #f5b400;">ل.س</span>
       </div>
     </div>
@@ -331,7 +364,7 @@
           <i class="fas fa-check"></i>
         </div>
         <h2 style="margin: 0 0 0.35rem; font-size: 1.15rem; font-weight: 900;">تمت عملية الدفع بنجاح</h2>
-        <p style="margin: 0 0 1.2rem; font-size: 0.85rem; color: var(--text-muted);">شكراً لاستخدامك كاش موبايل</p>
+        <p style="margin: 0 0 1.2rem; font-size: 0.85rem; color: var(--text-muted);">شكراً لتسوقك من متجر رقميات</p>
         {% if invoice.order %}
         <a href="{% url 'payment_status' %}?type=order&id={{ invoice.order.id }}&status=paid" class="cm-btn cm-btn-confirm" style="text-decoration: none;">
           <i class="fas fa-arrow-left"></i>
@@ -366,7 +399,7 @@
             <span class="cm-phone-prefix">SY +963</span>
             <input type="tel" id="mtn-phone-input" class="cm-phone-input font-mono" placeholder="09XXXXXXXX" value="{{ invoice.customer_phone }}" inputmode="tel">
           </div>
-          <p class="cm-hint">أدخل رقم هاتفك المسجل في MTN Cash (مثل 0962685312 أو 963962685312).</p>
+          <p class="cm-hint">أدخل رقم هاتفك المسجل في MTN Cash (مثل 0962685312).</p>
           <button type="button" id="mtn-btn-initiate" onclick="initiateMtnPhonePayment()" class="cm-btn">
             <i class="fas fa-paper-plane"></i>
             <span>إرسال رمز التحقق SMS</span>
@@ -374,8 +407,8 @@
         </div>
 
         <div id="mtn-step-otp" style="{% if not invoice.operation_number %}display: none;{% endif %}">
-          <div style="padding: 0.78rem 0.95rem; border-radius: 13px; background: #fffbeb; border: 1px solid #fde68a; margin-bottom: 0.9rem; font-size: 0.82rem; color: #92400e; font-weight: 700;">
-            تم إرسال رمز التحقق SMS إلى الرقم
+          <div style="padding: 0.78rem 0.95rem; border-radius: 13px; background: #eff6ff; border: 1px solid #bfdbfe; margin-bottom: 0.9rem; font-size: 0.82rem; color: #1e40af; font-weight: 700;">
+            تم إرسال رمز التأكيد عبر SMS إلى الرقم
             <strong id="mtn-phone-display" class="font-mono" dir="ltr" style="color: #0f172a;">{{ invoice.customer_phone }}</strong>
           </div>
 
@@ -387,7 +420,7 @@
           </button>
 
           <div style="text-align: center; margin-top: 0.85rem;">
-            <button type="button" onclick="document.getElementById('mtn-step-otp').style.display='none'; document.getElementById('mtn-step-phone').style.display='block';" style="background: none; border: none; color: #b45309; font-family: inherit; font-size: 0.8rem; font-weight: 800; cursor: pointer;">
+            <button type="button" onclick="document.getElementById('mtn-step-otp').style.display='none'; document.getElementById('mtn-step-phone').style.display='block';" style="background: none; border: none; color: #2563eb; font-family: inherit; font-size: 0.8rem; font-weight: 800; cursor: pointer;">
               <i class="fas fa-rotate-right"></i> تعديل رقم الهاتف أو إعادة إرسال الرمز
             </button>
           </div>
@@ -419,22 +452,22 @@
       {% if invoice.order %}
       <a href="{% url 'payment_status' %}?type=order&id={{ invoice.order.id }}&action=cancel" class="cm-cancel">
         <i class="fas fa-times-circle"></i>
-        <span>إلغاء والعودة للمتجر</span>
+        <span>إلغاء والعودة إلى رقميات</span>
       </a>
       {% elif invoice.deposit %}
       <a href="{% url 'payment_status' %}?type=deposit&id={{ invoice.deposit.id }}&action=cancel" class="cm-cancel">
         <i class="fas fa-times-circle"></i>
-        <span>إلغاء والعودة للمحفظة</span>
+        <span>إلغاء والعودة إلى رقميات</span>
       </a>
       {% else %}
       <a href="/" class="cm-cancel">
         <i class="fas fa-arrow-right"></i>
-        <span>العودة للمتجر</span>
+        <span>العودة إلى رقميات</span>
       </a>
       {% endif %}
       <span class="cm-secure-note">
-        <i class="fas fa-shield-halved" style="color: #10b981;"></i>
-        <span>دفع مشفر وآمن</span>
+        <i class="fas fa-lock" style="color: #10b981;"></i>
+        <span>رقميات × Cash Mobile</span>
       </span>
     </div>
   </div>
@@ -488,6 +521,12 @@
       return digits || ascii;
     }
 
+    function cleanOtpCode(raw) {
+      var map = {'٠':'0','١':'1','٢':'2','٣':'3','٤':'4','٥':'5','٦':'6','٧':'7','٨':'8','٩':'9'};
+      var ascii = (raw || '').replace(/[٠-٩]/g, function(d) { return map[d] || d; });
+      return ascii.replace(/[^0-9A-Za-z]/g, '');
+    }
+
     function initiateMtnPhonePayment() {
       var inputEl = document.getElementById('mtn-phone-input');
       var rawPhone = (inputEl ? inputEl.value : '').trim();
@@ -528,7 +567,9 @@
     }
 
     function confirmMtnPhonePayment() {
-      var code = (document.getElementById('mtn-otp-input').value || '').trim();
+      var otpInput = document.getElementById('mtn-otp-input');
+      var code = cleanOtpCode(otpInput ? otpInput.value : '');
+      if (otpInput) otpInput.value = code;
       if (!code) {
         showMtnFeedback('يرجى إدخال رمز التحقق SMS أولاً.', true);
         return;

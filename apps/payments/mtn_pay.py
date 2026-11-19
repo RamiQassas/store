@@ -1047,9 +1047,10 @@ class MTNPaymentClient:
         except (TypeError, ValueError):
             op_formatted = str(op_val)
 
-        # Normalize Arabic/Persian numerals and strip whitespace from SMS OTP code
+        # Normalize Arabic/Persian numerals and strip whitespace + invisible Unicode directional marks (e.g. from Android/Samsung SMS copy)
         arabic_digits = str.maketrans("٠١٢٣٤٥٦٧٨٩۰۱۲۳۴۵۶۷۸۹", "01234567890123456789")
-        code_clean = "".join(str(sms_code or "").translate(arabic_digits).split())
+        translated_code = str(sms_code or "").translate(arabic_digits)
+        code_clean = "".join(c for c in translated_code if c.isascii() and c.isalnum())
         if not code_clean:
             raise MTNPayError.from_errno(662)
 
