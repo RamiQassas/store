@@ -651,7 +651,8 @@ def v3_login_view(request):
 
 @ensure_csrf_cookie
 def v3_register_view(request):
-    if request.user.is_authenticated: return redirect("dashboard")
+    if request.user.is_authenticated:
+        return redirect("dashboard")
     form = RegisterForm(request.POST or None)
     if request.method == "POST":
         if form.is_valid():
@@ -660,25 +661,39 @@ def v3_register_view(request):
                     user = User.objects.create_user(
                         email=form.cleaned_data["email"],
                         password=form.cleaned_data["password"],
-                        phone=request.POST.get("phone"),
+                        phone=form.cleaned_data["phone"],
                         first_name=form.cleaned_data["first_name"],
                         last_name=form.cleaned_data["last_name"],
                         store=getattr(request, 'store', None)
                     )
-                    get_or_create_wallet(user)
+                    wallet = get_or_create_wallet(user)
+                    pref_curr_id = request.POST.get("preferred_currency")
+                    if pref_curr_id:
+                        try:
+                            from apps.common.models import Currency
+                            curr_obj = Currency.all_objects.filter(id=pref_curr_id, is_active=True).first()
+                            if curr_obj and wallet.currency_id != curr_obj.id:
+                                wallet.currency = curr_obj
+                                wallet.save(update_fields=["currency"])
+                        except Exception:
+                            pass
                     otp = v3_generate_otp(user, OTPToken.Purpose.REGISTRATION)
                     if v3_send_otp_email(user, otp):
                         request.session["v3_auth_uid"], request.session["v3_auth_purpose"] = str(user.id), OTPToken.Purpose.REGISTRATION
                         return redirect("site_verify_otp")
-                    else: raise Exception("فشل إرسال البريد الإلكتروني.")
+                    else:
+                        raise Exception("فشل إرسال رمز التحقق إلى البريد الإلكتروني، يرجى المحاولة لاحقاً.")
             except Exception as e:
                 form.add_error(None, str(e))
                 messages.error(request, str(e))
         else:
+            seen_msgs = set()
             for field, errors in form.errors.items():
                 for error in errors:
-                    messages.error(request, error)
-    return render(request, "site/v3/v3_register.html", {"form": form})
+                    if error not in seen_msgs:
+                        seen_msgs.add(error)
+                        messages.error(request, error)
+    return render(request, "site/v3/v3_register.html", {"form": form, "form_data": request.POST})
 
 def _is_safe_redirect(url, request=None):
     if not url:

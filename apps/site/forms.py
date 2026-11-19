@@ -72,25 +72,47 @@ class LoginForm(forms.Form):
 
 
 class RegisterForm(forms.Form):
-    first_name = forms.CharField(label="الاسم الأول", max_length=150, widget=forms.TextInput(attrs={"placeholder": "الاسم الأول"}))
-    last_name = forms.CharField(label="الاسم الأخير", max_length=150, required=False, widget=forms.TextInput(attrs={"placeholder": "الاسم الأخير"}))
-    email = forms.EmailField(label="البريد الإلكتروني", widget=forms.EmailInput(attrs={"placeholder": "name@example.com"}))
-    phone = forms.CharField(label="الهاتف", max_length=32, widget=forms.TextInput(attrs={"placeholder": "05xxxxxxxx"}))
+    first_name = forms.CharField(
+        label="الاسم الأول",
+        max_length=150,
+        widget=forms.TextInput(attrs={"placeholder": "الاسم الأول"}),
+        error_messages={"required": "يرجى إدخال الاسم الأول."},
+    )
+    last_name = forms.CharField(
+        label="الاسم الأخير",
+        max_length=150,
+        required=False,
+        widget=forms.TextInput(attrs={"placeholder": "الاسم الأخير"}),
+    )
+    email = forms.EmailField(
+        label="البريد الإلكتروني",
+        widget=forms.EmailInput(attrs={"placeholder": "name@example.com"}),
+        error_messages={
+            "required": "يرجى إدخال البريد الإلكتروني.",
+            "invalid": "يرجى إدخال بريد إلكتروني صحيح.",
+        },
+    )
+    phone = forms.CharField(
+        label="الهاتف",
+        max_length=32,
+        widget=forms.TextInput(attrs={"placeholder": "+9639xxxxxxxx"}),
+        error_messages={"required": "يرجى إدخال رقم الهاتف."},
+    )
     password = forms.CharField(
         label="كلمة المرور",
-        widget=forms.PasswordInput(attrs={"placeholder": "كلمة مرور قوية"}),
-        min_length=10,
+        widget=forms.PasswordInput(attrs={"placeholder": "8 خانات على الأقل"}),
+        min_length=8,
         error_messages={
             "required": "يرجى إدخال كلمة المرور.",
-            "min_length": "كلمة المرور قصيرة جداً، يجب ألا تقل عن 10 خانات."
-        }
+            "min_length": "كلمة المرور قصيرة جداً، يجب ألا تقل عن 8 خانات (أحرف أو أرقام أو رموز).",
+        },
     )
     confirm_password = forms.CharField(
         label="تأكيد كلمة المرور",
         widget=forms.PasswordInput(attrs={"placeholder": "تأكيد كلمة المرور"}),
         error_messages={
-            "required": "يرجى تأكيد كلمة المرور."
-        }
+            "required": "يرجى تأكيد كلمة المرور.",
+        },
     )
 
     def clean_email(self):
@@ -107,9 +129,11 @@ class RegisterForm(forms.Form):
         return email
 
     def clean_phone(self):
-        phone = self.cleaned_data.get("phone", "").strip()
+        raw_phone = self.cleaned_data.get("phone", "").strip()
+        arabic_digits = str.maketrans("٠١٢٣٤٥٦٧٨٩۰۱۲۳۴۵۶۷۸۹", "01234567890123456789")
+        phone = raw_phone.translate(arabic_digits).replace(" ", "").replace("-", "")
         if not phone:
-            raise forms.ValidationError("رقم الهاتف مطلوب.")
+            raise forms.ValidationError("يرجى إدخال رقم الهاتف.")
         
         # Prevent non-numeric chars (except leading +)
         import re
@@ -141,25 +165,17 @@ class RegisterForm(forms.Form):
 
     def clean(self):
         cleaned_data = super().clean()
-        password = cleaned_data.get("password")
-        confirm_password = cleaned_data.get("confirm_password")
         raw_password = self.data.get("password", "")
         raw_confirm = self.data.get("confirm_password", "")
 
-        # Always check mismatch, even if password failed min_length validation
+        if raw_password and not raw_password.strip():
+            self.add_error("password", "لا يمكن أن تكون كلمة المرور مسافات فارغة فقط.")
+
         if raw_password and raw_confirm and raw_password != raw_confirm:
-            self.add_error("confirm_password", "كلمات المرور غير متطابقة.")
-            self.add_error("password", "كلمة المرور وتأكيد كلمة المرور غير متطابقتين.")
-        elif raw_password and not raw_confirm:
+            if "confirm_password" not in self.errors:
+                self.add_error("confirm_password", "كلمتا المرور غير متطابقتين.")
+        elif raw_password and not raw_confirm and "confirm_password" not in self.errors:
             self.add_error("confirm_password", "يرجى تأكيد كلمة المرور.")
-        
-        # Basic strength check
-        check_pass = password or raw_password
-        if check_pass:
-            if not any(char.isdigit() for char in check_pass):
-                self.add_error("password", "يجب أن تحتوي كلمة المرور على رقم واحد على الأقل.")
-            if not any(char.isupper() for char in check_pass):
-                self.add_error("password", "يجب أن تحتوي كلمة المرور على حرف كبير واحد على الأقل.")
         
         return cleaned_data
 

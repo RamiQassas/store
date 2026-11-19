@@ -13,7 +13,7 @@
     <p style="font-size: 0.84rem; color: var(--rq-text-muted); margin: 0;">انضم إلى منصة رقميات وتمتع بتجربة شراء فورية ومحفظة رقمية متكاملة</p>
   </div>
 
-  <form method="post" action="{% url 'site_register' %}">
+  <form method="post" action="{% url 'site_register' %}" id="register-form">
     {% csrf_token %}
 
     <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem;">
@@ -28,7 +28,7 @@
         <label class="rq-label" for="id_last_name">الاسم الأخير</label>
         <div class="rq-auth-input-wrap">
           <i class="fas fa-user-tag rq-auth-input-icon"></i>
-          <input type="text" name="last_name" id="id_last_name" value="{{ form_data.last_name|default:'' }}" class="rq-input" placeholder="الكنية" required>
+          <input type="text" name="last_name" id="id_last_name" value="{{ form_data.last_name|default:'' }}" class="rq-input" placeholder="الكنية">
         </div>
       </div>
     </div>
@@ -45,7 +45,7 @@
       <label class="rq-label" for="id_phone">رقم الهاتف</label>
       <div class="rq-auth-input-wrap">
         <i class="fas fa-phone rq-auth-input-icon"></i>
-        <input type="tel" name="phone_number" id="id_phone" value="{{ form_data.phone_number|default:'' }}" class="rq-input" placeholder="+9639xxxxxxxx" dir="ltr" style="text-align: right;" required>
+        <input type="tel" name="phone" id="id_phone" value="{{ form_data.phone|default:'' }}" class="rq-input" placeholder="+9639xxxxxxxx" dir="ltr" style="text-align: right;" required>
       </div>
     </div>
 
@@ -54,19 +54,19 @@
       <label class="rq-label" for="id_currency">عملة المحفظة المفضلة</label>
       <select name="preferred_currency" id="id_currency" class="rq-select">
         {% for c in currencies %}
-        <option value="{{ c.id }}" {% if c.code == 'USD' %}selected{% endif %}>{{ c.name }} ({{ c.code }} - {{ c.symbol }})</option>
+        <option value="{{ c.id }}" {% if form_data.preferred_currency == c.id|stringformat:"s" or not form_data.preferred_currency and c.code == 'USD' %}selected{% endif %}>{{ c.name }} ({{ c.code }} - {{ c.symbol }})</option>
         {% endfor %}
       </select>
     </div>
     {% endif %}
 
-    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; margin-bottom: 1.25rem;">
+    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; margin-bottom: 0.55rem;">
       <div>
         <label class="rq-label" for="id_pass1">كلمة المرور</label>
         <div class="rq-auth-input-wrap">
           <i class="fas fa-lock rq-auth-input-icon"></i>
-          <input type="password" name="password" id="id_pass1" class="rq-input" placeholder="••••••••" style="padding-left: 2.2rem;" required>
-          <button type="button" class="rq-auth-pass-toggle" onclick="togglePassVis('id_pass1', this)">
+          <input type="password" name="password" id="id_pass1" class="rq-input" placeholder="8 خانات فأكثر" minlength="8" style="padding-left: 2.2rem;" required oninput="updateRegPasswordStrength()">
+          <button type="button" class="rq-auth-pass-toggle" aria-label="إظهار أو إخفاء كلمة المرور" onclick="togglePassVis('id_pass1', this)">
             <i class="fas fa-eye"></i>
           </button>
         </div>
@@ -75,9 +75,24 @@
         <label class="rq-label" for="id_pass2">تأكيد كلمة المرور</label>
         <div class="rq-auth-input-wrap">
           <i class="fas fa-shield-halved rq-auth-input-icon"></i>
-          <input type="password" name="password_confirm" id="id_pass2" class="rq-input" placeholder="••••••••" style="padding-left: 2.2rem;" required>
+          <input type="password" name="confirm_password" id="id_pass2" class="rq-input" placeholder="أعد إدخالها" minlength="8" style="padding-left: 2.2rem;" required oninput="updateRegPasswordStrength()">
+          <button type="button" class="rq-auth-pass-toggle" aria-label="إظهار أو إخفاء تأكيد كلمة المرور" onclick="togglePassVis('id_pass2', this)">
+            <i class="fas fa-eye"></i>
+          </button>
         </div>
       </div>
+    </div>
+
+    <!-- Live Password Strength & Match Indicator -->
+    <div style="margin-bottom: 1.15rem; padding: 0.55rem 0.75rem; border-radius: 10px; background: var(--rq-bg-elevated); border: 1px solid var(--rq-border);">
+      <div style="display: flex; align-items: center; justify-content: space-between; font-size: 0.74rem; font-weight: 800; margin-bottom: 0.35rem;">
+        <span style="color: var(--rq-text-muted);">قوة كلمة المرور (الحد الأدنى 8 خانات):</span>
+        <span id="reg-pass-label" style="color: var(--rq-text-muted);">—</span>
+      </div>
+      <div style="height: 6px; border-radius: 999px; background: rgba(148, 163, 184, 0.22); overflow: hidden;">
+        <div id="reg-pass-bar" style="height: 100%; width: 0%; border-radius: 999px; transition: width 0.25s ease, background-color 0.25s ease;"></div>
+      </div>
+      <div id="reg-pass-match" style="display: none; font-size: 0.72rem; font-weight: 800; margin-top: 0.35rem;"></div>
     </div>
 
     <button type="submit" class="rq-pdp-buy-now" style="height: 48px; margin-bottom: 1rem;">
@@ -91,4 +106,65 @@
     <a href="{% url 'site_login' %}" style="font-weight: 900; color: var(--rq-primary-light); margin-right: 0.25rem;">تسجيل الدخول</a>
   </div>
 </div>
+
+<script>
+  function updateRegPasswordStrength() {
+    var p1 = document.getElementById('id_pass1')?.value || '';
+    var p2 = document.getElementById('id_pass2')?.value || '';
+    var bar = document.getElementById('reg-pass-bar');
+    var lbl = document.getElementById('reg-pass-label');
+    var matchEl = document.getElementById('reg-pass-match');
+
+    if (bar && lbl) {
+      if (!p1) {
+        bar.style.width = '0%';
+        lbl.textContent = '—';
+        lbl.style.color = 'var(--rq-text-muted)';
+      } else {
+        var score = 0;
+        if (p1.length >= 8) score += 1;
+        if (p1.length >= 11) score += 1;
+        if (/[0-9]/.test(p1) && /[a-zA-Z\u0600-\u06FF]/.test(p1)) score += 1;
+        if (/[^a-zA-Z0-9\u0600-\u06FF]/.test(p1) || (/[A-Z]/.test(p1) && /[a-z]/.test(p1))) score += 1;
+
+        if (p1.length < 8) {
+          bar.style.width = '25%';
+          bar.style.backgroundColor = '#ef4444';
+          lbl.textContent = 'قصيرة (أقل من 8 خانات)';
+          lbl.style.color = '#ef4444';
+        } else if (score <= 1) {
+          bar.style.width = '50%';
+          bar.style.backgroundColor = '#f59e0b';
+          lbl.textContent = 'مقبولة';
+          lbl.style.color = '#f59e0b';
+        } else if (score === 2 || score === 3) {
+          bar.style.width = '78%';
+          bar.style.backgroundColor = '#3b82f6';
+          lbl.textContent = 'جيدة';
+          lbl.style.color = '#3b82f6';
+        } else {
+          bar.style.width = '100%';
+          bar.style.backgroundColor = '#10b981';
+          lbl.textContent = 'قوية جداً';
+          lbl.style.color = '#10b981';
+        }
+      }
+    }
+
+    if (matchEl) {
+      if (p2.length > 0) {
+        matchEl.style.display = 'block';
+        if (p1 === p2) {
+          matchEl.textContent = '✓ كلمتا المرور متطابقتان';
+          matchEl.style.color = '#10b981';
+        } else {
+          matchEl.textContent = '✕ كلمتا المرور غير متطابقتين';
+          matchEl.style.color = '#ef4444';
+        }
+      } else {
+        matchEl.style.display = 'none';
+      }
+    }
+  }
+</script>
 {% endblock %}
