@@ -438,7 +438,7 @@ class PaymentGatewayIntegration(TimeStampedModel):
         if self.provider == "paymera" or "paymera" in (self.name or "").lower() or "بيميرا" in (self.name or ""):
             return "/media/payment-methods/logos/paymera.png"
         if self.provider == "mtn_pay" or "mtn" in (self.name or "").lower() or "cash mobile" in (self.name or "").lower() or "كاش موبايل" in (self.name or ""):
-            return "/static/site/img/brands/mtn.svg"
+            return "/static/site/img/brands/cash-mobile.jpg"
         return None
 
     class Meta:

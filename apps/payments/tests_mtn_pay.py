@@ -363,7 +363,7 @@ class MTNPayIntegrationTests(TestCase):
             )
         pm = gw_obj.sync_payment_method()
         self.assertIsNotNone(pm)
-        self.assertEqual(gw_obj.logo_url, "/static/site/img/brands/mtn.svg")
+        self.assertEqual(gw_obj.logo_url, "/static/site/img/brands/cash-mobile.jpg")
 
         gw = gateway_for("mtn_pay")
         self.assertIsInstance(gw, MTNPayGateway)
