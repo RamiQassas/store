@@ -2267,11 +2267,16 @@ def process_deposit_refund_to_gateway(deposit, actor=None, reason=None, otp=None
     if meta.get("refunded") or meta.get("refund_status") == "approved":
         return False, "تم استرداد هذا الإيداع مسبقاً."
 
-    # 2. Check customer wallet balance
+    # 2. Check customer wallet balance (supports frozen/held refund requests AND direct admin refunds)
     wallet = get_or_create_wallet(deposit.user)
-    refund_wallet_amount = Decimal(str(deposit.wallet_amount or deposit.final_amount or deposit.amount))
-    if wallet.available_balance < refund_wallet_amount:
-        return False, f"رصيد محفظة العميل الحالي ({wallet.available_balance:,.2f} {wallet.currency.code}) غير كافٍ لاسترداد هذا الإيداع بقيمة ({refund_wallet_amount:,.2f} {wallet.currency.code})."
+    is_refund_held = bool(meta.get("refund_held"))
+    refund_wallet_amount = Decimal(str(meta.get("refund_held_amount") or deposit.wallet_amount or deposit.final_amount or deposit.amount))
+    if is_refund_held:
+        if wallet.held_balance < refund_wallet_amount:
+            return False, f"الرصيد المجمد حالياً في محفظة العميل ({wallet.held_balance:,.2f} {wallet.currency.code}) غير كافٍ لإتمام استرداد الإيداع بقيمة ({refund_wallet_amount:,.2f} {wallet.currency.code})."
+    else:
+        if wallet.available_balance < refund_wallet_amount:
+            return False, f"رصيد محفظة العميل الحالي ({wallet.available_balance:,.2f} {wallet.currency.code}) غير كافٍ لاسترداد هذا الإيداع بقيمة ({refund_wallet_amount:,.2f} {wallet.currency.code})."
 
     provider = ""
     if deposit.payment_method:
@@ -2363,24 +2368,51 @@ def process_deposit_refund_to_gateway(deposit, actor=None, reason=None, otp=None
         except Exception as exc:
             return False, f"حدث خطأ أثناء الاتصال ببيميرا: {exc}"
 
-    # Atomic DB Update & Wallet Debit
+    # Atomic DB Update & Wallet Debit (from held_balance if pre-frozen, otherwise from available_balance)
     with transaction.atomic():
-        # Debit customer wallet
-        debit_wallet(
-            wallet_id=wallet.id,
-            amount=refund_wallet_amount,
-            reference=f"deposit_refund:{deposit.id}",
-            description=f"استرداد مبلغ الإيداع #{deposit.transaction_id} إلى بوابة الدفع",
-            created_by=actor,
-            source="deposit_refund",
-            metadata={
-                "deposit_id": str(deposit.id),
-                "transaction_id": deposit.transaction_id,
-                "gateway_refund_tx": str(refund_tx_id or ""),
-                "reason": reason or "",
-            }
-        )
+        if is_refund_held:
+            from apps.wallets.models import Wallet, LedgerEntry
+            from apps.common.utils import json_serialize_safe
+            locked_w = Wallet.objects.select_for_update().get(id=wallet.id)
+            if locked_w.held_balance < refund_wallet_amount:
+                raise ValueError("الرصيد المجمد غير كافٍ لإتمام الاسترداد.")
+            locked_w.held_balance -= refund_wallet_amount
+            locked_w.save(update_fields=["held_balance", "updated_at"])
+            LedgerEntry.objects.create(
+                wallet=locked_w,
+                entry_type=LedgerEntry.EntryType.DEBIT,
+                amount=refund_wallet_amount,
+                balance_after=locked_w.available_balance,
+                reference=f"deposit_refund:{deposit.id}",
+                description=f"استرداد مبلغ الإيداع #{deposit.transaction_id} إلى بوابة الدفع (خصم من الرصيد المجمد)",
+                source="deposit_refund",
+                reason=reason or "",
+                created_by=actor,
+                metadata=json_serialize_safe({
+                    "deposit_id": str(deposit.id),
+                    "transaction_id": deposit.transaction_id,
+                    "gateway_refund_tx": str(refund_tx_id or ""),
+                    "from_held": True,
+                    "reason": reason or "",
+                }),
+            )
+        else:
+            debit_wallet(
+                wallet_id=wallet.id,
+                amount=refund_wallet_amount,
+                reference=f"deposit_refund:{deposit.id}",
+                description=f"استرداد مبلغ الإيداع #{deposit.transaction_id} إلى بوابة الدفع",
+                created_by=actor,
+                source="deposit_refund",
+                metadata={
+                    "deposit_id": str(deposit.id),
+                    "transaction_id": deposit.transaction_id,
+                    "gateway_refund_tx": str(refund_tx_id or ""),
+                    "reason": reason or "",
+                }
+            )
 
+        meta["refund_held"] = False
         meta["refunded"] = True
         meta["refund_status"] = "approved"
         meta["refund_approved_at"] = timezone.now().isoformat()

@@ -4129,7 +4129,7 @@ def dashboard_deposit_refund_request(request, pk):
     """
     from decimal import Decimal
     from apps.payments.models import DepositRequest
-    from apps.wallets.services import get_or_create_wallet
+    from apps.wallets.services import get_or_create_wallet, hold_funds, WalletError
     from apps.notifications.services import notify_staff
 
     if request.method != "POST":
@@ -4164,25 +4164,45 @@ def dashboard_deposit_refund_request(request, pk):
         )
         return redirect("dashboard_deposits")
 
-    meta["refund_requested"] = True
-    meta["refund_status"] = "pending"
-    meta["refund_reason"] = reason
-    meta["refund_requested_at"] = timezone.now().isoformat()
-    deposit.metadata = meta
-    deposit.save(update_fields=["metadata", "updated_at"])
+    try:
+        with transaction.atomic():
+            hold_funds(
+                wallet_id=wallet.id,
+                amount=refund_wallet_amount,
+                reference=f"deposit_refund_hold:{deposit.id}",
+                description=f"تجميد رصيد لطلب استرداد الإيداع #{deposit.transaction_id or str(deposit.id)[:8]}",
+                created_by=request.user,
+                source="deposit_refund_hold",
+                reason=f"تجميد مؤقت لحين مراجعة طلب استرداد الإيداع: {reason}",
+                metadata={"deposit_id": str(deposit.id), "refund_reason": reason},
+            )
+            meta["refund_requested"] = True
+            meta["refund_status"] = "pending"
+            meta["refund_reason"] = reason
+            meta["refund_requested_at"] = timezone.now().isoformat()
+            meta["refund_held"] = True
+            meta["refund_held_amount"] = str(refund_wallet_amount)
+            deposit.metadata = meta
+            deposit.save(update_fields=["metadata", "updated_at"])
+    except WalletError as werr:
+        messages.error(request, f"تعذر تجميد الرصيد لطلب الاسترداد: {werr}")
+        return redirect("dashboard_deposits")
 
     try:
         notify_staff(
-            title="طلب استرداد إيداع جديد",
-            body=f"قدم العميل {request.user.email} طلب استرداد إيداع بقيمة {deposit.amount} {deposit.currency.code}. السبب: {reason}",
-            action_url="/control/orders/?status=refund_pending",
+            title="طلب استرداد إيداع جديد (الرصيد مجمد)",
+            body=f"قدم العميل {request.user.email} طلب استرداد إيداع بقيمة {deposit.amount} {deposit.currency.code} (تم تجميد {refund_wallet_amount:,.2f} {wallet.currency.code}). السبب: {reason}",
+            action_url=f"/control/deposits/{deposit.id}/",
             category="financial",
             priority="high",
         )
     except Exception:
         pass
 
-    messages.success(request, "تم تقديم طلب استرداد الإيداع بنجاح. ستتم مراجعته من قبل الإدارة وإعادة الأموال إلى نفس البوابة التي أودعت بها.")
+    messages.success(
+        request,
+        f"تم تقديم طلب استرداد الإيداع وتجميد مبلغ {refund_wallet_amount:,.2f} {wallet.currency.code} مؤقتاً لحين مراجعة الإدارة. ستتم إعادة الأموال إلى نفس البوابة فور الموافقة."
+    )
     return redirect("dashboard_deposits")
 
 
@@ -4219,21 +4239,39 @@ def control_deposit_refund_action(request, pk):
             messages.error(request, message)
 
     elif action == "reject":
+        from apps.wallets.services import get_or_create_wallet, unhold_funds
         reject_reason = request.POST.get("reject_reason", "").strip() or "تم رفض طلب الاسترداد من قبل الإدارة."
         meta = dict(deposit.metadata or {})
-        meta["refund_status"] = "rejected"
-        meta["refund_rejected_at"] = timezone.now().isoformat()
-        meta["refund_rejected_by"] = getattr(request.user, "email", str(request.user))
-        meta["refund_reject_reason"] = reject_reason
-        deposit.metadata = meta
-        deposit.admin_note = (deposit.admin_note or "") + f"\n[رفض استرداد إيداع]: تم الرفض في {timezone.now().strftime('%Y-%m-%d %H:%M')} بواسطة {getattr(request.user, 'email', 'مشرف')}. السبب: {reject_reason}."
-        deposit.save(update_fields=["metadata", "admin_note", "updated_at"])
+        with transaction.atomic():
+            if meta.get("refund_held"):
+                held_amt = Decimal(str(meta.get("refund_held_amount") or deposit.wallet_amount or deposit.final_amount or deposit.amount))
+                wallet = get_or_create_wallet(deposit.user)
+                if held_amt > 0 and wallet.held_balance >= held_amt:
+                    unhold_funds(
+                        wallet_id=wallet.id,
+                        amount=held_amt,
+                        reference=f"deposit_refund_reject:{deposit.id}",
+                        description=f"فك تجميد الرصيد بعد رفض طلب استرداد الإيداع #{deposit.transaction_id or str(deposit.id)[:8]}",
+                        created_by=request.user,
+                        source="deposit_refund_reject",
+                        reason=reject_reason,
+                        metadata={"deposit_id": str(deposit.id)},
+                    )
+                meta["refund_held"] = False
+
+            meta["refund_status"] = "rejected"
+            meta["refund_rejected_at"] = timezone.now().isoformat()
+            meta["refund_rejected_by"] = getattr(request.user, "email", str(request.user))
+            meta["refund_reject_reason"] = reject_reason
+            deposit.metadata = meta
+            deposit.admin_note = (deposit.admin_note or "") + f"\n[رفض استرداد إيداع]: تم الرفض في {timezone.now().strftime('%Y-%m-%d %H:%M')} بواسطة {getattr(request.user, 'email', 'مشرف')}. السبب: {reject_reason}."
+            deposit.save(update_fields=["metadata", "admin_note", "updated_at"])
 
         try:
             notify_user(
                 user=deposit.user,
-                title="تم رفض طلب استرداد الإيداع",
-                body=f"نأسف، تم رفض طلب استرداد الإيداع بقيمة {deposit.amount} {deposit.currency.code}. السبب: {reject_reason}",
+                title="تم رفض طلب استرداد الإيداع وفك تجميد الرصيد",
+                body=f"نأسف، تم رفض طلب استرداد الإيداع بقيمة {deposit.amount} {deposit.currency.code} وتمت إعادة الرصيد المجمد إلى محفظتك المتاحة. السبب: {reject_reason}",
                 action_url="/dashboard/deposits/",
                 category="financial",
                 priority="high",
@@ -4241,7 +4279,7 @@ def control_deposit_refund_action(request, pk):
         except Exception:
             pass
 
-        messages.info(request, f"تم رفض طلب استرداد الإيداع للعملية #{deposit.transaction_id}.")
+        messages.info(request, f"تم رفض طلب استرداد الإيداع للعملية #{deposit.transaction_id} وفك تجميد الرصيد وإعادته لمحفظة العميل.")
     else:
         messages.error(request, "إجراء غير صالح.")
 
