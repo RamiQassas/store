@@ -6,18 +6,155 @@
 {% block extra_head %}
 {{ block.super }}
 <style>
+    /* Scoped High-Contrast Elite Deposit Detail Styles (immune to light-theme overrides) */
+    .dep-page-wrap {
+        color: #f8fafc !important;
+    }
+    .glass-panel {
+        background: linear-gradient(145deg, #0f172a 0%, #0b1120 100%) !important;
+        border: 1px solid rgba(148, 163, 184, 0.2) !important;
+        color: #f8fafc !important;
+    }
+    .dep-card {
+        background: linear-gradient(145deg, #0f172a 0%, #0b1120 100%) !important;
+        border: 1px solid rgba(148, 163, 184, 0.18) !important;
+        border-radius: 24px !important;
+        box-shadow: 0 18px 40px -14px rgba(0, 0, 0, 0.55) !important;
+        color: #f8fafc !important;
+    }
+    .dep-subbox {
+        background: #111827 !important;
+        border: 1px solid rgba(148, 163, 184, 0.16) !important;
+        border-radius: 16px !important;
+        color: #f1f5f9 !important;
+    }
+    .dep-label {
+        display: block;
+        font-size: 11px !important;
+        font-weight: 800 !important;
+        color: #94a3b8 !important;
+        margin-bottom: 4px;
+    }
+    .dep-value {
+        font-size: 14px !important;
+        font-weight: 800 !important;
+        color: #f8fafc !important;
+    }
+    .dep-status-banner {
+        background: linear-gradient(135deg, #064e3b 0%, #0f172a 100%) !important;
+        border: 1px solid rgba(16, 185, 129, 0.45) !important;
+        border-radius: 22px !important;
+        padding: 1.4rem 1.6rem !important;
+        color: #f8fafc !important;
+    }
+    .dep-status-banner.rejected {
+        background: linear-gradient(135deg, #4c0519 0%, #0f172a 100%) !important;
+        border-color: rgba(244, 63, 94, 0.45) !important;
+    }
+    .dep-status-title {
+        font-size: 1.1rem !important;
+        font-weight: 900 !important;
+        color: #34d399 !important;
+    }
+    .dep-status-banner.rejected .dep-status-title {
+        color: #fb7185 !important;
+    }
+    .dep-status-sub {
+        font-size: 0.82rem !important;
+        font-weight: 700 !important;
+        color: #cbd5e1 !important;
+        margin-top: 4px;
+    }
+    .dep-badge-refunded {
+        display: inline-flex !important;
+        align-items: center !important;
+        gap: 0.45rem !important;
+        padding: 0.55rem 1rem !important;
+        border-radius: 12px !important;
+        background: #451a03 !important;
+        border: 1px solid #f59e0b !important;
+        color: #fde68a !important;
+        font-size: 0.8rem !important;
+        font-weight: 900 !important;
+    }
+    .dep-btn-refund {
+        display: inline-flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        gap: 0.45rem !important;
+        padding: 0.6rem 1.1rem !important;
+        border-radius: 12px !important;
+        background: linear-gradient(135deg, #e11d48 0%, #be123c 100%) !important;
+        border: 1px solid #fb7185 !important;
+        color: #ffffff !important;
+        font-size: 0.8rem !important;
+        font-weight: 900 !important;
+        cursor: pointer !important;
+        transition: transform 0.15s ease, filter 0.15s ease !important;
+    }
+    .dep-btn-refund:hover {
+        filter: brightness(1.08);
+        transform: translateY(-1px);
+    }
+    .dep-btn-edit {
+        display: inline-flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        gap: 0.45rem !important;
+        padding: 0.6rem 1.1rem !important;
+        border-radius: 12px !important;
+        background: #1e293b !important;
+        border: 1px solid rgba(56, 189, 248, 0.45) !important;
+        color: #e0f2fe !important;
+        font-size: 0.8rem !important;
+        font-weight: 900 !important;
+        cursor: pointer !important;
+        transition: background 0.15s ease, transform 0.15s ease !important;
+    }
+    .dep-btn-edit:hover {
+        background: #334155 !important;
+        transform: translateY(-1px);
+    }
+    .dep-panel-inner {
+        background: #0b1120 !important;
+        border: 1px solid rgba(148, 163, 184, 0.22) !important;
+        border-radius: 20px !important;
+        padding: 1.5rem !important;
+        color: #f8fafc !important;
+    }
+    .dep-panel-inner.refund {
+        background: linear-gradient(145deg, #2a0a14 0%, #111827 100%) !important;
+        border-color: rgba(244, 63, 94, 0.4) !important;
+    }
+    .dep-input {
+        width: 100% !important;
+        padding: 0.75rem 1rem !important;
+        border-radius: 12px !important;
+        background: #020617 !important;
+        border: 1.5px solid #334155 !important;
+        color: #f8fafc !important;
+        font-size: 0.88rem !important;
+        font-weight: 700 !important;
+        outline: none !important;
+    }
+    .dep-input:focus {
+        border-color: #06b6d4 !important;
+    }
+    .dep-input::placeholder {
+        color: #64748b !important;
+    }
     .proof-viewer-wrapper {
         position: relative;
         width: 100%;
-        height: 400px;
-        background: #020617;
-        border-radius: 32px;
+        height: 380px;
+        background: #020617 !important;
+        border-radius: 22px;
         overflow: hidden;
-        border: 1px solid rgba(255,255,255,0.05);
+        border: 1px solid rgba(148, 163, 184, 0.18);
         display: flex;
         align-items: center;
         justify-content: center;
-        box-shadow: inset 0 0 100px rgba(0,0,0,0.8);
+        box-shadow: inset 0 0 80px rgba(0, 0, 0, 0.75);
     }
     .proof-img-elite {
         max-width: 90%;
@@ -25,52 +162,52 @@
         object-fit: contain;
         transition: transform 0.3s cubic-bezier(0.2, 1, 0.3, 1);
         cursor: grab;
-        filter: drop-shadow(0 20px 50px rgba(0,0,0,0.5));
+        filter: drop-shadow(0 20px 50px rgba(0, 0, 0, 0.5));
     }
     .proof-img-elite:active { cursor: grabbing; }
-    
     .floating-controls {
         position: absolute;
-        bottom: 30px;
+        bottom: 20px;
         left: 50%;
         transform: translateX(-50%);
         display: flex;
-        gap: 12px;
-        background: rgba(15, 23, 42, 0.7);
-        backdrop-filter: blur(20px);
-        padding: 10px 20px;
-        border-radius: 20px;
-        border: 1px solid rgba(255,255,255,0.1);
+        gap: 10px;
+        background: rgba(15, 23, 42, 0.88) !important;
+        backdrop-filter: blur(16px);
+        padding: 8px 16px;
+        border-radius: 16px;
+        border: 1px solid rgba(255, 255, 255, 0.14);
         z-index: 100;
-        box-shadow: 0 15px 35px rgba(0,0,0,0.5);
     }
     .control-btn {
-        width: 40px;
-        height: 40px;
+        width: 36px;
+        height: 36px;
         display: flex;
         align-items: center;
         justify-content: center;
-        border-radius: 12px;
-        color: #94a3b8;
+        border-radius: 10px;
+        color: #cbd5e1 !important;
         transition: all 0.2s;
         border: none;
-        background: transparent;
+        background: transparent !important;
         cursor: pointer;
     }
-    .control-btn:hover { background: rgba(255,255,255,0.1); color: var(--sham-cyan); transform: translateY(-2px); }
-
+    .control-btn:hover { background: rgba(255, 255, 255, 0.12) !important; color: #22d3ee !important; }
     .action-panel-elite {
-        background: linear-gradient(135deg, rgba(17, 24, 39, 0.8), rgba(17, 24, 39, 0.4));
-        border: 1px solid rgba(255,255,255,0.05);
-        border-radius: 32px;
+        background: linear-gradient(145deg, #0f172a 0%, #0b1120 100%) !important;
+        border: 1px solid rgba(148, 163, 184, 0.2) !important;
+        border-radius: 26px !important;
         overflow: hidden;
-        backdrop-filter: blur(20px);
+        color: #f8fafc !important;
     }
-    
-    .info-grid-elite { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
-    .stat-pill { padding: 16px; background: rgba(255,255,255,0.02); border-radius: 20px; border: 1px solid rgba(255,255,255,0.03); }
-    .stat-pill .label { font-size: 10px; font-weight: 900; color: #475569; text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 4px; display: block; }
-    .stat-pill .value { font-size: 15px; font-weight: 800; color: #fff; }
+    .stat-pill {
+        padding: 14px;
+        background: #111827 !important;
+        border-radius: 16px;
+        border: 1px solid rgba(148, 163, 184, 0.16);
+    }
+    .stat-pill .label { font-size: 10px; font-weight: 900; color: #94a3b8 !important; text-transform: uppercase; margin-bottom: 4px; display: block; }
+    .stat-pill .value { font-size: 15px; font-weight: 800; color: #f8fafc !important; }
 </style>
 {% endblock %}
 
@@ -363,42 +500,44 @@
                 </div>
             </div>
             {% elif deposit.status == 'completed' or deposit.status == 'approved' %}
-            <div class="flex flex-wrap items-center justify-between gap-4 p-6 bg-emerald-500/5 border border-emerald-500/10 rounded-[28px]">
+            <div class="dep-status-banner flex flex-wrap items-center justify-between gap-4">
                 <div class="flex items-center gap-4">
-                    <div class="w-14 h-14 rounded-2xl bg-emerald-500/10 flex items-center justify-center text-emerald-500 text-xl">
+                    <div class="w-14 h-14 rounded-2xl flex items-center justify-center text-xl" style="background: rgba(16, 185, 129, 0.18); color: #34d399; border: 1px solid rgba(52, 211, 153, 0.35);">
                         <i class="fas fa-check-double"></i>
                     </div>
                     <div>
-                        <div class="text-lg font-black text-emerald-400">تمت الموافقة والاعتماد</div>
-                        <div class="text-xs text-slate-500 mt-1">
+                        <div class="dep-status-title">تمت الموافقة والاعتماد</div>
+                        <div class="dep-status-sub">
                             بواسطة {% if deposit.reviewed_by %}{{ deposit.reviewed_by.get_full_name|default:deposit.reviewed_by.email }}{% else %}تلقائي (بوابة الدفع){% endif %}{% if deposit.reviewed_at %} في {{ deposit.reviewed_at|date:"d M Y, H:i" }}{% endif %}
                         </div>
                     </div>
                 </div>
-                <div class="flex flex-wrap items-center gap-2">
+                <div class="flex flex-wrap items-center gap-2.5">
                     {% if deposit.metadata.refunded or deposit.metadata.refund_status == 'approved' %}
-                    <span class="px-4 py-2 rounded-xl bg-amber-500/15 text-amber-300 border border-amber-500/30 font-black text-xs inline-flex items-center gap-2">
+                    <span class="dep-badge-refunded">
                         <i class="fas fa-rotate-left"></i> تم استرداد المبلغ لنفس الحساب
                     </span>
                     {% else %}
-                    <button type="button" class="btn btn-sm h-10 px-5 rounded-xl font-black text-xs bg-rose-500/15 text-rose-300 border border-rose-500/35 hover:bg-rose-500/25 transition" onclick="document.getElementById('refund-pane').classList.toggle('hidden')">
-                        <i class="fas fa-rotate-left ml-1.5"></i> استرداد المبلغ لنفس الحساب
+                    <button type="button" class="dep-btn-refund" onclick="document.getElementById('refund-pane').classList.toggle('hidden')">
+                        <i class="fas fa-rotate-left"></i> استرداد المبلغ لنفس الحساب
                     </button>
                     {% endif %}
-                    <button type="button" class="btn btn-outline btn-sm h-10 px-6 rounded-xl font-black text-[9px] uppercase" onclick="document.getElementById('edit-pane').classList.toggle('hidden')">تعديل العملية</button>
+                    <button type="button" class="dep-btn-edit" onclick="document.getElementById('edit-pane').classList.toggle('hidden')">
+                        <i class="fas fa-pen-to-square"></i> تعديل العملية
+                    </button>
                 </div>
             </div>
 
             {% if not deposit.metadata.refunded and deposit.metadata.refund_status != 'approved' %}
             <!-- Direct Refund to Original Account Pane -->
-            <div id="refund-pane" class="hidden mt-6 p-7 bg-rose-950/30 rounded-3xl border border-rose-500/25">
+            <div id="refund-pane" class="hidden mt-6 dep-panel-inner refund">
                 <div class="flex items-center gap-3 mb-4">
-                    <div class="w-10 h-10 rounded-xl bg-rose-500/15 flex items-center justify-center text-rose-400">
+                    <div class="w-10 h-10 rounded-xl flex items-center justify-center" style="background: rgba(244, 63, 94, 0.2); color: #fda4af;">
                         <i class="fas fa-rotate-left"></i>
                     </div>
                     <div>
-                        <h4 class="text-sm font-black text-rose-200">استرداد المبلغ لنفس الحساب ({{ deposit.payment_method.name }})</h4>
-                        <p class="text-[11px] text-slate-400 mt-0.5">سيتم إعادة المبلغ فورياً إلى نفس حساب العميل في بوابة الدفع وخصمه من رصيد محفظته تلقائياً.</p>
+                        <h4 style="font-size: 0.92rem; font-weight: 900; color: #ffe4e6; margin: 0;">استرداد المبلغ لنفس الحساب ({{ deposit.payment_method.name }})</h4>
+                        <p style="font-size: 0.78rem; color: #cbd5e1; margin: 3px 0 0;">سيتم إعادة المبلغ فورياً إلى نفس حساب العميل في بوابة الدفع وخصمه من رصيد محفظته تلقائياً.</p>
                     </div>
                 </div>
                 <form method="post" action="{% url 'control_deposit_refund_action' deposit.id %}" onsubmit="return confirm('هل أنت متأكد من استرداد مبلغ {{ deposit.amount }} {{ deposit.currency.code }} وإعادته لنفس حساب العميل في بوابة الدفع؟');" class="space-y-4">
@@ -406,10 +545,10 @@
                     <input type="hidden" name="action" value="approve">
                     <input type="hidden" name="next" value="{{ request.path }}">
                     <div>
-                        <label class="field-label">سبب الاسترداد</label>
-                        <input type="text" name="refund_reason" class="modern-input border-rose-500/20" placeholder="مثلاً: استرداد بناءً على طلب العميل أو إلغاء عملية الإيداع..." required>
+                        <label class="dep-label">سبب الاسترداد</label>
+                        <input type="text" name="refund_reason" class="dep-input" placeholder="مثلاً: استرداد بناءً على طلب العميل أو إلغاء عملية الإيداع..." required>
                     </div>
-                    <button type="submit" class="btn w-full h-12 rounded-2xl bg-rose-600 hover:bg-rose-500 text-white font-black text-xs flex items-center justify-center gap-2 transition">
+                    <button type="submit" class="dep-btn-refund w-full" style="height: 46px; font-size: 0.88rem;">
                         <i class="fas fa-paper-plane"></i>
                         <span>تأكيد استرداد المبلغ لنفس الحساب الآن</span>
                     </button>
@@ -418,28 +557,28 @@
             {% endif %}
             
             <!-- Hidden Correction Pane -->
-            <div id="edit-pane" class="hidden mt-8 p-8 bg-slate-950/40 rounded-3xl border border-white/5 animate-in fade-in slide-in-from-top-4">
-                <h4 class="text-sm font-black text-white mb-6 uppercase tracking-widest">تصحيح بيانات العملية</h4>
-                <div class="grid grid-cols-2 gap-6">
+            <div id="edit-pane" class="hidden mt-6 dep-panel-inner">
+                <h4 style="font-size: 0.9rem; font-weight: 900; color: #f8fafc; margin: 0 0 1rem;">تصحيح بيانات العملية</h4>
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div>
-                        <label class="field-label">المبلغ الجديد</label>
-                        <input type="number" id="correct-amount" value="{{ deposit.amount }}" step="0.01" class="modern-input">
+                        <label class="dep-label">المبلغ الجديد</label>
+                        <input type="number" id="correct-amount" value="{{ deposit.amount }}" step="0.01" class="dep-input">
                     </div>
                     <div>
-                        <label class="field-label">سبب التعديل</label>
-                        <input type="text" id="correct-note" class="modern-input" placeholder="مثلاً: خطأ في إدخال المبلغ الأصلي...">
+                        <label class="dep-label">سبب التعديل</label>
+                        <input type="text" id="correct-note" class="dep-input" placeholder="مثلاً: خطأ في إدخال المبلغ الأصلي...">
                     </div>
                 </div>
-                <button class="btn btn-outline w-full mt-6 py-3 font-black text-[10px]" onclick="handleAction('correct')">حفظ التصحيحات</button>
+                <button type="button" class="dep-btn-edit w-full mt-5" style="height: 44px;" onclick="handleAction('correct')">حفظ التصحيحات</button>
             </div>
             {% else %}
-            <div class="flex items-center gap-4 p-8 bg-rose-500/5 border border-rose-500/10 rounded-[28px]">
-                <div class="w-14 h-14 rounded-2xl bg-rose-500/10 flex items-center justify-center text-rose-500 text-xl">
+            <div class="dep-status-banner rejected flex items-center gap-4">
+                <div class="w-14 h-14 rounded-2xl flex items-center justify-center text-xl" style="background: rgba(244, 63, 94, 0.2); color: #fb7185;">
                     <i class="fas fa-times-circle"></i>
                 </div>
                 <div>
-                    <div class="text-lg font-black text-rose-400">طلب مرفوض</div>
-                    <div class="text-xs text-slate-500 mt-1">تم الرفض بواسطة الإدارة. السبب: <span class="text-slate-300 italic">{{ deposit.admin_note|default:"بدون ملاحظات" }}</span></div>
+                    <div class="dep-status-title">طلب مرفوض</div>
+                    <div class="dep-status-sub">تم الرفض بواسطة الإدارة. السبب: <span style="color: #ffe4e6;">{{ deposit.admin_note|default:"بدون ملاحظات" }}</span></div>
                 </div>
             </div>
             {% endif %}

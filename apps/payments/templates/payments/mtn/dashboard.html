@@ -1,218 +1,283 @@
 {% extends "site/control_base.html" %}
 {% load static %}
 
-{% block title %}إدارة بوابة MTN Payment API | Raqamiyat Control{% endblock %}
+{% block title %}فواتير وروابط دفع MTN Cash | Raqamiyat Control{% endblock %}
 
 {% block control_content %}
+<style>
+  .mtn-dash-card {
+    background: linear-gradient(145deg, #0f172a 0%, #0b1120 100%) !important;
+    border: 1px solid rgba(148, 163, 184, 0.18) !important;
+    border-radius: 22px !important;
+    box-shadow: 0 16px 38px -12px rgba(0, 0, 0, 0.5) !important;
+    color: #f8fafc !important;
+  }
+  .mtn-dash-input {
+    width: 100% !important;
+    height: 46px !important;
+    padding: 0 0.95rem !important;
+    border-radius: 12px !important;
+    background: #020617 !important;
+    border: 1.5px solid #334155 !important;
+    color: #f8fafc !important;
+    font-size: 0.9rem !important;
+    font-weight: 800 !important;
+    outline: none !important;
+    transition: border-color 0.18s ease !important;
+  }
+  .mtn-dash-input:focus {
+    border-color: #eab308 !important;
+  }
+  .mtn-ttl-chip {
+    padding: 0.35rem 0.75rem;
+    border-radius: 999px;
+    background: #1e293b;
+    border: 1px solid rgba(148, 163, 184, 0.25);
+    color: #e2e8f0;
+    font-size: 0.74rem;
+    font-weight: 800;
+    cursor: pointer;
+    transition: all 0.15s ease;
+  }
+  .mtn-ttl-chip:hover, .mtn-ttl-chip.active {
+    background: rgba(234, 179, 8, 0.18);
+    border-color: #eab308;
+    color: #fde047;
+  }
+  .mtn-btn-gold {
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    gap: 0.5rem !important;
+    height: 46px !important;
+    padding: 0 1.4rem !important;
+    border-radius: 12px !important;
+    background: linear-gradient(135deg, #eab308 0%, #f59e0b 100%) !important;
+    color: #0f172a !important;
+    border: none !important;
+    font-size: 0.88rem !important;
+    font-weight: 900 !important;
+    cursor: pointer !important;
+    transition: transform 0.15s ease, filter 0.15s ease !important;
+  }
+  .mtn-btn-gold:hover {
+    filter: brightness(1.06);
+    transform: translateY(-1px);
+  }
+  .mtn-action-btn {
+    display: inline-flex !important;
+    align-items: center !important;
+    gap: 0.35rem !important;
+    padding: 0.42rem 0.75rem !important;
+    border-radius: 10px !important;
+    font-size: 0.73rem !important;
+    font-weight: 800 !important;
+    text-decoration: none !important;
+    cursor: pointer !important;
+    transition: all 0.15s ease !important;
+    border: 1px solid transparent !important;
+  }
+  .mtn-action-copy {
+    background: rgba(6, 182, 212, 0.14) !important;
+    border-color: rgba(6, 182, 212, 0.35) !important;
+    color: #67e8f9 !important;
+  }
+  .mtn-action-copy:hover {
+    background: rgba(6, 182, 212, 0.24) !important;
+  }
+  .mtn-action-wa {
+    background: rgba(16, 185, 129, 0.14) !important;
+    border-color: rgba(16, 185, 129, 0.35) !important;
+    color: #6ee7b7 !important;
+  }
+  .mtn-action-wa:hover {
+    background: rgba(16, 185, 129, 0.24) !important;
+  }
+  .mtn-action-open {
+    background: rgba(234, 179, 8, 0.14) !important;
+    border-color: rgba(234, 179, 8, 0.35) !important;
+    color: #fde047 !important;
+  }
+  .mtn-action-open:hover {
+    background: rgba(234, 179, 8, 0.24) !important;
+  }
+</style>
+
 <div class="page-head">
   <div>
-    <span class="eyebrow">MTN PAYMENT API • POS_WEB</span>
-    <h1>إدارة بوابة الدفع MTNPay ونقطة البيع</h1>
-    <p class="text-slate-400 text-xs mt-1">تفعيل الطرفية بتشفير RSA 1024 + SHA-256، إدارة الفواتير، الدفع عبر الهاتف، وعمليات الاسترداد.</p>
+    <span class="eyebrow">MTN CASH MOBILE • PAYMENT LINKS</span>
+    <h1>فواتير وروابط دفع MTN Cash</h1>
+    <p class="text-slate-400 text-xs mt-1">أنشئ فاتورة فورية وشارك رابط الدفع المباشر مع العميل بكل سهولة واحترافية.</p>
   </div>
   <div class="flex flex-wrap items-center gap-2">
-    <form method="post" action="{% url 'mtn_admin_check_status' %}">
-      {% csrf_token %}
-      <button type="submit" class="btn btn-sm bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 font-bold">
-        <i class="fas fa-satellite-dish ml-1"></i> التحقق من حالة مزود API
-      </button>
-    </form>
+    <span class="px-3 py-1.5 rounded-full text-xs font-black {% if terminal.is_activated %}bg-emerald-500/20 text-emerald-300 border border-emerald-500/35{% else %}bg-amber-500/20 text-amber-300 border border-amber-500/35{% endif %}">
+      <i class="fas fa-circle text-[8px] ml-1.5"></i>
+      {% if terminal.is_activated %}البوابة متصلة وتعمل بنجاح{% else %}البوابة بحاجة تفعيل{% endif %}
+    </span>
     <a href="{% url 'payment_gateway_integrations_list' %}" class="btn btn-outline btn-sm">
-      <i class="fas fa-arrow-right ml-1"></i> العودة لبوابات دفع API
+      <i class="fas fa-arrow-right ml-1"></i> بوابات الدفع
     </a>
   </div>
 </div>
 
-<div class="grid grid-cols-1 lg:grid-cols-12 gap-6 mb-8">
-  <!-- POS Activation & Settings Card -->
-  <div class="lg:col-span-6 glass-panel p-6 space-y-4">
-    <div class="flex items-center justify-between">
-      <h3 class="text-sm font-black text-white flex items-center gap-2">
-        <i class="fas fa-key text-amber-400"></i>
-        <span>تفعيل نقطة البيع (pos_web/pos/activate)</span>
-      </h3>
-      <span class="px-2.5 py-1 rounded-full text-[11px] font-black {% if terminal.is_activated %}bg-emerald-500/20 text-emerald-400{% elif terminal.is_locked %}bg-rose-500/20 text-rose-400{% else %}bg-amber-500/20 text-amber-300{% endif %}">
-        {% if terminal.is_activated %}مفعلة{% elif terminal.is_locked %}موقوفة (تجاوز 3 محاولات){% else %}بانتظار التفعيل{% endif %}
-      </span>
-    </div>
-
-    <div class="text-xs text-slate-400 space-y-1 bg-slate-950/60 p-3 rounded-xl border border-white/5">
-      <div>محاولات التفعيل الفاشلة: <strong class="text-white font-mono">{{ terminal.activation_attempts }} / 3</strong> (CountAbuse: <strong class="text-white font-mono">{{ terminal.count_abuse }}</strong>)</div>
-      <div class="truncate">المفتاح العام (Key Base64): <code class="text-cyan text-[10px]">{{ terminal.public_key_b64|truncatechars:48 }}</code></div>
-    </div>
-
-    <form method="post" action="{% url 'mtn_admin_activate_pos' %}" class="space-y-3">
-      {% csrf_token %}
-      <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-        <div>
-          <label class="text-[11px] font-bold text-slate-300 block mb-1">معرف الطرفية (Subject)</label>
-          <input type="text" name="terminal_id" value="{{ terminal.terminal_id }}" class="w-full px-3 py-2 rounded-xl bg-slate-950 border border-white/10 text-white text-xs font-mono" required>
-        </div>
-        <div>
-          <label class="text-[11px] font-bold text-slate-300 block mb-1">الرقم التسلسلي (Serial)</label>
-          <input type="text" name="serial_number" value="{{ terminal.serial_number }}" class="w-full px-3 py-2 rounded-xl bg-slate-950 border border-white/10 text-white text-xs font-mono" required>
-        </div>
-      </div>
-      <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-        <div>
-          <label class="text-[11px] font-bold text-slate-300 block mb-1">رمز التفعيل لمرة واحدة (Secret - 8 أرقام)</label>
-          <input type="password" name="secret_code" maxlength="8" placeholder="•••••••• (أو من متغير البيئة)" class="w-full px-3 py-2 rounded-xl bg-slate-950 border border-white/10 text-white text-xs font-mono">
-        </div>
-        <div>
-          <label class="text-[11px] font-bold text-slate-300 block mb-1">رابط الخادم الأساسي</label>
-          <input type="url" name="base_url" value="{{ terminal.base_url }}" class="w-full px-3 py-2 rounded-xl bg-slate-950 border border-white/10 text-white text-xs font-mono">
-        </div>
-      </div>
-      <div class="flex flex-wrap gap-2 pt-1">
-        <button type="submit" class="btn bg-cyan text-slate-950 font-black" {% if terminal.is_locked %}disabled{% endif %}>
-          <i class="fas fa-bolt"></i>
-          <span>إرسال طلب التفعيل</span>
-        </button>
-        {% if terminal.is_locked %}
-        <button type="submit" name="reset_lock" value="1" class="btn bg-rose-500/20 text-rose-300 border border-rose-500/40">
-          <i class="fas fa-unlock"></i>
-          <span>فك القفل بعد إصدار Secret جديد</span>
-        </button>
-        {% endif %}
-      </div>
-    </form>
-  </div>
-
-  <!-- Stored Terminal Settings (Currency, Limits, Allowed, Description) -->
-  <div class="lg:col-span-6 glass-panel p-6 space-y-4">
+{% if not terminal.is_activated %}
+<!-- POS Activation Card (Shown ONLY when terminal is not activated) -->
+<div class="mtn-dash-card p-6 mb-8 space-y-4">
+  <div class="flex items-center justify-between">
     <h3 class="text-sm font-black text-white flex items-center gap-2">
-      <i class="fas fa-sliders text-cyan"></i>
-      <span>إعدادات الطرفية المخزنة (Settings)</span>
+      <i class="fas fa-key text-amber-400"></i>
+      <span>تفعيل نقطة البيع (pos_web/pos/activate)</span>
     </h3>
+    <span class="px-2.5 py-1 rounded-full text-[11px] font-black bg-amber-500/20 text-amber-300">بانتظار التفعيل</span>
+  </div>
+  <form method="post" action="{% url 'mtn_admin_activate_pos' %}" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 items-end">
+    {% csrf_token %}
+    <div>
+      <label class="text-[11px] font-bold text-slate-300 block mb-1">معرف الطرفية (Subject)</label>
+      <input type="text" name="terminal_id" value="{{ terminal.terminal_id }}" class="mtn-dash-input font-mono" required>
+    </div>
+    <div>
+      <label class="text-[11px] font-bold text-slate-300 block mb-1">الرقم التسلسلي (Serial)</label>
+      <input type="text" name="serial_number" value="{{ terminal.serial_number }}" class="mtn-dash-input font-mono" required>
+    </div>
+    <div>
+      <label class="text-[11px] font-bold text-slate-300 block mb-1">رمز التفعيل (8 أرقام)</label>
+      <input type="password" name="secret_code" maxlength="8" placeholder="••••••••" class="mtn-dash-input font-mono">
+    </div>
+    <div>
+      <button type="submit" class="mtn-btn-gold w-full" {% if terminal.is_locked %}disabled{% endif %}>
+        <i class="fas fa-bolt"></i>
+        <span>تفعيل الطرفية</span>
+      </button>
+    </div>
+  </form>
+</div>
+{% endif %}
 
-    <div class="grid grid-cols-2 sm:grid-cols-3 gap-3 text-xs">
-      <div class="p-3 rounded-xl bg-slate-950/60 border border-white/5">
-        <span class="text-slate-400 block text-[10px]">العملة (Currency)</span>
-        <strong class="text-white font-mono">{{ terminal.currency_info.Brief|default:"SYP" }} ({{ terminal.currency_info.Code|default:"760" }})</strong>
-        <span class="block text-[10px] text-cyan">Fractional: {{ terminal.fractional_factor }}</span>
+<!-- Create MTN Cash Invoice & Share Link Card -->
+<div class="mtn-dash-card p-6 mb-8">
+  <div class="flex flex-wrap items-center justify-between gap-3 mb-5 pb-4 border-b border-white/10">
+    <div class="flex items-center gap-3">
+      <div class="w-11 h-11 rounded-2xl flex items-center justify-center" style="background: rgba(234, 179, 8, 0.16); color: #facc15; border: 1px solid rgba(234, 179, 8, 0.35);">
+        <i class="fas fa-file-invoice-dollar text-lg"></i>
       </div>
-      <div class="p-3 rounded-xl bg-slate-950/60 border border-white/5">
-        <span class="text-slate-400 block text-[10px]">الحدود (Limits)</span>
-        <strong class="text-white font-mono text-[11px]">{{ terminal.limits_info.Minimum|default:0 }} - {{ terminal.limits_info.Maximum|default:0 }}</strong>
+      <div>
+        <h3 class="text-base font-black text-white m-0">إنشاء فاتورة MTN Cash ومشاركة رابط الدفع</h3>
+        <p class="text-xs text-slate-400 mt-0.5 m-0">حدد المبلغ بالليرة السورية ومدة صلاحية الرابط بالدقائق ليتم إنشاء رابط دفع فوري.</p>
       </div>
-      <div class="p-3 rounded-xl bg-slate-950/60 border border-white/5">
-        <span class="text-slate-400 block text-[10px]">صلاحية الدفع (Allowed.Payment)</span>
-        <strong class="{% if terminal.is_payment_allowed %}text-emerald-400{% else %}text-rose-400{% endif %}">
-          {% if terminal.is_payment_allowed %}مسموح (true){% else %}غير مسموح (false){% endif %}
-        </strong>
+    </div>
+    <span class="px-3 py-1 rounded-xl text-xs font-mono font-bold bg-slate-900 text-amber-300 border border-white/10">
+      العملة: {{ terminal.currency_info.Brief|default:"SYP" }}
+    </span>
+  </div>
+
+  <form method="post" action="{% url 'mtn_admin_create_invoice' %}" class="space-y-4">
+    {% csrf_token %}
+    <div class="grid grid-cols-1 md:grid-cols-12 gap-4 items-end">
+      <div class="md:col-span-5">
+        <label class="text-xs font-extrabold text-slate-200 block mb-1.5">المبلغ المطلوب (ليرة سورية SYP)</label>
+        <input type="number" name="amount" step="1" min="1" placeholder="مثال: 50000" class="mtn-dash-input font-mono" required>
+      </div>
+      <div class="md:col-span-4">
+        <label class="text-xs font-extrabold text-slate-200 block mb-1.5">مدة صلاحية الفاتورة (بالدقائق)</label>
+        <input type="number" id="mtn-ttl-minutes" name="ttl_minutes" min="1" max="1440" value="15" placeholder="15" class="mtn-dash-input font-mono" required>
+      </div>
+      <div class="md:col-span-3">
+        <button type="submit" class="mtn-btn-gold w-full">
+          <i class="fas fa-plus-circle"></i>
+          <span>إنشاء رابط الفاتورة</span>
+        </button>
       </div>
     </div>
 
-    <!-- OTP Code Encoding Selector (Testing / Diagnostics) -->
-    <form method="post" action="{% url 'mtn_admin_otp_encoding' %}" class="pt-3 border-t border-white/10 space-y-2.5">
-      {% csrf_token %}
-      <div class="flex items-center justify-between gap-2">
-        <div class="text-xs font-black text-cyan flex items-center gap-1.5">
-          <i class="fas fa-shield-halved"></i>
-          <span>تشفير حقل رمز التحقق SMS (`Code`) عند التأكيد</span>
-        </div>
-        <span class="px-2 py-0.5 rounded-full text-[10px] font-mono bg-cyan/15 text-cyan border border-cyan/30">{{ current_otp_encoding }}</span>
-      </div>
-      <div class="flex flex-col sm:flex-row gap-2">
-        <select name="otp_code_encoding" class="flex-1 px-3 py-2 rounded-xl bg-slate-950 border border-white/10 text-white text-xs">
-          {% for val, label in otp_encoding_choices %}
-          <option value="{{ val }}" {% if current_otp_encoding == val %}selected{% endif %}>{{ label }}</option>
-          {% endfor %}
-        </select>
-        <button type="submit" class="btn bg-cyan text-slate-950 font-black whitespace-nowrap">
-          <i class="fas fa-save"></i>
-          <span>حفظ التشفير</span>
-        </button>
-      </div>
-      <p class="text-[11px] text-slate-400">يمكنك تبديل طريقة تشفير حقل <code class="text-cyan">Code</code> وتجربة التأكيد، ومراقبة القيمة المرسلة فعلياً في سجل <code class="text-amber-300">REQ</code> بالأسفل.</p>
-    </form>
-
-    <!-- Create Invoice Quick Form -->
-    <form method="post" action="{% url 'mtn_admin_create_invoice' %}" class="pt-3 border-t border-white/10 space-y-3">
-      {% csrf_token %}
-      <div class="text-xs font-black text-white">إنشاء فاتورة جديدة (pos_web/invoice/create)</div>
-      <div class="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
-        <input type="number" name="amount" step="0.01" min="1" placeholder="المبلغ بالوحدة الأساسية" class="px-3 py-2 rounded-xl bg-slate-950 border border-white/10 text-white text-xs font-mono" required>
-        <input type="number" name="ttl" min="60" placeholder="مدة الصلاحية TTL (ثوانٍ)" class="px-3 py-2 rounded-xl bg-slate-950 border border-white/10 text-white text-xs font-mono">
-        <button type="submit" class="btn bg-emerald-500 text-slate-950 font-black">
-          <i class="fas fa-plus"></i>
-          <span>إنشاء الفاتورة</span>
-        </button>
-      </div>
-    </form>
-
-    <!-- Refund Controls -->
-    <form method="post" action="{% url 'mtn_admin_refund_action' %}" class="pt-3 border-t border-white/10 space-y-2.5">
-      {% csrf_token %}
-      <div class="text-xs font-black text-amber-300">عمليات الاسترداد وإلغائها (Refund Initiate / Confirm / Cancel)</div>
-      <div class="grid grid-cols-1 sm:grid-cols-3 gap-2">
-        <input type="number" name="base_invoice" placeholder="BaseInvoice (رقم الفاتورة)" class="px-3 py-2 rounded-xl bg-slate-950 border border-white/10 text-white text-xs font-mono">
-        <input type="number" name="refund_invoice" placeholder="RefundInvoice (للتأكيد)" class="px-3 py-2 rounded-xl bg-slate-950 border border-white/10 text-white text-xs font-mono">
-        <input type="number" name="invoice_cancel_id" placeholder="InvoiceCancelID (للإلغاء)" class="px-3 py-2 rounded-xl bg-slate-950 border border-white/10 text-white text-xs font-mono">
-      </div>
-      <div class="flex flex-wrap gap-2">
-        <button type="submit" name="action" value="initiate" class="btn btn-sm bg-amber-500/20 text-amber-300 border border-amber-400/30">1. بدء الاسترداد</button>
-        <button type="submit" name="action" value="confirm" class="btn btn-sm bg-emerald-500/20 text-emerald-300 border border-emerald-400/30">2. تأكيد الاسترداد</button>
-        <button type="submit" name="action" value="cancel" class="btn btn-sm bg-rose-500/20 text-rose-300 border border-rose-400/30">إلغاء الاسترداد</button>
-      </div>
-    </form>
-  </div>
+    <div class="flex flex-wrap items-center gap-2 pt-1">
+      <span class="text-[11px] font-bold text-slate-400 ml-1">اختيار سريع للمدة:</span>
+      <button type="button" class="mtn-ttl-chip active" onclick="setTtlMinutes(15, this)">15 دقيقة</button>
+      <button type="button" class="mtn-ttl-chip" onclick="setTtlMinutes(30, this)">30 دقيقة</button>
+      <button type="button" class="mtn-ttl-chip" onclick="setTtlMinutes(60, this)">ساعة (60 دقيقة)</button>
+      <button type="button" class="mtn-ttl-chip" onclick="setTtlMinutes(120, this)">ساعتان (120 دقيقة)</button>
+      <button type="button" class="mtn-ttl-chip" onclick="setTtlMinutes(1440, this)">يوم كامل (24 ساعة)</button>
+    </div>
+  </form>
 </div>
 
-<!-- Invoices Table -->
-<div class="glass-panel overflow-hidden mb-8">
-  <div class="p-4 border-b border-white/5 flex items-center justify-between">
-    <h3 class="text-xs font-black text-white uppercase">سجل الفواتير (MTNPay Invoices)</h3>
+<!-- Invoices Table with Share & Copy Link -->
+<div class="mtn-dash-card overflow-hidden mb-8">
+  <div class="p-5 border-b border-white/10 flex flex-wrap items-center justify-between gap-2">
+    <h3 class="text-sm font-black text-white flex items-center gap-2 m-0">
+      <i class="fas fa-receipt text-cyan"></i>
+      <span>سجل فواتير MTN Cash وروابط المشاركة</span>
+    </h3>
+    <span class="text-xs text-slate-400">آخر 30 فاتورة</span>
   </div>
   <div class="overflow-x-auto">
     <table class="admin-table">
       <thead>
         <tr>
-          <th>رقم الفاتورة (Invoice)</th>
+          <th>رقم الفاتورة</th>
           <th>المبلغ</th>
-          <th>الوحدات الصغرى (Amount)</th>
-          <th>الحالة (Status)</th>
-          <th>رقم المعاملة (Transaction)</th>
+          <th>الحالة</th>
           <th>هاتف العميل</th>
-          <th>صفحة الدفع</th>
+          <th>التاريخ</th>
+          <th>مشاركة وفتح الرابط</th>
         </tr>
       </thead>
       <tbody>
         {% for inv in invoices %}
         <tr>
           <td class="font-mono font-bold text-white">#{{ inv.invoice_number }}</td>
-          <td class="font-mono text-cyan">{{ inv.amount_major }} {{ inv.currency_code }}</td>
-          <td class="font-mono text-slate-400">{{ inv.amount_minor }}</td>
-          <td>{{ inv.get_status_code_display }}</td>
-          <td class="font-mono text-xs">{{ inv.transaction_id|default:"-" }}</td>
-          <td class="font-mono text-xs">{{ inv.customer_phone|default:"-" }}</td>
+          <td class="font-mono font-black text-amber-300">{{ inv.amount_major|floatformat:0 }} {{ inv.currency_code }}</td>
           <td>
-            <a href="{% url 'mtn_invoice_checkout' inv.invoice_number %}" class="btn btn-xs bg-cyan/15 text-cyan border border-cyan/30">فتح صفحة الدفع</a>
+            {% if inv.status_code == 9 %}
+            <span class="px-2.5 py-1 rounded-full text-[11px] font-black bg-emerald-500/20 text-emerald-300 border border-emerald-500/35">مدفوعة بنجاح</span>
+            {% elif inv.status_code == 0 or inv.status_code == 8 %}
+            <span class="px-2.5 py-1 rounded-full text-[11px] font-black bg-rose-500/20 text-rose-300 border border-rose-500/35">{{ inv.get_status_code_display }}</span>
+            {% else %}
+            <span class="px-2.5 py-1 rounded-full text-[11px] font-black bg-cyan/15 text-cyan border border-cyan/30">{{ inv.get_status_code_display }}</span>
+            {% endif %}
+          </td>
+          <td class="font-mono text-xs text-slate-300">{{ inv.customer_phone|default:"—" }}</td>
+          <td class="font-mono text-[11px] text-slate-400 whitespace-nowrap">{{ inv.created_at|date:"Y-m-d H:i" }}</td>
+          <td>
+            <div class="flex flex-wrap items-center gap-1.5">
+              <button type="button" class="mtn-action-btn mtn-action-copy" onclick="copyMtnPayLink('{% url 'mtn_invoice_checkout' inv.invoice_number %}', this)">
+                <i class="fas fa-copy"></i>
+                <span>نسخ الرابط</span>
+              </button>
+              <button type="button" class="mtn-action-btn mtn-action-wa" onclick="shareMtnPayLink('{% url 'mtn_invoice_checkout' inv.invoice_number %}', '{{ inv.invoice_number }}', '{{ inv.amount_major|floatformat:0 }} {{ inv.currency_code }}')">
+                <i class="fab fa-whatsapp"></i>
+                <span>مشاركة</span>
+              </button>
+              <a href="{% url 'mtn_invoice_checkout' inv.invoice_number %}" target="_blank" class="mtn-action-btn mtn-action-open">
+                <i class="fas fa-external-link-alt"></i>
+                <span>فتح</span>
+              </a>
+            </div>
           </td>
         </tr>
         {% empty %}
-        <tr><td colspan="7" class="text-center text-slate-500 py-6">لا توجد فواتير مسجلة بعد.</td></tr>
+        <tr><td colspan="6" class="text-center text-slate-400 py-8">لا توجد فواتير مسجلة بعد. أنشئ أول فاتورة من الأعلى.</td></tr>
         {% endfor %}
       </tbody>
     </table>
   </div>
 </div>
 
-<!-- API Logs Table (MTNPayApiLog) -->
-<div class="glass-panel overflow-hidden">
-  <div class="p-4 border-b border-white/5 flex items-center justify-between">
-    <h3 class="text-xs font-black text-white uppercase">سجل اتصالات API مع خادم MTN (MTNPayApiLog)</h3>
-    <span class="text-[11px] text-slate-400">يعرض الرد الفعلي القادم من خادم MTN (`https://cash.mtnsyr.com:9000`)</span>
-  </div>
-  <div class="overflow-x-auto">
+<!-- Collapsible API Logs for Diagnostics -->
+<details class="mtn-dash-card overflow-hidden">
+  <summary class="p-4 cursor-pointer flex items-center justify-between text-xs font-black text-slate-300 hover:text-white select-none">
+    <span><i class="fas fa-terminal text-cyan ml-2"></i>سجل اتصالات API التقني مع خادم MTN (للمراجعة عند الحاجة)</span>
+    <span class="text-[11px] text-slate-400">اضغط للعرض / الإخفاء</span>
+  </summary>
+  <div class="overflow-x-auto border-t border-white/10">
     <table class="admin-table">
       <thead>
         <tr>
           <th>الوقت</th>
-          <th>الطلب (Request-Name)</th>
+          <th>الطلب</th>
           <th>HTTP / Errno</th>
           <th>الحالة</th>
-          <th>الرد الكامل من MTN</th>
+          <th>التفاصيل</th>
         </tr>
       </thead>
       <tbody>
@@ -239,5 +304,35 @@
       </tbody>
     </table>
   </div>
-</div>
+</details>
+
+<script>
+  function setTtlMinutes(mins, btn) {
+    var inp = document.getElementById('mtn-ttl-minutes');
+    if (inp) inp.value = mins;
+    document.querySelectorAll('.mtn-ttl-chip').forEach(function(el) {
+      el.classList.remove('active');
+    });
+    if (btn) btn.classList.add('active');
+  }
+
+  function copyMtnPayLink(relPath, btn) {
+    var fullUrl = window.location.origin + relPath;
+    navigator.clipboard.writeText(fullUrl).then(function() {
+      var orig = btn.innerHTML;
+      btn.innerHTML = '<i class="fas fa-check"></i><span>تم النسخ</span>';
+      setTimeout(function() { btn.innerHTML = orig; }, 1800);
+    });
+  }
+
+  function shareMtnPayLink(relPath, invNum, amountText) {
+    var fullUrl = window.location.origin + relPath;
+    var text = 'فاتورة دفع إلكتروني عبر MTN Cash من متجر رقميات\nرقم الفاتورة: #' + invNum + '\nالمبلغ: ' + amountText + '\nرابط الدفع المباشر:\n' + fullUrl;
+    if (navigator.share) {
+      navigator.share({ title: 'رابط دفع MTN Cash #' + invNum, text: text, url: fullUrl }).catch(function() {});
+    } else {
+      window.open('https://wa.me/?text=' + encodeURIComponent(text), '_blank');
+    }
+  }
+</script>
 {% endblock %}

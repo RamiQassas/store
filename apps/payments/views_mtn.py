@@ -441,8 +441,14 @@ def mtn_admin_create_invoice_view(request):
     store = getattr(request, "store", None)
     terminal = _get_or_create_default_terminal(store=store)
     amount_str = (request.POST.get("amount") or "0").strip()
+    ttl_minutes_str = (request.POST.get("ttl_minutes") or "").strip()
     ttl_str = (request.POST.get("ttl") or "").strip()
-    ttl_val = int(ttl_str) if ttl_str.isdigit() else None
+    if ttl_minutes_str.isdigit() and int(ttl_minutes_str) > 0:
+        ttl_val = int(ttl_minutes_str) * 60
+    elif ttl_str.isdigit() and int(ttl_str) > 0:
+        ttl_val = int(ttl_str)
+    else:
+        ttl_val = 15 * 60
 
     client = MTNPaymentClient(terminal)
     try:
@@ -451,7 +457,13 @@ def mtn_admin_create_invoice_view(request):
             ttl=ttl_val,
             user=request.user,
         )
-        messages.success(request, f"تم إنشاء الفاتورة رقم #{inv.invoice_number} بمبلغ {inv.amount_major} {inv.currency_code} ({inv.amount_minor} وحدة صغرى).")
+        from django.urls import reverse
+        pay_url = request.build_absolute_uri(reverse("mtn_invoice_checkout", args=[inv.invoice_number]))
+        mins_disp = max(1, ttl_val // 60)
+        messages.success(
+            request,
+            f"تم إنشاء فاتورة MTN Cash رقم #{inv.invoice_number} بمبلغ {inv.amount_major:,.0f} {inv.currency_code} (صلاحية {mins_disp} دقيقة). رابط الدفع: {pay_url}",
+        )
     except Exception as exc:
         messages.error(request, f"تعذر إنشاء الفاتورة: {exc}")
 
