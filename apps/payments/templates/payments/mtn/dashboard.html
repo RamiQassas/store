@@ -204,9 +204,9 @@
             <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-rose-500/20 text-rose-400">فشل</span>
             {% endif %}
           </td>
-          <td class="font-mono text-[11px] text-slate-300" style="max-width: 420px; word-break: break-all;">
-            {% if log.request_payload_sanitized %}<div class="text-slate-400 text-[10px] mb-1">REQ: {{ log.request_payload_sanitized }}</div>{% endif %}
-            <div>RES: {{ log.response_payload|default:log.error_message }}</div>
+          <td class="font-mono text-[11px] text-slate-300" style="min-width: 260px; max-width: 460px;">
+            {% if log.request_payload_sanitized %}<div dir="ltr" style="text-align: left; white-space: pre-wrap; word-break: break-word;" class="text-slate-300 text-[11px] mb-1.5 bg-slate-950/70 p-2 rounded-lg border border-white/5"><strong class="text-cyan">REQ:</strong> {{ log.request_payload_sanitized }}</div>{% endif %}
+            <div dir="ltr" style="text-align: left; white-space: pre-wrap; word-break: break-word;" class="text-[11px] bg-slate-950/70 p-2 rounded-lg border border-white/5"><strong class="text-amber-300">RES:</strong> {{ log.response_payload|default:log.error_message }}</div>
           </td>
         </tr>
         {% empty %}
