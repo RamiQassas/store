@@ -381,12 +381,12 @@ class MTNPaymentClient:
     ENDPOINT_REFUND_CANCEL = "pos_web/invoice/refund/cancel"
 
     OTP_CODE_ENCODINGS = [
-        ("plain", "بدون تشفير — نص عادي (Plain) [الافتراضي حسب الكتيب]"),
-        ("base64", "Base64 — ترميز Base64 للنص (مثال: 564972 → NTY0OTcy)"),
+        ("sha256_b64", "SHA-256 + Base64 — المعتمد رسمياً لخادم MTN Syria eMARA"),
+        ("plain", "بدون تشفير — نص عادي (Plain)"),
+        ("base64", "Base64 — ترميز Base64 للنص"),
         ("sha256_hex", "SHA-256 (Hex) — تجزئة SHA-256 بأحرف صغيرة (64 محرف)"),
         ("sha256_hex_upper", "SHA-256 (HEX) — تجزئة SHA-256 بأحرف كبيرة (64 محرف)"),
-        ("sha256_b64", "SHA-256 + Base64 — تجزئة SHA-256 ثنائية مرمّزة بـ Base64"),
-        ("rsa_sha256_b64", "RSA-1024 + SHA-256 (Base64) — توقيع الرمز بالمفتاح الخاص (مثل الكتيب ص30)"),
+        ("rsa_sha256_b64", "RSA-1024 + SHA-256 (Base64) — توقيع الرمز بالمفتاح الخاص"),
         ("md5_hex", "MD5 (Hex) — تجزئة MD5 بأحرف صغيرة (32 محرف)"),
     ]
 
@@ -1052,21 +1052,21 @@ class MTNPaymentClient:
 
     def encode_otp_code(self, code_clean: str, encoding_mode: Optional[str] = None) -> str:
         """
-        Encodes/hashes the SMS verification `Code` according to the configured terminal mode:
-        plain | base64 | sha256_hex | sha256_hex_upper | sha256_b64 | rsa_sha256_b64 | md5_hex.
+        Encodes/hashes the SMS verification `Code`.
+        Default (verified live on MTN Syria eMARA): `sha256_b64` = Base64(SHA-256(code)).
         """
-        mode = (encoding_mode or getattr(self.terminal, "otp_code_encoding", "plain") or "plain").strip()
+        mode = (encoding_mode or getattr(self.terminal, "otp_code_encoding", "sha256_b64") or "sha256_b64").strip()
         if mode not in self.VALID_OTP_ENCODINGS:
-            mode = "plain"
+            mode = "sha256_b64"
         raw_bytes = code_clean.encode("utf-8")
+        if mode == "sha256_b64":
+            return base64.b64encode(hashlib.sha256(raw_bytes).digest()).decode("ascii")
         if mode == "base64":
             return base64.b64encode(raw_bytes).decode("ascii")
         if mode == "sha256_hex":
             return hashlib.sha256(raw_bytes).hexdigest()
         if mode == "sha256_hex_upper":
             return hashlib.sha256(raw_bytes).hexdigest().upper()
-        if mode == "sha256_b64":
-            return base64.b64encode(hashlib.sha256(raw_bytes).digest()).decode("ascii")
         if mode == "rsa_sha256_b64":
             priv_pem = self._get_private_key()
             return MTNCryptoEngine.sign_payload(raw_bytes, priv_pem)

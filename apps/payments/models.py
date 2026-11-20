@@ -1250,11 +1250,8 @@ class MTNPayTerminalConfig(TimeStampedModel):
 
     @property
     def otp_code_encoding(self) -> str:
-        if isinstance(self.terminal_settings, dict):
-            val = str(self.terminal_settings.get("OtpCodeEncoding") or "plain").strip()
-            if val:
-                return val
-        return "plain"
+        # Verified live on MTN Syria eMARA server: Code MUST be Base64(SHA-256(sms_code))
+        return "sha256_b64"
 
     @property
     def fractional_factor(self) -> int:

@@ -161,8 +161,11 @@ class MTNPayIntegrationTests(TestCase):
                     "PaySystem": "MTNPay",
                 })
             if req_name == "pos_web/payment_phone/confirm":
+                import base64
+                import hashlib
+                expected_code = base64.b64encode(hashlib.sha256(b"991122").digest()).decode("ascii")
                 self.assertEqual(data["OperationNumber"], 55443322)
-                self.assertEqual(data["Code"], "991122")
+                self.assertEqual(data["Code"], expected_code)
                 return self._make_signed_server_response({
                     "Errno": 0,
                     "Status": 9,
@@ -436,14 +439,14 @@ class MTNPayIntegrationTests(TestCase):
 
         client = MTNPaymentClient(self.terminal, private_key_pem=self.priv_pem)
         raw = "564972"
+        expected_sha256_b64 = base64.b64encode(hashlib.sha256(b"564972").digest()).decode("ascii")
+        # Default encoding MUST be sha256_b64 (verified live on MTN Syria eMARA)
+        self.assertEqual(client.encode_otp_code(raw), expected_sha256_b64)
         self.assertEqual(client.encode_otp_code(raw, "plain"), "564972")
         self.assertEqual(client.encode_otp_code(raw, "base64"), base64.b64encode(b"564972").decode("ascii"))
         self.assertEqual(client.encode_otp_code(raw, "sha256_hex"), hashlib.sha256(b"564972").hexdigest())
         self.assertEqual(client.encode_otp_code(raw, "sha256_hex_upper"), hashlib.sha256(b"564972").hexdigest().upper())
-        self.assertEqual(
-            client.encode_otp_code(raw, "sha256_b64"),
-            base64.b64encode(hashlib.sha256(b"564972").digest()).decode("ascii"),
-        )
+        self.assertEqual(client.encode_otp_code(raw, "sha256_b64"), expected_sha256_b64)
         self.assertEqual(client.encode_otp_code(raw, "md5_hex"), hashlib.md5(b"564972").hexdigest())
         rsa_sig = client.encode_otp_code(raw, "rsa_sha256_b64")
         self.assertTrue(MTNCryptoEngine.verify_signature(b"564972", rsa_sig, self.pub_b64))

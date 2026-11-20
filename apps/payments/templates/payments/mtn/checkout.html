@@ -416,6 +416,12 @@
             <input type="tel" id="mtn-phone-input" class="gw-phone-field font-mono" placeholder="094XXXXXXX" maxlength="10" value="{% if invoice.customer_phone|slice:':3' == '963' %}0{{ invoice.customer_phone|slice:'3:' }}{% else %}{{ invoice.customer_phone }}{% endif %}" inputmode="numeric" oninput="enforceMtnPhoneInput(this)">
           </div>
           <p class="gw-hint">يجب أن يتكون الرقم من <strong>10 أرقام فقط</strong> ويبدأ بـ <strong dir="ltr">094</strong> أو <strong dir="ltr">095</strong> أو <strong dir="ltr">096</strong>.</p>
+          <div id="mtn-recent-phones-wrap" style="display: none; margin-bottom: 0.9rem;">
+            <div style="font-size: 0.74rem; font-weight: 800; color: var(--text-muted); margin-bottom: 0.4rem;">
+              <i class="fas fa-history" style="margin-left: 0.25rem;"></i>أرقامك المستخدمة سابقاً (اضغط للاختيار):
+            </div>
+            <div id="mtn-recent-phones-list" style="display: flex; flex-wrap: wrap; gap: 0.4rem;" dir="ltr"></div>
+          </div>
           <button type="button" id="mtn-btn-initiate" onclick="initiateMtnPhonePayment()" class="gw-btn">
             <i class="fas fa-paper-plane"></i>
             <span>إرسال رمز التحقق</span>
@@ -430,20 +436,6 @@
 
           <label class="gw-label" for="mtn-otp-input">رمز التحقق (SMS)</label>
           <input type="text" id="mtn-otp-input" class="gw-otp-field font-mono" placeholder="••••••" dir="ltr" inputmode="numeric" autocomplete="one-time-code">
-
-          {% if is_admin_tester %}
-          <div style="margin-bottom: 0.85rem; padding: 0.65rem 0.75rem; border-radius: 10px; background: #fffbeb; border: 1px solid #fde68a;">
-            <label for="mtn-otp-encoding-select" style="display: block; font-size: 0.74rem; font-weight: 800; color: #92400e; margin-bottom: 0.35rem;">
-              <i class="fas fa-flask"></i> وضع اختبار المدير — تشفير حقل الرمز (Code):
-            </label>
-            <select id="mtn-otp-encoding-select" style="width: 100%; padding: 0.45rem 0.6rem; border-radius: 8px; border: 1px solid #fcd34d; background: #ffffff; color: #0f172a; font-size: 0.78rem; font-weight: 700;">
-              {% for val, label in otp_encoding_choices %}
-              <option value="{{ val }}" {% if current_otp_encoding == val %}selected{% endif %}>{{ label }}</option>
-              {% endfor %}
-            </select>
-          </div>
-          {% endif %}
-
           <button type="button" id="mtn-btn-confirm" onclick="confirmMtnPhonePayment()" class="gw-btn gw-btn-success">
             <i class="fas fa-check-circle"></i>
             <span>تأكيد ودفع {{ invoice.amount_major|floatformat:0 }} ل.س</span>
@@ -569,6 +561,87 @@
       return ascii.replace(/[^0-9A-Za-z]/g, '');
     }
 
+    var MTN_RECENT_PHONES_KEY = 'raqamiyat_mtn_recent_phones_v1';
+    var MTN_SERVER_PHONES = [{% for p in saved_mtn_phones %}'{{ p|escapejs }}'{% if not forloop.last %},{% endif %}{% endfor %}];
+
+    function getRecentMtnPhones() {
+      var list = [];
+      try {
+        var raw = localStorage.getItem(MTN_RECENT_PHONES_KEY);
+        if (raw) {
+          var parsed = JSON.parse(raw);
+          if (Array.isArray(parsed)) list = parsed;
+        }
+      } catch (e) {}
+      var merged = [];
+      list.concat(MTN_SERVER_PHONES).forEach(function(p) {
+        var clean = String(p || '').replace(/[^0-9]/g, '');
+        if (/^(094|095|096)\d{7}$/.test(clean) && merged.indexOf(clean) === -1) {
+          merged.push(clean);
+        }
+      });
+      return merged.slice(0, 5);
+    }
+
+    function saveRecentMtnPhone(phone10) {
+      if (!/^(094|095|096)\d{7}$/.test(phone10)) return;
+      var current = getRecentMtnPhones().filter(function(p) { return p !== phone10; });
+      current.unshift(phone10);
+      try {
+        localStorage.setItem(MTN_RECENT_PHONES_KEY, JSON.stringify(current.slice(0, 5)));
+      } catch (e) {}
+      renderRecentMtnPhones();
+    }
+
+    function removeRecentMtnPhone(phone10, ev) {
+      if (ev) ev.stopPropagation();
+      MTN_SERVER_PHONES = MTN_SERVER_PHONES.filter(function(p) { return p !== phone10; });
+      var current = getRecentMtnPhones().filter(function(p) { return p !== phone10; });
+      try {
+        localStorage.setItem(MTN_RECENT_PHONES_KEY, JSON.stringify(current));
+      } catch (e) {}
+      renderRecentMtnPhones();
+    }
+
+    function renderRecentMtnPhones() {
+      var wrap = document.getElementById('mtn-recent-phones-wrap');
+      var container = document.getElementById('mtn-recent-phones-list');
+      if (!wrap || !container) return;
+      var phones = getRecentMtnPhones();
+      if (!phones.length) {
+        wrap.style.display = 'none';
+        container.innerHTML = '';
+        return;
+      }
+      wrap.style.display = 'block';
+      container.innerHTML = '';
+      phones.forEach(function(p) {
+        var chip = document.createElement('button');
+        chip.type = 'button';
+        chip.className = 'font-mono';
+        chip.style.cssText = 'display:inline-flex;align-items:center;gap:0.4rem;padding:0.35rem 0.65rem;border-radius:999px;border:1px solid #cbd5e1;background:#f8fafc;color:#0f172a;font-size:0.78rem;font-weight:800;cursor:pointer;transition:all .15s;';
+        chip.onclick = function() {
+          var inp = document.getElementById('mtn-phone-input');
+          if (inp) {
+            inp.value = p;
+            inp.focus();
+          }
+        };
+        var numSpan = document.createElement('span');
+        numSpan.textContent = p;
+        var delSpan = document.createElement('span');
+        delSpan.textContent = '×';
+        delSpan.title = 'حذف من السجل';
+        delSpan.style.cssText = 'color:#94a3b8;font-size:0.95rem;line-height:1;padding:0 2px;';
+        delSpan.onclick = function(ev) { removeRecentMtnPhone(p, ev); };
+        chip.appendChild(numSpan);
+        chip.appendChild(delSpan);
+        container.appendChild(chip);
+      });
+    }
+
+    document.addEventListener('DOMContentLoaded', renderRecentMtnPhones);
+
     var mtnSendingInProgress = false;
     function initiateMtnPhonePayment() {
       if (mtnSendingInProgress) return;
@@ -583,6 +656,7 @@
         return;
       }
 
+      saveRecentMtnPhone(phone10);
       mtnSendingInProgress = true;
       var btn = document.getElementById('mtn-btn-initiate');
       if (btn) btn.disabled = true;
@@ -628,10 +702,6 @@
       if (btn) btn.disabled = true;
       var fd = new FormData();
       fd.append('code', code);
-      var encSelect = document.getElementById('mtn-otp-encoding-select');
-      if (encSelect && encSelect.value) {
-        fd.append('code_encoding', encSelect.value);
-      }
 
       fetch('{% url "mtn_phone_confirm_ajax" invoice.invoice_number %}', {
         method: 'POST',

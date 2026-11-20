@@ -146,6 +146,31 @@ def mtn_invoice_checkout_view(request, invoice_number: int):
     except Exception:
         pass
 
+    saved_mtn_phones = []
+    try:
+        prev_phones = (
+            MTNPayInvoiceRecord.objects.filter(user=request.user)
+            .exclude(customer_phone="")
+            .order_by("-updated_at")
+            .values_list("customer_phone", flat=True)[:20]
+        )
+        seen = set()
+        for raw_p in prev_phones:
+            digits = "".join(c for c in str(raw_p or "") if c.isdigit())
+            if digits.startswith("963") and len(digits) == 12:
+                local10 = "0" + digits[3:]
+            elif digits.startswith("00963") and len(digits) == 14:
+                local10 = "0" + digits[5:]
+            else:
+                local10 = digits
+            if len(local10) == 10 and local10.startswith(("094", "095", "096")) and local10 not in seen:
+                seen.add(local10)
+                saved_mtn_phones.append(local10)
+                if len(saved_mtn_phones) >= 5:
+                    break
+    except Exception:
+        saved_mtn_phones = []
+
     return render(
         request,
         "payments/mtn/checkout.html",
@@ -156,9 +181,7 @@ def mtn_invoice_checkout_view(request, invoice_number: int):
             "currency": terminal.currency_info,
             "item_summary": item_summary or "دفع فاتورة رقميات",
             "usd_amount": usd_amount,
-            "is_admin_tester": _is_staff_or_admin(request.user),
-            "otp_encoding_choices": MTNPaymentClient.OTP_CODE_ENCODINGS,
-            "current_otp_encoding": terminal.otp_code_encoding,
+            "saved_mtn_phones": saved_mtn_phones,
         },
     )
 
@@ -210,13 +233,10 @@ def mtn_phone_confirm_ajax(request, invoice_number: int):
     """
     invoice = get_object_or_404(MTNPayInvoiceRecord, invoice_number=invoice_number)
     code = (request.POST.get("code") or "").strip()
-    code_encoding = (request.POST.get("code_encoding") or "").strip() if _is_staff_or_admin(request.user) else ""
     if not code and request.body:
         try:
             body_json = json.loads(request.body.decode("utf-8"))
             code = str(body_json.get("code") or "").strip()
-            if not code_encoding and _is_staff_or_admin(request.user):
-                code_encoding = str(body_json.get("code_encoding") or "").strip()
         except Exception:
             pass
 
@@ -225,7 +245,6 @@ def mtn_phone_confirm_ajax(request, invoice_number: int):
         updated_inv, resp = client.confirm_phone_payment(
             invoice_number=invoice.invoice_number,
             sms_code=code,
-            code_encoding=code_encoding or None,
         )
         from django.urls import reverse
         redirect_url = ""
