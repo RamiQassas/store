@@ -4106,7 +4106,17 @@ def control_deposit_detail(request, pk):
             messages.error(request, f"خطأ: {str(e)}")
             return redirect("control_deposit_detail", pk=pk)
         
-    return render(request, "site/control_deposit_detail.html", {"deposit": deposit})
+    user_wallet_balance = Decimal("0.00")
+    try:
+        user_wallet = get_or_create_wallet(deposit.user)
+        user_wallet_balance = user_wallet.available_balance
+    except Exception:
+        pass
+
+    return render(request, "site/control_deposit_detail.html", {
+        "deposit": deposit,
+        "user_wallet_balance": user_wallet_balance,
+    })
 
 @login_required
 def dashboard_deposit_refund_request(request, pk):

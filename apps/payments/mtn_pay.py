@@ -1198,6 +1198,7 @@ class MTNPaymentClient:
                     if not isinstance(locked_deposit.metadata, dict):
                         locked_deposit.metadata = {}
                     locked_deposit.metadata["mtn_status_data"] = status_data
+                    locked_deposit.metadata["mtn_invoice_number"] = record.invoice_number
                     locked_deposit.metadata["mtn_verified_at"] = timezone.now().isoformat()
                     locked_deposit.metadata["payment_provider"] = "mtn_pay"
 

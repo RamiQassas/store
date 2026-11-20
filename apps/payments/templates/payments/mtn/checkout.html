@@ -27,25 +27,47 @@
       margin: 0;
       min-height: 100vh;
       font-family: 'Cairo', system-ui, -apple-system, sans-serif;
-      background: var(--bg-canvas);
+      background:
+        radial-gradient(circle at 12% 15%, rgba(234, 179, 8, 0.14), transparent 36%),
+        radial-gradient(circle at 88% 85%, rgba(37, 99, 235, 0.13), transparent 40%),
+        linear-gradient(160deg, #f8fafc 0%, #eef2f7 100%);
       color: var(--text-main);
       display: flex;
       flex-direction: column;
       align-items: center;
       justify-content: center;
-      padding: 1.25rem 0.9rem;
+      padding: 1.5rem 0.95rem;
     }
     .font-mono {
       font-family: 'JetBrains Mono', monospace;
     }
+    @keyframes gwCardEnter {
+      from { opacity: 0; transform: translateY(14px) scale(0.99); }
+      to { opacity: 1; transform: translateY(0) scale(1); }
+    }
+    @keyframes gwStepFade {
+      from { opacity: 0; transform: translateY(8px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
     .gw-card {
       width: 100%;
-      max-width: 440px;
+      max-width: 452px;
       background: var(--bg-card);
-      border-radius: 22px;
-      border: 1px solid var(--border);
-      box-shadow: 0 20px 45px -15px rgba(15, 23, 42, 0.1);
+      border-radius: 24px;
+      border: 1px solid rgba(226, 232, 240, 0.95);
+      box-shadow:
+        0 25px 55px -18px rgba(15, 23, 42, 0.16),
+        0 4px 14px -4px rgba(15, 23, 42, 0.06);
       overflow: hidden;
+      animation: gwCardEnter 0.42s cubic-bezier(0.2, 0.9, 0.25, 1) both;
+      position: relative;
+    }
+    .gw-card::before {
+      content: '';
+      display: block;
+      height: 4px;
+      width: 100%;
+      background: linear-gradient(90deg, #eab308 0%, #f59e0b 48%, #2563eb 100%);
     }
     /* Minimalist Dual-Brand Top Bar */
     .gw-topbar {
@@ -258,34 +280,164 @@
     }
     .gw-btn {
       width: 100%;
-      height: 48px;
+      height: 50px;
       border: none;
-      border-radius: 12px;
-      background: var(--rq-blue);
+      border-radius: 13px;
+      background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
       color: #ffffff;
       font-family: inherit;
-      font-size: 0.94rem;
+      font-size: 0.95rem;
       font-weight: 800;
       cursor: pointer;
       display: inline-flex;
       align-items: center;
       justify-content: center;
-      gap: 0.5rem;
-      transition: background 0.15s ease, transform 0.12s ease, opacity 0.15s ease;
+      gap: 0.55rem;
+      box-shadow: 0 10px 22px -10px rgba(37, 99, 235, 0.65);
+      transition: transform 0.16s ease, box-shadow 0.16s ease, filter 0.16s ease, opacity 0.15s ease;
     }
     .gw-btn:hover:not(:disabled) {
-      background: var(--rq-blue-hover);
-      transform: translateY(-1px);
+      filter: brightness(1.04);
+      transform: translateY(-2px);
+      box-shadow: 0 14px 26px -10px rgba(37, 99, 235, 0.72);
+    }
+    .gw-btn:active:not(:disabled) {
+      transform: translateY(0);
     }
     .gw-btn:disabled {
       opacity: 0.6;
       cursor: not-allowed;
     }
     .gw-btn-success {
-      background: #059669;
+      background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+      box-shadow: 0 10px 22px -10px rgba(5, 150, 105, 0.65);
     }
     .gw-btn-success:hover:not(:disabled) {
-      background: #047857;
+      box-shadow: 0 14px 26px -10px rgba(5, 150, 105, 0.72);
+    }
+    /* Stepper Indicator */
+    .gw-stepper {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.5rem;
+      margin-bottom: 1.05rem;
+      font-size: 0.73rem;
+      font-weight: 800;
+    }
+    .gw-step-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.35rem;
+      padding: 0.28rem 0.65rem;
+      border-radius: 999px;
+      background: #f1f5f9;
+      color: #64748b;
+      border: 1px solid #e2e8f0;
+      transition: all 0.22s ease;
+    }
+    .gw-step-pill.active {
+      background: #eff6ff;
+      color: #1d4ed8;
+      border-color: #bfdbfe;
+      box-shadow: 0 2px 8px rgba(37, 99, 235, 0.12);
+    }
+    .gw-step-pill.done {
+      background: #ecfdf5;
+      color: #047857;
+      border-color: #a7f3d0;
+    }
+    .gw-step-sep {
+      width: 22px;
+      height: 2px;
+      border-radius: 2px;
+      background: #e2e8f0;
+    }
+    .gw-step-pane {
+      animation: gwStepFade 0.28s ease both;
+    }
+    /* Professional Recent Phones Box */
+    .recent-phones-box {
+      margin-bottom: 1rem;
+      padding: 0.72rem 0.8rem;
+      border-radius: 14px;
+      background: linear-gradient(180deg, #f8fafc 0%, #f1f5f9 100%);
+      border: 1px solid #e2e8f0;
+    }
+    .recent-phones-title {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      font-size: 0.73rem;
+      font-weight: 800;
+      color: #475569;
+      margin-bottom: 0.55rem;
+    }
+    .recent-phones-grid {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.48rem;
+      direction: ltr;
+    }
+    .recent-phone-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.45rem;
+      padding: 0.42rem 0.55rem 0.42rem 0.72rem;
+      border-radius: 11px;
+      border: 1.5px solid #e2e8f0;
+      background: #ffffff;
+      color: #0f172a;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.79rem;
+      font-weight: 800;
+      cursor: pointer;
+      box-shadow: 0 2px 6px rgba(15, 23, 42, 0.04);
+      transition: transform 0.18s cubic-bezier(0.2, 0.9, 0.25, 1), border-color 0.18s ease, box-shadow 0.18s ease, background 0.18s ease;
+    }
+    .recent-phone-chip:hover {
+      transform: translateY(-2px);
+      border-color: #eab308;
+      background: #fefce8;
+      box-shadow: 0 8px 16px -8px rgba(234, 179, 8, 0.55);
+    }
+    .recent-phone-chip.selected {
+      border-color: #2563eb;
+      background: #eff6ff;
+      color: #1d4ed8;
+      box-shadow: 0 6px 14px -6px rgba(37, 99, 235, 0.35);
+    }
+    .recent-phone-icon {
+      width: 20px;
+      height: 20px;
+      border-radius: 6px;
+      background: #fef9c3;
+      color: #a16207;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.68rem;
+      flex-shrink: 0;
+    }
+    .recent-phone-chip.selected .recent-phone-icon {
+      background: #dbeafe;
+      color: #2563eb;
+    }
+    .recent-phone-del {
+      width: 19px;
+      height: 19px;
+      border-radius: 50%;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      color: #94a3b8;
+      font-size: 0.85rem;
+      line-height: 1;
+      transition: background 0.15s ease, color 0.15s ease;
+    }
+    .recent-phone-del:hover {
+      background: #fee2e2;
+      color: #dc2626;
     }
     .gw-feedback {
       display: none;
@@ -409,18 +561,31 @@
 
       <!-- Phone + SMS OTP Pane -->
       <div id="cm-pane-phone">
-        <div id="mtn-step-phone" style="{% if invoice.operation_number %}display: none;{% endif %}">
+        <div class="gw-stepper">
+          <span id="mtn-stepper-1" class="gw-step-pill {% if invoice.operation_number %}done{% else %}active{% endif %}">
+            <i class="fas {% if invoice.operation_number %}fa-check{% else %}fa-mobile-screen{% endif %}"></i>
+            <span>1. رقم الهاتف</span>
+          </span>
+          <span class="gw-step-sep"></span>
+          <span id="mtn-stepper-2" class="gw-step-pill {% if invoice.operation_number %}active{% endif %}">
+            <i class="fas fa-shield-halved"></i>
+            <span>2. رمز التحقق SMS</span>
+          </span>
+        </div>
+
+        <div id="mtn-step-phone" class="gw-step-pane" style="{% if invoice.operation_number %}display: none;{% endif %}">
           <label class="gw-label" for="mtn-phone-input">رقم هاتف كاش موبايل (MTN — 10 أرقام)</label>
           <div class="gw-input-group" dir="ltr">
             <span class="gw-prefix">MTN SY</span>
-            <input type="tel" id="mtn-phone-input" class="gw-phone-field font-mono" placeholder="094XXXXXXX" maxlength="10" value="{% if invoice.customer_phone|slice:':3' == '963' %}0{{ invoice.customer_phone|slice:'3:' }}{% else %}{{ invoice.customer_phone }}{% endif %}" inputmode="numeric" oninput="enforceMtnPhoneInput(this)">
+            <input type="tel" id="mtn-phone-input" class="gw-phone-field font-mono" placeholder="094XXXXXXX" maxlength="10" value="{% if invoice.customer_phone|slice:':3' == '963' %}0{{ invoice.customer_phone|slice:'3:' }}{% else %}{{ invoice.customer_phone }}{% endif %}" inputmode="numeric" oninput="enforceMtnPhoneInput(this); syncSelectedPhoneChip();" onkeydown="if(event.key==='Enter'){event.preventDefault();initiateMtnPhonePayment();}">
           </div>
           <p class="gw-hint">يجب أن يتكون الرقم من <strong>10 أرقام فقط</strong> ويبدأ بـ <strong dir="ltr">094</strong> أو <strong dir="ltr">095</strong> أو <strong dir="ltr">096</strong>.</p>
-          <div id="mtn-recent-phones-wrap" style="display: none; margin-bottom: 0.9rem;">
-            <div style="font-size: 0.74rem; font-weight: 800; color: var(--text-muted); margin-bottom: 0.4rem;">
-              <i class="fas fa-history" style="margin-left: 0.25rem;"></i>أرقامك المستخدمة سابقاً (اضغط للاختيار):
+          <div id="mtn-recent-phones-wrap" class="recent-phones-box" style="display: none;">
+            <div class="recent-phones-title">
+              <span><i class="fas fa-clock-rotate-left" style="color: #eab308; margin-left: 0.3rem;"></i>أرقامك المستخدمة سابقاً</span>
+              <span style="font-size: 0.68rem; color: #94a3b8; font-weight: 700;">اضغط للاختيار السريع</span>
             </div>
-            <div id="mtn-recent-phones-list" style="display: flex; flex-wrap: wrap; gap: 0.4rem;" dir="ltr"></div>
+            <div id="mtn-recent-phones-list" class="recent-phones-grid"></div>
           </div>
           <button type="button" id="mtn-btn-initiate" onclick="initiateMtnPhonePayment()" class="gw-btn">
             <i class="fas fa-paper-plane"></i>
@@ -428,22 +593,23 @@
           </button>
         </div>
 
-        <div id="mtn-step-otp" style="{% if not invoice.operation_number %}display: none;{% endif %}">
-          <div style="padding: 0.7rem 0.9rem; border-radius: 10px; background: #eff6ff; border: 1px solid #bfdbfe; margin-bottom: 0.85rem; font-size: 0.8rem; color: #1e40af; font-weight: 700;">
-            أدخل الرمز المرسل إلى
-            <strong id="mtn-phone-display" class="font-mono" dir="ltr" style="color: #0f172a;">{{ invoice.customer_phone }}</strong>
+        <div id="mtn-step-otp" class="gw-step-pane" style="{% if not invoice.operation_number %}display: none;{% endif %}">
+          <div style="padding: 0.78rem 0.95rem; border-radius: 12px; background: linear-gradient(135deg, #eff6ff 0%, #f8fafc 100%); border: 1px solid #bfdbfe; margin-bottom: 0.95rem; font-size: 0.81rem; color: #1e40af; font-weight: 700; display: flex; align-items: center; justify-content: space-between; gap: 0.5rem;">
+            <span><i class="fas fa-comment-sms" style="margin-left: 0.35rem;"></i>أدخل الرمز (6 أرقام) المرسل إلى</span>
+            <strong id="mtn-phone-display" class="font-mono" dir="ltr" style="color: #0f172a; background: #ffffff; padding: 0.18rem 0.55rem; border-radius: 8px; border: 1px solid #dbeafe;">{{ invoice.customer_phone }}</strong>
           </div>
 
-          <label class="gw-label" for="mtn-otp-input">رمز التحقق (SMS)</label>
-          <input type="text" id="mtn-otp-input" class="gw-otp-field font-mono" placeholder="••••••" dir="ltr" inputmode="numeric" autocomplete="one-time-code">
+          <label class="gw-label" for="mtn-otp-input">رمز التحقق SMS (6 أرقام فقط)</label>
+          <input type="text" id="mtn-otp-input" class="gw-otp-field font-mono" placeholder="••••••" maxlength="6" pattern="[0-9]{6}" dir="ltr" inputmode="numeric" autocomplete="one-time-code" oninput="enforceMtnOtpInput(this)" onkeydown="if(event.key==='Enter'){event.preventDefault();confirmMtnPhonePayment();}">
+          <p class="gw-hint" style="text-align: center; margin-top: -0.45rem; margin-bottom: 0.9rem;">أدخل الـ 6 أرقام ثم اضغط <strong>Enter</strong> أو زر التأكيد.</p>
           <button type="button" id="mtn-btn-confirm" onclick="confirmMtnPhonePayment()" class="gw-btn gw-btn-success">
             <i class="fas fa-check-circle"></i>
             <span>تأكيد ودفع {{ invoice.amount_major|floatformat:0 }} ل.س</span>
           </button>
 
-          <div style="text-align: center; margin-top: 0.8rem;">
-            <button type="button" onclick="document.getElementById('mtn-step-otp').style.display='none'; document.getElementById('mtn-step-phone').style.display='block';" style="background: none; border: none; color: var(--rq-blue); font-family: inherit; font-size: 0.79rem; font-weight: 800; cursor: pointer;">
-              تغيير رقم الهاتف أو طلب رمز جديد
+          <div style="text-align: center; margin-top: 0.85rem;">
+            <button type="button" onclick="backToPhoneStep()" style="background: none; border: none; color: var(--rq-blue); font-family: inherit; font-size: 0.79rem; font-weight: 800; cursor: pointer;">
+              <i class="fas fa-pen-to-square" style="margin-left: 0.25rem;"></i>تغيير رقم الهاتف أو طلب رمز جديد
             </button>
           </div>
         </div>
@@ -558,7 +724,51 @@
     function cleanOtpCode(raw) {
       var map = {'٠':'0','١':'1','٢':'2','٣':'3','٤':'4','٥':'5','٦':'6','٧':'7','٨':'8','٩':'9'};
       var ascii = (raw || '').replace(/[٠-٩]/g, function(d) { return map[d] || d; });
-      return ascii.replace(/[^0-9A-Za-z]/g, '');
+      return ascii.replace(/[^0-9]/g, '').slice(0, 6);
+    }
+
+    function enforceMtnOtpInput(el) {
+      if (!el) return '';
+      var digits = cleanOtpCode(el.value);
+      if (el.value !== digits) {
+        el.value = digits;
+      }
+      return digits;
+    }
+
+    function updateStepper(step) {
+      var s1 = document.getElementById('mtn-stepper-1');
+      var s2 = document.getElementById('mtn-stepper-2');
+      if (!s1 || !s2) return;
+      if (step === 2) {
+        s1.className = 'gw-step-pill done';
+        s1.innerHTML = '<i class="fas fa-check"></i><span>1. رقم الهاتف</span>';
+        s2.className = 'gw-step-pill active';
+      } else {
+        s1.className = 'gw-step-pill active';
+        s1.innerHTML = '<i class="fas fa-mobile-screen"></i><span>1. رقم الهاتف</span>';
+        s2.className = 'gw-step-pill';
+      }
+    }
+
+    function backToPhoneStep() {
+      document.getElementById('mtn-step-otp').style.display = 'none';
+      document.getElementById('mtn-step-phone').style.display = 'block';
+      updateStepper(1);
+      var phoneInp = document.getElementById('mtn-phone-input');
+      if (phoneInp) phoneInp.focus();
+    }
+
+    function syncSelectedPhoneChip() {
+      var inp = document.getElementById('mtn-phone-input');
+      var val = inp ? inp.value : '';
+      document.querySelectorAll('.recent-phone-chip').forEach(function(chip) {
+        if (chip.getAttribute('data-phone') === val) {
+          chip.classList.add('selected');
+        } else {
+          chip.classList.remove('selected');
+        }
+      });
     }
 
     var MTN_RECENT_PHONES_KEY = 'raqamiyat_mtn_recent_phones_v1';
@@ -618,26 +828,32 @@
       phones.forEach(function(p) {
         var chip = document.createElement('button');
         chip.type = 'button';
-        chip.className = 'font-mono';
-        chip.style.cssText = 'display:inline-flex;align-items:center;gap:0.4rem;padding:0.35rem 0.65rem;border-radius:999px;border:1px solid #cbd5e1;background:#f8fafc;color:#0f172a;font-size:0.78rem;font-weight:800;cursor:pointer;transition:all .15s;';
+        chip.className = 'recent-phone-chip';
+        chip.setAttribute('data-phone', p);
         chip.onclick = function() {
           var inp = document.getElementById('mtn-phone-input');
           if (inp) {
             inp.value = p;
             inp.focus();
+            syncSelectedPhoneChip();
           }
         };
+        var iconSpan = document.createElement('span');
+        iconSpan.className = 'recent-phone-icon';
+        iconSpan.innerHTML = '<i class="fas fa-sim-card"></i>';
         var numSpan = document.createElement('span');
         numSpan.textContent = p;
         var delSpan = document.createElement('span');
+        delSpan.className = 'recent-phone-del';
         delSpan.textContent = '×';
         delSpan.title = 'حذف من السجل';
-        delSpan.style.cssText = 'color:#94a3b8;font-size:0.95rem;line-height:1;padding:0 2px;';
         delSpan.onclick = function(ev) { removeRecentMtnPhone(p, ev); };
+        chip.appendChild(iconSpan);
         chip.appendChild(numSpan);
         chip.appendChild(delSpan);
         container.appendChild(chip);
       });
+      syncSelectedPhoneChip();
     }
 
     document.addEventListener('DOMContentLoaded', renderRecentMtnPhones);
@@ -676,6 +892,7 @@
           document.getElementById('mtn-phone-display').textContent = phone10;
           document.getElementById('mtn-step-phone').style.display = 'none';
           document.getElementById('mtn-step-otp').style.display = 'block';
+          updateStepper(2);
           showMtnFeedback('تم إرسال رمز التحقق عبر رسالة SMS إلى هاتفك.', false);
           var otpInput = document.getElementById('mtn-otp-input');
           if (otpInput) { otpInput.value = ''; otpInput.focus(); }
@@ -692,10 +909,10 @@
 
     function confirmMtnPhonePayment() {
       var otpInput = document.getElementById('mtn-otp-input');
-      var code = cleanOtpCode(otpInput ? otpInput.value : '');
-      if (otpInput) otpInput.value = code;
-      if (!code) {
-        showMtnFeedback('يرجى إدخال رمز التحقق SMS أولاً.', true);
+      var code = enforceMtnOtpInput(otpInput);
+      if (!code || code.length !== 6) {
+        showMtnFeedback('يرجى إدخال رمز التحقق المكون من 6 أرقام فقط.', true);
+        if (otpInput) otpInput.focus();
         return;
       }
       var btn = document.getElementById('mtn-btn-confirm');

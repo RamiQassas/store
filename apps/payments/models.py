@@ -664,11 +664,11 @@ class DepositRequest(TimeStampedModel):
     @property
     def formatted_metadata(self):
         """Returns a list of dicts with 'label', 'value', and 'type' for metadata."""
-        if not self.metadata:
+        if not self.metadata or not isinstance(self.metadata, dict):
             return []
             
         results = []
-        schema = self.payment_method.deposit_form_schema
+        schema = getattr(self.payment_method, "deposit_form_schema", None) if self.payment_method else None
         fields = schema.get("fields", []) if isinstance(schema, dict) else []
         
         # Create a mapping of field key to (label, type)

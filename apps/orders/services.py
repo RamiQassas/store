@@ -2295,9 +2295,16 @@ def process_deposit_refund_to_gateway(deposit, actor=None, reason=None, otp=None
 
     is_mtn_pay = False
     mtn_invoice_num = None
-    if provider in ("mtn_pay", "mtn") or meta.get("mtn_invoice_number"):
+    mtn_inv_rec = deposit.mtn_pay_invoices.order_by("-created_at").first() if hasattr(deposit, "mtn_pay_invoices") else None
+    if provider in ("mtn_pay", "mtn") or meta.get("mtn_invoice_number") or mtn_inv_rec:
         is_mtn_pay = True
-        mtn_invoice_num = meta.get("mtn_invoice_number") or deposit.gateway_payment_id
+        mtn_status = meta.get("mtn_status_data") if isinstance(meta.get("mtn_status_data"), dict) else {}
+        mtn_invoice_num = (
+            meta.get("mtn_invoice_number")
+            or mtn_status.get("invoice_number")
+            or (mtn_inv_rec.invoice_number if mtn_inv_rec else None)
+            or deposit.gateway_payment_id
+        )
 
     is_paymera = False
     paymera_payment_id = None

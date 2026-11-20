@@ -363,18 +363,59 @@
                 </div>
             </div>
             {% elif deposit.status == 'completed' or deposit.status == 'approved' %}
-            <div class="flex items-center justify-between p-6 bg-emerald-500/5 border border-emerald-500/10 rounded-[28px]">
+            <div class="flex flex-wrap items-center justify-between gap-4 p-6 bg-emerald-500/5 border border-emerald-500/10 rounded-[28px]">
                 <div class="flex items-center gap-4">
                     <div class="w-14 h-14 rounded-2xl bg-emerald-500/10 flex items-center justify-center text-emerald-500 text-xl">
                         <i class="fas fa-check-double"></i>
                     </div>
                     <div>
                         <div class="text-lg font-black text-emerald-400">تمت الموافقة والاعتماد</div>
-                        <div class="text-xs text-slate-500 mt-1">بواسطة {{ deposit.reviewed_by.get_full_name|default:deposit.reviewed_by.email }} في {{ deposit.reviewed_at|date:"d M Y, H:i" }}</div>
+                        <div class="text-xs text-slate-500 mt-1">
+                            بواسطة {% if deposit.reviewed_by %}{{ deposit.reviewed_by.get_full_name|default:deposit.reviewed_by.email }}{% else %}تلقائي (بوابة الدفع){% endif %}{% if deposit.reviewed_at %} في {{ deposit.reviewed_at|date:"d M Y, H:i" }}{% endif %}
+                        </div>
                     </div>
                 </div>
-                <button class="btn btn-outline btn-sm h-10 px-6 rounded-xl font-black text-[9px] uppercase" onclick="document.getElementById('edit-pane').classList.toggle('hidden')">تعديل العملية</button>
+                <div class="flex flex-wrap items-center gap-2">
+                    {% if deposit.metadata.refunded or deposit.metadata.refund_status == 'approved' %}
+                    <span class="px-4 py-2 rounded-xl bg-amber-500/15 text-amber-300 border border-amber-500/30 font-black text-xs inline-flex items-center gap-2">
+                        <i class="fas fa-rotate-left"></i> تم استرداد المبلغ لنفس الحساب
+                    </span>
+                    {% else %}
+                    <button type="button" class="btn btn-sm h-10 px-5 rounded-xl font-black text-xs bg-rose-500/15 text-rose-300 border border-rose-500/35 hover:bg-rose-500/25 transition" onclick="document.getElementById('refund-pane').classList.toggle('hidden')">
+                        <i class="fas fa-rotate-left ml-1.5"></i> استرداد المبلغ لنفس الحساب
+                    </button>
+                    {% endif %}
+                    <button type="button" class="btn btn-outline btn-sm h-10 px-6 rounded-xl font-black text-[9px] uppercase" onclick="document.getElementById('edit-pane').classList.toggle('hidden')">تعديل العملية</button>
+                </div>
             </div>
+
+            {% if not deposit.metadata.refunded and deposit.metadata.refund_status != 'approved' %}
+            <!-- Direct Refund to Original Account Pane -->
+            <div id="refund-pane" class="hidden mt-6 p-7 bg-rose-950/30 rounded-3xl border border-rose-500/25">
+                <div class="flex items-center gap-3 mb-4">
+                    <div class="w-10 h-10 rounded-xl bg-rose-500/15 flex items-center justify-center text-rose-400">
+                        <i class="fas fa-rotate-left"></i>
+                    </div>
+                    <div>
+                        <h4 class="text-sm font-black text-rose-200">استرداد المبلغ لنفس الحساب ({{ deposit.payment_method.name }})</h4>
+                        <p class="text-[11px] text-slate-400 mt-0.5">سيتم إعادة المبلغ فورياً إلى نفس حساب العميل في بوابة الدفع وخصمه من رصيد محفظته تلقائياً.</p>
+                    </div>
+                </div>
+                <form method="post" action="{% url 'control_deposit_refund_action' deposit.id %}" onsubmit="return confirm('هل أنت متأكد من استرداد مبلغ {{ deposit.amount }} {{ deposit.currency.code }} وإعادته لنفس حساب العميل في بوابة الدفع؟');" class="space-y-4">
+                    {% csrf_token %}
+                    <input type="hidden" name="action" value="approve">
+                    <input type="hidden" name="next" value="{{ request.path }}">
+                    <div>
+                        <label class="field-label">سبب الاسترداد</label>
+                        <input type="text" name="refund_reason" class="modern-input border-rose-500/20" placeholder="مثلاً: استرداد بناءً على طلب العميل أو إلغاء عملية الإيداع..." required>
+                    </div>
+                    <button type="submit" class="btn w-full h-12 rounded-2xl bg-rose-600 hover:bg-rose-500 text-white font-black text-xs flex items-center justify-center gap-2 transition">
+                        <i class="fas fa-paper-plane"></i>
+                        <span>تأكيد استرداد المبلغ لنفس الحساب الآن</span>
+                    </button>
+                </form>
+            </div>
+            {% endif %}
             
             <!-- Hidden Correction Pane -->
             <div id="edit-pane" class="hidden mt-8 p-8 bg-slate-950/40 rounded-3xl border border-white/5 animate-in fade-in slide-in-from-top-4">
@@ -424,7 +465,7 @@
             <div class="grid grid-cols-2 gap-4 mt-8">
                 <div class="stat-pill text-right">
                     <span class="label">الرصيد المتاح</span>
-                    <span class="value text-cyan">{{ deposit.user.wallet.available_balance|floatformat:2 }}</span>
+                    <span class="value text-cyan">{{ user_wallet_balance|floatformat:2 }}</span>
                 </div>
                 <div class="stat-pill text-right">
                     <span class="label">الرتبة</span>
@@ -513,7 +554,7 @@
                         <span class="info-label">توقيت تقديم الطلب</span>
                         <span class="info-value text-[11px]">{{ deposit.created_at|date:"Y-m-d H:i:s" }}</span>
                     </div>
-                    <button onclick="copyToClipboard('{{ deposit.created_at|date:'Y-m-d H:i:s'|escapejs }}', this)" class="text-slate-500 hover:text-cyan transition mr-2" title="نسخ">
+                    <button onclick="copyToClipboard('{{ deposit.created_at|date:"Y-m-d H:i:s"|escapejs }}', this)" class="text-slate-500 hover:text-cyan transition mr-2" title="نسخ">
                         <i class="fas fa-copy text-[10px]"></i>
                     </button>
                 </div>
