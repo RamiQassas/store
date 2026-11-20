@@ -95,6 +95,78 @@ def _get_or_create_default_terminal(store=None) -> MTNPayTerminalConfig:
     return term
 
 
+def _expire_invoice_if_needed(invoice: MTNPayInvoiceRecord) -> tuple[bool, int]:
+    """
+    Enforces invoice payment timeout:
+    - Order & Deposit invoices: 10 minutes (600 seconds) max.
+    - Standalone admin payment links: `invoice.ttl_seconds` (or 15 min fallback).
+    When expired and unpaid, automatically cancels/closes the invoice and any pending
+    associated Order or DepositRequest so nothing stays hanging.
+    Returns: (is_expired, remaining_seconds).
+    """
+    from django.utils import timezone
+    from apps.payments.models import DepositRequest
+
+    if invoice.status_code == MTNPayInvoiceRecord.STATUS_PAID:
+        return False, 0
+    if invoice.status_code in (MTNPayInvoiceRecord.STATUS_CANCELLED, MTNPayInvoiceRecord.STATUS_FAILED):
+        return True, 0
+
+    if invoice.order_id or invoice.deposit_id:
+        ttl_sec = min(int(invoice.ttl_seconds or 600), 600)
+    else:
+        ttl_sec = int(invoice.ttl_seconds or 900)
+    if ttl_sec <= 0:
+        ttl_sec = 600
+
+    elapsed = int((timezone.now() - invoice.created_at).total_seconds())
+    remaining = max(0, ttl_sec - elapsed)
+    if remaining > 0:
+        return False, remaining
+
+    # Expired! Close the invoice and any still-pending Order or DepositRequest
+    try:
+        invoice.status_code = MTNPayInvoiceRecord.STATUS_CANCELLED
+        invoice.save(update_fields=["status_code", "updated_at"])
+    except Exception:
+        pass
+
+    if invoice.order_id:
+        try:
+            ord_obj = invoice.order
+            if ord_obj and getattr(ord_obj, "status", "") in ("pending", "awaiting_payment", "unpaid"):
+                ord_obj.status = "cancelled"
+                ord_obj.save(update_fields=["status"])
+        except Exception:
+            pass
+
+    if invoice.deposit_id:
+        try:
+            dep_obj = invoice.deposit
+            if dep_obj and dep_obj.status in (DepositRequest.Status.PENDING, DepositRequest.Status.UNDER_REVIEW):
+                dep_obj.status = DepositRequest.Status.REJECTED
+                dep_obj.admin_note = (dep_obj.admin_note or "") + "\n[إغلاق تلقائي]: انتهت مهلة الدفع عبر MTN Cash (10 دقائق) دون إتمام السداد."
+                dep_obj.save(update_fields=["status", "admin_note", "updated_at"])
+        except Exception:
+            pass
+
+    return True, 0
+
+
+def _build_invoice_redirect_urls(invoice: MTNPayInvoiceRecord) -> tuple[str, str]:
+    from django.urls import reverse
+    if invoice.order_id:
+        success_url = f"{reverse('payment_status')}?type=order&id={invoice.order_id}&status=paid"
+        cancel_url = f"{reverse('payment_status')}?type=order&id={invoice.order_id}&action=cancel"
+    elif invoice.deposit_id:
+        success_url = f"{reverse('payment_status')}?type=deposit&id={invoice.deposit_id}&status=paid"
+        cancel_url = f"{reverse('payment_status')}?type=deposit&id={invoice.deposit_id}&action=cancel"
+    else:
+        success_url = "/"
+        cancel_url = "/"
+    return success_url, cancel_url
+
+
 # ══════════════════════════════════════════════════════════════════════════════
 # CUSTOMER CHECKOUT & PHONE OTP VIEWS
 # ══════════════════════════════════════════════════════════════════════════════
@@ -107,6 +179,8 @@ def mtn_invoice_checkout_view(request, invoice_number: int):
     """
     invoice = get_object_or_404(MTNPayInvoiceRecord, invoice_number=invoice_number)
     terminal = invoice.terminal
+    is_expired, remaining_seconds = _expire_invoice_if_needed(invoice)
+    success_redirect_url, cancel_redirect_url = _build_invoice_redirect_urls(invoice)
 
     item_summary = ""
     usd_amount = None
@@ -182,6 +256,10 @@ def mtn_invoice_checkout_view(request, invoice_number: int):
             "item_summary": item_summary or "دفع فاتورة رقميات",
             "usd_amount": usd_amount,
             "saved_mtn_phones": saved_mtn_phones,
+            "is_expired": is_expired,
+            "remaining_seconds": remaining_seconds,
+            "success_redirect_url": success_redirect_url,
+            "cancel_redirect_url": cancel_redirect_url,
         },
     )
 
@@ -194,6 +272,16 @@ def mtn_phone_initiate_ajax(request, invoice_number: int):
     Receives customer `phone`, generates `Guid`, and returns `OperationNumber` + `PaySystem`.
     """
     invoice = get_object_or_404(MTNPayInvoiceRecord, invoice_number=invoice_number)
+    is_expired, _ = _expire_invoice_if_needed(invoice)
+    if is_expired:
+        _, cancel_url = _build_invoice_redirect_urls(invoice)
+        return JsonResponse({
+            "status": "error",
+            "expired": True,
+            "redirect_url": cancel_url,
+            "message": "انتهت مهلة الدفع لهذه الفاتورة وتم إغلاقها تلقائياً.",
+        }, status=400)
+
     phone = (request.POST.get("phone") or "").strip()
     if not phone and request.body:
         try:
@@ -232,6 +320,16 @@ def mtn_phone_confirm_ajax(request, invoice_number: int):
     Receives SMS `code` and completes the MTNPay payment (with automatic `pos_web/invoice/get` recovery on timeout).
     """
     invoice = get_object_or_404(MTNPayInvoiceRecord, invoice_number=invoice_number)
+    is_expired, _ = _expire_invoice_if_needed(invoice)
+    if is_expired:
+        _, cancel_url = _build_invoice_redirect_urls(invoice)
+        return JsonResponse({
+            "status": "error",
+            "expired": True,
+            "redirect_url": cancel_url,
+            "message": "انتهت مهلة الدفع لهذه الفاتورة وتم إغلاقها تلقائياً.",
+        }, status=400)
+
     code = (request.POST.get("code") or "").strip()
     if not code and request.body:
         try:
@@ -246,12 +344,7 @@ def mtn_phone_confirm_ajax(request, invoice_number: int):
             invoice_number=invoice.invoice_number,
             sms_code=code,
         )
-        from django.urls import reverse
-        redirect_url = ""
-        if updated_inv.order_id:
-            redirect_url = f"{reverse('payment_status')}?type=order&id={updated_inv.order_id}&status=paid"
-        elif updated_inv.deposit_id:
-            redirect_url = f"{reverse('payment_status')}?type=deposit&id={updated_inv.deposit_id}&status=paid"
+        redirect_url, _ = _build_invoice_redirect_urls(updated_inv)
         return JsonResponse({
             "status": "ok",
             "message": "تم تأكيد الدفع عبر MTNPay بنجاح!",
@@ -277,6 +370,18 @@ def mtn_phone_confirm_ajax(request, invoice_number: int):
 def mtn_invoice_status_ajax(request, invoice_number: int):
     """Calls `pos_web/invoice/get` to sync and return the live status of an invoice."""
     invoice = get_object_or_404(MTNPayInvoiceRecord, invoice_number=invoice_number)
+    is_expired, remaining_seconds = _expire_invoice_if_needed(invoice)
+    success_url, cancel_url = _build_invoice_redirect_urls(invoice)
+    if is_expired:
+        return JsonResponse({
+            "status": "expired",
+            "expired": True,
+            "invoice": invoice.invoice_number,
+            "invoice_status": invoice.status_code,
+            "is_paid": False,
+            "redirect_url": cancel_url,
+            "message": "انتهت مهلة الدفع وتم إغلاق الفاتورة تلقائياً.",
+        })
     client = MTNPaymentClient(invoice.terminal)
     try:
         updated_inv, _ = client.get_invoice(invoice.invoice_number, transaction_id=invoice.transaction_id or None)
@@ -286,6 +391,8 @@ def mtn_invoice_status_ajax(request, invoice_number: int):
             "invoice_status": updated_inv.status_code,
             "is_paid": updated_inv.is_paid,
             "transaction": updated_inv.transaction_id,
+            "remaining_seconds": remaining_seconds,
+            "redirect_url": success_url if updated_inv.is_paid else "",
         })
     except MTNPayError as exc:
         return JsonResponse({

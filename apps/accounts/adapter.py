@@ -395,18 +395,14 @@ class MySocialAccountAdapter(DefaultSocialAccountAdapter):
             if not next_url:
                 next_url = getattr(settings, "LOGIN_REDIRECT_URL", "/dashboard/")
 
-            # Bind Android WebView session ticket if present in next_url or pending IP cache
+            # Bind Android WebView session ticket ONLY when an explicit app `ticket` was passed in next_url
+            # (Never hijack normal Chrome / mobile browser logins into the installed app)
             try:
                 from urllib.parse import urlparse, parse_qs, quote
-                from django.core.cache import cache
-                from apps.site.views import _bind_user_to_app_ticket, _get_client_ip_for_sso
+                from apps.site.views import _bind_user_to_app_ticket
                 parsed_next = urlparse(str(next_url))
                 ticket_vals = parse_qs(parsed_next.query).get("ticket")
                 ticket_str = ticket_vals[0] if (ticket_vals and ticket_vals[0]) else ""
-                if not ticket_str:
-                    client_ip = _get_client_ip_for_sso(request)
-                    if client_ip:
-                        ticket_str = cache.get(f"app_sso_pending_ip_{client_ip}") or ""
                 if ticket_str:
                     _bind_user_to_app_ticket(request, user, ticket_str)
                     ua = (request.META.get("HTTP_USER_AGENT") or "")

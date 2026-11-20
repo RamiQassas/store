@@ -528,25 +528,73 @@
 
     <div class="gw-body">
       {% if invoice.status_code == 9 %}
-      <div style="text-align: center; padding: 1rem 0.5rem;">
-        <div style="width: 60px; height: 60px; margin: 0 auto 0.75rem; border-radius: 50%; background: #ecfdf5; color: #059669; display: flex; align-items: center; justify-content: center; font-size: 1.85rem;">
+      <div style="text-align: center; padding: 1.15rem 0.5rem;">
+        <div style="width: 64px; height: 64px; margin: 0 auto 0.85rem; border-radius: 50%; background: #ecfdf5; color: #059669; display: flex; align-items: center; justify-content: center; font-size: 1.95rem; box-shadow: 0 8px 20px -6px rgba(5,150,105,0.35);">
           <i class="fas fa-check"></i>
         </div>
-        <h2 style="margin: 0 0 0.3rem; font-size: 1.1rem; font-weight: 900;">تم الدفع بنجاح</h2>
-        <p style="margin: 0 0 1.1rem; font-size: 0.83rem; color: var(--text-muted);">تم تأكيد عمليتك عبر كاش موبايل</p>
-        {% if invoice.order %}
-        <a href="{% url 'payment_status' %}?type=order&id={{ invoice.order.id }}&status=paid" class="gw-btn gw-btn-success" style="text-decoration: none;">
-          <span>العودة لمتابعة الطلب</span>
+        <h2 style="margin: 0 0 0.35rem; font-size: 1.15rem; font-weight: 900; color: #0f172a;">تم الدفع بنجاح</h2>
+        <p style="margin: 0 0 0.7rem; font-size: 0.84rem; color: var(--text-muted);">تم تأكيد عمليتك عبر كاش موبايل بنجاح.</p>
+        <p style="margin: 0 0 1.1rem; font-size: 0.78rem; font-weight: 800; color: #059669;">
+          سيتم تحويلك تلقائياً إلى رقميات خلال <span id="mtn-auto-redirect-sec" class="font-mono">3</span> ثوانٍ...
+        </p>
+        <a href="{{ success_redirect_url|default:'/' }}" class="gw-btn gw-btn-success" style="text-decoration: none;">
+          <span>{% if invoice.order %}العودة لمتابعة الطلب{% elif invoice.deposit %}العودة للمحفظة{% else %}العودة إلى متجر رقميات{% endif %}</span>
           <i class="fas fa-arrow-left"></i>
         </a>
-        {% elif invoice.deposit %}
-        <a href="{% url 'payment_status' %}?type=deposit&id={{ invoice.deposit.id }}&status=paid" class="gw-btn gw-btn-success" style="text-decoration: none;">
-          <span>العودة للمحفظة</span>
-          <i class="fas fa-arrow-left"></i>
-        </a>
-        {% endif %}
       </div>
+      <script>
+        (function() {
+          var target = '{{ success_redirect_url|default:"/"|escapejs }}';
+          var sec = 3;
+          var el = document.getElementById('mtn-auto-redirect-sec');
+          var t = setInterval(function() {
+            sec -= 1;
+            if (el && sec >= 0) el.textContent = sec;
+            if (sec <= 0) {
+              clearInterval(t);
+              window.location.href = target;
+            }
+          }, 1000);
+        })();
+      </script>
+      {% elif is_expired or invoice.status_code == 0 %}
+      <div style="text-align: center; padding: 1.15rem 0.5rem;">
+        <div style="width: 64px; height: 64px; margin: 0 auto 0.85rem; border-radius: 50%; background: #fef2f2; color: #dc2626; display: flex; align-items: center; justify-content: center; font-size: 1.85rem;">
+          <i class="fas fa-clock"></i>
+        </div>
+        <h2 style="margin: 0 0 0.35rem; font-size: 1.1rem; font-weight: 900; color: #991b1b;">انتهت مهلة الدفع وتم إغلاق الفاتورة</h2>
+        <p style="margin: 0 0 0.7rem; font-size: 0.83rem; color: var(--text-muted);">لم يتم إتمام الدفع ضمن المهلة المحددة، لذلك تم إغلاق الفاتورة تلقائياً.</p>
+        <p style="margin: 0 0 1.1rem; font-size: 0.78rem; font-weight: 800; color: #b91c1c;">
+          جاري تحويلك تلقائياً إلى رقميات خلال <span id="mtn-exp-redirect-sec" class="font-mono">3</span> ثوانٍ...
+        </p>
+        <a href="{{ cancel_redirect_url|default:'/' }}" class="gw-btn" style="text-decoration: none;">
+          <span>العودة إلى رقميات الآن</span>
+          <i class="fas fa-arrow-left"></i>
+        </a>
+      </div>
+      <script>
+        (function() {
+          var target = '{{ cancel_redirect_url|default:"/"|escapejs }}';
+          var sec = 3;
+          var el = document.getElementById('mtn-exp-redirect-sec');
+          var t = setInterval(function() {
+            sec -= 1;
+            if (el && sec >= 0) el.textContent = sec;
+            if (sec <= 0) {
+              clearInterval(t);
+              window.location.href = target;
+            }
+          }, 1000);
+        })();
+      </script>
       {% else %}
+
+      {% if remaining_seconds %}
+      <div id="mtn-countdown-bar" style="display: flex; align-items: center; justify-content: space-between; gap: 0.5rem; padding: 0.55rem 0.85rem; margin-bottom: 0.95rem; border-radius: 11px; background: #fffbeb; border: 1px solid #fde68a; font-size: 0.77rem; font-weight: 800; color: #92400e;">
+        <span><i class="fas fa-hourglass-half" style="margin-left: 0.3rem; color: #d97706;"></i>الوقت المتبقي لإتمام الدفع قبل الإغلاق التلقائي</span>
+        <span id="mtn-countdown-timer" class="font-mono" dir="ltr" style="background: #ffffff; color: #b45309; padding: 0.15rem 0.55rem; border-radius: 7px; border: 1px solid #fcd34d; font-weight: 900;">--:--</span>
+      </div>
+      {% endif %}
 
       <div class="gw-tabs">
         <button type="button" class="gw-tab active" id="tab-btn-phone" onclick="switchCashMobileTab('phone')">
@@ -929,14 +977,15 @@
       .then(function(data) {
         if (btn) btn.disabled = false;
         if (data.status === 'ok' && data.is_paid) {
-          showMtnFeedback('تم تأكيد الدفع بنجاح! جاري تحويلك...', false);
+          showMtnFeedback('تم تأكيد الدفع بنجاح! جاري تحويلك إلى رقميات...', false);
           setTimeout(function() {
-            if (data.redirect_url) {
-              window.location.href = data.redirect_url;
-            } else {
-              window.location.reload();
-            }
-          }, 500);
+            window.location.href = data.redirect_url || '{{ success_redirect_url|default:"/"|escapejs }}';
+          }, 900);
+        } else if (data.expired) {
+          showMtnFeedback(data.message || 'انتهت مهلة الدفع وتم إغلاق الفاتورة تلقائياً.', true);
+          setTimeout(function() {
+            window.location.href = data.redirect_url || '{{ cancel_redirect_url|default:"/"|escapejs }}';
+          }, 1500);
         } else {
           var extra = (data.abuse_remaining !== null && data.abuse_remaining !== undefined)
             ? ' (المحاولات المتبقية: ' + data.abuse_remaining + ')'
@@ -956,22 +1005,52 @@
       .then(function(r) { return r.json(); })
       .then(function(data) {
         if (data.status === 'ok' && data.is_paid) {
-          showMtnFeedback('تم الدفع بنجاح! جاري تحويلك...', false);
+          showMtnFeedback('تم الدفع بنجاح! جاري تحويلك إلى رقميات...', false);
           setTimeout(function() {
-            {% if invoice.order %}
-            window.location.href = '{% url "payment_status" %}?type=order&id={{ invoice.order.id }}&status=paid';
-            {% elif invoice.deposit %}
-            window.location.href = '{% url "payment_status" %}?type=deposit&id={{ invoice.deposit.id }}&status=paid';
-            {% else %}
-            window.location.reload();
-            {% endif %}
-          }, 500);
+            window.location.href = data.redirect_url || '{{ success_redirect_url|default:"/"|escapejs }}';
+          }, 900);
+        } else if (data.expired || data.status === 'expired') {
+          showMtnFeedback(data.message || 'انتهت مهلة الدفع وتم إغلاق الفاتورة تلقائياً.', true);
+          setTimeout(function() {
+            window.location.href = data.redirect_url || '{{ cancel_redirect_url|default:"/"|escapejs }}';
+          }, 1500);
         } else if (data.status === 'ok') {
           showMtnFeedback('بانتظار إتمام الدفع...', false);
         }
       })
       .catch(function() {});
     }
+
+    // Live 10-minute countdown timer -> auto-close invoice & redirect when it reaches 00:00
+    (function() {
+      var remaining = parseInt('{{ remaining_seconds|default:0 }}', 10) || 0;
+      var timerEl = document.getElementById('mtn-countdown-timer');
+      if (!timerEl || remaining <= 0) return;
+
+      function fmt(s) {
+        var m = Math.floor(s / 60);
+        var r = s % 60;
+        return (m < 10 ? '0' : '') + m + ':' + (r < 10 ? '0' : '') + r;
+      }
+      timerEl.textContent = fmt(remaining);
+
+      var cd = setInterval(function() {
+        remaining -= 1;
+        if (remaining <= 0) {
+          clearInterval(cd);
+          timerEl.textContent = '00:00';
+          showMtnFeedback('انتهت مهلة الدفع وتم إغلاق الفاتورة تلقائياً. جاري تحويلك إلى رقميات...', true);
+          fetch('{% url "mtn_invoice_status_ajax" invoice.invoice_number %}')
+            .finally(function() {
+              setTimeout(function() {
+                window.location.href = '{{ cancel_redirect_url|default:"/"|escapejs }}';
+              }, 1200);
+            });
+          return;
+        }
+        timerEl.textContent = fmt(remaining);
+      }, 1000);
+    })();
   </script>
 </body>
 </html>

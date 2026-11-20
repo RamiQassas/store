@@ -478,16 +478,20 @@ def _build_app_google_login_context(request, active_store=None):
     from urllib.parse import urlencode
     from allauth.socialaccount.models import SocialApp
 
+    ua = (request.META.get("HTTP_USER_AGENT") or "")
+    is_app_webview = ("RaqamiyatAndroid" in ua) or (request.GET.get("from_app") == "1")
+
     tid = request.session.get("app_sso_tid")
     if not tid:
         tid = uuid.uuid4().hex
         request.session["app_sso_tid"] = tid
-    request.session["app_sso_pending"] = True
-    request.session.modified = True
-    try:
-        request.session.save()
-    except Exception:
-        pass
+    if is_app_webview:
+        request.session["app_sso_pending"] = True
+        request.session.modified = True
+        try:
+            request.session.save()
+        except Exception:
+            pass
 
     ticket_payload = {
         "skey": request.session.session_key or "",
@@ -496,9 +500,8 @@ def _build_app_google_login_context(request, active_store=None):
     }
     app_sso_ticket = signing.dumps(ticket_payload, salt="raqamiyat_app_ticket")
 
-    ua = (request.META.get("HTTP_USER_AGENT") or "")
     client_ip = _get_client_ip_for_sso(request)
-    if client_ip and ("RaqamiyatAndroid" in ua or "wv" in ua.lower() or "Android" in ua):
+    if client_ip and is_app_webview:
         try:
             from django.core.cache import cache
             cache.set(f"app_sso_pending_ip_{client_ip}", app_sso_ticket, 900)
