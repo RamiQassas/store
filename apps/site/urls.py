@@ -113,6 +113,7 @@ urlpatterns = [
     path("control/mtn-pay/", views_mtn.mtn_admin_dashboard_view, name="mtn_admin_dashboard"),
     path("control/mtn-pay/activate/", views_mtn.mtn_admin_activate_pos_view, name="mtn_admin_activate_pos"),
     path("control/mtn-pay/check-status/", views_mtn.mtn_admin_check_status_view, name="mtn_admin_check_status"),
+    path("control/mtn-pay/otp-encoding/", views_mtn.mtn_admin_otp_encoding_view, name="mtn_admin_otp_encoding"),
     path("control/mtn-pay/invoices/create/", views_mtn.mtn_admin_create_invoice_view, name="mtn_admin_create_invoice"),
     path("control/mtn-pay/refund/", views_mtn.mtn_admin_refund_action_view, name="mtn_admin_refund_action"),
 

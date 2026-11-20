@@ -428,3 +428,22 @@ class MTNPayIntegrationTests(TestCase):
         self.assertTrue(paid_rec.is_paid)
         dep.refresh_from_db()
         self.assertEqual(dep.status, DepositRequest.Status.COMPLETED)
+
+    # ── 8. OTP Code Encoding Modes (Plain, Base64, SHA-256, RSA+SHA-256, MD5) ─
+    def test_otp_code_encoding_modes(self):
+        import base64
+        import hashlib
+
+        client = MTNPaymentClient(self.terminal, private_key_pem=self.priv_pem)
+        raw = "564972"
+        self.assertEqual(client.encode_otp_code(raw, "plain"), "564972")
+        self.assertEqual(client.encode_otp_code(raw, "base64"), base64.b64encode(b"564972").decode("ascii"))
+        self.assertEqual(client.encode_otp_code(raw, "sha256_hex"), hashlib.sha256(b"564972").hexdigest())
+        self.assertEqual(client.encode_otp_code(raw, "sha256_hex_upper"), hashlib.sha256(b"564972").hexdigest().upper())
+        self.assertEqual(
+            client.encode_otp_code(raw, "sha256_b64"),
+            base64.b64encode(hashlib.sha256(b"564972").digest()).decode("ascii"),
+        )
+        self.assertEqual(client.encode_otp_code(raw, "md5_hex"), hashlib.md5(b"564972").hexdigest())
+        rsa_sig = client.encode_otp_code(raw, "rsa_sha256_b64")
+        self.assertTrue(MTNCryptoEngine.verify_signature(b"564972", rsa_sig, self.pub_b64))

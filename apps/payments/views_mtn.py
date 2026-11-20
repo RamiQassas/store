@@ -156,6 +156,9 @@ def mtn_invoice_checkout_view(request, invoice_number: int):
             "currency": terminal.currency_info,
             "item_summary": item_summary or "دفع فاتورة رقميات",
             "usd_amount": usd_amount,
+            "is_admin_tester": _is_staff_or_admin(request.user),
+            "otp_encoding_choices": MTNPaymentClient.OTP_CODE_ENCODINGS,
+            "current_otp_encoding": terminal.otp_code_encoding,
         },
     )
 
@@ -207,10 +210,13 @@ def mtn_phone_confirm_ajax(request, invoice_number: int):
     """
     invoice = get_object_or_404(MTNPayInvoiceRecord, invoice_number=invoice_number)
     code = (request.POST.get("code") or "").strip()
+    code_encoding = (request.POST.get("code_encoding") or "").strip() if _is_staff_or_admin(request.user) else ""
     if not code and request.body:
         try:
             body_json = json.loads(request.body.decode("utf-8"))
             code = str(body_json.get("code") or "").strip()
+            if not code_encoding and _is_staff_or_admin(request.user):
+                code_encoding = str(body_json.get("code_encoding") or "").strip()
         except Exception:
             pass
 
@@ -219,6 +225,7 @@ def mtn_phone_confirm_ajax(request, invoice_number: int):
         updated_inv, resp = client.confirm_phone_payment(
             invoice_number=invoice.invoice_number,
             sms_code=code,
+            code_encoding=code_encoding or None,
         )
         from django.urls import reverse
         redirect_url = ""
@@ -295,8 +302,33 @@ def mtn_admin_dashboard_view(request):
             "invoices": invoices,
             "refunds": refunds,
             "logs": logs,
+            "otp_encoding_choices": MTNPaymentClient.OTP_CODE_ENCODINGS,
+            "current_otp_encoding": terminal.otp_code_encoding,
         },
     )
+
+
+@login_required
+@require_POST
+def mtn_admin_otp_encoding_view(request):
+    """Saves the selected OTP `Code` encoding/hashing mode for `pos_web/payment_phone/confirm`."""
+    if not _is_staff_or_admin(request.user):
+        return redirect("dashboard")
+
+    store = getattr(request, "store", None)
+    terminal = _get_or_create_default_terminal(store=store)
+    selected = (request.POST.get("otp_code_encoding") or "plain").strip()
+    if selected not in MTNPaymentClient.VALID_OTP_ENCODINGS:
+        selected = "plain"
+
+    cfg = dict(terminal.terminal_settings) if isinstance(terminal.terminal_settings, dict) else {}
+    cfg["OtpCodeEncoding"] = selected
+    terminal.terminal_settings = cfg
+    terminal.save(update_fields=["terminal_settings"])
+
+    label_map = dict(MTNPaymentClient.OTP_CODE_ENCODINGS)
+    messages.success(request, f"تم حفظ طريقة تشفير رمز التحقق (Code) بنجاح: {label_map.get(selected, selected)}")
+    return redirect("mtn_admin_dashboard")
 
 
 @login_required

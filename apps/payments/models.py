@@ -1249,6 +1249,14 @@ class MTNPayTerminalConfig(TimeStampedModel):
         return bool(allowed.get("Payment") is True)
 
     @property
+    def otp_code_encoding(self) -> str:
+        if isinstance(self.terminal_settings, dict):
+            val = str(self.terminal_settings.get("OtpCodeEncoding") or "plain").strip()
+            if val:
+                return val
+        return "plain"
+
+    @property
     def fractional_factor(self) -> int:
         """
         Returns the multiplier to convert major currency units to minor units

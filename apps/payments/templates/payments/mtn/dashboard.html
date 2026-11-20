@@ -103,6 +103,30 @@
       </div>
     </div>
 
+    <!-- OTP Code Encoding Selector (Testing / Diagnostics) -->
+    <form method="post" action="{% url 'mtn_admin_otp_encoding' %}" class="pt-3 border-t border-white/10 space-y-2.5">
+      {% csrf_token %}
+      <div class="flex items-center justify-between gap-2">
+        <div class="text-xs font-black text-cyan flex items-center gap-1.5">
+          <i class="fas fa-shield-halved"></i>
+          <span>تشفير حقل رمز التحقق SMS (`Code`) عند التأكيد</span>
+        </div>
+        <span class="px-2 py-0.5 rounded-full text-[10px] font-mono bg-cyan/15 text-cyan border border-cyan/30">{{ current_otp_encoding }}</span>
+      </div>
+      <div class="flex flex-col sm:flex-row gap-2">
+        <select name="otp_code_encoding" class="flex-1 px-3 py-2 rounded-xl bg-slate-950 border border-white/10 text-white text-xs">
+          {% for val, label in otp_encoding_choices %}
+          <option value="{{ val }}" {% if current_otp_encoding == val %}selected{% endif %}>{{ label }}</option>
+          {% endfor %}
+        </select>
+        <button type="submit" class="btn bg-cyan text-slate-950 font-black whitespace-nowrap">
+          <i class="fas fa-save"></i>
+          <span>حفظ التشفير</span>
+        </button>
+      </div>
+      <p class="text-[11px] text-slate-400">يمكنك تبديل طريقة تشفير حقل <code class="text-cyan">Code</code> وتجربة التأكيد، ومراقبة القيمة المرسلة فعلياً في سجل <code class="text-amber-300">REQ</code> بالأسفل.</p>
+    </form>
+
     <!-- Create Invoice Quick Form -->
     <form method="post" action="{% url 'mtn_admin_create_invoice' %}" class="pt-3 border-t border-white/10 space-y-3">
       {% csrf_token %}

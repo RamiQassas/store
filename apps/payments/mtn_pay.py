@@ -380,6 +380,18 @@ class MTNPaymentClient:
     ENDPOINT_REFUND_CONFIRM = "pos_web/invoice/refund/confirm"
     ENDPOINT_REFUND_CANCEL = "pos_web/invoice/refund/cancel"
 
+    OTP_CODE_ENCODINGS = [
+        ("plain", "بدون تشفير — نص عادي (Plain) [الافتراضي حسب الكتيب]"),
+        ("base64", "Base64 — ترميز Base64 للنص (مثال: 564972 → NTY0OTcy)"),
+        ("sha256_hex", "SHA-256 (Hex) — تجزئة SHA-256 بأحرف صغيرة (64 محرف)"),
+        ("sha256_hex_upper", "SHA-256 (HEX) — تجزئة SHA-256 بأحرف كبيرة (64 محرف)"),
+        ("sha256_b64", "SHA-256 + Base64 — تجزئة SHA-256 ثنائية مرمّزة بـ Base64"),
+        ("rsa_sha256_b64", "RSA-1024 + SHA-256 (Base64) — توقيع الرمز بالمفتاح الخاص (مثل الكتيب ص30)"),
+        ("md5_hex", "MD5 (Hex) — تجزئة MD5 بأحرف صغيرة (32 محرف)"),
+    ]
+
+    VALID_OTP_ENCODINGS = {k for k, _ in OTP_CODE_ENCODINGS}
+
     def __init__(
         self,
         terminal_config,
@@ -841,6 +853,8 @@ class MTNPaymentClient:
             raise exc
 
         settings_obj = resp.get("Settings") or {}
+        if isinstance(self.terminal.terminal_settings, dict) and self.terminal.terminal_settings.get("OtpCodeEncoding"):
+            settings_obj["OtpCodeEncoding"] = self.terminal.terminal_settings["OtpCodeEncoding"]
         if resp.get("ServerKey"):
             self.terminal.server_public_key_b64 = str(resp["ServerKey"]).strip()
         self.terminal.serial_number = serial
@@ -1036,6 +1050,30 @@ class MTNPaymentClient:
         record.save()
         return resp
 
+    def encode_otp_code(self, code_clean: str, encoding_mode: Optional[str] = None) -> str:
+        """
+        Encodes/hashes the SMS verification `Code` according to the configured terminal mode:
+        plain | base64 | sha256_hex | sha256_hex_upper | sha256_b64 | rsa_sha256_b64 | md5_hex.
+        """
+        mode = (encoding_mode or getattr(self.terminal, "otp_code_encoding", "plain") or "plain").strip()
+        if mode not in self.VALID_OTP_ENCODINGS:
+            mode = "plain"
+        raw_bytes = code_clean.encode("utf-8")
+        if mode == "base64":
+            return base64.b64encode(raw_bytes).decode("ascii")
+        if mode == "sha256_hex":
+            return hashlib.sha256(raw_bytes).hexdigest()
+        if mode == "sha256_hex_upper":
+            return hashlib.sha256(raw_bytes).hexdigest().upper()
+        if mode == "sha256_b64":
+            return base64.b64encode(hashlib.sha256(raw_bytes).digest()).decode("ascii")
+        if mode == "rsa_sha256_b64":
+            priv_pem = self._get_private_key()
+            return MTNCryptoEngine.sign_payload(raw_bytes, priv_pem)
+        if mode == "md5_hex":
+            return hashlib.md5(raw_bytes).hexdigest()
+        return code_clean
+
     def confirm_phone_payment(
         self,
         invoice_number: int,
@@ -1043,6 +1081,7 @@ class MTNPaymentClient:
         customer_phone: Optional[str] = None,
         guid: Optional[str] = None,
         operation_number: Optional[str] = None,
+        code_encoding: Optional[str] = None,
     ) -> Tuple[Any, Dict[str, Any]]:
         """
         Confirms phone payment (`pos_web/payment_phone/confirm`) using SMS OTP `Code`.
@@ -1070,12 +1109,14 @@ class MTNPaymentClient:
         if not code_clean:
             raise MTNPayError.from_errno(662)
 
+        encoded_code = self.encode_otp_code(code_clean, encoding_mode=code_encoding)
+
         payload = {
             "Phone": phone_val,
             "Guid": guid_val,
             "OperationNumber": op_formatted,
             "Invoice": int(invoice_number),
-            "Code": code_clean,
+            "Code": encoded_code,
         }
 
         try:
