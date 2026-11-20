@@ -114,26 +114,33 @@
       <i class="fas fa-circle text-[8px] ml-1.5"></i>
       {% if terminal.is_activated %}البوابة متصلة وتعمل بنجاح{% else %}البوابة بحاجة تفعيل{% endif %}
     </span>
+    <button type="button" onclick="document.getElementById('mtn-reactivate-card').classList.toggle('hidden')" class="btn btn-sm bg-amber-500/15 text-amber-300 border border-amber-500/35 font-bold">
+      <i class="fas fa-key ml-1"></i> إعادة تفعيل / تغيير الطرفية
+    </button>
     <a href="{% url 'payment_gateway_integrations_list' %}" class="btn btn-outline btn-sm">
       <i class="fas fa-arrow-right ml-1"></i> بوابات الدفع
     </a>
   </div>
 </div>
 
-{% if not terminal.is_activated %}
-<!-- POS Activation Card (Shown ONLY when terminal is not activated) -->
-<div class="mtn-dash-card p-6 mb-8 space-y-4">
-  <div class="flex items-center justify-between">
-    <h3 class="text-sm font-black text-white flex items-center gap-2">
+<!-- POS Activation / Reactivation Card (Hidden by default when activated, toggled via button) -->
+<div id="mtn-reactivate-card" class="mtn-dash-card p-6 mb-8 space-y-4 {% if terminal.is_activated %}hidden{% endif %}">
+  <div class="flex flex-wrap items-center justify-between gap-2">
+    <h3 class="text-sm font-black text-white flex items-center gap-2 m-0">
       <i class="fas fa-key text-amber-400"></i>
-      <span>تفعيل نقطة البيع (pos_web/pos/activate)</span>
+      <span>تفعيل / إعادة تفعيل نقطة البيع (pos_web/pos/activate)</span>
     </h3>
-    <span class="px-2.5 py-1 rounded-full text-[11px] font-black bg-amber-500/20 text-amber-300">بانتظار التفعيل</span>
+    <div class="flex items-center gap-2">
+      <span class="text-[11px] text-slate-400">محاولات فاشلة: <strong class="text-white font-mono">{{ terminal.activation_attempts }} / 3</strong></span>
+      <span class="px-2.5 py-1 rounded-full text-[11px] font-black {% if terminal.is_activated %}bg-emerald-500/20 text-emerald-300{% elif terminal.is_locked %}bg-rose-500/20 text-rose-300{% else %}bg-amber-500/20 text-amber-300{% endif %}">
+        {% if terminal.is_activated %}مفعلة حالياً{% elif terminal.is_locked %}مقفلة (تجاوز 3 محاولات){% else %}بانتظار التفعيل{% endif %}
+      </span>
+    </div>
   </div>
   <form method="post" action="{% url 'mtn_admin_activate_pos' %}" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 items-end">
     {% csrf_token %}
     <div>
-      <label class="text-[11px] font-bold text-slate-300 block mb-1">معرف الطرفية (Subject)</label>
+      <label class="text-[11px] font-bold text-slate-300 block mb-1">رقم نقطة البيع / الطرفية (Subject)</label>
       <input type="text" name="terminal_id" value="{{ terminal.terminal_id }}" class="mtn-dash-input font-mono" required>
     </div>
     <div>
@@ -141,18 +148,22 @@
       <input type="text" name="serial_number" value="{{ terminal.serial_number }}" class="mtn-dash-input font-mono" required>
     </div>
     <div>
-      <label class="text-[11px] font-bold text-slate-300 block mb-1">رمز التفعيل (8 أرقام)</label>
-      <input type="password" name="secret_code" maxlength="8" placeholder="••••••••" class="mtn-dash-input font-mono">
+      <label class="text-[11px] font-bold text-slate-300 block mb-1">الرمز السري للتفعيل (Secret - 8 أرقام)</label>
+      <input type="password" name="secret_code" maxlength="8" placeholder="أدخل 8 أرقام" class="mtn-dash-input font-mono">
     </div>
-    <div>
-      <button type="submit" class="mtn-btn-gold w-full" {% if terminal.is_locked %}disabled{% endif %}>
+    <div class="flex flex-wrap gap-2">
+      <button type="submit" class="mtn-btn-gold flex-1" {% if terminal.is_locked %}disabled{% endif %}>
         <i class="fas fa-bolt"></i>
         <span>تفعيل الطرفية</span>
       </button>
+      {% if terminal.is_locked %}
+      <button type="submit" name="reset_lock" value="1" class="btn bg-rose-500/20 text-rose-300 border border-rose-500/40 font-bold">
+        <i class="fas fa-unlock"></i> فك القفل
+      </button>
+      {% endif %}
     </div>
   </form>
 </div>
-{% endif %}
 
 <!-- Create MTN Cash Invoice & Share Link Card -->
 <div class="mtn-dash-card p-6 mb-8">
