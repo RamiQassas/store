@@ -8,9 +8,27 @@
     <div>
         <span class="eyebrow">Financial Liquidity / Inbound</span>
         <h1>إدارة طلبات الإيداع</h1>
-        <p class="text-slate-500 mt-2">مراجعة والتحقق من الحوالات المالية الواردة وإضافتها لمحفظة المستخدمين.</p>
+        <p class="text-slate-500 mt-2">مراجعة والتحقق من الحوالات المالية الواردة وإضافتها لمحفظة المستخدمين وإدارة طلبات الاسترداد.</p>
     </div>
 </div>
+
+{% if pending_refunds_count > 0 %}
+<div class="mb-6 p-4 rounded-2xl flex flex-wrap items-center justify-between gap-4 reveal" style="background: linear-gradient(135deg, #450a0a 0%, #0f172a 100%); border: 1px solid rgba(244, 63, 94, 0.5); color: #f8fafc;">
+    <div class="flex items-center gap-3">
+        <div class="w-10 h-10 rounded-xl flex items-center justify-center" style="background: rgba(244, 63, 94, 0.2); color: #fda4af;">
+            <i class="fas fa-rotate-left"></i>
+        </div>
+        <div>
+            <div style="font-size: 0.9rem; font-weight: 900; color: #ffe4e6;">يوجد {{ pending_refunds_count }} طلب استرداد إيداع بانتظار موافقة الإدارة</div>
+            <div style="font-size: 0.76rem; color: #cbd5e1;">تم تجميد الرصيد في محافظ العملاء لحين قبول الاسترداد أو رفضه.</div>
+        </div>
+    </div>
+    <a href="?status=refund_pending" style="padding: 0.55rem 1.1rem; border-radius: 12px; background: #e11d48; color: #ffffff; font-size: 0.8rem; font-weight: 900; text-decoration: none; display: inline-flex; align-items: center; gap: 0.4rem;">
+        <i class="fas fa-filter"></i>
+        <span>عرض طلبات الاسترداد المعلقة ({{ pending_refunds_count }})</span>
+    </a>
+</div>
+{% endif %}
 
 <div class="glass-panel overflow-hidden reveal">
     <div class="p-6 border-b border-white/5 bg-white/[0.01] flex flex-wrap gap-4 items-center justify-between">
@@ -20,8 +38,12 @@
                 <input type="text" name="q" value="{{ query|default:'' }}" placeholder="بحث برقم المرجع أو بريد المستخدم..." class="w-full pr-11 bg-slate-900/50 border-white/10 rounded-xl focus:border-cyan/50 text-xs py-3">
             </div>
         </form>
-        <div class="flex items-center gap-2 bg-slate-900/40 p-1.5 rounded-xl border border-white/5">
+        <div class="flex flex-wrap items-center gap-2 bg-slate-900/40 p-1.5 rounded-xl border border-white/5">
             <a href="?" class="px-4 py-1.5 rounded-lg text-[10px] font-black transition-all {% if not current_status %}bg-cyan text-black{% else %}text-slate-400 hover:text-white{% endif %}">الكل</a>
+            <a href="?status=refund_pending" class="px-4 py-1.5 rounded-lg text-[10px] font-black transition-all inline-flex items-center gap-1.5 {% if current_status == 'refund_pending' %}bg-rose-600 text-white{% else %}text-rose-300 hover:text-white{% endif %}" style="{% if pending_refunds_count > 0 and current_status != 'refund_pending' %}background: rgba(225, 29, 72, 0.16); border: 1px solid rgba(244, 63, 94, 0.35);{% endif %}">
+                <i class="fas fa-rotate-left"></i>
+                <span>طلبات استرداد ({{ pending_refunds_count }})</span>
+            </a>
             {% for val, label in status_choices %}
             <a href="?status={{ val }}" class="px-4 py-1.5 rounded-lg text-[10px] font-black transition-all {% if current_status == val %}bg-white/10 text-white{% else %}text-slate-500 hover:text-slate-300{% endif %}">{{ label }}</a>
             {% endfor %}
@@ -81,19 +103,56 @@
                         </div>
                     </td>
                     <td class="p-5 text-center">
-                        <span class="badge 
-                            {% if d.status == 'completed' or d.status == 'approved' %}success
-                            {% elif d.status == 'rejected' %}danger
-                            {% elif d.status == 'pending' %}primary
-                            {% else %}primary
-                            {% endif %} text-[8px]">
-                            {{ d.get_status_display }}
-                        </span>
+                        <div class="flex flex-col items-center gap-1.5">
+                            <span class="badge 
+                                {% if d.status == 'completed' or d.status == 'approved' %}success
+                                {% elif d.status == 'rejected' %}danger
+                                {% elif d.status == 'pending' %}primary
+                                {% else %}primary
+                                {% endif %} text-[8px]">
+                                {{ d.get_status_display }}
+                            </span>
+                            {% if d.metadata.refund_status == 'pending' %}
+                            <span style="padding: 0.25rem 0.6rem; border-radius: 999px; background: #450a0a; border: 1px solid #f43f5e; color: #fecdd3; font-size: 10px; font-weight: 900; white-space: nowrap;">
+                                <i class="fas fa-rotate-left ml-1"></i> طلب استرداد بانتظار الموافقة
+                            </span>
+                            {% if d.metadata.refund_reason %}
+                            <span style="font-size: 10px; color: #fda4af; max-width: 190px; display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="{{ d.metadata.refund_reason }}">
+                                السبب: {{ d.metadata.refund_reason }}
+                            </span>
+                            {% endif %}
+                            {% elif d.metadata.refunded or d.metadata.refund_status == 'approved' %}
+                            <span style="padding: 0.22rem 0.55rem; border-radius: 999px; background: #451a03; border: 1px solid #f59e0b; color: #fde68a; font-size: 10px; font-weight: 800; white-space: nowrap;">
+                                <i class="fas fa-check-circle ml-1"></i> تم الاسترداد للبوابة
+                            </span>
+                            {% endif %}
+                        </div>
                     </td>
                     <td class="p-5 text-left">
-                        <a href="{% url 'control_deposit_detail' d.id %}" class="btn btn-primary btn-sm py-1.5 px-4 rounded-lg text-[9px] font-black uppercase">
-                            <i class="fas fa-eye text-[8px]"></i> عرض
-                        </a>
+                        <div class="flex flex-wrap items-center justify-end gap-1.5">
+                            {% if d.metadata.refund_status == 'pending' %}
+                            <form method="post" action="{% url 'control_deposit_refund_action' d.id %}" onsubmit="return confirm('تأكيد الموافقة على استرداد {{ d.amount }} {{ d.currency.code }} وإعادة المبلغ لنفس حساب العميل في {{ d.payment_method.name }}؟');" style="display: inline;">
+                                {% csrf_token %}
+                                <input type="hidden" name="action" value="approve">
+                                <input type="hidden" name="next" value="{{ request.get_full_path }}">
+                                <button type="submit" style="padding: 0.4rem 0.7rem; border-radius: 8px; background: #059669; color: #ffffff; border: none; font-size: 10px; font-weight: 900; cursor: pointer; display: inline-flex; align-items: center; gap: 0.25rem;">
+                                    <i class="fas fa-check"></i> موافقة استرداد
+                                </button>
+                            </form>
+                            <form method="post" action="{% url 'control_deposit_refund_action' d.id %}" onsubmit="var r = prompt('سبب رفض طلب الاسترداد:'); if(!r) return false; this.reject_reason.value = r; return true;" style="display: inline;">
+                                {% csrf_token %}
+                                <input type="hidden" name="action" value="reject">
+                                <input type="hidden" name="reject_reason" value="">
+                                <input type="hidden" name="next" value="{{ request.get_full_path }}">
+                                <button type="submit" style="padding: 0.4rem 0.7rem; border-radius: 8px; background: #be123c; color: #ffffff; border: none; font-size: 10px; font-weight: 900; cursor: pointer; display: inline-flex; align-items: center; gap: 0.25rem;">
+                                    <i class="fas fa-times"></i> رفض
+                                </button>
+                            </form>
+                            {% endif %}
+                            <a href="{% url 'control_deposit_detail' d.id %}" class="btn btn-primary btn-sm py-1.5 px-4 rounded-lg text-[9px] font-black uppercase">
+                                <i class="fas fa-eye text-[8px]"></i> عرض
+                            </a>
+                        </div>
                     </td>
                 </tr>
                 {% empty %}

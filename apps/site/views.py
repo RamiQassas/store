@@ -3591,8 +3591,13 @@ def control_dashboard(request):
 
 @finance_required
 def control_deposits(request):
-    deposits = DepositRequest.objects.filter(is_verified=True).select_related('user', 'payment_method', 'currency').order_by('-created_at')
-    
+    base_qs = DepositRequest.objects.filter(
+        Q(is_verified=True) | Q(status=DepositRequest.Status.COMPLETED) | Q(metadata__refund_status="pending")
+    ).select_related('user', 'payment_method', 'currency').order_by('-created_at')
+
+    pending_refunds_count = base_qs.filter(metadata__refund_status="pending").count()
+    deposits = base_qs
+
     q = request.GET.get("q")
     if q:
         q = q.strip()
@@ -3602,19 +3607,25 @@ def control_deposits(request):
             Q(user__first_name__icontains=q) |
             Q(user__last_name__icontains=q)
         )
-        
+
     current_status = request.GET.get("status")
     if current_status:
         current_status = current_status.strip()
-        deposits = deposits.filter(status=current_status)
-        
+        if current_status == "refund_pending":
+            deposits = deposits.filter(metadata__refund_status="pending")
+        elif current_status == "refunded":
+            deposits = deposits.filter(Q(metadata__refunded=True) | Q(metadata__refund_status="approved"))
+        else:
+            deposits = deposits.filter(status=current_status)
+
     latest_deposit = deposits.first()
-    
+
     return render(request, "site/control_deposits.html", {
         "deposits": deposits,
         "latest_deposit": latest_deposit,
         "status_choices": DepositRequest.Status.choices,
         "current_status": current_status,
+        "pending_refunds_count": pending_refunds_count,
         "query": q
     })
 
