@@ -122,6 +122,12 @@
         <i class="fas fa-bag-shopping" style="color: #67e8f9;"></i>
         <span>الطلبات المشتراة</span>
       </a>
+      {% if recent_deposits %}
+      <a href="#wallet-deposits-refund-section" class="rq-wallet-action-chip">
+        <i class="fas fa-rotate-left" style="color: #fda4af;"></i>
+        <span>استرداد رصيد مودع</span>
+      </a>
+      {% endif %}
     </div>
   </div>
 
@@ -163,6 +169,67 @@
       </div>
     </div>
   </div>
+
+  <!-- 3.5 Completed Deposits & Refund Requests -->
+  {% if recent_deposits %}
+  <div id="wallet-deposits-refund-section" class="rq-pdp-card" style="background: var(--rq-surface-card); border: 1px solid var(--rq-border); border-radius: var(--rq-radius-xl); padding: 1.5rem; margin-bottom: 1.5rem; box-shadow: var(--rq-shadow-xs); overflow: hidden;">
+    <div style="display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 0.75rem; margin-bottom: 1rem;">
+      <div style="display: flex; align-items: center; gap: 0.6rem;">
+        <i class="fas fa-rotate-left" style="color: #ef4444; font-size: 1.05rem;"></i>
+        <h3 style="font-size: 1.02rem; font-weight: 900; color: var(--rq-navy); margin: 0;">الإيداعات المكتملة وطلبات الاسترداد</h3>
+      </div>
+      <span style="font-size: 0.76rem; color: var(--rq-text-muted); font-weight: 700;">يمكنك طلب استرداد أي إيداع مكتمل إلى نفس حسابك في بوابة الدفع</span>
+    </div>
+
+    <div style="overflow-x: auto; -webkit-overflow-scrolling: touch;">
+      <table style="width: 100%; border-collapse: collapse; text-align: right; font-size: 0.84rem;">
+        <thead>
+          <tr style="border-bottom: 1.5px solid var(--rq-border); background: var(--rq-bg-body); color: var(--rq-text-secondary); font-size: 0.77rem;">
+            <th style="padding: 0.75rem 0.9rem;">التاريخ</th>
+            <th style="padding: 0.75rem 0.9rem;">بوابة الإيداع</th>
+            <th style="padding: 0.75rem 0.9rem;">المبلغ المودع</th>
+            <th style="padding: 0.75rem 0.9rem;">المضاف للمحفظة</th>
+            <th style="padding: 0.75rem 0.9rem;">الإجراء / الحالة</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for dep in recent_deposits %}
+          <tr style="border-bottom: 1px solid var(--rq-border);">
+            <td style="padding: 0.85rem 0.9rem; color: var(--rq-text-muted); font-size: 0.76rem; white-space: nowrap;">
+              {{ dep.created_at|date:"Y-m-d H:i" }}
+            </td>
+            <td style="padding: 0.85rem 0.9rem; font-weight: 800; color: var(--rq-navy); white-space: nowrap;">
+              {{ dep.payment_method.name }}
+            </td>
+            <td style="padding: 0.85rem 0.9rem; font-family: monospace; font-weight: 800; color: var(--rq-text-secondary); white-space: nowrap;">
+              {{ dep.amount }} {{ dep.currency.code }}
+            </td>
+            <td style="padding: 0.85rem 0.9rem; font-family: monospace; font-weight: 900; color: #059669; white-space: nowrap;">
+              {% if dep.wallet_amount %}{% format_price dep.wallet_amount %}{% else %}-{% endif %}
+            </td>
+            <td style="padding: 0.85rem 0.9rem; white-space: nowrap;">
+              {% if dep.metadata.refund_status == 'pending' %}
+              <span class="rq-status-pill rq-status-pending" style="background: rgba(245, 158, 11, 0.16); color: #d97706; border: 1px solid rgba(245, 158, 11, 0.4); font-weight: 800;">
+                <i class="fas fa-lock ml-1"></i> استرداد قيد المراجعة (الرصيد مجمد)
+              </span>
+              {% elif dep.metadata.refund_status == 'approved' or dep.metadata.refunded %}
+              <span class="rq-status-pill rq-status-completed" style="background: rgba(16, 185, 129, 0.15); color: #059669; border: 1px solid rgba(16, 185, 129, 0.35); font-weight: 800;">
+                <i class="fas fa-check-circle ml-1"></i> تم استرداد الرصيد للبوابة
+              </span>
+              {% else %}
+              <button type="button" onclick="openWalletRefundModal('{{ dep.id }}', '{{ dep.amount }} {{ dep.currency.code }}', '{{ dep.payment_method.name|escapejs }}')" style="padding: 0.34rem 0.8rem; font-size: 0.76rem; border-radius: 9px; border: 1px solid rgba(239, 68, 68, 0.42); color: #dc2626; background: rgba(239, 68, 68, 0.1); font-weight: 800; cursor: pointer; display: inline-flex; align-items: center; gap: 0.35rem;">
+                <i class="fas fa-rotate-left"></i>
+                <span>استرداد الرصيد</span>
+              </button>
+              {% endif %}
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+  {% endif %}
 
   <!-- 4. Detailed Financial Ledger Table -->
   <div class="rq-pdp-card" style="background: var(--rq-surface-card); border: 1px solid var(--rq-border); border-radius: var(--rq-radius-xl); padding: 1.5rem; box-shadow: var(--rq-shadow-xs); overflow: hidden;">
@@ -238,4 +305,119 @@
   </div>
 
 </div>
+
+<!-- Wallet Deposit Refund Modal -->
+<style>
+  .rq-w-refund-chip {
+    padding: 0.35rem 0.72rem;
+    border-radius: 999px;
+    border: 1px solid rgba(148, 163, 184, 0.32);
+    background: rgba(15, 23, 42, 0.6);
+    color: #e2e8f0;
+    font-size: 0.75rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.15s ease;
+  }
+  .rq-w-refund-chip:hover, .rq-w-refund-chip.active {
+    background: rgba(239, 68, 68, 0.22);
+    border-color: #f87171;
+    color: #fecaca;
+  }
+</style>
+<div id="walletRefundModal" style="display: none; position: fixed; inset: 0; z-index: 9999; background: rgba(2, 6, 23, 0.78); backdrop-filter: blur(6px); align-items: center; justify-content: center; padding: 1rem;">
+  <div style="background: #0f172a; border: 1px solid rgba(148, 163, 184, 0.25); border-radius: 20px; max-width: 470px; width: 100%; padding: 1.5rem; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.7); color: #f8fafc;">
+    <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 1rem; border-bottom: 1px solid rgba(148, 163, 184, 0.18); padding-bottom: 0.8rem;">
+      <h3 style="margin: 0; font-size: 1.05rem; font-weight: 900; display: flex; align-items: center; gap: 0.5rem; color: #f87171;">
+        <i class="fas fa-rotate-left"></i>
+        <span>طلب استرداد رصيد الإيداع</span>
+      </h3>
+      <button type="button" onclick="closeWalletRefundModal()" style="background: none; border: none; color: #94a3b8; font-size: 1.35rem; cursor: pointer; padding: 0.2rem; line-height: 1;">&times;</button>
+    </div>
+
+    <form id="walletRefundForm" method="post" action="">
+      {% csrf_token %}
+      <input type="hidden" name="next" value="wallet">
+      <div style="background: #111827; border: 1px solid rgba(148, 163, 184, 0.18); border-radius: 14px; padding: 0.9rem; margin-bottom: 1rem; font-size: 0.85rem; line-height: 1.65;">
+        <div style="display: flex; justify-content: space-between; margin-bottom: 0.35rem;">
+          <span style="color: #94a3b8; font-weight: 700;">المبلغ المراد استرداده:</span>
+          <span id="walletRefundAmount" style="font-weight: 900; color: #34d399; font-family: monospace;">-</span>
+        </div>
+        <div style="display: flex; justify-content: space-between; margin-bottom: 0.5rem;">
+          <span style="color: #94a3b8; font-weight: 700;">بوابة الإيداع الأصلية:</span>
+          <span id="walletRefundMethod" style="font-weight: 800; color: #f8fafc;">-</span>
+        </div>
+        <div style="padding: 0.6rem 0.75rem; border-radius: 10px; background: rgba(245, 158, 11, 0.12); border: 1px solid rgba(245, 158, 11, 0.3); font-size: 0.76rem; color: #fde68a; font-weight: 700;">
+          <i class="fas fa-lock" style="margin-left: 0.3rem; color: #fbbf24;"></i>
+          سيتم <strong>تجميد المبلغ مؤقتاً</strong> في محفظتك لحين مراجعة الإدارة حتى لا يُستخدم أثناء المراجعة. عند الموافقة يُعاد لنفس حسابك في البوابة، وعند الرفض يُفك تجميده فوراً.
+        </div>
+      </div>
+
+      <div style="margin-bottom: 0.85rem;">
+        <div style="font-size: 0.78rem; font-weight: 800; color: #94a3b8; margin-bottom: 0.45rem;">
+          <i class="fas fa-sparkles" style="color: #fbbf24; margin-left: 0.25rem;"></i>أسباب شائعة (اضغط للاختيار السريع):
+        </div>
+        <div id="walletRefundChips" style="display: flex; flex-wrap: wrap; gap: 0.4rem;">
+          <button type="button" class="rq-w-refund-chip" onclick="selectWalletRefundChip(this, 'تم الإيداع بالخطأ')">تم الإيداع بالخطأ</button>
+          <button type="button" class="rq-w-refund-chip" onclick="selectWalletRefundChip(this, 'أودعت مبلغاً أكبر من المطلوب')">أودعت مبلغاً أكبر من المطلوب</button>
+          <button type="button" class="rq-w-refund-chip" onclick="selectWalletRefundChip(this, 'المنتج المطلوب غير متوفر حالياً')">المنتج المطلوب غير متوفر</button>
+          <button type="button" class="rq-w-refund-chip" onclick="selectWalletRefundChip(this, 'لم أعد بحاجة للرصيد وأرغب باسترداده')">لم أعد بحاجة للرصيد</button>
+          <button type="button" class="rq-w-refund-chip" onclick="selectWalletRefundChip(this, 'تأخر تنفيذ الطلب أو الخدمة')">تأخر تنفيذ الخدمة</button>
+        </div>
+      </div>
+
+      <div style="margin-bottom: 1.25rem;">
+        <label for="walletRefundReason" style="display: block; font-size: 0.84rem; font-weight: 800; margin-bottom: 0.4rem; color: #e2e8f0;">
+          سبب طلب الاسترداد <span style="color: #f87171;">*</span>
+        </label>
+        <textarea id="walletRefundReason" name="refund_reason" required rows="3" placeholder="اختر سبباً من الأعلى أو اكتب سبب طلب استرداد المبلغ بالتفصيل..." style="width: 100%; border-radius: 12px; border: 1.5px solid #334155; background: #020617; color: #f8fafc; padding: 0.75rem; font-size: 0.85rem; font-family: inherit; resize: vertical; box-sizing: border-box; outline: none;"></textarea>
+      </div>
+
+      <div style="display: flex; gap: 0.75rem; justify-content: flex-end;">
+        <button type="button" onclick="closeWalletRefundModal()" style="padding: 0.65rem 1.15rem; border-radius: 10px; border: 1px solid rgba(148, 163, 184, 0.3); background: #1e293b; color: #e2e8f0; font-weight: 800; font-size: 0.84rem; cursor: pointer;">
+          إلغاء
+        </button>
+        <button type="submit" style="padding: 0.65rem 1.3rem; border-radius: 10px; border: none; background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%); color: #ffffff; font-weight: 900; font-size: 0.84rem; cursor: pointer; display: inline-flex; align-items: center; gap: 0.45rem;">
+          <i class="fas fa-paper-plane"></i>
+          <span>تأكيد تجميد الرصيد وإرسال الطلب</span>
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script>
+function selectWalletRefundChip(btn, text) {
+  var ta = document.getElementById('walletRefundReason');
+  if (ta) {
+    ta.value = text;
+    ta.focus();
+  }
+  document.querySelectorAll('#walletRefundChips .rq-w-refund-chip').forEach(function(el) {
+    el.classList.remove('active');
+  });
+  if (btn) btn.classList.add('active');
+}
+function openWalletRefundModal(depId, amountStr, methodStr) {
+  var modal = document.getElementById('walletRefundModal');
+  var form = document.getElementById('walletRefundForm');
+  var amtEl = document.getElementById('walletRefundAmount');
+  var methEl = document.getElementById('walletRefundMethod');
+  var ta = document.getElementById('walletRefundReason');
+  if (modal && form) {
+    form.action = '/dashboard/deposits/' + depId + '/request-refund/';
+    if (amtEl) amtEl.innerText = amountStr;
+    if (methEl) methEl.innerText = methodStr;
+    if (ta) ta.value = '';
+    document.querySelectorAll('#walletRefundChips .rq-w-refund-chip').forEach(function(el) {
+      el.classList.remove('active');
+    });
+    modal.style.display = 'flex';
+  }
+}
+function closeWalletRefundModal() {
+  var modal = document.getElementById('walletRefundModal');
+  if (modal) modal.style.display = 'none';
+}
+</script>
 {% endblock %}

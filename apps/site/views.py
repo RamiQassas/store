@@ -1188,10 +1188,20 @@ def wallet_page(request):
     ledger_entries = wallet.ledger_entries.all()
     if not show_all:
         ledger_entries = ledger_entries[:20]
-        
+
+    recent_deposits = (
+        DepositRequest.objects.filter(
+            user=request.user,
+            status=DepositRequest.Status.COMPLETED,
+        )
+        .select_related("payment_method", "currency")
+        .order_by("-created_at")[:15]
+    )
+
     return render(request, "site/wallet.html", {
         "wallet": wallet, 
         "ledger_entries": ledger_entries,
+        "recent_deposits": recent_deposits,
         "show_all": show_all,
         "total_deposited": total_deposited,
         "total_withdrawn": total_withdrawn,
@@ -4135,25 +4145,28 @@ def dashboard_deposit_refund_request(request, pk):
     if request.method != "POST":
         return redirect("dashboard_deposits")
 
+    next_target = (request.POST.get("next") or "").strip()
+    redirect_to = "dashboard_wallet" if next_target == "wallet" else "dashboard_deposits"
+
     deposit = get_object_or_404(DepositRequest, pk=pk, user=request.user)
 
     if deposit.status != DepositRequest.Status.COMPLETED:
         messages.error(request, "لا يمكن طلب استرداد إيداع غير مكتمل.")
-        return redirect("dashboard_deposits")
+        return redirect(redirect_to)
 
     meta = dict(deposit.metadata or {})
     if meta.get("refunded") or meta.get("refund_status") == "approved":
         messages.error(request, "تمت الموافقة على استرداد هذا الإيداع مسبقاً.")
-        return redirect("dashboard_deposits")
+        return redirect(redirect_to)
 
     if meta.get("refund_requested") and meta.get("refund_status") == "pending":
         messages.info(request, "طلب استرداد هذا الإيداع قيد المراجعة بالفعل من قبل الإدارة.")
-        return redirect("dashboard_deposits")
+        return redirect(redirect_to)
 
     reason = request.POST.get("refund_reason", "").strip()
     if not reason:
         messages.error(request, "يرجى توضيح سبب طلب استرداد الإيداع.")
-        return redirect("dashboard_deposits")
+        return redirect(redirect_to)
 
     wallet = get_or_create_wallet(request.user)
     refund_wallet_amount = Decimal(str(deposit.wallet_amount or deposit.final_amount or deposit.amount))
@@ -4162,7 +4175,7 @@ def dashboard_deposit_refund_request(request, pk):
             request,
             f"عذراً، رصيدك المتاح حالياً في المحفظة ({wallet.available_balance:,.2f} {wallet.currency.code}) أقل من مبلغ الإيداع المطلوب استرداده ({refund_wallet_amount:,.2f} {wallet.currency.code})."
         )
-        return redirect("dashboard_deposits")
+        return redirect(redirect_to)
 
     try:
         with transaction.atomic():
@@ -4186,7 +4199,7 @@ def dashboard_deposit_refund_request(request, pk):
             deposit.save(update_fields=["metadata", "updated_at"])
     except WalletError as werr:
         messages.error(request, f"تعذر تجميد الرصيد لطلب الاسترداد: {werr}")
-        return redirect("dashboard_deposits")
+        return redirect(redirect_to)
 
     try:
         notify_staff(
@@ -4203,7 +4216,7 @@ def dashboard_deposit_refund_request(request, pk):
         request,
         f"تم تقديم طلب استرداد الإيداع وتجميد مبلغ {refund_wallet_amount:,.2f} {wallet.currency.code} مؤقتاً لحين مراجعة الإدارة. ستتم إعادة الأموال إلى نفس البوابة فور الموافقة."
     )
-    return redirect("dashboard_deposits")
+    return redirect(redirect_to)
 
 
 @finance_required
