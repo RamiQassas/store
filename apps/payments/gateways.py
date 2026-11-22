@@ -885,6 +885,9 @@ class MTNPayGateway(BasePaymentGateway):
         else:
             charge_amount = max(1, int(round(float(exact_amount * syp_rate))))
 
+        if charge_amount > 50000:
+            raise PaymentGatewayError("الحد الأقصى للشراء عبر كاش موبايل هو 50,000 ليرة سورية.")
+
         try:
             inv_record, raw_resp = client.create_invoice(
                 major_amount=Decimal(str(charge_amount)),

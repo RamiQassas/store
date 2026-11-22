@@ -284,6 +284,21 @@
               </div>
             </div>
 
+            <!-- Cash Mobile (MTN) Live Provider Fee & 50,000 SYP Limit Box -->
+            <div id="cart-mtn-fee-box" style="display: none; margin-top: 0.75rem; padding: 0.75rem 0.9rem; border-radius: 12px; background: rgba(245, 158, 11, 0.09); border: 1.5px solid rgba(245, 158, 11, 0.35);">
+              <div style="display: flex; justify-content: space-between; align-items: center; font-size: 0.77rem; font-weight: 800; color: #d97706;">
+                <span><i class="fas fa-info-circle ml-1"></i> رسوم اقتطاع مزود الخدمة (MTN Cash)</span>
+                <span id="cart-mtn-fee-val" class="font-mono" dir="ltr">+0.75 ل.س</span>
+              </div>
+              <div style="display: flex; justify-content: space-between; align-items: center; font-size: 0.83rem; font-weight: 900; color: var(--rq-navy); margin-top: 0.25rem;">
+                <span>المبلغ المقتطع من محفظتك</span>
+                <span id="cart-mtn-total-val" class="font-mono" dir="ltr" style="color: #d97706;">0 ل.س</span>
+              </div>
+            </div>
+            <div id="cart-mtn-limit-alert" style="display: none; margin-top: 0.6rem; padding: 0.6rem 0.85rem; border-radius: 10px; background: rgba(239, 68, 68, 0.1); border: 1px solid rgba(239, 68, 68, 0.35); color: #ef4444; font-size: 0.75rem; font-weight: 800;">
+              <i class="fas fa-ban ml-1"></i> بوابة Cash Mobile غير متاحة للطلبات التي تتجاوز 50,000 ل.س.
+            </div>
+
           </div>
 
           <button type="submit" class="rq-pdp-buy-now" id="cart-checkout-btn" style="height: 50px; font-size: 0.98rem; font-weight: 900; border-radius: 14px; background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);">
@@ -326,7 +341,58 @@
   var cartTotalUsd = parseFloat("{{ cart_total }}") || 0.0;
   var sypRate = parseFloat("{{ syp_rate|default:15000.0 }}") || 15000.0;
 
+  function getCartMtnFee(sypAmt) {
+    if (sypAmt <= 0) return 0;
+    if (sypAmt <= 9.99) return 0.75;
+    if (sypAmt <= 99.99) return 1;
+    if (sypAmt <= 199.99) return 1.5;
+    return 2;
+  }
+
+  function updateCartMtnState(selectedCode) {
+    var sypTotal = Math.round(cartTotalUsd * sypRate);
+    var mtnCard = document.getElementById('cart-pm-mtn_pay');
+    var mtnBox = document.getElementById('cart-mtn-fee-box');
+    var mtnAlert = document.getElementById('cart-mtn-limit-alert');
+    var isOverLimit = sypTotal > 50000;
+
+    if (mtnCard) {
+      if (isOverLimit) {
+        mtnCard.style.opacity = '0.45';
+        mtnCard.style.pointerEvents = 'none';
+        mtnCard.setAttribute('title', 'غير متاح للطلبات فوق 50,000 ل.س');
+      } else {
+        mtnCard.style.opacity = '';
+        mtnCard.style.pointerEvents = '';
+      }
+    }
+    if (mtnAlert) {
+      mtnAlert.style.display = (mtnCard && isOverLimit) ? 'block' : 'none';
+    }
+    if (mtnBox) {
+      if (selectedCode === 'mtn_pay' && !isOverLimit && sypTotal > 0) {
+        var fee = getCartMtnFee(sypTotal);
+        var tot = sypTotal + fee;
+        var fmt = function(n) { return Number.isInteger(n) ? String(n) : String(parseFloat(n.toFixed(2))); };
+        var feeEl = document.getElementById('cart-mtn-fee-val');
+        var totEl = document.getElementById('cart-mtn-total-val');
+        if (feeEl) feeEl.textContent = '+' + fmt(fee) + ' ل.س';
+        if (totEl) totEl.textContent = fmt(sypTotal) + ' + ' + fmt(fee) + ' = ' + fmt(tot) + ' ل.س';
+        mtnBox.style.display = 'block';
+      } else {
+        mtnBox.style.display = 'none';
+      }
+    }
+  }
+
+  document.addEventListener('DOMContentLoaded', function() {
+    updateCartMtnState('');
+  });
+
   function selectCartPaymentMethod(id, code, el) {
+    if (code === 'mtn_pay' && Math.round(cartTotalUsd * sypRate) > 50000) {
+      return;
+    }
     document.getElementById('selected-cart-payment-method').value = id;
     
     // Update active styles
@@ -378,6 +444,7 @@
       if (btnText) btnText.textContent = 'المتابعة للدفع الإلكتروني';
       if (submitBtn) submitBtn.style.background = 'linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%)';
     }
+    updateCartMtnState(code);
   }
 
   function setCartShamCashCurrency(curr, btn) {
