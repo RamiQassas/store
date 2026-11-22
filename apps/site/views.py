@@ -4137,9 +4137,57 @@ def control_deposit_detail(request, pk):
     except Exception:
         pass
 
+    provider_invoice = None
+    try:
+        meta = deposit.metadata if isinstance(deposit.metadata, dict) else {}
+        shamcash_bill = deposit.shamcash_bills.order_by("-created_at").first() if hasattr(deposit, "shamcash_bills") else None
+        mtn_inv = deposit.mtn_pay_invoices.select_related("terminal").order_by("-created_at").first() if hasattr(deposit, "mtn_pay_invoices") else None
+
+        if shamcash_bill:
+            sc_status_map = {1: "بانتظار الدفع", 2: "مستردة", 3: "منتهية الصلاحية", 4: "مدفوعة بنجاح", 5: "مستردة جزئياً"}
+            refund_rec = shamcash_bill.refunds.order_by("-created_at").first() if hasattr(shamcash_bill, "refunds") else None
+            provider_invoice = {
+                "provider_name": "شام كاش (ShamCash)",
+                "invoice_no": shamcash_bill.bill_no,
+                "gateway_tx_id": shamcash_bill.tran_id or meta.get("refund_gateway_tx_id") or "",
+                "amount_display": f"{shamcash_bill.amount} {shamcash_bill.currency_code}",
+                "status_label": sc_status_map.get(shamcash_bill.status_id, shamcash_bill.status_name),
+                "is_refunded": shamcash_bill.status_id in (2, 5) or bool(meta.get("refunded")),
+                "created_at": shamcash_bill.created_at,
+                "payment_url": shamcash_bill.payment_url or "",
+                "refund_tx_id": (refund_rec.tran_id if refund_rec and refund_rec.tran_id else meta.get("refund_gateway_tx_id")) or "",
+            }
+        elif mtn_inv:
+            mtn_ref = mtn_inv.refunds.order_by("-created_at").first() if hasattr(mtn_inv, "refunds") else None
+            provider_invoice = {
+                "provider_name": "MTN كاش موبايل (MTNPay)",
+                "invoice_no": str(mtn_inv.invoice_number),
+                "terminal_id": getattr(mtn_inv.terminal, "terminal_id", "") if mtn_inv.terminal else "",
+                "gateway_tx_id": str(mtn_ref.refund_invoice) if mtn_ref else (meta.get("refund_gateway_tx_id") or ""),
+                "amount_display": f"{mtn_inv.amount_major} SYP",
+                "status_label": mtn_inv.get_status_code_display(),
+                "is_refunded": bool(mtn_inv.is_refunded or meta.get("refunded")),
+                "created_at": mtn_inv.created_at,
+                "refund_tx_id": str(mtn_ref.refund_invoice) if mtn_ref else (meta.get("refund_gateway_tx_id") or ""),
+            }
+        elif meta.get("paymera_payment_id") or (deposit.gateway_payment_id and not str(deposit.gateway_payment_id).startswith("DEP-")):
+            provider_invoice = {
+                "provider_name": deposit.payment_method.name if deposit.payment_method else "بوابة الدفع",
+                "invoice_no": meta.get("paymera_payment_id") or deposit.gateway_payment_id,
+                "gateway_tx_id": meta.get("refund_gateway_tx_id") or deposit.gateway_payment_id or "",
+                "amount_display": f"{deposit.amount} {deposit.currency.code}",
+                "status_label": "مستردة" if meta.get("refunded") else deposit.get_status_display(),
+                "is_refunded": bool(meta.get("refunded")),
+                "created_at": deposit.created_at,
+                "refund_tx_id": meta.get("refund_gateway_tx_id") or "",
+            }
+    except Exception:
+        provider_invoice = None
+
     return render(request, "site/control_deposit_detail.html", {
         "deposit": deposit,
         "user_wallet_balance": user_wallet_balance,
+        "provider_invoice": provider_invoice,
     })
 
 @login_required

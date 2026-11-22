@@ -262,12 +262,12 @@ class PaymentGatewayIntegrationForm(forms.ModelForm):
             "supported_assets", "settings",
         ]
         widgets = {
-            "name": forms.TextInput(attrs={"class": "builder-input", "placeholder": "Baniyas Crypto"}),
+            "name": forms.TextInput(attrs={"class": "builder-input", "placeholder": "اسم البوابة"}),
             "logo": forms.FileInput(attrs={"class": "builder-input", "accept": "image/*"}),
             "provider": forms.Select(attrs={"class": "builder-input"}),
             "mode": forms.Select(attrs={"class": "builder-input"}),
-            "terminal_id": forms.TextInput(attrs={"class": "builder-input", "placeholder": "مثلاً 99990001 (8 خانات مخصصة من بيميرا)"}),
-            "base_url": forms.URLInput(attrs={"class": "builder-input", "placeholder": "https://egate-t.paymera.cc"}),
+            "terminal_id": forms.TextInput(attrs={"class": "builder-input", "placeholder": ""}),
+            "base_url": forms.URLInput(attrs={"class": "builder-input", "placeholder": ""}),
             "api_key": forms.TextInput(attrs={"class": "builder-input", "autocomplete": "off"}),
             "api_secret": forms.PasswordInput(attrs={"class": "builder-input", "autocomplete": "new-password", "render_value": True}),
             "webhook_secret": forms.PasswordInput(attrs={"class": "builder-input", "autocomplete": "new-password", "render_value": True}),
@@ -275,7 +275,7 @@ class PaymentGatewayIntegrationForm(forms.ModelForm):
             "can_deposit": forms.CheckboxInput(attrs={"class": "rounded text-cyan"}),
             "can_withdraw": forms.CheckboxInput(attrs={"class": "rounded text-cyan"}),
             "supported_assets": forms.Textarea(attrs={"rows": 4, "class": "font-mono text-xs builder-input", "placeholder": "[\"USDT-TRC20\", \"USDT-BEP20\"]"}),
-            "settings": forms.Textarea(attrs={"rows": 5, "class": "font-mono text-xs builder-input", "placeholder": "{\"confirmations\": 1}"}),
+            "settings": forms.Textarea(attrs={"rows": 5, "class": "font-mono text-xs builder-input", "placeholder": "{}"}),
         }
 
 

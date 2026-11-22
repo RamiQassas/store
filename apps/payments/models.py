@@ -663,14 +663,28 @@ class DepositRequest(TimeStampedModel):
 
     @property
     def formatted_metadata(self):
-        """Returns a list of dicts with 'label', 'value', and 'type' for metadata."""
+        """Returns a list of dicts with 'label', 'value', and 'type' for human-readable customer metadata."""
         if not self.metadata or not isinstance(self.metadata, dict):
             return []
-            
+
+        technical_keys = {
+            "payment_provider", "base_usd_amount", "gateway_payment_id",
+            "paymera_payment_id", "paymera_refunded", "paymera_refund_at", "paymera_refund_res",
+            "shamcash_bill_no", "shamcash_tran_id", "shamcash_status", "shamcash_refund_actor",
+            "shamcash_refund_timestamp", "shamcash_raw_res", "shamcash_payment_url",
+            "mtn_invoice_number", "mtn_refund_invoice", "mtn_status_data", "mtn_terminal_id",
+            "mtn_phone", "mtn_initiated_at", "mtn_confirmed_at", "mtn_raw_res",
+            "refund_requested", "refund_status", "refund_reason", "refund_held",
+            "refund_held_amount", "refund_requested_at", "refund_approved_at",
+            "refund_approved_by", "refund_rejected_at", "refund_rejected_by",
+            "refund_reject_reason", "refund_gateway_tx_id", "refund_raw_res",
+            "auto_closed", "auto_closed_at", "auto_closed_reason",
+        }
+
         results = []
         schema = getattr(self.payment_method, "deposit_form_schema", None) if self.payment_method else None
         fields = schema.get("fields", []) if isinstance(schema, dict) else []
-        
+
         # Create a mapping of field key to (label, type)
         field_map = {}
         for f in fields:
@@ -679,16 +693,23 @@ class DepositRequest(TimeStampedModel):
             fid = f.get("name") or f.get("id") or f.get("key") or lbl
             if fid:
                 field_map[fid] = (lbl, ftype)
-        
+
         for key, val in self.metadata.items():
+            if key in technical_keys and key not in field_map:
+                continue
+            if isinstance(val, (dict, list)) and key not in field_map:
+                continue
+            if val is None or val == "":
+                continue
+
             label, ftype = field_map.get(key, (key, "text"))
-            
+
             # Heuristic: If value looks like an image path, force type to image
             if isinstance(val, str) and (val.startswith("/media/") or any(val.lower().endswith(ext) for ext in ['.jpg', '.jpeg', '.png', '.webp', '.gif'])):
                 ftype = "image"
-                
+
             results.append({"label": label, "value": val, "type": ftype})
-                
+
         return results
 
     def calculate_fees(self):

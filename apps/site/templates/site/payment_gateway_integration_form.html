@@ -83,7 +83,7 @@
             </div>
         </div>
 
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6" id="wrap-keys-row">
             <div class="field-group" id="wrap-api-key">
                 <label id="lbl-api-key">{{ form.api_key.label }}</label>
                 {{ form.api_key }}
@@ -91,17 +91,27 @@
             </div>
             <div class="field-group" id="wrap-api-secret">
                 <label id="lbl-api-secret">{{ form.api_secret.label }}</label>
-                {{ form.api_secret }}
+                <div class="relative flex items-center">
+                    {{ form.api_secret }}
+                    <button type="button" onclick="toggleSecretInput(this)" class="absolute left-3 text-slate-400 hover:text-cyan transition" title="إظهار / إخفاء المفتاح" style="background: none; border: none; cursor: pointer;">
+                        <i class="fas fa-eye text-xs"></i>
+                    </button>
+                </div>
                 <span id="hint-api-secret" class="text-xs text-muted"></span>
             </div>
         </div>
 
         <div class="field-group" id="wrap-webhook-secret">
             <label id="lbl-webhook-secret">{{ form.webhook_secret.label }}</label>
-            {{ form.webhook_secret }}
+            <div class="relative flex items-center">
+                {{ form.webhook_secret }}
+                <button type="button" onclick="toggleSecretInput(this)" class="absolute left-3 text-slate-400 hover:text-cyan transition" title="إظهار / إخفاء المفتاح" style="background: none; border: none; cursor: pointer;">
+                    <i class="fas fa-eye text-xs"></i>
+                </button>
+            </div>
         </div>
 
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6" id="wrap-extra-row">
             <div class="field-group" id="wrap-supported-assets">
                 <label>{{ form.supported_assets.label }}</label>
                 {{ form.supported_assets }}
@@ -133,6 +143,19 @@
 </form>
 
 <script>
+function toggleSecretInput(btn) {
+    const input = btn.parentElement.querySelector('input');
+    const icon = btn.querySelector('i');
+    if (!input) return;
+    if (input.type === 'password') {
+        input.type = 'text';
+        if (icon) icon.className = 'fas fa-eye-slash text-xs';
+    } else {
+        input.type = 'password';
+        if (icon) icon.className = 'fas fa-eye text-xs';
+    }
+}
+
 document.addEventListener('DOMContentLoaded', function() {
     const logoInput = document.querySelector('input[type="file"][name="logo"]');
     const logoPreview = document.getElementById('logo-preview');
@@ -157,6 +180,10 @@ document.addEventListener('DOMContentLoaded', function() {
     const providerSelect = document.querySelector('select[name="provider"]');
     function applyProviderSpecificUI() {
         const provider = providerSelect ? providerSelect.value : '';
+        const inputTid = document.querySelector('input[name="terminal_id"]');
+        const inputBase = document.querySelector('input[name="base_url"]');
+        const inputKey = document.querySelector('input[name="api_key"]');
+        const inputSecret = document.querySelector('input[name="api_secret"]');
         const lblTid = document.getElementById('lbl-terminal-id');
         const hintTid = document.getElementById('hint-terminal-id');
         const lblBase = document.getElementById('lbl-base-url');
@@ -165,55 +192,94 @@ document.addEventListener('DOMContentLoaded', function() {
         const hintKey = document.getElementById('hint-api-key');
         const lblSecret = document.getElementById('lbl-api-secret');
         const hintSecret = document.getElementById('hint-api-secret');
+        const wrapTid = document.getElementById('wrap-terminal-id');
         const wrapKey = document.getElementById('wrap-api-key');
+        const wrapSecret = document.getElementById('wrap-api-secret');
         const wrapWebhook = document.getElementById('wrap-webhook-secret');
         const wrapAssets = document.getElementById('wrap-supported-assets');
         const wrapSettings = document.getElementById('wrap-settings');
+        const wrapExtraRow = document.getElementById('wrap-extra-row');
 
         // Reset visibility
+        if (wrapTid) wrapTid.style.display = '';
         if (wrapKey) wrapKey.style.display = '';
+        if (wrapSecret) wrapSecret.style.display = '';
         if (wrapWebhook) wrapWebhook.style.display = '';
         if (wrapAssets) wrapAssets.style.display = '';
         if (wrapSettings) wrapSettings.style.display = '';
+        if (wrapExtraRow) wrapExtraRow.style.display = '';
 
         if (provider === 'mtn_pay') {
             if (lblTid) lblTid.textContent = 'رقم نقطة البيع (Terminal ID / Subject)';
             if (hintTid) hintTid.textContent = 'رقم الطرفية المخصص من MTN Cash Mobile (مثال: 9001000000064683).';
+            if (inputTid) inputTid.placeholder = '9001000000064683';
             if (lblBase) lblBase.textContent = 'رابط خادم MTN Cash Mobile (eMARA API)';
-            if (hintBase) hintBase.textContent = 'رابط خادم MTN الرسمي: https://cash.mtnsyr.com:9000 (لا علاقة له ببيميرا أو شام كاش).';
+            if (hintBase) hintBase.textContent = 'رابط خادم MTN الرسمي: https://cash.mtnsyr.com:9000';
+            if (inputBase) inputBase.placeholder = 'https://cash.mtnsyr.com:9000';
             if (lblSecret) lblSecret.textContent = 'رمز التفعيل السري (Activation Code / Secret - 8 أرقام)';
-            if (hintSecret) hintSecret.textContent = 'رمز التفعيل المكون من 8 أرقام المرسل من MTN (مثل 45699847).';
+            if (hintSecret) hintSecret.textContent = 'رمز التفعيل المكون من 8 أرقام المرسل من MTN.';
+            if (inputSecret) inputSecret.placeholder = '45699847';
             if (wrapKey) wrapKey.style.display = 'none';
             if (wrapWebhook) wrapWebhook.style.display = 'none';
             if (wrapAssets) wrapAssets.style.display = 'none';
             if (wrapSettings) wrapSettings.style.display = 'none';
+            if (wrapExtraRow) wrapExtraRow.style.display = 'none';
         } else if (provider === 'paymera') {
             if (lblTid) lblTid.textContent = 'معرف الطرفية (Paymera Terminal ID)';
             if (hintTid) hintTid.textContent = 'معرف الطرفية الخاص بحساب بيميرا.';
+            if (inputTid) inputTid.placeholder = '99990001';
             if (lblBase) lblBase.textContent = 'رابط خادم بيميرا (Paymera API URL)';
             if (hintBase) hintBase.textContent = 'للبيئة التجريبية (Sandbox): https://egate-t.paymera.cc | للبيئة الحية (Live): https://egate.paymera.cc';
+            if (inputBase) inputBase.placeholder = 'https://egate-t.paymera.cc';
             if (lblKey) lblKey.textContent = 'مفتاح بيميرا (Paymera API Key / Username)';
             if (hintKey) hintKey.textContent = '';
+            if (inputKey) inputKey.placeholder = 'Paymera API Key';
             if (lblSecret) lblSecret.textContent = 'كلمة مرور / سر بيميرا (Paymera API Secret)';
             if (hintSecret) hintSecret.textContent = '';
+            if (inputSecret) inputSecret.placeholder = 'Paymera API Secret';
+            if (wrapWebhook) wrapWebhook.style.display = 'none';
+            if (wrapAssets) wrapAssets.style.display = 'none';
+            if (wrapSettings) wrapSettings.style.display = 'none';
+            if (wrapExtraRow) wrapExtraRow.style.display = 'none';
         } else if (provider === 'sham_cash') {
-            if (lblTid) lblTid.textContent = 'معرف الحساب / نقطة البيع في شام كاش';
-            if (hintTid) hintTid.textContent = 'معرف التاجر المعتمد لدى شام كاش (ShamCash).';
             if (lblBase) lblBase.textContent = 'رابط خادم شام كاش (ShamCash API URL)';
-            if (hintBase) hintBase.textContent = 'رابط واجهة برمجة التطبيقات الرسمية لشام كاش.';
-            if (lblKey) lblKey.textContent = 'مفتاح API لشام كاش';
+            if (hintBase) hintBase.textContent = 'اختياري: اتركه فارغاً لاستخدام الرابط الافتراضي لبيئة شام كاش المحددة.';
+            if (inputBase) inputBase.placeholder = 'https://api.shamcash.com';
+            if (lblKey) lblKey.textContent = 'مفتاح الوكيل (ShamCash Agent Key)';
+            if (hintKey) hintKey.textContent = 'المفتاح الأول (Agent Key) المخصص لحسابك في شام كاش.';
+            if (inputKey) inputKey.placeholder = 'أدخل Agent Key';
+            if (lblSecret) lblSecret.textContent = 'المفتاح السري (ShamCash Secret Key / JWE)';
+            if (hintSecret) hintSecret.textContent = 'المفتاح الثاني (Secret Key) المستخدم لتوقيع وتشفير JWE.';
+            if (inputSecret) inputSecret.placeholder = 'أدخل Secret Key';
+            if (wrapTid) wrapTid.style.display = 'none';
+            if (wrapWebhook) wrapWebhook.style.display = 'none';
+            if (wrapAssets) wrapAssets.style.display = 'none';
+            if (wrapSettings) wrapSettings.style.display = 'none';
+            if (wrapExtraRow) wrapExtraRow.style.display = 'none';
+        } else if (provider === 'baniyas_crypto') {
+            if (wrapTid) wrapTid.style.display = 'none';
+            if (lblBase) lblBase.textContent = 'رابط خادم Baniyas Crypto';
+            if (hintBase) hintBase.textContent = 'رابط API الخاص ببوابة Baniyas Crypto.';
+            if (inputBase) inputBase.placeholder = 'https://api.baniyascrypto.com';
+            if (lblKey) lblKey.textContent = 'مفتاح API (API Key)';
             if (hintKey) hintKey.textContent = '';
-            if (lblSecret) lblSecret.textContent = 'المفتاح السري لشام كاش (Secret / JWE)';
+            if (inputKey) inputKey.placeholder = '';
+            if (lblSecret) lblSecret.textContent = 'المفتاح السري (API Secret)';
             if (hintSecret) hintSecret.textContent = '';
+            if (inputSecret) inputSecret.placeholder = '';
         } else {
             if (lblTid) lblTid.textContent = 'معرف الطرفية (Terminal ID)';
             if (hintTid) hintTid.textContent = '';
+            if (inputTid) inputTid.placeholder = '';
             if (lblBase) lblBase.textContent = 'رابط خادم البوابة (Base URL)';
             if (hintBase) hintBase.textContent = 'أدخل رابط API الخاص بمزود هذه البوابة.';
+            if (inputBase) inputBase.placeholder = '';
             if (lblKey) lblKey.textContent = 'مفتاح API (API Key)';
             if (hintKey) hintKey.textContent = '';
+            if (inputKey) inputKey.placeholder = '';
             if (lblSecret) lblSecret.textContent = 'المفتاح السري (API Secret)';
             if (hintSecret) hintSecret.textContent = '';
+            if (inputSecret) inputSecret.placeholder = '';
         }
     }
     if (providerSelect) {
