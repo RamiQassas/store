@@ -359,17 +359,17 @@
             <span>رسوم الإيداع:</span>
             <span id="deposit-fee-text" class="tabular-nums font-mono" style="color: var(--rq-text-primary); font-weight: 700;">0.00</span>
           </div>
-          <div id="mtn-provider-fee-box" style="display: none; margin: 0.45rem 0; padding: 0.6rem 0.75rem; border-radius: 10px; background: rgba(245, 158, 11, 0.1); border: 1px solid rgba(245, 158, 11, 0.35);">
+          <div id="mtn-provider-fee-box" style="display: none; margin: 0.45rem 0; padding: 0.65rem 0.85rem; border-radius: 10px; background: rgba(245, 158, 11, 0.1); border: 1px solid rgba(245, 158, 11, 0.35);">
             <div style="display: flex; justify-content: space-between; align-items: center; font-size: 0.79rem; color: #f59e0b; font-weight: 800;">
-              <span><i class="fas fa-exclamation-circle ml-1"></i> رسوم اقتطاع مزود الخدمة (MTN Cash):</span>
-              <span id="mtn-provider-fee-text" class="tabular-nums font-mono" dir="ltr">0.00 ل.س</span>
+              <span><i class="fas fa-exclamation-circle ml-1"></i> رسوم اقتطاع مزود الخدمة:</span>
+              <span id="mtn-provider-fee-text" class="tabular-nums font-mono" dir="ltr">+0.75 ل.س</span>
             </div>
-            <div style="display: flex; justify-content: space-between; align-items: center; font-size: 0.76rem; color: var(--rq-text-primary); font-weight: 800; margin-top: 0.25rem;">
-              <span>المبلغ الإجمالي المقتطع من MTN Cash:</span>
-              <span id="mtn-provider-total-text" class="tabular-nums font-mono" dir="ltr">0.00 ل.س</span>
+            <div style="display: flex; justify-content: space-between; align-items: center; font-size: 0.85rem; color: var(--rq-text-primary); font-weight: 900; margin-top: 0.3rem;">
+              <span>المبلغ المقتطع من محفظتك:</span>
+              <span id="mtn-provider-total-text" class="tabular-nums font-mono" dir="ltr" style="color: #f59e0b;">0 ل.س</span>
             </div>
-            <div style="font-size: 0.7rem; color: var(--rq-text-muted); margin-top: 0.35rem; line-height: 1.5;">
-              عمولات مزود كاش موبايل: (0 – 9.99: 0.75 ل.س) • (10 – 99.99: 1 ل.س) • (100 – 199.99: 1.5 ل.س) • (200 – 50000: 2 ل.س)
+            <div id="mtn-daily-limit-warning" style="display: none; font-size: 0.75rem; color: #ef4444; font-weight: 800; margin-top: 0.35rem;">
+              <i class="fas fa-triangle-exclamation ml-1"></i> الحد اليومي للشراء عبر كاش موبايل هو 50,000 ل.س.
             </div>
           </div>
           <div style="display: flex; justify-content: space-between; font-size: 0.95rem; font-weight: 900; color: var(--rq-text-primary); padding-top: 0.4rem; border-top: 1px solid var(--rq-border);">
@@ -772,6 +772,9 @@ function updateMethodDetailsView() {
   if (limitsHint) {
     let limitStr = `الحد الأدنى: ${activeMethodData.min} ${activeMethodData.currencyCode}`;
     if (activeMethodData.max > 0) limitStr += ` • الأقصى: ${activeMethodData.max} ${activeMethodData.currencyCode}`;
+    if (activeMethodData.gatewayProvider === 'mtn_pay') {
+      limitStr += ` • الحد اليومي للشراء: 50,000 ل.س`;
+    }
     limitsHint.innerText = limitStr;
   }
   if (currLabel) {
@@ -789,6 +792,10 @@ function getMtnProviderCommission(sypAmount) {
   return 2;
 }
 
+function formatCleanNum(n) {
+  return Number.isInteger(n) ? String(n) : String(parseFloat(n.toFixed(2)));
+}
+
 function calculateDepositNet() {
   const amtInput = document.getElementById('deposit-amount-input');
   const amount = parseFloat(amtInput ? amtInput.value : 0) || 0;
@@ -804,16 +811,22 @@ function calculateDepositNet() {
 
   const mtnBox = document.getElementById('mtn-provider-fee-box');
   if (mtnBox) {
-    if (activeMethodData && activeMethodData.gatewayProvider === 'mtn_pay') {
-      mtnBox.style.display = 'block';
+    if (activeMethodData && activeMethodData.gatewayProvider === 'mtn_pay' && amount > 0) {
       const isSyp = (activeMethodData.currencyCode || '').toUpperCase() === 'SYP';
       const sypVal = isSyp ? amount : Math.round(amount * (typeof LIVE_SYP_RATE !== 'undefined' ? LIVE_SYP_RATE : 1));
-      const mtnFee = getMtnProviderCommission(sypVal);
-      const mtnTotal = sypVal + mtnFee;
-      const mtnFeeEl = document.getElementById('mtn-provider-fee-text');
-      const mtnTotalEl = document.getElementById('mtn-provider-total-text');
-      if (mtnFeeEl) mtnFeeEl.innerText = mtnFee > 0 ? `+${mtnFee} ل.س` : '0.00 ل.س';
-      if (mtnTotalEl) mtnTotalEl.innerText = sypVal > 0 ? `${mtnTotal.toFixed(2)} ل.س` : '0.00 ل.س';
+      if (sypVal > 0) {
+        mtnBox.style.display = 'block';
+        const mtnFee = getMtnProviderCommission(sypVal);
+        const mtnTotal = sypVal + mtnFee;
+        const mtnFeeEl = document.getElementById('mtn-provider-fee-text');
+        const mtnTotalEl = document.getElementById('mtn-provider-total-text');
+        const mtnLimitWarn = document.getElementById('mtn-daily-limit-warning');
+        if (mtnFeeEl) mtnFeeEl.innerText = `+${formatCleanNum(mtnFee)} ل.س`;
+        if (mtnTotalEl) mtnTotalEl.innerText = `${formatCleanNum(sypVal)} + ${formatCleanNum(mtnFee)} = ${formatCleanNum(mtnTotal)} ل.س`;
+        if (mtnLimitWarn) mtnLimitWarn.style.display = sypVal > 50000 ? 'block' : 'none';
+      } else {
+        mtnBox.style.display = 'none';
+      }
     } else {
       mtnBox.style.display = 'none';
     }
