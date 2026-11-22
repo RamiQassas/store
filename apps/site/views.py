@@ -1564,6 +1564,17 @@ def deposits(request):
             messages.error(request, "يرجى إدخال مبلغ صحيح.")
             return redirect("dashboard_deposits")
 
+        if method.gateway and method.gateway.provider == "mtn_pay":
+            if currency.code.upper() == "SYP":
+                mtn_syp_amount = amount
+            else:
+                syp_curr = Currency.all_objects.filter(code__iexact="SYP", is_active=True).first()
+                base_usd = currency.to_base(amount, "deposit")
+                mtn_syp_amount = syp_curr.from_base(base_usd, "deposit") if syp_curr else amount
+            if mtn_syp_amount < Decimal("1") or mtn_syp_amount > Decimal("50000"):
+                messages.error(request, "الحد اليومي للشراء والإيداع عبر كاش موبايل هو 50,000 ليرة سورية (من 1 ل.س إلى 50,000 ل.س).")
+                return redirect("dashboard_deposits")
+
         # --- Task 2 & 3: Limit Checks ---
         amount_in_usd = currency.to_base(amount, "deposit")
         
