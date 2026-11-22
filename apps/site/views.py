@@ -4251,16 +4251,20 @@ def control_deposit_refund_action(request, pk):
     if action == "approve":
         otp = request.POST.get("otp", "").strip() or None
         reason = request.POST.get("refund_reason") or deposit.metadata.get("refund_reason", "")
-        success, message = process_deposit_refund_to_gateway(
-            deposit=deposit,
-            actor=request.user,
-            reason=reason,
-            otp=otp
-        )
-        if success:
-            messages.success(request, message)
-        else:
-            messages.error(request, message)
+        try:
+            success, message = process_deposit_refund_to_gateway(
+                deposit=deposit,
+                actor=request.user,
+                reason=reason,
+                otp=otp
+            )
+            if success:
+                messages.success(request, message)
+            else:
+                messages.error(request, message)
+        except Exception as exc:
+            logger.exception("Failed to approve deposit refund for deposit %s", deposit.id)
+            messages.error(request, f"حدث خطأ أثناء تنفيذ استرداد الإيداع: {exc}")
 
     elif action == "reject":
         from apps.wallets.services import get_or_create_wallet, unhold_funds

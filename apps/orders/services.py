@@ -2372,8 +2372,8 @@ def process_deposit_refund_to_gateway(deposit, actor=None, reason=None, otp=None
     with transaction.atomic():
         if is_refund_held:
             from apps.wallets.models import Wallet, LedgerEntry
-            from apps.common.utils import json_serialize_safe
-            locked_w = Wallet.objects.select_for_update().get(id=wallet.id)
+            from apps.wallets.services import json_serialize_safe
+            locked_w = Wallet.all_objects.select_for_update().get(id=wallet.id)
             if locked_w.held_balance < refund_wallet_amount:
                 raise ValueError("الرصيد المجمد غير كافٍ لإتمام الاسترداد.")
             locked_w.held_balance -= refund_wallet_amount
@@ -2412,6 +2412,7 @@ def process_deposit_refund_to_gateway(deposit, actor=None, reason=None, otp=None
                 }
             )
 
+        from apps.wallets.services import json_serialize_safe as _json_safe
         meta["refund_held"] = False
         meta["refunded"] = True
         meta["refund_status"] = "approved"
@@ -2419,7 +2420,7 @@ def process_deposit_refund_to_gateway(deposit, actor=None, reason=None, otp=None
         meta["refund_approved_by"] = getattr(actor, "email", str(actor)) if actor else "نظام"
         meta["refund_reason"] = reason or meta.get("refund_reason", "")
         meta["refund_gateway_tx_id"] = refund_tx_id
-        meta["refund_raw_res"] = raw_refund_res
+        meta["refund_raw_res"] = _json_safe(raw_refund_res)
         deposit.metadata = meta
         deposit.admin_note = (deposit.admin_note or "") + f"\n[استرداد إيداع]: تمت الموافقة وإعادة المبلغ للبوابة في {timezone.now().strftime('%Y-%m-%d %H:%M')}. المرجع: {refund_tx_id or '---'}. المشرف: {getattr(actor, 'email', 'نظام')}."
         deposit.save(update_fields=["metadata", "admin_note", "updated_at"])
