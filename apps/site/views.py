@@ -1577,18 +1577,29 @@ def deposits(request):
 
         # --- Task 2 & 3: Limit Checks ---
         amount_in_usd = currency.to_base(amount, "deposit")
-        
+        min_allowed, max_allowed = method.get_effective_deposit_limits(user=request.user, currency=currency)
+        if amount < min_allowed:
+            messages.error(request, f"الحد الأدنى للإيداع عبر {method.name} هو {min_allowed:,.2f} {currency.code}.")
+            return redirect("dashboard_deposits")
+        if amount > max_allowed:
+            messages.error(request, f"الحد الأقصى المتاح لك عبر {method.name} هو {max_allowed:,.2f} {currency.code} (وفق حدود الوسيلة وحدود حسابك).")
+            return redirect("dashboard_deposits")
+
         # 1. User Daily Limit
         request.user.reset_daily_limits_if_needed()
         if request.user.daily_deposit_usage + amount_in_usd > request.user.daily_deposit_limit:
             messages.error(request, f"لقد تجاوزت حد الإيداع اليومي المسموح لك ({request.user.daily_deposit_limit} USD). المتبقي لك اليوم: {max(0, request.user.daily_deposit_limit - request.user.daily_deposit_usage):,.2f} USD")
             return redirect("dashboard_deposits")
             
-        # 2. Method Daily Limit
+        # 2. Method Daily & Monthly Limits (skipped if is_unlimited=True)
         method.reset_daily_limits_if_needed()
-        if method.daily_deposit_usage + amount_in_usd > method.daily_deposit_limit:
-            messages.error(request, "عذراً، هذه الوسيلة وصلت للحد الأقصى للإيداعات اليومية. يرجى المحاولة غداً أو استخدام وسيلة أخرى.")
-            return redirect("dashboard_deposits")
+        if not method.is_unlimited:
+            if method.daily_deposit_limit > 0 and method.daily_deposit_usage + amount_in_usd > method.daily_deposit_limit:
+                messages.error(request, "عذراً، هذه الوسيلة وصلت للحد الأقصى للإيداعات اليومية. يرجى المحاولة غداً أو استخدام وسيلة أخرى.")
+                return redirect("dashboard_deposits")
+            if method.monthly_deposit_limit > 0 and method.monthly_deposit_usage + amount_in_usd > method.monthly_deposit_limit:
+                messages.error(request, "عذراً، هذه الوسيلة وصلت للحد الأقصى للإيداعات الشهرية. يرجى المحاولة الشهر القادم أو استخدام وسيلة أخرى.")
+                return redirect("dashboard_deposits")
             
         # 3. Global Cap (Task 5)
         if method.global_deposit_cap > 0 and method.global_deposit_usage + amount_in_usd > method.global_deposit_cap:
@@ -1760,29 +1771,40 @@ def deposits(request):
             else:
                 display_name = m.name
 
+            supported_curr_objs = list(m.supported_currencies.all())
             currencies_list = []
-            for c in m.supported_currencies.all():
+            for c in supported_curr_objs:
+                c_min, c_max = m.get_effective_deposit_limits(user=request.user, currency=c)
                 currencies_list.append({
                     "id": str(c.id),
                     "code": str(c.code).upper(),
                     "symbol": str(c.symbol),
-                    "name": str(c.name)
+                    "name": str(c.name),
+                    "min": float(c_min),
+                    "max": float(c_max),
                 })
 
-            first_c = currencies_list[0] if currencies_list else {
-                "id": "", "code": "USD", "symbol": "$", "name": "US Dollar"
-            }
+            if currencies_list:
+                first_c = currencies_list[0]
+            else:
+                usd_fallback = Currency.all_objects.filter(code="USD").first()
+                fb_min, fb_max = m.get_effective_deposit_limits(user=request.user, currency=usd_fallback)
+                first_c = {
+                    "id": "", "code": "USD", "symbol": "$", "name": "US Dollar",
+                    "min": float(fb_min), "max": float(fb_max),
+                }
 
             methods_data[str(m.id)] = {
                 "id": str(m.id),
                 "name": display_name,
                 "isGateway": is_gw,
                 "gatewayProvider": gw_provider,
+                "isUnlimited": bool(m.is_unlimited),
                 "currencyId": first_c["id"],
                 "currencyCode": first_c["code"],
                 "currencySymbol": first_c["symbol"],
-                "min": float(m.deposit_min_amount or 0),
-                "max": float(m.deposit_max_amount or 0),
+                "min": first_c["min"],
+                "max": first_c["max"],
                 "fee": 0,
                 "instructions": m.deposit_instructions or "",
                 "currencies": currencies_list,

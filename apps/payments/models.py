@@ -30,13 +30,19 @@ class PaymentMethod(TimeStampedModel):
     requires_kyc = models.BooleanField(default=False, verbose_name="يتطلب توثيق الهوية (KYC)", help_text="إذا تم تفعيله، لن تظهر هذه الوسيلة إلا للمستخدمين الموثقين.")
     
     # --- New Limit Fields ---
-    daily_deposit_limit = models.DecimalField(max_digits=14, decimal_places=2, default=Decimal("10000.00"), verbose_name="حد الإيداع اليومي لهذه الوسيلة", help_text="القيمة بالدولار USD")
-    daily_withdrawal_limit = models.DecimalField(max_digits=14, decimal_places=2, default=Decimal("10000.00"), verbose_name="حد السحب اليومي لهذه الوسيلة", help_text="القيمة بالدولار USD")
+    is_unlimited = models.BooleanField(default=False, verbose_name="بلا حدود للوسيلة", help_text="عند التفعيل لا يوجد حد يومي أو شهري لوسيلة الدفع، مع التقيد بحدود حساب المستخدم.")
+    daily_deposit_limit = models.DecimalField(max_digits=14, decimal_places=2, default=Decimal("10000.00"), verbose_name="حد الإيداع اليومي لهذه الوسيلة", help_text="القيمة بالدولار USD. 0 تعني غير محدود.")
+    daily_withdrawal_limit = models.DecimalField(max_digits=14, decimal_places=2, default=Decimal("10000.00"), verbose_name="حد السحب اليومي لهذه الوسيلة", help_text="القيمة بالدولار USD. 0 تعني غير محدود.")
+    monthly_deposit_limit = models.DecimalField(max_digits=14, decimal_places=2, default=Decimal("0.00"), verbose_name="حد الإيداع الشهري لهذه الوسيلة", help_text="القيمة بالدولار USD. 0 تعني غير محدود.")
+    monthly_withdrawal_limit = models.DecimalField(max_digits=14, decimal_places=2, default=Decimal("0.00"), verbose_name="حد السحب الشهري لهذه الوسيلة", help_text="القيمة بالدولار USD. 0 تعني غير محدود.")
     
-    # --- Daily Usage Tracking ---
+    # --- Daily & Monthly Usage Tracking ---
     daily_deposit_usage = models.DecimalField(max_digits=14, decimal_places=2, default=Decimal("0.00"))
     daily_withdrawal_usage = models.DecimalField(max_digits=14, decimal_places=2, default=Decimal("0.00"))
+    monthly_deposit_usage = models.DecimalField(max_digits=14, decimal_places=2, default=Decimal("0.00"))
+    monthly_withdrawal_usage = models.DecimalField(max_digits=14, decimal_places=2, default=Decimal("0.00"))
     last_limit_reset = models.DateTimeField(default=timezone.now)
+    last_monthly_limit_reset = models.DateTimeField(default=timezone.now)
 
     # --- Global Cap ---
     global_deposit_cap = models.DecimalField(max_digits=14, decimal_places=2, default=Decimal("0.00"), verbose_name="الحد الإجمالي الأقصى للإيداعات", help_text="عند الوصول لهذا الحد، تتوقف الوسيلة تلقائياً. 0 تعني غير محدود.")
@@ -90,6 +96,7 @@ class PaymentMethod(TimeStampedModel):
         self.reset_daily_limits_if_needed()
         amt = Decimal(str(amount_in_usd))
         self.daily_deposit_usage += amt
+        self.monthly_deposit_usage += amt
         self.global_deposit_usage += amt
         
         # Task 5: Check Global Cap
@@ -104,12 +111,13 @@ class PaymentMethod(TimeStampedModel):
                 action_url=f"/control/payment-methods/{self.id}/edit/"
             )
             
-        self.save(update_fields=["daily_deposit_usage", "global_deposit_usage", "is_maintenance_mode"])
+        self.save(update_fields=["daily_deposit_usage", "monthly_deposit_usage", "global_deposit_usage", "is_maintenance_mode"])
 
     def add_withdrawal_usage(self, amount_in_usd):
         self.reset_daily_limits_if_needed()
         amt = Decimal(str(amount_in_usd))
         self.daily_withdrawal_usage += amt
+        self.monthly_withdrawal_usage += amt
         self.global_withdrawal_usage += amt
         
         # Check Global Cap
@@ -122,64 +130,100 @@ class PaymentMethod(TimeStampedModel):
                 action_url=f"/control/payment-methods/{self.id}/edit/"
             )
             
-        self.save(update_fields=["daily_withdrawal_usage", "global_withdrawal_usage", "is_maintenance_mode"])
+        self.save(update_fields=["daily_withdrawal_usage", "monthly_withdrawal_usage", "global_withdrawal_usage", "is_maintenance_mode"])
 
     def reset_daily_limits_if_needed(self):
-        """Resets daily usage if the date has changed in Damascus time."""
+        """Resets daily usage at 12:00 AM midnight and monthly usage at 12:00 AM on the 1st of each month (local time)."""
         from django.utils import timezone
         now = timezone.localtime(timezone.now())
+        update_fields = []
         last_reset_local = timezone.localtime(self.last_limit_reset)
         if last_reset_local.date() < now.date():
             self.daily_deposit_usage = Decimal("0.00")
             self.daily_withdrawal_usage = Decimal("0.00")
             self.last_limit_reset = now
-            self.save(update_fields=["daily_deposit_usage", "daily_withdrawal_usage", "last_limit_reset"])
+            update_fields.extend(["daily_deposit_usage", "daily_withdrawal_usage", "last_limit_reset"])
+
+        last_monthly_local = timezone.localtime(self.last_monthly_limit_reset or self.last_limit_reset)
+        if (last_monthly_local.year, last_monthly_local.month) < (now.year, now.month):
+            self.monthly_deposit_usage = Decimal("0.00")
+            self.monthly_withdrawal_usage = Decimal("0.00")
+            self.last_monthly_limit_reset = now
+            update_fields.extend(["monthly_deposit_usage", "monthly_withdrawal_usage", "last_monthly_limit_reset"])
+
+        if update_fields:
+            self.save(update_fields=update_fields)
+
+    def get_effective_deposit_limits(self, user=None, currency=None):
+        """
+        Computes (min_amount, max_amount) in the given currency (or USD if None),
+        respecting both the payment method's configured limits (or is_unlimited)
+        and the user's account daily/custom limits.
+        """
+        self.reset_daily_limits_if_needed()
+
+        # 1. Method limit in USD
+        if self.is_unlimited:
+            method_remaining = Decimal("999999999.99")
+        else:
+            candidates = []
+            if self.deposit_max_amount and self.deposit_max_amount > 0:
+                candidates.append(self.deposit_max_amount)
+            if self.daily_deposit_limit and self.daily_deposit_limit > 0:
+                candidates.append(max(Decimal("0.00"), self.daily_deposit_limit - self.daily_deposit_usage))
+            if self.monthly_deposit_limit and self.monthly_deposit_limit > 0:
+                candidates.append(max(Decimal("0.00"), self.monthly_deposit_limit - self.monthly_deposit_usage))
+            if self.global_deposit_cap and self.global_deposit_cap > 0:
+                candidates.append(max(Decimal("0.00"), self.global_deposit_cap - self.global_deposit_usage))
+            method_remaining = min(candidates) if candidates else Decimal("999999999.99")
+
+        # 2. User account limit in USD
+        user_remaining = Decimal("999999999.99")
+        if user and user.is_authenticated:
+            user.reset_daily_limits_if_needed()
+            user_remaining = max(Decimal("0.00"), user.daily_deposit_limit - user.daily_deposit_usage)
+
+            if user.has_custom_limits and user.custom_payment_limits and isinstance(user.custom_payment_limits, dict):
+                user_custom = (
+                    user.custom_payment_limits.get(str(self.id))
+                    or (user.custom_payment_limits.get(self.id.hex) if hasattr(self.id, "hex") else None)
+                )
+                if isinstance(user_custom, dict) and user_custom.get("deposit"):
+                    try:
+                        custom_limit = Decimal(str(user_custom["deposit"]))
+                        method_remaining = custom_limit
+                    except Exception:
+                        pass
+
+        effective_max_usd = min(method_remaining, user_remaining)
+        min_usd = self.deposit_min_amount or Decimal("0.00")
+
+        if currency:
+            min_val = currency.from_base(min_usd, "deposit")
+            max_val = currency.from_base(effective_max_usd, "deposit")
+            # For MTN Cash Mobile in SYP, enforce gateway's 50,000 SYP daily purchase cap unless method is unlimited
+            gw_provider = self.gateway.provider if getattr(self, "gateway", None) else ""
+            if gw_provider == "mtn_pay" and str(currency.code).upper() == "SYP":
+                min_val = max(min_val, Decimal("1.00"))
+                if not self.is_unlimited:
+                    max_val = min(max_val, Decimal("50000.00"))
+        else:
+            min_val = min_usd
+            max_val = effective_max_usd
+
+        if max_val < Decimal("0.00"):
+            max_val = Decimal("0.00")
+        return min_val, max_val
 
     def to_deposit_json(self, user=None):
         import json
         from django.core.serializers.json import DjangoJSONEncoder
-        from apps.common.models import Currency
-        from django.utils import timezone
-        
-        self.reset_daily_limits_if_needed()
-        usd = Currency.objects.filter(code="USD").first()
-        
-        # 1. Start with Global Method Daily Limit
-        method_remaining = max(Decimal("0.00"), self.daily_deposit_limit - self.daily_deposit_usage)
-        
-        # 2. Compare with User's Daily Limit (Total across all methods)
-        user_remaining = Decimal("9999999.99")
-        if user and user.is_authenticated:
-            user.reset_daily_limits_if_needed()
-            user_remaining = max(Decimal("0.00"), user.daily_deposit_limit - user.daily_deposit_usage)
-            
-            # 3. Check for User-Specific Method Custom Limit
-            if user.has_custom_limits and user.custom_payment_limits and isinstance(user.custom_payment_limits, dict):
-                user_custom = user.custom_payment_limits.get(str(self.id)) or user.custom_payment_limits.get(self.id.hex) if hasattr(self.id, 'hex') else user.custom_payment_limits.get(str(self.id))
-                if isinstance(user_custom, dict) and user_custom.get('deposit'):
-                    try:
-                        custom_limit = Decimal(str(user_custom['deposit']))
-                        # User custom limit overrides the global method limit for THIS user
-                        method_remaining = custom_limit
-                    except: pass
-        
-        # Effective max is the MINIMUM of what's allowed by the user and the method
-        effective_deposit_max = min(method_remaining, user_remaining)
-        
-        # 4. Cap by per-transaction max
-        effective_deposit_max = min(effective_deposit_max, self.deposit_max_amount)
-        
-        # 5. Check Global Cap (Task 5)
-        if self.global_deposit_cap > 0:
-            cap_remaining = max(Decimal("0.00"), self.global_deposit_cap - self.global_deposit_usage)
-            effective_deposit_max = min(effective_deposit_max, cap_remaining)
 
+        self.reset_daily_limits_if_needed()
         currencies_data = []
         effective_rate = self.get_effective_deposit_rate()
         for c in self.supported_currencies.all():
-            # Convert USD limits to this currency
-            min_val = c.from_base(self.deposit_min_amount) if usd else self.deposit_min_amount
-            max_val = c.from_base(effective_deposit_max) if usd else effective_deposit_max
+            min_val, max_val = self.get_effective_deposit_limits(user=user, currency=c)
             currencies_data.append({
                 "id": str(c.id), 
                 "code": c.code, 

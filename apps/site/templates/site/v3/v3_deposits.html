@@ -770,21 +770,25 @@ function updateMethodDetailsView() {
     instrText.innerText = activeMethodData.instructions || 'قم بالتحويل إلى الحساب الموضح ثم أرفق صورة الإشعار.';
   }
   if (limitsHint) {
-    if (activeMethodData.gatewayProvider === 'mtn_pay') {
-      limitsHint.innerText = `الحد الأدنى: 1 ل.س • الأقصى: 50,000 ل.س (الحد اليومي للشراء: 50,000 ل.س)`;
-    } else {
-      let limitStr = `الحد الأدنى: ${activeMethodData.min} ${activeMethodData.currencyCode}`;
-      if (activeMethodData.max > 0) limitStr += ` • الأقصى: ${activeMethodData.max} ${activeMethodData.currencyCode}`;
-      limitsHint.innerText = limitStr;
+    const minFormatted = formatCleanNum(Number(activeMethodData.min || 0));
+    const maxFormatted = formatCleanNum(Number(activeMethodData.max || 0));
+    let limitStr = `الحد الأدنى: ${minFormatted} ${activeMethodData.currencyCode}`;
+    if (activeMethodData.max > 0) {
+      limitStr += ` • الأقصى المتاح: ${maxFormatted} ${activeMethodData.currencyCode}`;
+    } else if (activeMethodData.isUnlimited) {
+      limitStr += ` • بلا حدود للوسيلة`;
     }
+    if (activeMethodData.gatewayProvider === 'mtn_pay') {
+      limitStr += ` (الحد اليومي للشراء: 50,000 ل.س)`;
+    }
+    limitsHint.innerText = limitStr;
   }
   const amtInputEl = document.getElementById('deposit-amount-input');
   if (amtInputEl) {
-    if (activeMethodData.gatewayProvider === 'mtn_pay' && (activeMethodData.currencyCode || '').toUpperCase() === 'SYP') {
-      amtInputEl.min = '1';
-      amtInputEl.max = '50000';
+    amtInputEl.min = activeMethodData.min > 0 ? String(activeMethodData.min) : '0.01';
+    if (activeMethodData.max > 0) {
+      amtInputEl.max = String(activeMethodData.max);
     } else {
-      amtInputEl.min = '0.01';
       amtInputEl.removeAttribute('max');
     }
   }
@@ -861,14 +865,22 @@ document.addEventListener('DOMContentLoaded', () => {
   const depositForm = document.getElementById('deposit-form');
   if (depositForm) {
     depositForm.addEventListener('submit', function(e) {
-      if (activeMethodData && activeMethodData.gatewayProvider === 'mtn_pay') {
+      if (activeMethodData) {
         const amtInput = document.getElementById('deposit-amount-input');
         const amount = parseFloat(amtInput ? amtInput.value : 0) || 0;
-        const isSyp = (activeMethodData.currencyCode || '').toUpperCase() === 'SYP';
-        const sypVal = isSyp ? amount : Math.round(amount * (typeof LIVE_SYP_RATE !== 'undefined' ? LIVE_SYP_RATE : 1));
-        if (sypVal < 1 || sypVal > 50000) {
+        if (activeMethodData.min > 0 && amount < activeMethodData.min) {
           e.preventDefault();
-          alert('تنبيه: الحد اليومي للشراء والإيداع عبر كاش موبايل هو 50,000 ليرة سورية (من 1 ل.س إلى 50,000 ل.س).');
+          alert(`تنبيه: الحد الأدنى للإيداع عبر هذه الوسيلة هو ${formatCleanNum(activeMethodData.min)} ${activeMethodData.currencyCode}.`);
+          if (amtInput) amtInput.focus();
+          return false;
+        }
+        if (activeMethodData.max > 0 && amount > activeMethodData.max) {
+          e.preventDefault();
+          if (activeMethodData.gatewayProvider === 'mtn_pay') {
+            alert(`تنبيه: الحد الأقصى المتاح لك عبر كاش موبايل هو ${formatCleanNum(activeMethodData.max)} ${activeMethodData.currencyCode} (وفق حدود الوسيلة وحسابك، والحد اليومي للشراء 50,000 ل.س).`);
+          } else {
+            alert(`تنبيه: الحد الأقصى المتاح لك عبر هذه الوسيلة هو ${formatCleanNum(activeMethodData.max)} ${activeMethodData.currencyCode} (وفق حدود الوسيلة وحدود حسابك).`);
+          }
           if (amtInput) amtInput.focus();
           return false;
         }
