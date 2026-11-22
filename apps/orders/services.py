@@ -2323,7 +2323,9 @@ def process_deposit_refund_to_gateway(deposit, actor=None, reason=None, otp=None
     # Execute Gateway Refund
     if is_shamcash and bill_no:
         try:
-            client = ShamCashClient()
+            from apps.payments.gateways import gateway_for
+            gw = gateway_for("sham_cash")
+            client = gw.get_client()
             refund_amount = Decimal(str(deposit.amount)).quantize(Decimal("0.01"))
             refund_note = f"Deposit refund #{deposit.transaction_id}: {reason or 'Customer deposit refund'}"[:100]
             idempotency_key = f"depref_{deposit.id.hex[:12]}_{int(timezone.now().timestamp())}"
@@ -2343,12 +2345,23 @@ def process_deposit_refund_to_gateway(deposit, actor=None, reason=None, otp=None
     elif is_mtn_pay and mtn_invoice_num:
         try:
             from apps.payments.gateways import gateway_for
+            from apps.payments.models import MTNPayInvoiceRecord, MTNPayRefundRecord
             from apps.payments.mtn_pay import MTNPayError
-            gw = gateway_for("mtn_pay")
-            client = gw.get_client(store=getattr(deposit, "store", None))
-            ref_rec, _ = client.initiate_refund(int(mtn_invoice_num))
-            conf_rec, raw_refund_res = client.confirm_refund(int(mtn_invoice_num), int(ref_rec.refund_invoice))
-            refund_tx_id = str(conf_rec.refund_invoice)
+            inv_num_int = int(mtn_invoice_num)
+            inv_rec = mtn_inv_rec or MTNPayInvoiceRecord.objects.filter(invoice_number=inv_num_int).first()
+            existing_conf = MTNPayRefundRecord.objects.filter(
+                base_invoice=inv_num_int,
+                status=MTNPayRefundRecord.RefundStatus.CONFIRMED,
+            ).order_by("-created_at").first()
+            if (inv_rec and inv_rec.is_refunded) or existing_conf:
+                refund_tx_id = str(existing_conf.refund_invoice) if existing_conf else str(inv_num_int)
+                raw_refund_res = (existing_conf.raw_response if existing_conf else None) or {"already_refunded": True}
+            else:
+                gw = gateway_for("mtn_pay")
+                client = gw.get_client(store=getattr(deposit, "store", None))
+                ref_rec, _ = client.initiate_refund(inv_num_int)
+                conf_rec, raw_refund_res = client.confirm_refund(inv_num_int, int(ref_rec.refund_invoice))
+                refund_tx_id = str(conf_rec.refund_invoice)
         except MTNPayError as exc:
             return False, f"فشلت عملية استرداد MTNPay: {exc}"
         except Exception as exc:
