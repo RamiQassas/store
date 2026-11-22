@@ -656,6 +656,8 @@ function selectDepositMethod(methodId, cardEl) {
     activeMethodData.currencyId = firstC.id;
     activeMethodData.currencyCode = (firstC.code || 'USD').toUpperCase();
     activeMethodData.currencySymbol = firstC.symbol;
+    if (typeof firstC.min !== 'undefined') activeMethodData.min = firstC.min;
+    if (typeof firstC.max !== 'undefined') activeMethodData.max = firstC.max;
   }
 
   const hiddenMethod = document.getElementById('selected-payment-method');
@@ -697,6 +699,8 @@ function renderCurrencySelector(currencies) {
       activeMethodData.currencyId = c.id;
       activeMethodData.currencyCode = (c.code || 'USD').toUpperCase();
       activeMethodData.currencySymbol = c.symbol;
+      if (typeof c.min !== 'undefined') activeMethodData.min = c.min;
+      if (typeof c.max !== 'undefined') activeMethodData.max = c.max;
       const hiddenCurr = document.getElementById('selected-currency-id');
       if (hiddenCurr) hiddenCurr.value = c.id;
       renderCurrencySelector(currencies);
