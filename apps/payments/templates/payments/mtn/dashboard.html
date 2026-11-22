@@ -137,30 +137,43 @@
       </span>
     </div>
   </div>
-  <form method="post" action="{% url 'mtn_admin_activate_pos' %}" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 items-end">
+  <form method="post" action="{% url 'mtn_admin_activate_pos' %}" class="space-y-3">
     {% csrf_token %}
-    <div>
-      <label class="text-[11px] font-bold text-slate-300 block mb-1">رقم نقطة البيع / الطرفية (Subject)</label>
-      <input type="text" name="terminal_id" value="{{ terminal.terminal_id }}" class="mtn-dash-input font-mono" required>
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 items-end">
+      <div>
+        <label class="text-[11px] font-bold text-slate-300 block mb-1">رقم نقطة البيع / الطرفية (Subject)</label>
+        <input type="text" name="terminal_id" value="{{ terminal.terminal_id }}" class="mtn-dash-input font-mono" required>
+      </div>
+      <div>
+        <label class="text-[11px] font-bold text-slate-300 block mb-1">الرقم التسلسلي (Serial)</label>
+        <input type="text" name="serial_number" value="{{ terminal.serial_number }}" class="mtn-dash-input font-mono" required>
+      </div>
+      <div>
+        <label class="text-[11px] font-bold text-slate-300 block mb-1">الرمز السري للتفعيل (Secret - 8 أرقام)</label>
+        <input type="password" name="secret_code" maxlength="8" placeholder="أدخل 8 أرقام" class="mtn-dash-input font-mono">
+      </div>
+      <div>
+        <label class="text-[11px] font-bold text-slate-300 block mb-1">رابط الخادم (Base URL)</label>
+        <input type="url" id="mtn-base-url-input" name="base_url" value="{{ terminal.base_url }}" class="mtn-dash-input font-mono" required>
+      </div>
     </div>
-    <div>
-      <label class="text-[11px] font-bold text-slate-300 block mb-1">الرقم التسلسلي (Serial)</label>
-      <input type="text" name="serial_number" value="{{ terminal.serial_number }}" class="mtn-dash-input font-mono" required>
-    </div>
-    <div>
-      <label class="text-[11px] font-bold text-slate-300 block mb-1">الرمز السري للتفعيل (Secret - 8 أرقام)</label>
-      <input type="password" name="secret_code" maxlength="8" placeholder="أدخل 8 أرقام" class="mtn-dash-input font-mono">
-    </div>
-    <div class="flex flex-wrap gap-2">
-      <button type="submit" class="mtn-btn-gold flex-1" {% if terminal.is_locked %}disabled{% endif %}>
-        <i class="fas fa-bolt"></i>
-        <span>تفعيل الطرفية</span>
-      </button>
-      {% if terminal.is_locked %}
-      <button type="submit" name="reset_lock" value="1" class="btn bg-rose-500/20 text-rose-300 border border-rose-500/40 font-bold">
-        <i class="fas fa-unlock"></i> فك القفل
-      </button>
-      {% endif %}
+    <div class="flex flex-wrap items-center justify-between gap-2 pt-1">
+      <div class="flex flex-wrap items-center gap-2">
+        <span class="text-[11px] text-slate-400 font-bold">بيئة الخادم:</span>
+        <button type="button" class="mtn-ttl-chip" onclick="document.getElementById('mtn-base-url-input').value='https://cashmobile.mtnsyr.com:9000'">الإنتاج (cashmobile.mtnsyr.com:9000)</button>
+        <button type="button" class="mtn-ttl-chip" onclick="document.getElementById('mtn-base-url-input').value='https://cash.mtnsyr.com:9000'">الاختبار (cash.mtnsyr.com:9000)</button>
+      </div>
+      <div class="flex flex-wrap gap-2">
+        <button type="submit" class="mtn-btn-gold" {% if terminal.is_locked %}disabled{% endif %}>
+          <i class="fas fa-bolt"></i>
+          <span>تفعيل الطرفية</span>
+        </button>
+        {% if terminal.is_locked %}
+        <button type="submit" name="reset_lock" value="1" class="btn bg-rose-500/20 text-rose-300 border border-rose-500/40 font-bold">
+          <i class="fas fa-unlock"></i> فك القفل
+        </button>
+        {% endif %}
+      </div>
     </div>
   </form>
 </div>

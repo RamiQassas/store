@@ -907,6 +907,7 @@ class MTNPaymentClient:
             except (TypeError, ValueError):
                 pass
         if ttl is not None:
+            # MTN API expects TTL in MINUTES (e.g., 10 = 10 minutes, 15 = 15 minutes)
             payload["TTL"] = int(ttl)
 
         resp = self._send_signed_request(self.ENDPOINT_INVOICE_CREATE, payload, invoice_number=inv_num)
@@ -926,7 +927,7 @@ class MTNPaymentClient:
                 "amount_minor": minor_amount,
                 "currency_code": str(curr_code),
                 "session_id": str(session_id or ""),
-                "ttl_seconds": ttl,
+                "ttl_seconds": (int(ttl) * 60) if ttl is not None else None,
                 "status_code": status_val,
                 "transaction_id": str(receipt.get("Transaction") or ""),
                 "qr_code": str(receipt.get("QR") or receipt.get("Qr") or ""),
