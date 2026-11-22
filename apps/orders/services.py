@@ -2280,7 +2280,11 @@ def process_deposit_refund_to_gateway(deposit, actor=None, reason=None, otp=None
 
     provider = ""
     if deposit.payment_method:
-        provider = (getattr(deposit.payment_method, "gateway_provider", "") or "").lower()
+        gw_obj = getattr(deposit.payment_method, "gateway", None)
+        if gw_obj:
+            provider = (getattr(gw_obj, "provider", "") or "").lower()
+        if not provider:
+            provider = (getattr(deposit.payment_method, "gateway_provider", "") or "").lower()
     if not provider:
         provider = (meta.get("payment_provider") or "").lower()
 
@@ -2321,6 +2325,13 @@ def process_deposit_refund_to_gateway(deposit, actor=None, reason=None, otp=None
     raw_refund_res = {}
 
     # Execute Gateway Refund
+    if is_shamcash and not bill_no:
+        return False, "لا يوجد رقم فاتورة شام كاش (billNo) مسجل لهذا الإيداع."
+    if is_mtn_pay and not mtn_invoice_num:
+        return False, "لا يوجد رقم فاتورة MTNPay مسجل لهذا الإيداع."
+    if is_paymera and not paymera_payment_id:
+        return False, "لا يوجد معرف دفع بيميرا مسجل لهذا الإيداع."
+
     if is_shamcash and bill_no:
         try:
             from apps.payments.gateways import gateway_for
