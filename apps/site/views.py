@@ -4508,9 +4508,9 @@ def control_kycs_list(request):
                 return redirect("control_kycs_list")
 
             if store:
-                target_user = get_object_or_404(User, id=user_id, role=User.Role.CUSTOMER, store=store)
+                target_user = get_object_or_404(User, id=user_id, store=store)
             else:
-                target_user = get_object_or_404(User, id=user_id, role=User.Role.CUSTOMER, store__isnull=True)
+                target_user = get_object_or_404(User, id=user_id, store__isnull=True)
 
             kyc = getattr(target_user, "kyc_request", None)
             if not kyc:
@@ -4654,9 +4654,9 @@ def control_kycs_list(request):
     status = request.GET.get('status', '') # This will refer to user.is_kyc_verified or kyc_request.status
     
     if store:
-        users = User.objects.filter(role=User.Role.CUSTOMER, store=store).select_related('kyc_request').all().order_by('-date_joined')
+        users = User.objects.filter(store=store).select_related('kyc_request').all().order_by('-date_joined')
     else:
-        users = User.objects.filter(role=User.Role.CUSTOMER, store__isnull=True).select_related('kyc_request').all().order_by('-date_joined')
+        users = User.objects.filter(store__isnull=True).select_related('kyc_request').all().order_by('-date_joined')
     
     if q:
         users = users.filter(
