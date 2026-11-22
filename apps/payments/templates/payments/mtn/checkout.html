@@ -524,6 +524,21 @@
         <span style="font-size: 0.85rem; font-weight: 800; color: var(--text-main);">المبلغ المطلوب للدفع</span>
         <span class="gw-total-syp font-mono">{{ invoice.amount_major|floatformat:0 }} <small>ل.س</small></span>
       </div>
+      {% if mtn_provider_commission is not None %}
+      <div style="margin-top: 0.55rem; padding: 0.65rem 0.8rem; border-radius: 10px; background: rgba(245, 158, 11, 0.09); border: 1px solid rgba(245, 158, 11, 0.3);">
+        <div style="display: flex; justify-content: space-between; align-items: center; font-size: 0.78rem; font-weight: 800; color: #b45309;">
+          <span><i class="fas fa-info-circle ml-1"></i> عمولة مزود الخدمة (MTN Cash)</span>
+          <span class="font-mono" dir="ltr">+{{ mtn_provider_commission }} ل.س</span>
+        </div>
+        <div style="display: flex; justify-content: space-between; align-items: center; font-size: 0.76rem; font-weight: 900; color: #0f172a; margin-top: 0.25rem;">
+          <span>إجمالي المقتطع من محفظتك في MTN</span>
+          <span class="font-mono">{{ mtn_total_with_fee|floatformat:2 }} ل.س</span>
+        </div>
+        <div style="font-size: 0.69rem; color: #64748b; margin-top: 0.35rem; line-height: 1.5;">
+          شرائح عمولة المزود: (0–9.99: 0.75 ل.س) • (10–99.99: 1 ل.س) • (100–199.99: 1.5 ل.س) • (200–50000: 2 ل.س)
+        </div>
+      </div>
+      {% endif %}
     </div>
 
     <div class="gw-body">

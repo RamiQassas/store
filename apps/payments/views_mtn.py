@@ -245,6 +245,25 @@ def mtn_invoice_checkout_view(request, invoice_number: int):
     except Exception:
         saved_mtn_phones = []
 
+    mtn_provider_commission = None
+    mtn_total_with_fee = None
+    try:
+        amt_major = Decimal(str(invoice.amount_major or "0"))
+        if amt_major >= Decimal("0"):
+            if amt_major <= Decimal("9.99"):
+                mtn_provider_commission = Decimal("0.75")
+            elif amt_major <= Decimal("99.99"):
+                mtn_provider_commission = Decimal("1")
+            elif amt_major <= Decimal("199.99"):
+                mtn_provider_commission = Decimal("1.5")
+            elif amt_major <= Decimal("50000"):
+                mtn_provider_commission = Decimal("2")
+            if mtn_provider_commission is not None:
+                mtn_total_with_fee = amt_major + mtn_provider_commission
+    except Exception:
+        mtn_provider_commission = None
+        mtn_total_with_fee = None
+
     return render(
         request,
         "payments/mtn/checkout.html",
@@ -255,6 +274,8 @@ def mtn_invoice_checkout_view(request, invoice_number: int):
             "currency": terminal.currency_info,
             "item_summary": item_summary or "دفع فاتورة رقميات",
             "usd_amount": usd_amount,
+            "mtn_provider_commission": mtn_provider_commission,
+            "mtn_total_with_fee": mtn_total_with_fee,
             "saved_mtn_phones": saved_mtn_phones,
             "is_expired": is_expired,
             "remaining_seconds": remaining_seconds,
