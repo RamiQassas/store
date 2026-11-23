@@ -188,34 +188,43 @@ MTN_ERROR_CATALOG: Dict[int, Dict[str, Any]] = {
 
 
 MTN_REMOTE_ERROR_TRANSLATIONS: Dict[str, str] = {
-    "insufficient balance": "الرصيد في محفظة MTN Cash غير كافٍ لإتمام العملية.",
-    "insufficient funds": "الرصيد في محفظة MTN Cash غير كافٍ لإتمام العملية.",
-    "not enough balance": "الرصيد في محفظة MTN Cash غير كافٍ لإتمام العملية.",
-    "not enough funds": "الرصيد في محفظة MTN Cash غير كافٍ لإتمام العملية.",
-    "balance is not enough": "الرصيد في محفظة MTN Cash غير كافٍ لإتمام العملية.",
-    "invalid otp": "رمز التحقق SMS المدخل غير صحيح.",
-    "wrong otp": "رمز التحقق SMS المدخل غير صحيح.",
-    "otp expired": "انتهت صلاحية رمز التحقق SMS. يرجى إعادة طلب الرمز.",
-    "otp attempts exceeded": "تم استنفاد محاولات إدخال رمز التحقق SMS.",
-    "phone not found": "رقم الهاتف غير مسجل في خدمة MTN Cash Mobile.",
+    "insufficient balance": "لا يوجد رصيد كافٍ في محفظة MTN Cash.",
+    "insufficient funds": "لا يوجد رصيد كافٍ في محفظة MTN Cash.",
+    "not enough balance": "لا يوجد رصيد كافٍ في محفظة MTN Cash.",
+    "not enough funds": "لا يوجد رصيد كافٍ في محفظة MTN Cash.",
+    "balance is not enough": "لا يوجد رصيد كافٍ في محفظة MTN Cash.",
+    "no sufficient balance": "لا يوجد رصيد كافٍ في محفظة MTN Cash.",
+    "does not have cash mobile": "رقم المستخدم لا يملك محفظة كاش موبايل (MTN Cash).",
+    "no cash mobile": "رقم المستخدم لا يملك محفظة كاش موبايل (MTN Cash).",
+    "not have a wallet": "رقم المستخدم لا يملك محفظة كاش موبايل (MTN Cash).",
+    "no wallet": "رقم المستخدم لا يملك محفظة كاش موبايل (MTN Cash).",
+    "not registered": "رقم المستخدم غير مسجل في خدمة كاش موبايل (MTN Cash).",
+    "subscriber not found": "رقم المستخدم غير مسجل في خدمة كاش موبايل (MTN Cash).",
+    "customer not found": "رقم المستخدم غير مسجل في خدمة كاش موبايل (MTN Cash).",
+    "invalid otp": "رمز التحقق غير صحيح (Invalid OTP).",
+    "wrong otp": "رمز التحقق غير صحيح (Invalid OTP).",
+    "otp expired": "انتهت صلاحية رمز التحقق (OTP Expired).",
+    "otp attempts exceeded": "استنفاد محاولات رمز التحقق (OTP Attempts Exhausted).",
+    "phone not found": "رقم الهاتف غير مسجل في خدمة MTN Cash.",
     "account not found": "حساب MTN Cash غير موجود لهذا الرقم.",
     "user not found": "حساب المستخدم غير موجود في نظام MTN Cash.",
-    "wallet not found": "المحفظة غير موجودة في نظام MTN Cash.",
-    "wallet blocked": "محفظة العميل محظورة في نظام MTN Cash.",
+    "wallet not found": "رقم المستخدم لا يملك محفظة كاش موبايل (MTN Cash).",
+    "wallet blocked": "المحفظة محظورة في نظام MTN Cash.",
     "account blocked": "حساب العميل محظور في نظام MTN Cash.",
+    "account not active": "حساب العميل غير مفعل في نظام MTN Cash.",
     "daily limit exceeded": "تم تجاوز الحد اليومي المسموح به في محفظة MTN Cash.",
     "limit exceeded": "تم تجاوز الحد المسموح به في نظام MTN Cash.",
     "invoice not found": "الفاتورة غير موجودة في نظام MTN Cash.",
-    "invoice already paid": "تم دفع هذه الفاتورة مسبقاً.",
-    "invoice expired": "انتهت صلاحية هذه الفاتورة.",
-    "invoice cancelled": "تم إلغاء هذه الفاتورة.",
-    "already refunded": "تم استرداد هذه الفاتورة مسبقاً.",
-    "invalid signature": "التوقيع الرقمي للطلب غير صالح لدى خادم MTN.",
-    "unauthorized": "الطرفية غير مصرح لها لدى خادم MTN.",
-    "forbidden": "تم رفض العملية من خادم MTN.",
-    "internal server error": "خطأ داخلي في خادم بوابة الدفع MTN. يرجى المحاولة لاحقاً.",
-    "timeout": "انتهت مهلة الاتصال بخادم MTN.",
-    "bad request": "صيغة الطلب المرسل غير صالحة لدى خادم MTN.",
+    "invoice already paid": "الفاتورة مدفوعة مسبقاً.",
+    "invoice expired": "انتهت صلاحية الفاتورة.",
+    "invoice cancelled": "تم إلغاء الفاتورة.",
+    "already refunded": "الفاتورة مستردة مسبقاً.",
+    "invalid signature": "التوقيع الرقمي غير صالح لدى خادم MTN.",
+    "unauthorized": "غير مصرح (Unauthorized).",
+    "forbidden": "ممنوع (Forbidden).",
+    "internal server error": "خطأ داخلي في خادم MTN.",
+    "timeout": "انتهت مهلة الطلب (Timeout).",
+    "bad request": "خطأ في صيغة الطلب (Bad Request).",
 }
 
 
@@ -265,20 +274,30 @@ class MTNPayError(Exception):
     def from_errno(cls, errno: int, raw_response: Optional[dict] = None, fallback_msg: str = "") -> "MTNPayError":
         spec = MTN_ERROR_CATALOG.get(errno)
         remote_err = ""
-        if isinstance(raw_response, dict) and raw_response.get("Error"):
-            remote_err = str(raw_response.get("Error")).strip()
+        if isinstance(raw_response, dict):
+            remote_err = str(
+                raw_response.get("Error")
+                or raw_response.get("Message")
+                or raw_response.get("Msg")
+                or ""
+            ).strip()
+            if not remote_err and isinstance(raw_response.get("Receipt"), dict):
+                rec_err = raw_response["Receipt"].get("ReceiptError")
+                if isinstance(rec_err, dict) and rec_err.get("Msg"):
+                    remote_err = str(rec_err.get("Msg")).strip()
         if not remote_err and fallback_msg:
             remote_err = str(fallback_msg).strip()
 
         translated_remote = _translate_mtn_remote_error(remote_err)
+        display_remote = translated_remote or remote_err
 
         if spec:
             msg = spec["message_ar"]
-            if translated_remote and translated_remote not in msg:
-                msg = f"{msg} — {translated_remote}"
+            if display_remote and display_remote not in msg:
+                msg = f"{msg} — {display_remote}"
             action = spec["action"]
-        elif translated_remote:
-            msg = f"{translated_remote} (رمز خطأ MTN: {errno})"
+        elif display_remote:
+            msg = f"{display_remote} (رمز خطأ MTN: {errno})"
             action = "transaction_error"
         else:
             msg = f"خطأ من بوابة الدفع MTN Cash (رمز خطأ MTN: {errno})."
@@ -1227,8 +1246,27 @@ class MTNPaymentClient:
             record.transaction_id = str(resp["Transaction"])
         if "Abuse" in resp and resp["Abuse"] is not None:
             record.abuse_remaining = int(resp["Abuse"])
-        record.status_code = int(resp.get("Status", MTNPayInvoiceRecord.STATUS_PAID))
+        if isinstance(resp.get("Receipt"), dict):
+            record.receipt_raw = resp["Receipt"]
+            record.status_code = int(resp["Receipt"].get("Status", resp.get("Status", MTNPayInvoiceRecord.STATUS_PAID)))
+        else:
+            record.status_code = int(resp.get("Status", MTNPayInvoiceRecord.STATUS_PAID))
         record.save()
+
+        rec_err = {}
+        if isinstance(resp.get("Receipt"), dict) and isinstance(resp["Receipt"].get("ReceiptError"), dict):
+            rec_err = resp["Receipt"]["ReceiptError"]
+        elif isinstance(resp.get("ReceiptError"), dict):
+            rec_err = resp["ReceiptError"]
+
+        err_num = rec_err.get("Number")
+        err_msg = str(rec_err.get("Msg") or resp.get("Error") or resp.get("Message") or "").strip()
+        if record.status_code in (MTNPayInvoiceRecord.STATUS_FAILED, MTNPayInvoiceRecord.STATUS_CANCELLED) or (err_num and int(err_num) != 0) or err_msg:
+            raise MTNPayError.from_errno(
+                int(err_num or (609 if record.status_code == MTNPayInvoiceRecord.STATUS_CANCELLED else 500)),
+                raw_response=resp,
+                fallback_msg=err_msg,
+            )
 
         if record.status_code == MTNPayInvoiceRecord.STATUS_PAID:
             self._fulfill_paid_invoice(record)
