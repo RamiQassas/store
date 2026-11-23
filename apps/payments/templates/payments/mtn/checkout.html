@@ -1021,6 +1021,8 @@
           setTimeout(function() {
             window.location.href = data.redirect_url || '{{ success_redirect_url|default:"/"|escapejs }}';
           }, 900);
+        } else if (data.receipt_error_message) {
+          showMtnFeedback(data.receipt_error_message, true);
         } else if (data.expired || data.status === 'expired') {
           showMtnFeedback(data.message || 'انتهت مهلة الدفع وتم إغلاق الفاتورة تلقائياً.', true);
           setTimeout(function() {

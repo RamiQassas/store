@@ -40,125 +40,148 @@ logger = logging.getLogger(__name__)
 # ══════════════════════════════════════════════════════════════════════════════
 
 MTN_ERROR_CATALOG: Dict[int, Dict[str, Any]] = {
-    # General System Errors
+    # General System Errors (Official MTN Payment API Manual)
     400: {
         "category": "system",
-        "message_ar": "خطأ في صياغة الطلب المرسل إلى بوابة MTN (400).",
+        "name_en": "Bad Request",
+        "message_ar": "خطأ في صيغة الطلب (Bad Request - 400).",
         "action": "check_syntax",
     },
     401: {
         "category": "system",
-        "message_ar": "الطرفية غير مصرح لها (401) — يتطلب إعادة تفعيل الطرفية.",
+        "name_en": "Unauthorized",
+        "message_ar": "غير مصرح (Unauthorized - 401).",
         "action": "require_reactivation",
     },
     403: {
         "category": "system",
-        "message_ar": "تم حظر الطرفية مؤقتاً من قبل خادم MTN (403).",
+        "name_en": "Forbidden",
+        "message_ar": "ممنوع / حظر مؤقت (Forbidden - 403).",
         "action": "temporary_block",
     },
     302: {
         "category": "system",
-        "message_ar": "هذه الطرفية محظورة في نظام MTN (302).",
+        "name_en": "Terminal Blocked",
+        "message_ar": "الطرفية محظورة (Terminal Blocked - 302).",
         "action": "terminal_blocked",
     },
     500: {
         "category": "system",
-        "message_ar": "خطأ داخلي في خادم بوابة الدفع MTN (500). يرجى المحاولة لاحقاً.",
+        "name_en": "Internal Server Error",
+        "message_ar": "خطأ داخلي في خادم MTN (Internal Server Error - 500).",
         "action": "server_error",
     },
     # Permissions & Timeout Errors
     405: {
         "category": "permission",
-        "message_ar": "العملية غير مسموحة لهذه الطرفية (405) — يرجى مراجعة صلاحيات Allowed في إعدادات الطرفية.",
+        "name_en": "Method Not Allowed",
+        "message_ar": "العملية غير مسموحة (Not Allowed - 405).",
         "action": "check_allowed_settings",
     },
     408: {
         "category": "timeout",
-        "message_ar": "انتهت مهلة الطلب لدى خادم MTN (408) — جاري إعادة المحاولة تلقائياً بنفس المعاملات.",
+        "name_en": "Request Timeout",
+        "message_ar": "انتهت مهلة الطلب (Request Timeout - 408).",
         "action": "retry_identical",
     },
     # Activation Errors
     300: {
         "category": "activation",
-        "message_ar": "رقم الطرفية أو رمز التفعيل (Secret) غير صحيح (300).",
+        "name_en": "Invalid Credentials",
+        "message_ar": "رقم الطرفية أو رمز التفعيل غير صحيح (Invalid Credentials - 300).",
         "action": "invalid_activation_credentials",
     },
     301: {
         "category": "activation",
-        "message_ar": "الطرفية مفعلة مسبقاً (301).",
+        "name_en": "Already Activated",
+        "message_ar": "الطرفية مفعلة مسبقاً (Already Activated - 301).",
         "action": "already_activated",
     },
     303: {
         "category": "activation",
-        "message_ar": "الطرفية غير مفعلة (303) — يرجى تفعيل نقطة البيع أولاً.",
+        "name_en": "Terminal Not Activated",
+        "message_ar": "الطرفية غير مفعلة (Not Activated - 303).",
         "action": "not_activated",
     },
     304: {
         "category": "activation",
-        "message_ar": "فشل تفعيل الطرفية (304) — يتطلب إصدار رمز تفعيل (Secret) جديد.",
+        "name_en": "Activation Failed",
+        "message_ar": "فشل تفعيل الطرفية (Activation Failed - 304).",
         "action": "require_new_secret",
     },
     # Invoice & Payment Errors
     404: {
         "category": "invoice_payment",
-        "message_ar": "الفاتورة أو حساب العميل غير موجود في نظام MTN Cash (404).",
+        "name_en": "Not Found",
+        "message_ar": "غير موجود (Not Found - 404).",
         "action": "not_found",
     },
     409: {
         "category": "invoice_payment",
-        "message_ar": "الفاتورة مدفوعة مسبقاً أو رقم الفاتورة موجود مسبقاً (409).",
+        "name_en": "Conflict / Already Paid",
+        "message_ar": "تعارض / مدفوعة مسبقاً (Conflict - 409).",
         "action": "already_paid_or_exists",
     },
     603: {
         "category": "invoice_payment",
-        "message_ar": "الفاتورة مغلقة ولا يمكن تنفيذ عمليات عليها (603).",
+        "name_en": "Invoice Closed",
+        "message_ar": "الفاتورة مغلقة (Invoice Closed - 603).",
         "action": "invoice_closed",
     },
     609: {
         "category": "invoice_payment",
-        "message_ar": "الفاتورة ملغاة (609).",
+        "name_en": "Invoice Cancelled",
+        "message_ar": "الفاتورة ملغاة (Invoice Cancelled - 609).",
         "action": "invoice_cancelled",
     },
     # SMS Verification Errors
     660: {
         "category": "sms_otp",
-        "message_ar": "تم استنفاد جميع محاولات إدخال رمز التحقق SMS لهذه العملية (660).",
+        "name_en": "OTP Attempts Exhausted",
+        "message_ar": "استنفاد محاولات رمز التحقق (OTP Attempts Exhausted - 660).",
         "action": "otp_attempts_exhausted",
     },
     661: {
         "category": "sms_otp",
-        "message_ar": "انتهت صلاحية رمز التحقق SMS (661). يرجى إعادة طلب الرمز.",
+        "name_en": "OTP Expired",
+        "message_ar": "انتهت صلاحية رمز التحقق (OTP Expired - 661).",
         "action": "otp_expired",
     },
     662: {
         "category": "sms_otp",
-        "message_ar": "رمز التحقق SMS المدخل غير صحيح (662). يرجى التأكد من الرسالة القصيرة.",
+        "name_en": "Invalid OTP",
+        "message_ar": "رمز التحقق غير صحيح (Invalid OTP - 662).",
         "action": "otp_incorrect",
     },
     # Refund Errors
     613: {
         "category": "refund",
-        "message_ar": "هذه الفاتورة مستردة مسبقاً (613).",
+        "name_en": "Already Refunded",
+        "message_ar": "الفاتورة مستردة مسبقاً (Already Refunded - 613).",
         "action": "already_refunded",
     },
     40401: {
         "category": "refund",
-        "message_ar": "الفاتورة الأصلية غير موجودة لإجراء الاسترداد (40401).",
+        "name_en": "Invoice Not Found",
+        "message_ar": "الفاتورة غير موجودة (Invoice Not Found - 40401).",
         "action": "refund_invoice_not_found",
     },
     40025: {
         "category": "refund",
-        "message_ar": "المعاملة المالية غير موجودة (40025).",
+        "name_en": "Transaction Not Found",
+        "message_ar": "المعاملة غير موجودة (Transaction Not Found - 40025).",
         "action": "transaction_not_found",
     },
     40026: {
         "category": "refund",
-        "message_ar": "حالة المعاملة غير صالحة لإجراء عملية الاسترداد (40026).",
+        "name_en": "Invalid Transaction State",
+        "message_ar": "حالة المعاملة غير صالحة (Invalid Transaction State - 40026).",
         "action": "invalid_transaction_state",
     },
     40301: {
         "category": "refund",
-        "message_ar": "المحفظة الإلكترونية محظورة ولا يمكن إتمام الاسترداد (40301).",
+        "name_en": "Wallet Blocked",
+        "message_ar": "المحفظة محظورة (Wallet Blocked - 40301).",
         "action": "wallet_blocked",
     },
 }

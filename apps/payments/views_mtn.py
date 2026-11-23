@@ -109,7 +109,14 @@ def _expire_invoice_if_needed(invoice: MTNPayInvoiceRecord) -> tuple[bool, int]:
 
     if invoice.status_code == MTNPayInvoiceRecord.STATUS_PAID:
         return False, 0
-    if invoice.status_code in (MTNPayInvoiceRecord.STATUS_CANCELLED, MTNPayInvoiceRecord.STATUS_FAILED):
+    if invoice.status_code == MTNPayInvoiceRecord.STATUS_FAILED:
+        return False, 0
+    if invoice.status_code == MTNPayInvoiceRecord.STATUS_CANCELLED:
+        # Only report expired=True if no explicit ReceiptError from MTN is present
+        raw_rec = invoice.receipt_raw if isinstance(invoice.receipt_raw, dict) else {}
+        rec_err = raw_rec.get("ReceiptError") if isinstance(raw_rec.get("ReceiptError"), dict) else {}
+        if rec_err.get("Number") or rec_err.get("Msg"):
+            return False, 0
         return True, 0
 
     if invoice.order_id or invoice.deposit_id:
@@ -423,6 +430,17 @@ def mtn_invoice_status_ajax(request, invoice_number: int):
     client = MTNPaymentClient(invoice.terminal)
     try:
         updated_inv, _ = client.get_invoice(invoice.invoice_number, transaction_id=invoice.transaction_id or None)
+        receipt_err_msg = ""
+        receipt_err_num = None
+        if updated_inv.status_code in (MTNPayInvoiceRecord.STATUS_CANCELLED, MTNPayInvoiceRecord.STATUS_FAILED):
+            raw_rec = updated_inv.receipt_raw if isinstance(updated_inv.receipt_raw, dict) else {}
+            rec_err = raw_rec.get("ReceiptError") if isinstance(raw_rec.get("ReceiptError"), dict) else {}
+            err_num = rec_err.get("Number")
+            err_msg = str(rec_err.get("Msg") or "").strip()
+            if err_num or err_msg:
+                mtn_err = MTNPayError.from_errno(int(err_num or 0), fallback_msg=err_msg)
+                receipt_err_msg = str(mtn_err)
+                receipt_err_num = mtn_err.errno
         return JsonResponse({
             "status": "ok",
             "invoice": updated_inv.invoice_number,
@@ -430,6 +448,8 @@ def mtn_invoice_status_ajax(request, invoice_number: int):
             "is_paid": updated_inv.is_paid,
             "transaction": updated_inv.transaction_id,
             "remaining_seconds": remaining_seconds,
+            "receipt_error_message": receipt_err_msg,
+            "receipt_error_number": receipt_err_num,
             "redirect_url": success_url if updated_inv.is_paid else "",
         })
     except MTNPayError as exc:
