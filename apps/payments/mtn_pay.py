@@ -43,127 +43,127 @@ MTN_ERROR_CATALOG: Dict[int, Dict[str, Any]] = {
     # General System Errors (Official MTN Payment API Manual)
     400: {
         "category": "system",
-        "message_ar": "خطأ في صيغة الطلب (400).",
+        "message_ar": "خطأ في صيغة الطلب.",
         "action": "check_syntax",
     },
     401: {
         "category": "system",
-        "message_ar": "الطرفية غير مصرح لها (401).",
+        "message_ar": "الطرفية غير مصرح لها.",
         "action": "require_reactivation",
     },
     403: {
         "category": "system",
-        "message_ar": "تم حظر العميل مؤقتاً (403).",
+        "message_ar": "تم حظر العميل مؤقتاً.",
         "action": "temporary_block",
     },
     302: {
         "category": "system",
-        "message_ar": "تم حظر جهاز نقاط البيع (302).",
+        "message_ar": "تم حظر جهاز نقاط البيع.",
         "action": "terminal_blocked",
     },
     500: {
         "category": "system",
-        "message_ar": "خطأ داخلي في خادم بوابة الدفع (500).",
+        "message_ar": "خطأ داخلي في خادم بوابة الدفع.",
         "action": "server_error",
     },
     # Permissions & Timeout Errors
     405: {
         "category": "permission",
-        "message_ar": "العملية غير مسموحة (405).",
+        "message_ar": "العملية غير مسموحة.",
         "action": "check_allowed_settings",
     },
     408: {
         "category": "timeout",
-        "message_ar": "انتهت مهلة الطلب (408).",
+        "message_ar": "انتهت مهلة الطلب.",
         "action": "retry_identical",
     },
     # Activation Errors
     300: {
         "category": "activation",
-        "message_ar": "رقم الطرفية أو رمز التفعيل غير صحيح (300).",
+        "message_ar": "رقم الطرفية أو رمز التفعيل غير صحيح.",
         "action": "invalid_activation_credentials",
     },
     301: {
         "category": "activation",
-        "message_ar": "الطرفية مفعلة مسبقاً (301).",
+        "message_ar": "الطرفية مفعلة مسبقاً.",
         "action": "already_activated",
     },
     303: {
         "category": "activation",
-        "message_ar": "الطرفية غير مفعلة (303).",
+        "message_ar": "الطرفية غير مفعلة.",
         "action": "not_activated",
     },
     304: {
         "category": "activation",
-        "message_ar": "فشل تفعيل الطرفية (304).",
+        "message_ar": "فشل تفعيل الطرفية.",
         "action": "require_new_secret",
     },
     # Invoice & Payment Errors
     404: {
         "category": "invoice_payment",
-        "message_ar": "لم يتم العثور على العميل أو الفاتورة (404).",
+        "message_ar": "لم يتم العثور على العميل أو الفاتورة.",
         "action": "not_found",
     },
     409: {
         "category": "invoice_payment",
-        "message_ar": "تم دفع الفاتورة بالفعل أو الفاتورة موجودة مسبقاً (409).",
+        "message_ar": "تم دفع الفاتورة بالفعل أو الفاتورة موجودة مسبقاً.",
         "action": "already_paid_or_exists",
     },
     603: {
         "category": "invoice_payment",
-        "message_ar": "تم إغلاق الفاتورة (603).",
+        "message_ar": "تم إغلاق الفاتورة.",
         "action": "invoice_closed",
     },
     609: {
         "category": "invoice_payment",
-        "message_ar": "تم إلغاء الفاتورة بواسطة الجهاز (609).",
+        "message_ar": "تم إلغاء الفاتورة بواسطة الجهاز.",
         "action": "invoice_cancelled",
     },
     # SMS Verification Errors
     660: {
         "category": "sms_otp",
-        "message_ar": "عدد المحاولات المتبقية صفر (660).",
+        "message_ar": "عدد المحاولات المتبقية صفر.",
         "action": "otp_attempts_exhausted",
     },
     661: {
         "category": "sms_otp",
-        "message_ar": "انتهت صلاحية الرمز (661).",
+        "message_ar": "انتهت صلاحية الرمز.",
         "action": "otp_expired",
     },
     662: {
         "category": "sms_otp",
-        "message_ar": "رمز الرسالة النصية القصيرة غير صحيح (662).",
+        "message_ar": "رمز الرسالة النصية القصيرة غير صحيح.",
         "action": "otp_incorrect",
     },
     # Refund & Wallet Errors
     613: {
         "category": "refund",
-        "message_ar": "تم استرداد الفاتورة بالفعل (613).",
+        "message_ar": "تم استرداد الفاتورة بالفعل.",
         "action": "already_refunded",
     },
     40401: {
         "category": "refund",
-        "message_ar": "لم يتم العثور على الفاتورة. يرجى المحاولة لاحقاً (40401).",
+        "message_ar": "لم يتم العثور على الفاتورة. يرجى المحاولة لاحقاً.",
         "action": "refund_invoice_not_found",
     },
     40402: {
         "category": "invoice_payment",
-        "message_ar": "رقم الهاتف غير مسجل في خدمة كاش موبايل أو لا يملك محفظة (40402).",
+        "message_ar": "رقم الهاتف غير مسجل في خدمة كاش موبايل أو لا يملك محفظة.",
         "action": "wallet_not_found",
     },
     40025: {
         "category": "refund",
-        "message_ar": "لم يتم العثور على المعاملة (40025).",
+        "message_ar": "لم يتم العثور على المعاملة.",
         "action": "transaction_not_found",
     },
     40026: {
         "category": "refund",
-        "message_ar": "حالة المعاملة غير صالحة (40026).",
+        "message_ar": "حالة المعاملة غير صالحة.",
         "action": "invalid_transaction_state",
     },
     40301: {
         "category": "refund",
-        "message_ar": "المحفظة محظورة، تم رفض المعاملة (40301).",
+        "message_ar": "المحفظة محظورة، تم رفض المعاملة.",
         "action": "wallet_blocked",
     },
 }
@@ -248,9 +248,8 @@ class MTNPayError(Exception):
 
     @classmethod
     def local(cls, local_code: str, message: str, action: str = "local_validation", raw_response: Optional[dict] = None) -> "MTNPayError":
-        """Creates a local/internal error with a distinct INT-* code that never collides with MTN Errno codes."""
-        formatted = f"{message} (كود داخلي: {local_code})"
-        return cls(message=formatted, errno=None, action=action, raw_response=raw_response, source="local", local_code=local_code)
+        """Creates a local/internal error with a distinct INT-* code stored internally without showing codes to the customer."""
+        return cls(message=message, errno=None, action=action, raw_response=raw_response, source="local", local_code=local_code)
 
     @classmethod
     def from_errno(cls, errno: int, raw_response: Optional[dict] = None, fallback_msg: str = "") -> "MTNPayError":
@@ -279,10 +278,10 @@ class MTNPayError(Exception):
                 msg = f"{msg} — {display_remote}"
             action = spec["action"]
         elif display_remote:
-            msg = f"{display_remote} (رمز خطأ MTN: {errno})"
+            msg = display_remote
             action = "transaction_error"
         else:
-            msg = f"خطأ من بوابة الدفع MTN Cash (رمز خطأ MTN: {errno})."
+            msg = "تعذر إتمام العملية عبر بوابة الدفع كاش موبايل. يرجى المحاولة لاحقاً."
             action = "unknown_error"
         return cls(message=msg, errno=errno, action=action, raw_response=raw_response, source="mtn", local_code=None)
 
