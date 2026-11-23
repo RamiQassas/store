@@ -340,6 +340,8 @@ def mtn_phone_initiate_ajax(request, invoice_number: int):
     except MTNPayError as exc:
         return JsonResponse({
             "status": "error",
+            "error_source": getattr(exc, "source", "mtn"),
+            "local_code": getattr(exc, "local_code", None),
             "errno": exc.errno,
             "action": exc.action,
             "message": str(exc),
@@ -393,6 +395,8 @@ def mtn_phone_confirm_ajax(request, invoice_number: int):
         invoice.refresh_from_db()
         return JsonResponse({
             "status": "error",
+            "error_source": getattr(exc, "source", "mtn"),
+            "local_code": getattr(exc, "local_code", None),
             "errno": exc.errno,
             "action": exc.action,
             "abuse_remaining": invoice.abuse_remaining,
@@ -431,6 +435,8 @@ def mtn_invoice_status_ajax(request, invoice_number: int):
     except MTNPayError as exc:
         return JsonResponse({
             "status": "error",
+            "error_source": getattr(exc, "source", "mtn"),
+            "local_code": getattr(exc, "local_code", None),
             "errno": exc.errno,
             "message": str(exc),
         }, status=400)

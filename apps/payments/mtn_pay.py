@@ -164,8 +164,57 @@ MTN_ERROR_CATALOG: Dict[int, Dict[str, Any]] = {
 }
 
 
+MTN_REMOTE_ERROR_TRANSLATIONS: Dict[str, str] = {
+    "insufficient balance": "الرصيد في محفظة MTN Cash غير كافٍ لإتمام العملية.",
+    "insufficient funds": "الرصيد في محفظة MTN Cash غير كافٍ لإتمام العملية.",
+    "not enough balance": "الرصيد في محفظة MTN Cash غير كافٍ لإتمام العملية.",
+    "not enough funds": "الرصيد في محفظة MTN Cash غير كافٍ لإتمام العملية.",
+    "balance is not enough": "الرصيد في محفظة MTN Cash غير كافٍ لإتمام العملية.",
+    "invalid otp": "رمز التحقق SMS المدخل غير صحيح.",
+    "wrong otp": "رمز التحقق SMS المدخل غير صحيح.",
+    "otp expired": "انتهت صلاحية رمز التحقق SMS. يرجى إعادة طلب الرمز.",
+    "otp attempts exceeded": "تم استنفاد محاولات إدخال رمز التحقق SMS.",
+    "phone not found": "رقم الهاتف غير مسجل في خدمة MTN Cash Mobile.",
+    "account not found": "حساب MTN Cash غير موجود لهذا الرقم.",
+    "user not found": "حساب المستخدم غير موجود في نظام MTN Cash.",
+    "wallet not found": "المحفظة غير موجودة في نظام MTN Cash.",
+    "wallet blocked": "محفظة العميل محظورة في نظام MTN Cash.",
+    "account blocked": "حساب العميل محظور في نظام MTN Cash.",
+    "daily limit exceeded": "تم تجاوز الحد اليومي المسموح به في محفظة MTN Cash.",
+    "limit exceeded": "تم تجاوز الحد المسموح به في نظام MTN Cash.",
+    "invoice not found": "الفاتورة غير موجودة في نظام MTN Cash.",
+    "invoice already paid": "تم دفع هذه الفاتورة مسبقاً.",
+    "invoice expired": "انتهت صلاحية هذه الفاتورة.",
+    "invoice cancelled": "تم إلغاء هذه الفاتورة.",
+    "already refunded": "تم استرداد هذه الفاتورة مسبقاً.",
+    "invalid signature": "التوقيع الرقمي للطلب غير صالح لدى خادم MTN.",
+    "unauthorized": "الطرفية غير مصرح لها لدى خادم MTN.",
+    "forbidden": "تم رفض العملية من خادم MTN.",
+    "internal server error": "خطأ داخلي في خادم بوابة الدفع MTN. يرجى المحاولة لاحقاً.",
+    "timeout": "انتهت مهلة الاتصال بخادم MTN.",
+    "bad request": "صيغة الطلب المرسل غير صالحة لدى خادم MTN.",
+}
+
+
+def _translate_mtn_remote_error(remote_err: str) -> str:
+    """Translates common English MTN API Error strings into Arabic."""
+    if not remote_err:
+        return ""
+    cleaned = remote_err.strip()
+    # If already contains Arabic letters, return as-is
+    if any("\u0600" <= ch <= "\u06FF" for ch in cleaned):
+        return cleaned
+    lowered = cleaned.lower()
+    if lowered in MTN_REMOTE_ERROR_TRANSLATIONS:
+        return MTN_REMOTE_ERROR_TRANSLATIONS[lowered]
+    for key, ar_msg in MTN_REMOTE_ERROR_TRANSLATIONS.items():
+        if key in lowered:
+            return ar_msg
+    return ""
+
+
 class MTNPayError(Exception):
-    """Structured exception carrying MTN error code, Arabic user message, and action."""
+    """Structured exception carrying MTN error code (or distinct local INT-* code), Arabic user message, and action."""
 
     def __init__(
         self,
@@ -173,11 +222,21 @@ class MTNPayError(Exception):
         errno: Optional[int] = None,
         action: str = "error",
         raw_response: Optional[dict] = None,
+        source: str = "mtn",
+        local_code: Optional[str] = None,
     ):
         super().__init__(message)
         self.errno = errno
         self.action = action
         self.raw_response = raw_response or {}
+        self.source = source
+        self.local_code = local_code
+
+    @classmethod
+    def local(cls, local_code: str, message: str, action: str = "local_validation", raw_response: Optional[dict] = None) -> "MTNPayError":
+        """Creates a local/internal error with a distinct INT-* code that never collides with MTN Errno codes."""
+        formatted = f"{message} (كود داخلي: {local_code})"
+        return cls(message=formatted, errno=None, action=action, raw_response=raw_response, source="local", local_code=local_code)
 
     @classmethod
     def from_errno(cls, errno: int, raw_response: Optional[dict] = None, fallback_msg: str = "") -> "MTNPayError":
@@ -188,19 +247,20 @@ class MTNPayError(Exception):
         if not remote_err and fallback_msg:
             remote_err = str(fallback_msg).strip()
 
-        if remote_err and (errno >= 700 or errno not in MTN_ERROR_CATALOG):
-            # Transaction authorization / balance / remote errors: show exact Error from MTN response
-            msg = f"{remote_err} (رمز {errno})"
-            action = "transaction_error"
-        elif spec:
+        translated_remote = _translate_mtn_remote_error(remote_err)
+
+        if spec:
             msg = spec["message_ar"]
-            if remote_err and remote_err not in msg:
-                msg = f"{msg} — [{remote_err}]"
+            if translated_remote and translated_remote not in msg:
+                msg = f"{msg} — {translated_remote}"
             action = spec["action"]
+        elif translated_remote:
+            msg = f"{translated_remote} (رمز خطأ MTN: {errno})"
+            action = "transaction_error"
         else:
-            msg = remote_err or f"خطأ من بوابة الدفع MTN برمز ({errno})."
+            msg = f"خطأ من بوابة الدفع MTN Cash (رمز خطأ MTN: {errno})."
             action = "unknown_error"
-        return cls(message=msg, errno=errno, action=action, raw_response=raw_response)
+        return cls(message=msg, errno=errno, action=action, raw_response=raw_response, source="mtn", local_code=None)
 
 
 # ══════════════════════════════════════════════════════════════════════════════
@@ -277,7 +337,7 @@ class MTNCryptoEngine:
         if os.path.exists(key_file):
             with open(key_file, "r", encoding="utf-8") as f:
                 return f.read().strip()
-        raise MTNPayError("المفتاح الخاص RSA 1024 للطرفية غير موجود على الخادم.", errno=401, action="require_reactivation")
+        raise MTNPayError.local("INT-1001", "المفتاح الخاص RSA 1024 للطرفية غير موجود على الخادم.", action="require_reactivation")
 
     @classmethod
     def get_Activation_secret_from_env(cls, terminal_id: str, provided_secret: Optional[str] = None) -> str:
@@ -438,7 +498,7 @@ class MTNPaymentClient:
         """
         dec_amount = Decimal(str(major_amount))
         if dec_amount <= 0:
-            raise MTNPayError("يجب أن يكون المبلغ أكبر من الصفر.", errno=400, action="check_syntax")
+            raise MTNPayError.local("INT-1002", "يجب أن يكون المبلغ أكبر من الصفر.", action="check_syntax")
         factor = Decimal(str(self.terminal.fractional_factor))
         return int((dec_amount * factor).quantize(Decimal("1")))
 
@@ -450,33 +510,33 @@ class MTNPaymentClient:
         """
         Verifies:
         1. Terminal is activated and not locked.
-        2. `Settings.Allowed.Payment == True` (raises 405 if not allowed).
+        2. `Settings.Allowed.Payment == True` (raises local INT-1005 if not allowed).
         3. `Settings.Limits.Minimum <= minor_amount <= Settings.Limits.Maximum`.
         """
         if self.terminal.is_locked:
-            raise MTNPayError(
-                f"الطرفية مقفلة حالياً (CountAbuse={self.terminal.count_abuse}, attempts={self.terminal.activation_attempts}). يرجى مراجعة لوحة تحكم MTNPay أو التواصل مع MTN.",
-                errno=302,
+            raise MTNPayError.local(
+                "INT-1003",
+                f"الطرفية مقفلة حالياً في النظام (محاولات={self.terminal.activation_attempts}). يرجى مراجعة لوحة تحكم MTNPay أو التواصل مع الدعم.",
                 action="terminal_blocked",
             )
         if not self.terminal.is_activated:
-            raise MTNPayError.from_errno(303)
+            raise MTNPayError.local("INT-1004", "الطرفية غير مفعلة محلياً — يرجى تفعيل نقطة البيع أولاً.", action="not_activated")
         if not self.terminal.is_payment_allowed:
-            raise MTNPayError.from_errno(405)
+            raise MTNPayError.local("INT-1005", "عملية الدفع غير مفعلة في إعدادات الطرفية المحلية.", action="check_allowed_settings")
 
         limits = self.terminal.limits_info
         min_limit = limits.get("Minimum")
         max_limit = limits.get("Maximum")
         if min_limit is not None and int(minor_amount) < int(min_limit):
-            raise MTNPayError(
-                f"المبلغ أقل من الحد الأدنى المسموح به ({min_limit} بالوحدة الصغرى).",
-                errno=400,
+            raise MTNPayError.local(
+                "INT-1006",
+                f"المبلغ أقل من الحد الأدنى المسموح به للطرفية ({min_limit} بالوحدة الصغرى).",
                 action="limit_exceeded",
             )
         if max_limit is not None and int(minor_amount) > int(max_limit):
-            raise MTNPayError(
-                f"المبلغ يتجاوز الحد الأعلى المسموح به ({max_limit} بالوحدة الصغرى).",
-                errno=400,
+            raise MTNPayError.local(
+                "INT-1007",
+                f"المبلغ يتجاوز الحد الأعلى المسموح به للطرفية ({max_limit} بالوحدة الصغرى).",
                 action="limit_exceeded",
             )
 
@@ -762,7 +822,7 @@ class MTNPaymentClient:
             )
 
             if not sig_valid:
-                raise MTNPayError("فشل التحقق من التوقيع الرقمي (X-Signature) للاستجابة الواردة من الخادم.", errno=401, action="signature_invalid", raw_response=resp_data)
+                raise MTNPayError.local("INT-1008", "فشل التحقق من التوقيع الرقمي (X-Signature) للاستجابة الواردة من الخادم.", action="signature_invalid", raw_response=resp_data)
 
             if not is_ok:
                 err_code = int(errno) if errno is not None else status_code
@@ -793,19 +853,19 @@ class MTNPaymentClient:
             self.terminal.is_locked = True
             if self.terminal.pk:
                 self.terminal.save(update_fields=["is_locked"])
-            raise MTNPayError(
-                "تم إيقاف محاولات التفعيل برمجياً لحماية الطرفية بعد 3 محاولات فاشلة. يرجى مراجعة الإدارة وإصدار رمز تفعيل جديد.",
-                errno=304,
+            raise MTNPayError.local(
+                "INT-1009",
+                "تم إيقاف محاولات التفعيل محلياً لحماية الطرفية بعد 3 محاولات فاشلة. يرجى مراجعة الإدارة وإصدار رمز تفعيل جديد.",
                 action="require_new_secret",
             )
 
         secret = MTNCryptoEngine.get_Activation_secret_from_env(self.terminal.terminal_id, secret_code)
         if not secret or len(secret) != 8 or not secret.isdigit():
-            raise MTNPayError("رمز التفعيل (Secret) يجب أن يتكون من 8 أرقام بالضبط.", errno=300, action="invalid_activation_credentials")
+            raise MTNPayError.local("INT-1010", "رمز التفعيل (Secret) يجب أن يتكون من 8 أرقام بالضبط.", action="invalid_activation_credentials")
 
         serial = (serial_number or self.terminal.serial_number or "").strip()
         if not serial:
-            raise MTNPayError("الرقم التسلسلي للطرفية (Serial) مطلوب للتفعيل.", errno=400, action="check_syntax")
+            raise MTNPayError.local("INT-1011", "الرقم التسلسلي للطرفية (Serial) مطلوب للتفعيل.", action="check_syntax")
 
         pub_b64 = self.ensure_keypair()
         if self.transport is None:
@@ -989,20 +1049,20 @@ class MTNPaymentClient:
         from apps.payments.models import MTNPayInvoiceRecord
 
         if not self.terminal.is_payment_allowed:
-            raise MTNPayError.from_errno(405)
+            raise MTNPayError.local("INT-1005", "عملية الدفع غير مفعلة في إعدادات الطرفية المحلية.", action="check_allowed_settings")
 
         record = MTNPayInvoiceRecord.objects.filter(invoice_number=int(invoice_number)).first()
         if not record:
-            raise MTNPayError.from_errno(404)
+            raise MTNPayError.local("INT-1012", "الفاتورة غير موجودة في السجل المحلي.", action="not_found")
         if record.status_code == MTNPayInvoiceRecord.STATUS_PAID:
-            raise MTNPayError.from_errno(409)
+            raise MTNPayError.local("INT-1013", "هذه الفاتورة مدفوعة مسبقاً في السجل المحلي.", action="already_paid_or_exists")
         if record.status_code == MTNPayInvoiceRecord.STATUS_CANCELLED:
-            raise MTNPayError.from_errno(609)
+            raise MTNPayError.local("INT-1014", "هذه الفاتورة ملغاة في السجل المحلي.", action="invoice_cancelled")
 
         arabic_digits = str.maketrans("٠١٢٣٤٥٦٧٨٩۰۱۲۳۴۵۶۷۸۹", "01234567890123456789")
         raw_digits = "".join(c for c in str(customer_phone).translate(arabic_digits) if c.isdigit())
         if not raw_digits:
-            raise MTNPayError("يرجى إدخال رقم هاتف MTN مكون من 10 أرقام.", errno=400, action="check_syntax")
+            raise MTNPayError.local("INT-1015", "يرجى إدخال رقم هاتف MTN مكون من 10 أرقام.", action="check_syntax")
 
         # Normalize to local 10-digit format (09XXXXXXXX) to validate MTN prefix (094, 095, 096) & exact length
         if raw_digits.startswith("00963") and len(raw_digits) == 14:
@@ -1013,9 +1073,9 @@ class MTNPaymentClient:
             local_10 = raw_digits
 
         if len(local_10) != 10 or not local_10.startswith(("094", "095", "096")):
-            raise MTNPayError(
+            raise MTNPayError.local(
+                "INT-1015",
                 "يرجى إدخال رقم MTN صحيح مكون من 10 أرقام فقط ويبدأ بـ 094 أو 095 أو 096.",
-                errno=400,
                 action="invalid_mtn_phone",
             )
 
@@ -1093,7 +1153,7 @@ class MTNPaymentClient:
 
         record = MTNPayInvoiceRecord.objects.filter(invoice_number=int(invoice_number)).first()
         if not record:
-            raise MTNPayError.from_errno(404)
+            raise MTNPayError.local("INT-1012", "الفاتورة غير موجودة في السجل المحلي.", action="not_found")
 
         phone_val = "".join(c for c in str(customer_phone or record.customer_phone) if c.isdigit())
         guid_val = str(guid or record.guid)
@@ -1108,7 +1168,7 @@ class MTNPaymentClient:
         translated_code = str(sms_code or "").translate(arabic_digits)
         code_clean = "".join(c for c in translated_code if c.isascii() and c.isalnum())
         if not code_clean:
-            raise MTNPayError.from_errno(662)
+            raise MTNPayError.local("INT-1016", "يرجى إدخال رمز التحقق SMS بشكل صحيح.", action="otp_incorrect")
 
         encoded_code = self.encode_otp_code(code_clean, encoding_mode=code_encoding)
 
@@ -1261,11 +1321,11 @@ class MTNPaymentClient:
 
         inv_rec = MTNPayInvoiceRecord.objects.filter(invoice_number=int(base_invoice_number)).first()
         if not inv_rec:
-            raise MTNPayError.from_errno(40401)
+            raise MTNPayError.local("INT-1017", "الفاتورة الأصلية غير موجودة في السجل المحلي لإجراء الاسترداد.", action="refund_invoice_not_found")
         if inv_rec.is_refunded:
-            raise MTNPayError.from_errno(613)
+            raise MTNPayError.local("INT-1018", "هذه الفاتورة مستردة مسبقاً في السجل المحلي.", action="already_refunded")
         if inv_rec.status_code != MTNPayInvoiceRecord.STATUS_PAID:
-            raise MTNPayError.from_errno(40026)
+            raise MTNPayError.local("INT-1019", "حالة الفاتورة غير مدفوعة في السجل المحلي ولا يمكن استردادها.", action="invalid_transaction_state")
 
         payload = {"Invoice": int(base_invoice_number)}
         resp = self._send_signed_request(self.ENDPOINT_REFUND_INITIATE, payload, invoice_number=int(base_invoice_number))
@@ -1314,9 +1374,9 @@ class MTNPaymentClient:
             refund_invoice=int(refund_invoice_number),
         ).select_related("invoice_record").first()
         if not refund_rec:
-            raise MTNPayError.from_errno(40401)
+            raise MTNPayError.local("INT-1017", "سجل طلب الاسترداد غير موجود في قاعدة البيانات المحلية.", action="refund_invoice_not_found")
         if refund_rec.status == MTNPayRefundRecord.RefundStatus.CONFIRMED:
-            raise MTNPayError.from_errno(613)
+            raise MTNPayError.local("INT-1018", "تم تأكيد استرداد هذه الفاتورة مسبقاً في السجل المحلي.", action="already_refunded")
 
         payload = {
             "BaseInvoice": int(base_invoice_number),
