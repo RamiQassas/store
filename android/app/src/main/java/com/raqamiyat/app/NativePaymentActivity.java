@@ -307,11 +307,6 @@ public class NativePaymentActivity extends AppCompatActivity {
     }
 
     private void openPaymentUrl(String url) {
-        if (MainActivity.isShamCashExternalUrl(url) || "shamcash".equalsIgnoreCase(selectedProvider)) {
-            // Official ShamCash Requirement (Doc Page 26): Open in ShamCash App / System Browser, keep Activity alive to verify on return
-            MainActivity.launchExternalShamCashUrl(this, url);
-            return;
-        }
         Intent intent = new Intent(this, MainActivity.class);
         intent.putExtra(ProductDetailActivity.EXTRA_OPEN_URL, url);
         intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_SINGLE_TOP);

@@ -697,8 +697,10 @@ def shamcash_refund_bill_view(request):
             client = gw.get_client()
             import uuid
             idempotency_key = f"REF-{uuid.uuid4().hex[:14]}"
-            res = client.refund_bill(bill_no=bill_no, amount=amt, note=note, idempotency_key=idempotency_key)
+            api_note = f"استرداد فاتورة {bill_no}"
+            res = client.refund_bill(bill_no=bill_no, amount=amt, note=api_note, idempotency_key=idempotency_key)
             tran_id = res.get("tranId")
+            record_note = f"رقم عملية الاسترجاع: {tran_id}" if tran_id else api_note
 
             bill.total_refunded_amount += amt
             if bill.total_refunded_amount >= bill.amount:
@@ -715,7 +717,7 @@ def shamcash_refund_bill_view(request):
                 amount=amt,
                 idempotency_key=idempotency_key,
                 tran_id=tran_id,
-                note=note,
+                note=record_note,
                 status="success",
                 created_by=request.user,
                 raw_response=res,

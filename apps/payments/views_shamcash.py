@@ -382,7 +382,7 @@ def _complete_successful_shamcash_deposit(deposit: DepositRequest, tran_id: Any,
                 wallet_id=wallet.id,
                 amount=wallet_final_amount,
                 reference=f"shamcash:{locked_deposit.id}",
-                description=f"إيداع مؤكد عبر شام كاش (رقم الفاتورة: {locked_deposit.gateway_payment_id} - رقم العملية: {tran_id or 'N/A'})",
+                description=f"إيداع عبر شام كاش - رقم العملية: {tran_id or locked_deposit.gateway_payment_id}",
                 created_by=locked_deposit.user,
                 source="deposit",
                 metadata={
@@ -395,9 +395,7 @@ def _complete_successful_shamcash_deposit(deposit: DepositRequest, tran_id: Any,
 
             locked_deposit.status = DepositRequest.Status.COMPLETED
             locked_deposit.is_verified = True
-            locked_deposit.admin_note = (
-                f"شام كاش - تم استلام وتأكيد الدفع بنجاح. رقم الحركة: {tran_id or 'N/A'}"
-            )
+            locked_deposit.admin_note = f"إيداع عبر شام كاش - رقم العملية: {tran_id or locked_deposit.gateway_payment_id}"
             locked_deposit.save(
                 update_fields=[
                     "status",

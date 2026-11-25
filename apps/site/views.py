@@ -8210,14 +8210,14 @@ def api_app_version_info(request):
     platform_url = (getattr(settings, "SITE_URL", "https://raqamiyatapp.com") or "https://raqamiyatapp.com").rstrip("/")
     return JsonResponse({
         "status": "ok",
-        "version_code": 321,
-        "version_name": "3.2.1",
+        "version_code": 322,
+        "version_name": "3.2.2",
         "live_sync": True,
         "commit": get_local_commit_sha(),
         "apk_url": "https://github.com/RamiQassas/store/releases/download/v2.0.0-apk/Raqamiyat-Release.apk",
         "local_apk_url": f"{platform_url}/download/app/?direct=1",
         "force_update": False,
-        "release_notes": "دعم الدفع المباشر عبر تطبيق شام كاش الرسمي (الربط العميق والمتصفح الآمن) مع تحديث حالة الطلب والمحفظة فورياً.",
+        "release_notes": "تنفيذ جميع بوابات الدفع بالكامل من داخل تطبيق رقميات بدون تحويل إلى المتصفح الخارجي، مع إكمال الطلب وتحديث الرصيد تلقائياً.",
     })
 
 
@@ -8817,7 +8817,7 @@ def download_android_apk(request):
                 open(found_path, "rb"),
                 content_type="application/vnd.android.package-archive",
                 as_attachment=True,
-                filename="Raqamiyat-v3.2.1.apk"
+                filename="Raqamiyat-v3.2.2.apk"
             )
             response["Content-Length"] = os.path.getsize(found_path)
             response["Cache-Control"] = "no-store"

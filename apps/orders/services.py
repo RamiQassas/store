@@ -1916,8 +1916,8 @@ def process_order_refund_to_shamcash(order, actor=None, reason=None) -> tuple[bo
     if refund_amount <= Decimal("0.00"):
         return False, "مبلغ الاسترداد غير صالح أو يساوي صفراً."
 
-    # 4. Call ShamCash refundBill API
-    refund_note = (reason or f"استرداد الطلب #{order.number} بواسطة الإدارة").strip()[:200]
+    # 4. Call ShamCash refundBill API (Arabic-only, no extra reason details)
+    refund_note = f"استرداد فاتورة {bill_no}"
     idempotency_key = f"REF-{uuid.uuid4().hex[:30]}"
     try:
         gw = gateway_for("sham_cash")
@@ -1950,12 +1950,11 @@ def process_order_refund_to_shamcash(order, actor=None, reason=None) -> tuple[bo
         old_status = order.status
         new_status = Order.Status.CANCELLED if old_status == Order.Status.PENDING else Order.Status.REFUNDED
         order.status = new_status
-        order.admin_note = (order.admin_note or "") + f"\n[استرداد عبر شام كاش]: تم إلغاء/استرداد المبلغ في {timezone.now().strftime('%Y-%m-%d %H:%M')}. رقم العملية: {tran_id or '---'}. السبب: {reason or 'طلب استرداد'}"
+        order.admin_note = (order.admin_note or "") + f"\n[استرداد عبر شام كاش]: رقم عملية الاسترجاع: {tran_id or bill_no}"
 
         meta["shamcash_refunded"] = True
         meta["shamcash_refund_timestamp"] = timezone.now().isoformat()
         meta["shamcash_refund_actor"] = getattr(actor, "email", str(actor)) if actor else "نظام"
-        meta["shamcash_refund_reason"] = reason or "استرداد لحساب شام كاش"
         meta["shamcash_refund_tran_id"] = tran_id
         meta["shamcash_refund_raw"] = refund_res
         order.metadata = meta
@@ -2379,7 +2378,7 @@ def process_deposit_refund_to_gateway(deposit, actor=None, reason=None, otp=None
             gw = gateway_for("sham_cash")
             client = gw.get_client()
             refund_amount = Decimal(str(deposit.amount)).quantize(Decimal("0.01"))
-            refund_note = f"Deposit refund #{deposit.transaction_id}: {reason or 'Customer deposit refund'}"[:100]
+            refund_note = f"استرداد فاتورة {bill_no}"
             idempotency_key = f"depref_{deposit.id.hex[:12]}_{int(timezone.now().timestamp())}"
             refund_res = client.refund_bill(
                 bill_no=bill_no,
@@ -2443,37 +2442,45 @@ def process_deposit_refund_to_gateway(deposit, actor=None, reason=None, otp=None
                 raise ValueError("الرصيد المجمد غير كافٍ لإتمام الاسترداد.")
             locked_w.held_balance -= refund_wallet_amount
             locked_w.save(update_fields=["held_balance", "updated_at"])
+            refund_desc = (
+                f"استرداد عبر شام كاش - رقم عملية الاسترجاع: {refund_tx_id or bill_no}"
+                if is_shamcash
+                else f"استرداد مبلغ الإيداع #{deposit.transaction_id} إلى بوابة الدفع (خصم من الرصيد المجمد)"
+            )
             LedgerEntry.objects.create(
                 wallet=locked_w,
                 entry_type=LedgerEntry.EntryType.DEBIT,
                 amount=refund_wallet_amount,
                 balance_after=locked_w.available_balance,
                 reference=f"deposit_refund:{deposit.id}",
-                description=f"استرداد مبلغ الإيداع #{deposit.transaction_id} إلى بوابة الدفع (خصم من الرصيد المجمد)",
+                description=refund_desc,
                 source="deposit_refund",
-                reason=reason or "",
+                reason="",
                 created_by=actor,
                 metadata=json_serialize_safe({
                     "deposit_id": str(deposit.id),
                     "transaction_id": deposit.transaction_id,
                     "gateway_refund_tx": str(refund_tx_id or ""),
                     "from_held": True,
-                    "reason": reason or "",
                 }),
             )
         else:
+            refund_desc = (
+                f"استرداد عبر شام كاش - رقم عملية الاسترجاع: {refund_tx_id or bill_no}"
+                if is_shamcash
+                else f"استرداد مبلغ الإيداع #{deposit.transaction_id} إلى بوابة الدفع"
+            )
             debit_wallet(
                 wallet_id=wallet.id,
                 amount=refund_wallet_amount,
                 reference=f"deposit_refund:{deposit.id}",
-                description=f"استرداد مبلغ الإيداع #{deposit.transaction_id} إلى بوابة الدفع",
+                description=refund_desc,
                 created_by=actor,
                 source="deposit_refund",
                 metadata={
                     "deposit_id": str(deposit.id),
                     "transaction_id": deposit.transaction_id,
                     "gateway_refund_tx": str(refund_tx_id or ""),
-                    "reason": reason or "",
                 }
             )
 
@@ -2483,11 +2490,14 @@ def process_deposit_refund_to_gateway(deposit, actor=None, reason=None, otp=None
         meta["refund_status"] = "approved"
         meta["refund_approved_at"] = timezone.now().isoformat()
         meta["refund_approved_by"] = getattr(actor, "email", str(actor)) if actor else "نظام"
-        meta["refund_reason"] = reason or meta.get("refund_reason", "")
         meta["refund_gateway_tx_id"] = refund_tx_id
         meta["refund_raw_res"] = _json_safe(raw_refund_res)
         deposit.metadata = meta
-        deposit.admin_note = (deposit.admin_note or "") + f"\n[استرداد إيداع]: تمت الموافقة وإعادة المبلغ للبوابة في {timezone.now().strftime('%Y-%m-%d %H:%M')}. المرجع: {refund_tx_id or '---'}. المشرف: {getattr(actor, 'email', 'نظام')}."
+        deposit.admin_note = (
+            f"استرداد عبر شام كاش - رقم عملية الاسترجاع: {refund_tx_id or bill_no}"
+            if is_shamcash
+            else (deposit.admin_note or "") + f"\n[استرداد إيداع]: تمت الموافقة وإعادة المبلغ للبوابة في {timezone.now().strftime('%Y-%m-%d %H:%M')}. المرجع: {refund_tx_id or '---'}."
+        )
         deposit.save(update_fields=["metadata", "admin_note", "updated_at"])
 
         if is_shamcash and bill_no:
@@ -2498,7 +2508,7 @@ def process_deposit_refund_to_gateway(deposit, actor=None, reason=None, otp=None
                     amount=Decimal(str(deposit.amount)),
                     idempotency_key=f"depref_{deposit.id.hex[:12]}_{int(timezone.now().timestamp())}",
                     tran_id=refund_tx_id if isinstance(refund_tx_id, int) else None,
-                    note=reason or "استرداد إيداع",
+                    note=f"رقم عملية الاسترجاع: {refund_tx_id}" if refund_tx_id else f"استرداد فاتورة {bill_no}",
                     status="success",
                     created_by=actor if (actor and getattr(actor, "is_authenticated", False)) else None,
                     raw_response=raw_refund_res,

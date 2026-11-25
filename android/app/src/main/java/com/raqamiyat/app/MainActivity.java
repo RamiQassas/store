@@ -381,11 +381,6 @@ public class MainActivity extends AppCompatActivity implements ConnectivityHelpe
     }
 
     private void showWebMode(String url) {
-        if (isShamCashExternalUrl(url)) {
-            isWaitingForExternalPayment = true;
-            launchExternalShamCashUrl(this, url);
-            return;
-        }
         isNativeMode = false;
         nativeStoreContainer.setVisibility(View.GONE);
         nativeErrorView.setVisibility(View.GONE);
@@ -1055,9 +1050,8 @@ public class MainActivity extends AppCompatActivity implements ConnectivityHelpe
             return true;
         }
 
-        // Official ShamCash Requirement (Doc Section 7.2 & 10.2, Page 22 & 26):
-        // Always open ShamCash checkout / deep-link URLs in the ShamCash native app or default system browser, NEVER inside embedded WebView!
-        if (isShamCashExternalUrl(url)) {
+        // Open native ShamCash app ONLY when an explicit shamcash:// app scheme is invoked
+        if (url.startsWith("shamcash:") || url.startsWith("shamcash://")) {
             isWaitingForExternalPayment = true;
             launchExternalShamCashUrl(this, url);
             return true;

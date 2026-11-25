@@ -322,20 +322,11 @@ public class ProductDetailActivity extends AppCompatActivity {
                 JSONObject json = new JSONObject(trimmed);
                 if (code == 200 && "success".equals(json.optString("status"))) {
                     String paymentUrl = json.optString("payment_url", "");
-                    String orderId = json.optString("order_id", "");
-                    String orderNumber = json.optString("order_number", orderId);
+                    String orderNumber = json.optString("order_number", json.optString("order_id", ""));
                     mainHandler.post(() -> {
                         loading.dismiss();
                         if (!paymentUrl.isEmpty()) {
-                            if (MainActivity.isShamCashExternalUrl(paymentUrl) || "shamcash".equalsIgnoreCase(paymentMethod)) {
-                                String statusPage = !orderId.isEmpty()
-                                        ? (CatalogRepository.DOMAIN + "/payments/status/?type=order&id=" + Uri.encode(orderId))
-                                        : (CatalogRepository.DOMAIN + "/dashboard/orders/");
-                                openUrlInMainApp(statusPage);
-                                MainActivity.launchExternalShamCashUrl(ProductDetailActivity.this, paymentUrl);
-                            } else {
-                                openUrlInMainApp(paymentUrl);
-                            }
+                            openUrlInMainApp(paymentUrl);
                         } else {
                             new MaterialAlertDialogBuilder(ProductDetailActivity.this)
                                     .setTitle("✓ تم تأكيد طلبك بنجاح ⚡")
@@ -419,12 +410,7 @@ public class ProductDetailActivity extends AppCompatActivity {
                     mainHandler.post(() -> {
                         loading.dismiss();
                         if (!redirectUrl.isEmpty()) {
-                            if (MainActivity.isShamCashExternalUrl(redirectUrl)) {
-                                openUrlInMainApp(CatalogRepository.DOMAIN + "/dashboard/orders/");
-                                MainActivity.launchExternalShamCashUrl(ProductDetailActivity.this, redirectUrl);
-                            } else {
-                                openUrlInMainApp(redirectUrl);
-                            }
+                            openUrlInMainApp(redirectUrl);
                         } else {
                             new MaterialAlertDialogBuilder(ProductDetailActivity.this)
                                     .setTitle("✓ تم تأكيد طلبك بنجاح ⚡")
