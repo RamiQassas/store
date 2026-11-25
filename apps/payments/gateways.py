@@ -291,7 +291,7 @@ class ShamCashGateway(BasePaymentGateway):
                         "message": f"تم التحقق بنجاح من صحة المفاتيح والتشفير والاتصال بخوادم شام كاش ({client.base_url})، والمصادقة سليمة 100%.",
                         "code": 1703,
                     }
-                elif e.error_code == 504:
+                elif e.error_code in (502, 504):
                     import socket, ssl as _ssl
                     from urllib.parse import urlparse
                     outbound_ip = ""
@@ -301,6 +301,18 @@ class ShamCashGateway(BasePaymentGateway):
                         outbound_ip = _req.get("https://api4.ipify.org", proxies=proxies, timeout=4).text.strip()
                     except Exception:
                         pass
+
+                    raw_cause = ""
+                    if e.__cause__:
+                        raw_cause = f"{type(e.__cause__).__name__}: {str(e.__cause__)[:240]}"
+                    if not raw_cause:
+                        try:
+                            from apps.payments.models import ShamCashApiLog
+                            last_log = ShamCashApiLog.objects.filter(bill_no=test_bill_no).order_by("-created_at").first()
+                            if last_log and last_log.error_message:
+                                raw_cause = last_log.error_message[:240]
+                        except Exception:
+                            pass
 
                     stage_diag = ""
                     if not client.proxy_url:
@@ -312,29 +324,31 @@ class ShamCashGateway(BasePaymentGateway):
                                 ctx = _ssl.create_default_context()
                                 ctx.options |= getattr(_ssl, "OP_LEGACY_SERVER_CONNECT", 0x4)
                                 ss = ctx.wrap_socket(s, server_hostname=p_host)
+                                tls_ver = ss.version()
                                 ss.close()
-                                stage_diag = f"نجح TCP وTLS إلى {target_ip}:443 لكن استجابة HTTP POST تأخرت/توقفت"
-                            except Exception:
-                                stage_diag = f"نجح اتصال TCP إلى {target_ip}:443 لكن مصافحة TLS سقطت/توقفت (حجب جدار حماية / Geo-IP)"
+                                stage_diag = f"نجح TCP و{tls_ver} إلى {target_ip}:443"
+                            except Exception as tls_err:
+                                stage_diag = f"نجح TCP إلى {target_ip}:443 لكن فشل TLS ({type(tls_err).__name__}: {str(tls_err)[:160]})"
                             finally:
                                 try:
                                     s.close()
                                 except Exception:
                                     pass
                         except Exception as tcp_err:
-                            stage_diag = f"فشل اتصال TCP بالمنفذ 443 ({tcp_err})"
+                            stage_diag = f"فشل TCP إلى {client.base_url} ({type(tcp_err).__name__}: {str(tcp_err)[:160]})"
 
                     via_label = "عبر البروكسي المخصص" if client.proxy_url else "الاتصال المباشر للخادم"
-                    ip_hint = (
-                        f" | IP الصادر ({via_label}): {outbound_ip}"
-                        if outbound_ip
-                        else ""
-                    )
-                    diag_hint = f" | التشخيص: {stage_diag}" if stage_diag else ""
+                    parts = [f"{e} ({client.base_url})"]
+                    if outbound_ip:
+                        parts.append(f"IP الصادر ({via_label}): {outbound_ip}")
+                    if stage_diag:
+                        parts.append(f"التشخيص: {stage_diag}")
+                    if raw_cause:
+                        parts.append(f"التفاصيل التقنية: {raw_cause}")
                     return {
                         "ok": False,
-                        "message": f"انتهت مهلة الاتصال بخوادم شام كاش ({client.base_url}){ip_hint}{diag_hint}.",
-                        "code": 504,
+                        "message": " | ".join(parts),
+                        "code": e.error_code,
                         "outbound_ip": outbound_ip,
                         "stage_diag": stage_diag,
                     }
