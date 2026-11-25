@@ -73,7 +73,11 @@
   <div class="sc-header">
     <div class="sc-header-brand">
       <div class="sc-header-logo">
+        {% if shamcash_logo_url %}
+        <img src="{{ shamcash_logo_url }}" alt="ShamCash" style="max-width: 100%; max-height: 100%; border-radius: 10px; object-fit: contain;">
+        {% else %}
         <img src="{% static 'site/img/brands/shamcash.svg' %}" alt="ShamCash" style="max-width: 100%; max-height: 100%;">
+        {% endif %}
       </div>
       <div style="min-width: 0;">
         <div style="display: flex; align-items: center; gap: 0.45rem; flex-wrap: wrap;">

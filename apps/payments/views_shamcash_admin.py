@@ -366,8 +366,29 @@ def shamcash_dashboard_view(request):
     # Check auditor accounts
     auditor_users = User.objects.filter(Q(role="shamcash_auditor") | Q(email__icontains="shamcash"))
 
+    # Resolve official uploaded ShamCash logo from PaymentGatewayIntegration or linked PaymentMethod
+    shamcash_logo_url = ""
+    if integration and getattr(integration, "logo_url", None):
+        shamcash_logo_url = integration.logo_url
+    if not shamcash_logo_url:
+        for pm in PaymentMethod.all_objects.filter(
+            Q(gateway__provider=PaymentGatewayIntegration.Provider.SHAM_CASH)
+            | Q(name__icontains="شام")
+            | Q(name__icontains="sham")
+        ).order_by("-is_active", "-id"):
+            if pm.logo and getattr(pm.logo, "name", "") and "shamcash.svg" not in pm.logo.name:
+                try:
+                    shamcash_logo_url = pm.logo.url
+                    break
+                except Exception:
+                    pass
+            if getattr(pm, "logo_url", None) and "shamcash.svg" not in str(pm.logo_url):
+                shamcash_logo_url = pm.logo_url
+                break
+
     context = {
         "integration": integration,
+        "shamcash_logo_url": shamcash_logo_url,
         "masked_agent_key": _mask_secret_value(eff_agent_key),
         "has_secret_key": bool(eff_secret_key),
         "effective_base_url": eff_base_url,
