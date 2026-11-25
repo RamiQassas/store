@@ -1482,33 +1482,35 @@ def deposits(request):
         proof_image = request.FILES.get("proof_image")
         
         # Validation & Gateway Auto-Resolution
+        current_store = getattr(request, "store", None)
+        gw_store_filter = {"store": current_store} if current_store else {"store__isnull": True}
         if method_id:
             from apps.payments.models import PaymentGatewayIntegration
             from apps.common.tenant_utils import bypass_tenant_filter
             with bypass_tenant_filter():
                 if str(method_id).startswith("gateway:"):
                     gw_val = str(method_id).split(":", 1)[1]
-                    gw_obj = PaymentGatewayIntegration.all_objects.filter(pk=gw_val, is_active=True).first() or PaymentGatewayIntegration.all_objects.filter(provider=gw_val, is_active=True).first()
+                    gw_obj = PaymentGatewayIntegration.all_objects.filter(pk=gw_val, is_active=True, **gw_store_filter).first() or PaymentGatewayIntegration.all_objects.filter(provider=gw_val, is_active=True, **gw_store_filter).first()
                     if gw_obj:
-                        pm = PaymentMethod.all_objects.filter(gateway=gw_obj, is_active=True).first()
+                        pm = PaymentMethod.all_objects.filter(gateway=gw_obj, is_active=True, **gw_store_filter).first()
                         if pm:
                             method_id = str(pm.id)
                 elif str(method_id) in ("sham_cash", "shamcash", "direct_sham_cash"):
-                    gw_obj = PaymentGatewayIntegration.all_objects.filter(provider=PaymentGatewayIntegration.Provider.SHAM_CASH, is_active=True).first()
+                    gw_obj = PaymentGatewayIntegration.all_objects.filter(provider=PaymentGatewayIntegration.Provider.SHAM_CASH, is_active=True, **gw_store_filter).first()
                     if gw_obj:
-                        pm = PaymentMethod.all_objects.filter(gateway=gw_obj, is_active=True).first()
+                        pm = PaymentMethod.all_objects.filter(gateway=gw_obj, is_active=True, **gw_store_filter).first()
                         if pm:
                             method_id = str(pm.id)
                 elif str(method_id) in ("mtn_pay", "mtn", "direct_mtn_pay"):
-                    gw_obj = PaymentGatewayIntegration.all_objects.filter(provider=PaymentGatewayIntegration.Provider.MTN_PAY, is_active=True).first()
+                    gw_obj = PaymentGatewayIntegration.all_objects.filter(provider=PaymentGatewayIntegration.Provider.MTN_PAY, is_active=True, **gw_store_filter).first()
                     if gw_obj:
-                        pm = PaymentMethod.all_objects.filter(gateway=gw_obj, is_active=True).first()
+                        pm = PaymentMethod.all_objects.filter(gateway=gw_obj, is_active=True, **gw_store_filter).first()
                         if pm:
                             method_id = str(pm.id)
                 elif str(method_id) in ("paymera", "direct_paymera"):
-                    gw_obj = PaymentGatewayIntegration.all_objects.filter(provider=PaymentGatewayIntegration.Provider.PAYMERA, is_active=True).first()
+                    gw_obj = PaymentGatewayIntegration.all_objects.filter(provider=PaymentGatewayIntegration.Provider.PAYMERA, is_active=True, **gw_store_filter).first()
                     if gw_obj:
-                        pm = PaymentMethod.all_objects.filter(gateway=gw_obj, is_active=True).first()
+                        pm = PaymentMethod.all_objects.filter(gateway=gw_obj, is_active=True, **gw_store_filter).first()
                         if pm:
                             method_id = str(pm.id)
 
@@ -1516,9 +1518,10 @@ def deposits(request):
             messages.error(request, "يرجى اختيار وسيلة الدفع أو الشحن.")
             return redirect("dashboard_deposits")
             
-        method = PaymentMethod.all_objects.filter(id=method_id, is_active=True, can_deposit=True).first()
+        method = PaymentMethod.all_objects.filter(id=method_id, is_active=True, can_deposit=True, **gw_store_filter).first()
         if not method:
-            method = get_object_or_404(PaymentMethod, id=method_id, is_active=True, can_deposit=True)
+            messages.error(request, "وسيلة الدفع المحددة غير متاحة لهذا المتجر.")
+            return redirect("dashboard_deposits")
         
         # KYC Check (Task 9)
         if method.requires_kyc and not request.user.is_kyc_verified:
@@ -1702,11 +1705,11 @@ def deposits(request):
         except Exception:
             pass
         current_store = getattr(request, 'store', None)
-        # Filter out disabled / test payment methods
+        # Strict tenant isolation: sub-stores see ONLY their own explicitly enabled payment methods
         filter_kwargs = {'is_active': True, 'can_deposit': True}
         if current_store:
             base_methods = PaymentMethod.all_objects.filter(
-                Q(store=current_store) | Q(store__isnull=True),
+                store=current_store,
                 **filter_kwargs
             ).exclude(name__iexact='TestPM').select_related('gateway', 'store')
         else:
@@ -3083,37 +3086,37 @@ def product_detail(request, pk):
                 except Exception:
                     return False
 
+            current_store = getattr(request, "store", None)
+            gw_store_filter = {"store": current_store} if current_store else {"store__isnull": True}
             with bypass_tenant_filter():
                 if payment_method.startswith("gateway:"):
                     gw_val = payment_method.split(":", 1)[1]
                     if _is_valid_uuid(gw_val):
-                        selected_gateway = PaymentGatewayIntegration.all_objects.filter(pk=gw_val, is_active=True).first()
+                        selected_gateway = PaymentGatewayIntegration.all_objects.filter(pk=gw_val, is_active=True, **gw_store_filter).first()
                     if not selected_gateway:
-                        selected_gateway = PaymentGatewayIntegration.all_objects.filter(provider=gw_val, is_active=True).first()
+                        selected_gateway = PaymentGatewayIntegration.all_objects.filter(provider=gw_val, is_active=True, **gw_store_filter).first()
                 elif payment_method.startswith("method:"):
                     pm_id = payment_method.split(":", 1)[1]
                     if _is_valid_uuid(pm_id):
-                        pm = PaymentMethod.all_objects.filter(pk=pm_id, is_active=True).first()
+                        pm = PaymentMethod.all_objects.filter(pk=pm_id, is_active=True, **gw_store_filter).first()
                         if pm and pm.gateway and pm.gateway.is_active:
                             selected_gateway = pm.gateway
                 else:
-                    selected_gateway = PaymentGatewayIntegration.all_objects.filter(provider=payment_method, is_active=True).first()
+                    selected_gateway = PaymentGatewayIntegration.all_objects.filter(provider=payment_method, is_active=True, **gw_store_filter).first()
                     if not selected_gateway and _is_valid_uuid(payment_method):
-                        selected_gateway = PaymentGatewayIntegration.all_objects.filter(pk=payment_method, is_active=True).first()
+                        selected_gateway = PaymentGatewayIntegration.all_objects.filter(pk=payment_method, is_active=True, **gw_store_filter).first()
                     if not selected_gateway and _is_valid_uuid(payment_method):
-                        pm = PaymentMethod.all_objects.filter(pk=payment_method, is_active=True).first()
+                        pm = PaymentMethod.all_objects.filter(pk=payment_method, is_active=True, **gw_store_filter).first()
                         if pm and pm.gateway and pm.gateway.is_active:
                             selected_gateway = pm.gateway
 
                 if not selected_gateway:
                     if payment_method in ("paymera", "direct_paymera"):
-                        selected_gateway = PaymentGatewayIntegration.all_objects.filter(provider=PaymentGatewayIntegration.Provider.PAYMERA, is_active=True).first()
+                        selected_gateway = PaymentGatewayIntegration.all_objects.filter(provider=PaymentGatewayIntegration.Provider.PAYMERA, is_active=True, **gw_store_filter).first()
                     elif payment_method in ("sham_cash", "shamcash", "direct_sham_cash"):
-                        selected_gateway = PaymentGatewayIntegration.all_objects.filter(provider=PaymentGatewayIntegration.Provider.SHAM_CASH, is_active=True).first()
+                        selected_gateway = PaymentGatewayIntegration.all_objects.filter(provider=PaymentGatewayIntegration.Provider.SHAM_CASH, is_active=True, **gw_store_filter).first()
                     elif payment_method in ("mtn_pay", "mtn", "direct_mtn_pay"):
-                        selected_gateway = PaymentGatewayIntegration.all_objects.filter(provider=PaymentGatewayIntegration.Provider.MTN_PAY, is_active=True).first()
-                    elif payment_method in ("mtn_pay", "mtn", "direct_mtn_pay"):
-                        selected_gateway = PaymentGatewayIntegration.all_objects.filter(provider=PaymentGatewayIntegration.Provider.MTN_PAY, is_active=True).first()
+                        selected_gateway = PaymentGatewayIntegration.all_objects.filter(provider=PaymentGatewayIntegration.Provider.MTN_PAY, is_active=True, **gw_store_filter).first()
 
             if not selected_gateway:
                 err_msg = "بوابة الدفع الإلكتروني المحددة غير مفعلة حالياً."
@@ -3348,15 +3351,11 @@ def product_detail(request, pk):
     seen_providers = set()
 
     with bypass_tenant_filter():
-        all_active_gateways = list(PaymentGatewayIntegration.all_objects.filter(is_active=True))
-        if product.store:
-            store_gws = [g for g in all_active_gateways if g.store_id == product.store_id]
-            global_gws = [g for g in all_active_gateways if not g.store_id]
-            gateways_to_evaluate = store_gws + global_gws
+        target_store = product.store or getattr(request, "store", None)
+        if target_store:
+            gateways_to_evaluate = list(PaymentGatewayIntegration.all_objects.filter(store=target_store, is_active=True))
         else:
-            gateways_to_evaluate = [g for g in all_active_gateways if not g.store_id]
-            if not gateways_to_evaluate:
-                gateways_to_evaluate = all_active_gateways
+            gateways_to_evaluate = list(PaymentGatewayIntegration.all_objects.filter(store__isnull=True, is_active=True))
 
         for gw in gateways_to_evaluate:
             if gw.id in seen_gw_ids or gw.provider in seen_providers:
@@ -8332,14 +8331,16 @@ def api_app_wallet_info(request):
     from apps.payments.models import PaymentGatewayIntegration
 
     wallet = get_or_create_wallet(user)
+    req_store = getattr(request, "store", None)
+    gw_filter = {"store": req_store} if req_store else {"store__isnull": True}
     shamcash_on = PaymentGatewayIntegration.all_objects.filter(
-        provider=PaymentGatewayIntegration.Provider.SHAM_CASH, is_active=True
-    ).exists() or bool(getattr(settings, "SHAM_CASH_AGENT_KEY", ""))
+        provider=PaymentGatewayIntegration.Provider.SHAM_CASH, is_active=True, **gw_filter
+    ).exists() or (not req_store and bool(getattr(settings, "SHAM_CASH_AGENT_KEY", "")))
     paymera_on = PaymentGatewayIntegration.all_objects.filter(
-        provider=PaymentGatewayIntegration.Provider.PAYMERA, is_active=True
-    ).exists() or bool(getattr(settings, "PAYMERA_MERCHANT_KEY", ""))
+        provider=PaymentGatewayIntegration.Provider.PAYMERA, is_active=True, **gw_filter
+    ).exists() or (not req_store and bool(getattr(settings, "PAYMERA_MERCHANT_KEY", "")))
     mtn_pay_on = PaymentGatewayIntegration.all_objects.filter(
-        provider=PaymentGatewayIntegration.Provider.MTN_PAY, is_active=True
+        provider=PaymentGatewayIntegration.Provider.MTN_PAY, is_active=True, **gw_filter
     ).exists()
 
     return JsonResponse({
@@ -8398,16 +8399,16 @@ def api_app_payment_deposit(request):
     if not currency:
         currency = Currency.objects.filter(is_active=True).first() or Currency.all_objects.first()
 
-    pm = PaymentMethod.all_objects.filter(is_active=True, gateway__provider=provider).first()
+    store = getattr(request, "store", None)
+    pm_store_filter = {"store": store} if store else {"store__isnull": True}
+    pm = PaymentMethod.all_objects.filter(is_active=True, gateway__provider=provider, **pm_store_filter).first()
     if not pm:
         kw_map = "شام" if provider in ("shamcash", "sham_cash") else ("mtn" if provider == "mtn_pay" else "بيميرا")
-        pm = PaymentMethod.all_objects.filter(is_active=True, name__icontains=kw_map).first()
+        pm = PaymentMethod.all_objects.filter(is_active=True, name__icontains=kw_map, **pm_store_filter).first()
     if not pm:
-        pm = PaymentMethod.all_objects.filter(is_active=True).first()
+        pm = PaymentMethod.all_objects.filter(is_active=True, **pm_store_filter).first()
     if not pm:
-        return JsonResponse({"status": "error", "message": "لا توجد وسيلة دفع مفعلة حالياً"}, status=400)
-
-    store = getattr(request, "store", None)
+        return JsonResponse({"status": "error", "message": "لا توجد وسيلة دفع مفعلة حالياً لهذا المتجر"}, status=400)
     deposit = DepositRequest.objects.create(
         user=user,
         store=store,
@@ -8617,14 +8618,16 @@ def api_app_create_order(request):
             gw_provider = PaymentGatewayIntegration.Provider.MTN_PAY
 
         selected_gateway = None
+        req_store = getattr(request, "store", None)
+        gw_filter = {"store": req_store} if req_store else {"store__isnull": True}
         if gw_provider:
             with bypass_tenant_filter():
                 selected_gateway = PaymentGatewayIntegration.all_objects.filter(
-                    provider=gw_provider, is_active=True
+                    provider=gw_provider, is_active=True, **gw_filter
                 ).first()
 
-        if not selected_gateway and not gw_provider:
-            return JsonResponse({"status": "error", "message": "وسيلة الدفع المحددة غير صالحة"}, status=400)
+        if not selected_gateway:
+            return JsonResponse({"status": "error", "message": "بوابة الدفع المحددة غير مفعلة لهذا المتجر"}, status=400)
 
         try:
             order_metadata = dict(metadata)
@@ -11262,18 +11265,26 @@ def payment_method_edit(request, pk):
 
 @admin_required
 def payment_gateway_integrations_list(request):
-    from django.db.models import Q
     store = getattr(request, "store", None)
     if store:
-        gateways = PaymentGatewayIntegration.all_objects.filter(Q(store=store) | Q(store__isnull=True))
+        gateways = PaymentGatewayIntegration.all_objects.filter(store=store)
     else:
-        gateways = PaymentGatewayIntegration.all_objects.all()
-    return render(request, "site/payment_gateway_integrations_list.html", {"gateways": gateways, "is_tenant": bool(store)})
+        gateways = PaymentGatewayIntegration.all_objects.filter(store__isnull=True)
+    is_platform_owner = request.user.is_superuser or getattr(request.user, "role", None) in ("super_admin", "admin")
+    return render(request, "site/payment_gateway_integrations_list.html", {
+        "gateways": gateways,
+        "is_tenant": bool(store),
+        "can_manage_gateways": is_platform_owner or not store,
+    })
 
 
 @admin_required
 def payment_gateway_integration_create(request):
     store = getattr(request, "store", None)
+    is_platform_owner = request.user.is_superuser or getattr(request.user, "role", None) in ("super_admin", "admin")
+    if store and not is_platform_owner:
+        messages.error(request, "إدارة وتفعيل بوابات الدفع الإلكترونية متاحة لمالك منصة رقميات فقط.")
+        return redirect("payment_gateway_integrations_list")
     form = PaymentGatewayIntegrationForm(request.POST or None, request.FILES or None)
     if request.method == "POST" and form.is_valid():
         gateway = form.save(commit=False)
@@ -11290,9 +11301,12 @@ def payment_gateway_integration_create(request):
 
 @admin_required
 def payment_gateway_integration_edit(request, pk):
-    from django.db.models import Q
     store = getattr(request, "store", None)
-    qs = PaymentGatewayIntegration.all_objects.filter(Q(store=store) | Q(store__isnull=True)) if store else PaymentGatewayIntegration.all_objects.all()
+    is_platform_owner = request.user.is_superuser or getattr(request.user, "role", None) in ("super_admin", "admin")
+    if store and not is_platform_owner:
+        messages.error(request, "تعديل إعدادات بوابات الدفع الإلكترونية متاح لمالك منصة رقميات فقط.")
+        return redirect("payment_gateway_integrations_list")
+    qs = PaymentGatewayIntegration.all_objects.filter(store=store) if store else PaymentGatewayIntegration.all_objects.filter(store__isnull=True)
     gateway = get_object_or_404(qs, pk=pk)
     form = PaymentGatewayIntegrationForm(request.POST or None, request.FILES or None, instance=gateway)
     if request.method == "POST":
@@ -13937,21 +13951,23 @@ def cart_checkout_view(request):
                 return False
 
         selected_gateway = None
+        req_store = getattr(request, "store", None)
+        gw_filter = {"store": req_store} if req_store else {"store__isnull": True}
         with bypass_tenant_filter():
             if payment_method.startswith("gateway:"):
                 gw_val = payment_method.split(":", 1)[1]
                 if _is_valid_uuid(gw_val):
-                    selected_gateway = PaymentGatewayIntegration.all_objects.filter(pk=gw_val, is_active=True).first()
+                    selected_gateway = PaymentGatewayIntegration.all_objects.filter(pk=gw_val, is_active=True, **gw_filter).first()
                 if not selected_gateway:
-                    selected_gateway = PaymentGatewayIntegration.all_objects.filter(provider=gw_val, is_active=True).first()
+                    selected_gateway = PaymentGatewayIntegration.all_objects.filter(provider=gw_val, is_active=True, **gw_filter).first()
             elif payment_method.startswith("method:"):
                 pm_id = payment_method.split(":", 1)[1]
                 if _is_valid_uuid(pm_id):
-                    pm = PaymentMethod.all_objects.filter(pk=pm_id, is_active=True).first()
+                    pm = PaymentMethod.all_objects.filter(pk=pm_id, is_active=True, **gw_filter).first()
                     if pm and pm.gateway and pm.gateway.is_active:
                         selected_gateway = pm.gateway
             else:
-                selected_gateway = PaymentGatewayIntegration.all_objects.filter(provider=payment_method, is_active=True).first()
+                selected_gateway = PaymentGatewayIntegration.all_objects.filter(provider=payment_method, is_active=True, **gw_filter).first()
                 if not selected_gateway and _is_valid_uuid(payment_method):
                     selected_gateway = PaymentGatewayIntegration.all_objects.filter(pk=payment_method, is_active=True).first()
                 if not selected_gateway:

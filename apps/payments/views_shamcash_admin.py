@@ -47,7 +47,9 @@ User = get_user_model()
 logger = logging.getLogger(__name__)
 
 
-def _is_admin_or_staff(user):
+def _is_admin_or_staff(user, request=None):
+    if request is not None and getattr(request, "store", None) is not None:
+        return False
     return user.is_authenticated and (
         user.is_superuser
         or user.is_staff
@@ -87,7 +89,7 @@ def _mask_secret_value(val: str) -> str:
 @login_required
 def shamcash_dashboard_view(request):
     """Admin dashboard overview for ShamCash E-Payment gateway."""
-    if not _is_admin_or_staff(request.user):
+    if not _is_admin_or_staff(request.user, request):
         messages.error(request, "غير مصرح لك بالوصول إلى هذه اللوحة.")
         return redirect("dashboard")
 
@@ -519,7 +521,7 @@ def shamcash_dashboard_view(request):
 @login_required
 def shamcash_bills_list_view(request):
     """List, search and filter all ShamCash bills and invoices."""
-    if not _is_admin_or_staff(request.user):
+    if not _is_admin_or_staff(request.user, request):
         messages.error(request, "غير مصرح لك.")
         return redirect("dashboard")
 
@@ -575,7 +577,7 @@ def shamcash_bill_detail_view(request, bill_no):
     - Expiration Time (تاريخ انتهاء الصلاحية - 10 دقائق).
     - Reference Number (رقم العملية الناشئ عن الربط الإلكتروني tranId).
     """
-    if not (_is_admin_or_staff(request.user) or _is_shamcash_auditor_or_admin(request.user)):
+    if not (_is_admin_or_staff(request.user, request) or _is_shamcash_auditor_or_admin(request.user)):
         messages.error(request, "غير مصرح لك.")
         return redirect("dashboard")
 
@@ -604,7 +606,7 @@ def shamcash_check_bill_status_view(request, bill_no):
     Query ShamCash getBillInfo API live fallback to synchronize bill status.
     Doc Section 6.2.
     """
-    if not _is_admin_or_staff(request.user):
+    if not _is_admin_or_staff(request.user, request):
         return JsonResponse({"ok": False, "message": "Unauthorized"}, status=403)
 
     bill = get_object_or_404(ShamCashBillRecord, bill_no=bill_no)
@@ -661,7 +663,7 @@ def shamcash_refund_bill_view(request):
     Execute full or partial refund for a paid ShamCash bill.
     Complies with Article 9 (Refund Rules) and Doc Section 6.3.
     """
-    if not _is_admin_or_staff(request.user):
+    if not _is_admin_or_staff(request.user, request):
         return JsonResponse({"ok": False, "message": "غير مصرح لك بتنفيذ الاسترداد."}, status=403)
 
     bill_no = request.POST.get("bill_no", "").strip()
@@ -744,7 +746,7 @@ def shamcash_reconciliation_view(request):
     Run and inspect End-of-Day (EOD) or periodic reconciliations.
     Complies with Section 11 of the Integration Guide and Article 8 of Terms.
     """
-    if not (_is_admin_or_staff(request.user) or _is_shamcash_auditor_or_admin(request.user)):
+    if not (_is_admin_or_staff(request.user, request) or _is_shamcash_auditor_or_admin(request.user)):
         messages.error(request, "غير مصرح لك.")
         return redirect("dashboard")
 
@@ -857,7 +859,7 @@ def shamcash_logs_view(request):
     Search and view 5-Year Technical Audit Logs.
     Complies with Article 11 (Security) and Article 14 (5-Year Logs Retention).
     """
-    if not (_is_admin_or_staff(request.user) or _is_shamcash_auditor_or_admin(request.user)):
+    if not (_is_admin_or_staff(request.user, request) or _is_shamcash_auditor_or_admin(request.user)):
         messages.error(request, "غير مصرح لك.")
         return redirect("dashboard")
 
@@ -896,7 +898,7 @@ def shamcash_compliance_dossier_view(request):
     View and edit the official KYC & Regulatory Dossier.
     Complies with Articles 3, 15 & 21 of ShamCash Terms.
     """
-    if not _is_admin_or_staff(request.user):
+    if not _is_admin_or_staff(request.user, request):
         messages.error(request, "غير مصرح لك.")
         return redirect("dashboard")
 
@@ -950,7 +952,7 @@ def shamcash_create_auditor_view(request):
     Creates or re-sets a dedicated Auditor account for the ShamCash audit/compliance team.
     User instruction: "وامكانية انشاء حساب بوابة الى طرف شام كاش ليتطلعو على معلومات مطلوبة"
     """
-    if not _is_admin_or_staff(request.user):
+    if not _is_admin_or_staff(request.user, request):
         return JsonResponse({"ok": False, "message": "غير مصرح لك."}, status=403)
 
     email = request.POST.get("email", "").strip() or "auditor.shamcash@shamcash.sy"
@@ -1052,7 +1054,7 @@ def shamcash_auditor_portal_view(request):
 @require_POST
 def shamcash_test_connection_view(request):
     """Execute live health check against ShamCash API and return status."""
-    if not _is_admin_or_staff(request.user):
+    if not _is_admin_or_staff(request.user, request):
         return JsonResponse({"ok": False, "message": "Unauthorized"}, status=403)
 
     gw = ShamCashGateway()

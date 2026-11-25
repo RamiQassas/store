@@ -641,8 +641,10 @@
 
   <!-- ====================================================================
        7. MOBILE BOTTOM NAVIGATION BAR (WITH MY WALLET & MY ORDERS)
+       Hidden automatically inside Raqamiyat Android App (which has its own native bottom bar)
        ==================================================================== -->
-  <nav class="rq-bottom-nav" aria-label="التنقل السفلي للهاتف">
+  {% if 'RaqamiyatAndroid' not in request.META.HTTP_USER_AGENT|default:'' %}
+  <nav class="rq-bottom-nav" id="rq-web-bottom-nav" aria-label="التنقل السفلي للهاتف">
     <a href="{% url 'home' %}" class="rq-bottom-nav-item {% if request.resolver_match.url_name == 'home' %}active{% endif %}">
       <i class="fas fa-home"></i>
       <span>الرئيسية</span>
@@ -673,6 +675,13 @@
     </a>
     {% endif %}
   </nav>
+  <script>
+    if (window.RaqamiyatNative || /RaqamiyatAndroid/i.test(navigator.userAgent || '')) {
+      var bn = document.getElementById('rq-web-bottom-nav');
+      if (bn) bn.style.display = 'none';
+    }
+  </script>
+  {% endif %}
 
   <!-- Mobile Floating Cart Pill (Shown when cart has items) -->
   <button type="button" onclick="toggleCartDrawer(true)" class="rq-floating-cart-btn lg:hidden {% if not cart_items_count or cart_items_count == 0 %}rq-cart-empty{% endif %}" id="rq-mobile-floating-cart" aria-label="عرض سلة التسوق" title="سلة التسوق">

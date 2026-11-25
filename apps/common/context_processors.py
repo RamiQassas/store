@@ -34,9 +34,9 @@ def common_context(request):
         with bypass_tenant_filter():
             if active_store:
                 gw_qs = list(PaymentGatewayIntegration.all_objects.filter(
-                    Q(store=active_store) | Q(store__isnull=True),
+                    store=active_store,
                     is_active=True
-                ).order_by("store_id"))
+                ))
             else:
                 gw_qs = list(PaymentGatewayIntegration.all_objects.filter(
                     store__isnull=True,

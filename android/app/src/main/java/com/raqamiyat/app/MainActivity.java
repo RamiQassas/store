@@ -529,6 +529,12 @@ public class MainActivity extends AppCompatActivity implements ConnectivityHelpe
 
                 updateBottomNavigationActiveTab(url);
                 refreshAdminSessionBadge();
+                if (webView != null) {
+                    webView.evaluateJavascript(
+                            "(function(){document.querySelectorAll('.rq-bottom-nav,.rq-mobile-bottom-nav,#rq-web-bottom-nav').forEach(function(e){e.style.display='none';});})();",
+                            null
+                    );
+                }
 
                 super.onPageFinished(view, url);
             }
