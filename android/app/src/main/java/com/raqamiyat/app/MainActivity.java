@@ -120,6 +120,7 @@ public class MainActivity extends AppCompatActivity implements ConnectivityHelpe
     private String mCameraPhotoPath;
     private boolean isInitialPageLoaded = false;
     private boolean isWaitingForGoogleAuth = false;
+    private boolean isWaitingForExternalPayment = false;
     private long backPressedTime = 0;
     private String cleanChromeUserAgent = "";
     private String appWebViewUserAgent = "";
@@ -347,7 +348,44 @@ public class MainActivity extends AppCompatActivity implements ConnectivityHelpe
         }
     }
 
+    public static boolean isShamCashExternalUrl(String url) {
+        if (url == null || url.isEmpty()) return false;
+        String lower = url.trim().toLowerCase(Locale.ROOT);
+        if (lower.startsWith("shamcash:") || lower.startsWith("shamcash://")) {
+            return true;
+        }
+        try {
+            Uri parsed = Uri.parse(url);
+            String host = parsed.getHost() != null ? parsed.getHost().toLowerCase(Locale.ROOT) : "";
+            return host.equals("shamcash.sy")
+                    || host.endsWith(".shamcash.sy")
+                    || host.equals("shamcash.com")
+                    || host.endsWith(".shamcash.com")
+                    || host.equals("shamlogix.tech")
+                    || host.endsWith(".shamlogix.tech");
+        } catch (Exception ignored) {
+            return false;
+        }
+    }
+
+    public static void launchExternalShamCashUrl(Context context, String url) {
+        if (context == null || url == null || url.isEmpty()) return;
+        try {
+            Intent viewIntent = new Intent(Intent.ACTION_VIEW, Uri.parse(url));
+            viewIntent.addCategory(Intent.CATEGORY_BROWSABLE);
+            viewIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+            context.startActivity(viewIntent);
+        } catch (Exception e) {
+            Toast.makeText(context, "تعذر فتح رابط الدفع الخارجي لشام كاش", Toast.LENGTH_SHORT).show();
+        }
+    }
+
     private void showWebMode(String url) {
+        if (isShamCashExternalUrl(url)) {
+            isWaitingForExternalPayment = true;
+            launchExternalShamCashUrl(this, url);
+            return;
+        }
         isNativeMode = false;
         nativeStoreContainer.setVisibility(View.GONE);
         nativeErrorView.setVisibility(View.GONE);
@@ -933,6 +971,19 @@ public class MainActivity extends AppCompatActivity implements ConnectivityHelpe
         loadNativeCatalog(false);
         refreshAdminSessionBadge();
         syncAppNotifications();
+        if (isWaitingForExternalPayment) {
+            isWaitingForExternalPayment = false;
+            if (!isNativeMode && webView != null && connectivityHelper != null && connectivityHelper.isOnline()) {
+                mainHandler.postDelayed(() -> {
+                    if (webView != null) {
+                        String curr = webView.getUrl();
+                        if (curr != null && (curr.contains("/dashboard/") || curr.contains("/payments/status/") || curr.contains("/cart/"))) {
+                            webView.reload();
+                        }
+                    }
+                }, 600);
+            }
+        }
         if (isWaitingForGoogleAuth) {
             isWaitingForGoogleAuth = false;
             Runnable checkSsoJs = () -> {
@@ -982,10 +1033,12 @@ public class MainActivity extends AppCompatActivity implements ConnectivityHelpe
         if (deepUrl.contains("/control/camera-studio")) {
             launchNativeStudio();
         } else if (deepUrl.contains("/auth/app-sso-exchange")
+                || deepUrl.contains("/payments/")
                 || deepUrl.contains("/accounts/")
                 || deepUrl.contains("/auth/")
                 || deepUrl.contains("/dashboard/")
                 || deepUrl.contains("/control/")
+                || deepUrl.contains("/catalog/")
                 || deepUrl.contains("/cart/")) {
             showWebMode(deepUrl);
         } else if (deepUrl.contains("raqamiyatapp.com")) {
@@ -999,6 +1052,14 @@ public class MainActivity extends AppCompatActivity implements ConnectivityHelpe
         // Custom App SSO Deep Link
         if (url.startsWith("raqamiyat://")) {
             handleIncomingDeepLink(Uri.parse(url));
+            return true;
+        }
+
+        // Official ShamCash Requirement (Doc Section 7.2 & 10.2, Page 22 & 26):
+        // Always open ShamCash checkout / deep-link URLs in the ShamCash native app or default system browser, NEVER inside embedded WebView!
+        if (isShamCashExternalUrl(url)) {
+            isWaitingForExternalPayment = true;
+            launchExternalShamCashUrl(this, url);
             return true;
         }
 

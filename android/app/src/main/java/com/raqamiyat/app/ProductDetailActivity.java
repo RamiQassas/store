@@ -260,8 +260,8 @@ public class ProductDetailActivity extends AppCompatActivity {
                 HttpURLConnection conn = (HttpURLConnection) new URL(ORDER_API_URL).openConnection();
                 conn.setRequestMethod("POST");
                 conn.setDoOutput(true);
-                conn.setConnectTimeout(12000);
-                conn.setReadTimeout(15000);
+                conn.setConnectTimeout(15000);
+                conn.setReadTimeout(25000);
                 conn.setRequestProperty("Content-Type", "application/json; charset=UTF-8");
                 conn.setRequestProperty("User-Agent", "RaqamiyatAndroid/3.0 NativeApp");
 
@@ -322,11 +322,20 @@ public class ProductDetailActivity extends AppCompatActivity {
                 JSONObject json = new JSONObject(trimmed);
                 if (code == 200 && "success".equals(json.optString("status"))) {
                     String paymentUrl = json.optString("payment_url", "");
-                    String orderNumber = json.optString("order_number", json.optString("order_id", ""));
+                    String orderId = json.optString("order_id", "");
+                    String orderNumber = json.optString("order_number", orderId);
                     mainHandler.post(() -> {
                         loading.dismiss();
                         if (!paymentUrl.isEmpty()) {
-                            openUrlInMainApp(paymentUrl);
+                            if (MainActivity.isShamCashExternalUrl(paymentUrl) || "shamcash".equalsIgnoreCase(paymentMethod)) {
+                                String statusPage = !orderId.isEmpty()
+                                        ? (CatalogRepository.DOMAIN + "/payments/status/?type=order&id=" + Uri.encode(orderId))
+                                        : (CatalogRepository.DOMAIN + "/dashboard/orders/");
+                                openUrlInMainApp(statusPage);
+                                MainActivity.launchExternalShamCashUrl(ProductDetailActivity.this, paymentUrl);
+                            } else {
+                                openUrlInMainApp(paymentUrl);
+                            }
                         } else {
                             new MaterialAlertDialogBuilder(ProductDetailActivity.this)
                                     .setTitle("✓ تم تأكيد طلبك بنجاح ⚡")
@@ -410,7 +419,12 @@ public class ProductDetailActivity extends AppCompatActivity {
                     mainHandler.post(() -> {
                         loading.dismiss();
                         if (!redirectUrl.isEmpty()) {
-                            openUrlInMainApp(redirectUrl);
+                            if (MainActivity.isShamCashExternalUrl(redirectUrl)) {
+                                openUrlInMainApp(CatalogRepository.DOMAIN + "/dashboard/orders/");
+                                MainActivity.launchExternalShamCashUrl(ProductDetailActivity.this, redirectUrl);
+                            } else {
+                                openUrlInMainApp(redirectUrl);
+                            }
                         } else {
                             new MaterialAlertDialogBuilder(ProductDetailActivity.this)
                                     .setTitle("✓ تم تأكيد طلبك بنجاح ⚡")

@@ -1261,8 +1261,13 @@ def finalize_paid_gateway_order(order, gateway_data=None):
             meta["gateway_charge_amount"] = str(locked_order.total_amount)
         if isinstance(gateway_data, dict):
             meta["gateway_payment_status"] = gateway_data.get("status")
-            if gateway_data.get("id"):
+            if gateway_data.get("bill_no"):
+                meta["shamcash_bill_no"] = str(gateway_data.get("bill_no"))
+                meta["gateway_payment_id"] = str(gateway_data.get("bill_no"))
+            elif gateway_data.get("id"):
                 meta["gateway_payment_id"] = str(gateway_data.get("id"))
+            if gateway_data.get("tran_id"):
+                meta["shamcash_tran_id"] = gateway_data.get("tran_id")
             if gateway_data.get("rrn"):
                 meta["gateway_rrn"] = str(gateway_data.get("rrn"))
         locked_order.metadata = meta
@@ -2188,11 +2193,47 @@ def auto_cancel_expired_pending_orders(max_minutes: int = 5) -> dict:
     for order in expired_pending_orders:
         stats["checked"] += 1
         meta = dict(order.metadata or {})
+        provider = str(meta.get("payment_provider") or meta.get("payment_gateway") or "").strip().lower()
         payment_id = meta.get("gateway_payment_id") or meta.get("paymera_payment_id")
+        shamcash_bill = meta.get("shamcash_bill_no") or (payment_id if str(payment_id or "").startswith("ORD-") else "")
 
         try:
-            # If the order is linked to a gateway payment, query Paymera first
-            if payment_id:
+            # ShamCash bills have an official 10-minute payment window (Doc Section 6.1 & 10.3, Page 26):
+            # Never cancel ShamCash orders before 11 minutes, and only run a single getBillInfo fallback after >= 10 minutes.
+            if provider in ("sham_cash", "shamcash") or shamcash_bill:
+                age_seconds = (timezone.now() - order.created_at).total_seconds()
+                if age_seconds < 660:  # 11 minutes
+                    continue
+                try:
+                    from apps.payments.views_shamcash import reconcile_shamcash_order_if_overdue
+                    reconcile_shamcash_order_if_overdue(order, force=False)
+                    order.refresh_from_db()
+                    if order.status in (Order.Status.PROCESSING, Order.Status.COMPLETED):
+                        stats["finalized"] += 1
+                        continue
+                    if order.status == Order.Status.CANCELLED:
+                        stats["cancelled"] += 1
+                        continue
+                except Exception as sc_err:
+                    logger.warning(f"ShamCash overdue fallback check error for order #{order.number}: {sc_err}")
+
+            # MTN Cash Mobile invoices also have a 10-minute expiration window
+            elif provider in ("mtn_pay", "mtn", "direct_mtn_pay"):
+                age_seconds = (timezone.now() - order.created_at).total_seconds()
+                if age_seconds < 660:
+                    continue
+                try:
+                    mtn_gw = gateway_for("mtn_pay")
+                    mtn_gw.verify_order_payment(order)
+                    order.refresh_from_db()
+                    if order.status in (Order.Status.PROCESSING, Order.Status.COMPLETED):
+                        stats["finalized"] += 1
+                        continue
+                except Exception as mtn_err:
+                    logger.warning(f"MTNPay overdue check error for order #{order.number}: {mtn_err}")
+
+            # Paymera orders: query Paymera status first
+            elif payment_id and provider in ("paymera", "direct_paymera", ""):
                 if not client:
                     try:
                         gw = gateway_for("paymera")
@@ -2204,8 +2245,7 @@ def auto_cancel_expired_pending_orders(max_minutes: int = 5) -> dict:
                     try:
                         status_res = client.get_payment_status(payment_id)
                         gw_status = status_res.get("status")
-                        
-                        # If payment was actually completed right before timeout, finalize it!
+
                         if gw_status == PaymeraClient.STATUS_ACCEPTED:
                             logger.info(f"Order #{order.number} was accepted on Paymera, finalizing instead of cancelling.")
                             finalize_paid_gateway_order(order, status_res)
@@ -2214,6 +2254,7 @@ def auto_cancel_expired_pending_orders(max_minutes: int = 5) -> dict:
                     except PaymeraError as p_err:
                         logger.warning(f"Paymera status check error for order #{order.number} ({payment_id}): {p_err}")
 
+            effective_timeout_mins = 10 if (provider in ("sham_cash", "shamcash", "mtn_pay", "mtn") or shamcash_bill) else max_minutes
             # Otherwise, cancel the expired pending order
             with transaction.atomic():
                 with bypass_tenant_filter():
@@ -2221,20 +2262,20 @@ def auto_cancel_expired_pending_orders(max_minutes: int = 5) -> dict:
                     if locked_order.status != Order.Status.PENDING:
                         continue
                     locked_order.status = Order.Status.CANCELLED
-                    locked_order.admin_note = (locked_order.admin_note or "") + f"\nتم إلغاء الطلب تلقائياً لتجاوز مهلة السداد المحددة ({max_minutes} دقائق دون إتمام الدفع)."
+                    locked_order.admin_note = (locked_order.admin_note or "") + f"\nتم إلغاء الطلب تلقائياً لتجاوز مهلة السداد المحددة ({effective_timeout_mins} دقائق دون إتمام الدفع)."
                     locked_order.save(update_fields=["status", "admin_note", "updated_at"])
 
                     OrderLog.objects.create(
                         order=locked_order,
                         status=Order.Status.CANCELLED,
-                        note=f"تم إلغاء الطلب تلقائياً لانتهاء مهلة السداد ({max_minutes} دقائق دون إتمام عملية الدفع).",
+                        note=f"تم إلغاء الطلب تلقائياً لانتهاء مهلة السداد ({effective_timeout_mins} دقائق دون إتمام عملية الدفع).",
                         created_by=None,
                     )
                     stats["cancelled"] += 1
-                    logger.info(f"Auto-cancelled expired pending order #{locked_order.number} (age > {max_minutes}m).")
+                    logger.info(f"Auto-cancelled expired pending order #{locked_order.number} (age > {effective_timeout_mins}m).")
 
-            # Try to cancel the gateway payment session on Paymera as well
-            if client and payment_id:
+            # Try to cancel the gateway payment session on Paymera ONLY if it is a Paymera order
+            if client and payment_id and provider in ("paymera", "direct_paymera"):
                 try:
                     client.cancel_payment(payment_id=payment_id, lang="ar")
                 except Exception as cancel_exc:

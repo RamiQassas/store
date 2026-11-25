@@ -16,15 +16,38 @@ import base64
 import json
 import logging
 import os
+import ssl
 import time
 import uuid
 from decimal import Decimal
 from typing import Any, Dict, List, Optional, Tuple, Union
+from urllib.parse import urlparse
 
 import requests
 from cryptography.hazmat.primitives.ciphers.aead import AESGCM
+from requests.adapters import HTTPAdapter
+from urllib3.util.ssl_ import create_urllib3_context
 
 logger = logging.getLogger(__name__)
+
+
+class _ShamCashTLSAdapter(HTTPAdapter):
+    """
+    HTTPS adapter compatible with OpenSSL 3.x when connecting to IIS/.NET gateways
+    that request TLS session renegotiation (OP_LEGACY_SERVER_CONNECT).
+    """
+
+    def init_poolmanager(self, *args, **kwargs):
+        ctx = create_urllib3_context()
+        ctx.options |= getattr(ssl, "OP_LEGACY_SERVER_CONNECT", 0x4)
+        kwargs["ssl_context"] = ctx
+        return super().init_poolmanager(*args, **kwargs)
+
+    def proxy_manager_for(self, proxy, **proxy_kwargs):
+        ctx = create_urllib3_context()
+        ctx.options |= getattr(ssl, "OP_LEGACY_SERVER_CONNECT", 0x4)
+        proxy_kwargs["ssl_context"] = ctx
+        return super().proxy_manager_for(proxy, **proxy_kwargs)
 
 
 class ShamCashError(Exception):
@@ -76,11 +99,81 @@ class ShamCashClient:
     CURRENCY_USD = 1
     CURRENCY_SYP = 2
 
-    # Standard browser User-Agent to prevent Cloudflare/WAF anti-bot false drops
+    # Official ShamCash Application Error Codes -> Pure Arabic Descriptions (Doc Section 8, Pages 20-21)
+    ERROR_MESSAGES_AR = {
+        1000: "حدث خطأ داخلي مؤقت لدى بوابة شام كاش، يرجى المحاولة مرة أخرى بعد قليل.",
+        1304: "رصيد حساب شام كاش غير كافٍ لإتمام العملية.",
+        1322: "قيمة الاسترداد المطلوبة تتجاوز المبلغ المتبقي القابل للاسترداد في الفاتورة.",
+        1700: "بيانات طلب الدفع المرسلة إلى شام كاش غير مكتملة أو غير صالحة.",
+        1701: "معرف الوكيل (Agent Key) غير صالح لدى شام كاش.",
+        1702: "حساب التاجر غير مفعل حالياً لدى شام كاش.",
+        1703: "لم يتم العثور على الفاتورة المطلوبة في نظام شام كاش.",
+        1704: "رقم الفاتورة مسجل مسبقاً لدى شام كاش.",
+        1705: "تعذر التحقق من التشفير لدى شام كاش (يرجى التأكد من مطابقة المفتاح السري Secret Key).",
+        1706: "انتهت صلاحية رمز الأمان المؤقت للطلب (يرجى التحقق من ضبط توقيت الخادم NTP).",
+        1707: "مفتاح عدم التكرار (Idempotency Key) مستخدم مسبقاً ببيانات مختلفة.",
+        1708: "الفاتورة غير مسددة أو غير مؤهلة للاسترداد حالياً.",
+        502: "تعذر الوصول إلى خوادم شام كاش حالياً، يرجى المحاولة مجدداً بعد لحظات.",
+        504: "انتهت مهلة الاتصال بخوادم شام كاش، يرجى المحاولة مجدداً بعد لحظات.",
+    }
+
+    # Standard browser User-Agent to prevent WAF anti-bot false drops
     DEFAULT_USER_AGENT = (
         "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
         "AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36"
     )
+
+    @classmethod
+    def normalize_base_url(cls, base_url: Optional[str], mode: str = "live") -> str:
+        """
+        Strictly normalizes ShamCash Base URL according to Doc Section 3 (Page 4):
+        - Always enforces HTTPS (fixes port-80 HTTP blackhole timeouts).
+        - Strips accidental trailing endpoint paths (/api/ElectronicPayment/...).
+        - Ensures '/v4' on payment.shamcash.sy and '/services' on dev.shamlogix.tech.
+        - Prevents sandbox URL usage when mode == 'live'.
+        """
+        norm_mode = (mode or "live").strip().lower()
+        raw = (base_url or "").strip()
+        if not raw:
+            return cls.LIVE_BASE_URL if norm_mode == "live" else cls.STAGING_BASE_URL
+
+        if raw.startswith("http://"):
+            raw = "https://" + raw[len("http://"):]
+        elif not raw.startswith("https://"):
+            raw = f"https://{raw}"
+
+        parsed = urlparse(raw)
+        host = (parsed.netloc or "").strip().lower()
+        path = (parsed.path or "").strip().rstrip("/")
+
+        # Strip accidental endpoint suffixes if pasted into Base URL
+        lower_path = path.lower()
+        for suffix in (
+            "/api/electronicpayment/createbill",
+            "/api/electronicpayment/getbillinfo",
+            "/api/electronicpayment/refundbill",
+            "/api/electronicpayment/gettransactions",
+            "/api/electronicpayment",
+        ):
+            if lower_path.endswith(suffix):
+                path = path[: -len(suffix)].rstrip("/")
+                break
+
+        if norm_mode == "live" and ("shamlogix" in host or not host):
+            return cls.LIVE_BASE_URL
+
+        if host in ("payment.shamcash.sy", "api.shamcash.sy", "epay.shamcash.sy", "pay.shamcash.sy"):
+            host = "payment.shamcash.sy"
+            if not path:
+                path = "/v4"
+            return f"https://{host}{path}"
+
+        if "shamlogix.tech" in host:
+            if not path:
+                path = "/services"
+            return f"https://{host}{path}"
+
+        return f"https://{host}{path}" if host else (cls.LIVE_BASE_URL if norm_mode == "live" else cls.STAGING_BASE_URL)
 
     def __init__(
         self,
@@ -88,23 +181,15 @@ class ShamCashClient:
         secret_key: str,
         base_url: Optional[str] = None,
         mode: str = "sandbox",
-        timeout: int = 25,
+        timeout: Union[int, Tuple[int, int]] = (8, 15),
+        proxy_url: Optional[str] = None,
     ):
         self.agent_key = (agent_key or "").strip()
         self.raw_secret_key = (secret_key or "").strip()
         self.mode = (mode or "sandbox").strip().lower()
         self.timeout = timeout
-
-        cleaned_url = (base_url or "").strip().rstrip("/")
-        if cleaned_url.lower().endswith("/api/electronicpayment"):
-            cleaned_url = cleaned_url[: -len("/api/electronicpayment")].rstrip("/")
-
-        if cleaned_url and not (self.mode == "live" and "shamlogix" in cleaned_url.lower()):
-            self.base_url = cleaned_url
-        else:
-            self.base_url = (
-                self.LIVE_BASE_URL if self.mode == "live" else self.STAGING_BASE_URL
-            )
+        self.proxy_url = (proxy_url or "").strip() or None
+        self.base_url = self.normalize_base_url(base_url, self.mode)
 
         # Validate and decode Base64 secret key (32 bytes required for AES-256)
         if not self.raw_secret_key:
@@ -118,7 +203,12 @@ class ShamCashClient:
                     )
             except Exception as err:
                 logger.error(f"Failed to decode ShamCash secret key: {err}")
-                raise ShamCashError(f"Invalid ShamCash secret key: {err}") from err
+                raise ShamCashError("المفتاح السري لبوابة شام كاش غير صالح (يجب أن يكون 32 بايت بصيغة Base64).") from err
+
+        self._session = requests.Session()
+        tls_adapter = _ShamCashTLSAdapter(max_retries=0)
+        self._session.mount("https://", tls_adapter)
+        self._session.mount("http://", HTTPAdapter(max_retries=0))
 
     @classmethod
     def from_integration(cls, integration) -> "ShamCashClient":
@@ -129,27 +219,29 @@ class ShamCashClient:
         secret_key = (getattr(integration, "api_secret", None) or "").strip()
         base_url = (getattr(integration, "base_url", None) or "").strip()
         mode = (getattr(integration, "mode", None) or getattr(settings, "SHAM_CASH_MODE", "live")).strip().lower()
+        proxy_url = ""
 
         if hasattr(integration, "settings") and isinstance(integration.settings, dict):
             agent_key = agent_key or str(integration.settings.get("agent_key", "")).strip()
             secret_key = secret_key or str(integration.settings.get("secret_key", "")).strip()
+            proxy_url = str(integration.settings.get("proxy_url", "")).strip()
 
         if not agent_key:
             agent_key = getattr(settings, "SHAM_CASH_AGENT_KEY", "").strip()
         if not secret_key:
             secret_key = getattr(settings, "SHAM_CASH_SECRET_KEY", "").strip()
+        if not proxy_url:
+            proxy_url = getattr(settings, "SHAM_CASH_PROXY_URL", "").strip()
         if not base_url:
             env_url = getattr(settings, "SHAM_CASH_BASE_URL", "").strip()
-            if env_url and not (mode == "live" and "shamlogix" in env_url.lower()):
-                base_url = env_url
-            else:
-                base_url = cls.LIVE_BASE_URL if mode == "live" else cls.STAGING_BASE_URL
+            base_url = cls.normalize_base_url(env_url, mode)
 
         return cls(
             agent_key=agent_key,
             secret_key=secret_key,
             base_url=base_url or None,
             mode=mode,
+            proxy_url=proxy_url or None,
         )
 
     # ── Cryptographic Primitives (Direct JWE / AES-256-GCM) ──────────────────────
@@ -204,20 +296,20 @@ class ShamCashClient:
         # 5 dot-separated segments with the second segment empty (Direct Key)
         return f"{h_b64}..{iv_b64}.{ct_b64}.{tag_b64}"
 
-    def decrypt_payload(self, jwe_token: str, verify_exp: bool = True, clock_skew: int = 60) -> Dict[str, Any]:
+    def decrypt_payload(self, jwe_token: str, verify_exp: bool = True, clock_skew: int = 120) -> Dict[str, Any]:
         """
         Decrypt a ShamCash Direct JWE string and return claims dict.
         Validates token structure, AES-GCM auth tag, and expiration claim.
         """
         if not self._key_bytes:
-            raise ShamCashError("ShamCash secret key is missing; cannot decrypt.")
+            raise ShamCashError("المفتاح السري لبوابة شام كاش غير مهيأ لفك التشفير.")
 
         if not jwe_token or not isinstance(jwe_token, str):
-            raise ShamCashError("Invalid or empty JWE token provided.")
+            raise ShamCashError("رمز التشفير (JWE) المستلم فارغ أو غير صالح.")
 
         parts = jwe_token.strip().split(".")
         if len(parts) != 5:
-            raise ShamCashError(f"Invalid JWE format: expected 5 parts, got {len(parts)}.")
+            raise ShamCashError(f"صيغة رمز التشفير JWE غير صالحة (المتوقع 5 مقاطع، المستلم {len(parts)}).")
 
         h_b64, empty_key, iv_b64, ct_b64, tag_b64 = parts
         if empty_key != "":
@@ -228,7 +320,7 @@ class ShamCashClient:
             ciphertext = self._b64url_decode(ct_b64)
             tag = self._b64url_decode(tag_b64)
         except Exception as err:
-            raise ShamCashError(f"Failed to decode JWE base64 segments: {err}") from err
+            raise ShamCashError("فشل فك ترميز مقاطع Base64URL للبيانات المشفرة.") from err
 
         aad = h_b64.encode("ascii")
         try:
@@ -237,14 +329,14 @@ class ShamCashClient:
             payload = json.loads(decrypted_bytes.decode("utf-8"))
         except Exception as err:
             logger.warning(f"Failed to decrypt/verify ShamCash payload: {err}")
-            raise ShamCashError(f"Payload decryption failed or tag mismatch: {err}") from err
+            raise ShamCashError(self.ERROR_MESSAGES_AR[1705], error_code=1705) from err
 
         if verify_exp:
             exp = payload.get("exp")
             if exp is not None:
                 now = int(time.time())
                 if now > (int(exp) + clock_skew):
-                    raise ShamCashError(f"JWE payload expired (exp: {exp}, now: {now}).")
+                    raise ShamCashError(self.ERROR_MESSAGES_AR[1706], error_code=1706)
 
         return payload
 
@@ -267,6 +359,7 @@ class ShamCashClient:
             "agentKey": self.agent_key,
             "encData": token,
         }
+        proxies = {"http": self.proxy_url, "https": self.proxy_url} if self.proxy_url else None
 
         bill_no = str(payload_dict.get("billNo") or "").strip()
         logger.info(f"Sending ShamCash request to {url} [billNo={bill_no}]")
@@ -278,7 +371,13 @@ class ShamCashClient:
         result_code = None
 
         try:
-            response = requests.post(url, json=body, headers=headers, timeout=self.timeout)
+            response = self._session.post(
+                url,
+                json=body,
+                headers=headers,
+                timeout=self.timeout,
+                proxies=proxies,
+            )
             status_code = response.status_code
             duration_ms = int((time.time() - start_time) * 1000)
 
@@ -322,7 +421,7 @@ class ShamCashClient:
                 error_message=f"Timeout: {err}",
             )
             logger.error(f"ShamCash request timeout ({url}): {err}")
-            raise ShamCashError("ShamCash API request timed out.", error_code=504) from err
+            raise ShamCashError(self.ERROR_MESSAGES_AR[504], error_code=504) from err
 
         except requests.exceptions.RequestException as err:
             duration_ms = int((time.time() - start_time) * 1000)
@@ -338,21 +437,29 @@ class ShamCashClient:
                 error_message=f"Network error: {err}",
             )
             logger.error(f"ShamCash request failed ({url}): {err}")
-            raise ShamCashError(f"ShamCash network error: {err}", error_code=502) from err
+            raise ShamCashError(self.ERROR_MESSAGES_AR[502], error_code=502) from err
 
         if not isinstance(raw_res, dict):
             raise ShamCashError(
-                f"ShamCash returned unexpected response (HTTP {status_code})",
+                "تلقت المنصة استجابة غير متوقعة من خوادم شام كاش، يرجى المحاولة بعد قليل.",
                 error_code=status_code,
                 raw_response={"text": str(raw_res)},
             )
 
         # Handle business logic failures
         if status_code != 200 or (result_code is not None and result_code != 2500):
-            msg = raw_res.get("message") or f"API error with result code {result_code}"
-            logger.warning(f"ShamCash error returned: code={result_code}, message={msg}, data={raw_res}")
+            raw_msg = raw_res.get("message") or f"API error with result code {result_code}"
+            logger.warning(f"ShamCash error returned: code={result_code}, message={raw_msg}, data={raw_res}")
+            arabic_msg = self.ERROR_MESSAGES_AR.get(
+                int(result_code) if isinstance(result_code, (int, str)) and str(result_code).isdigit() else -1
+            )
+            if not arabic_msg:
+                if status_code == 403:
+                    arabic_msg = "تم رفض الاتصال مؤقتاً من جدار حماية شام كاش، يرجى المحاولة بعد قليل."
+                else:
+                    arabic_msg = "تعذر إتمام الطلب لدى بوابة شام كاش، يرجى التحقق من البيانات والمحاولة مجدداً."
             raise ShamCashError(
-                message=f"ShamCash: {msg}",
+                message=arabic_msg,
                 error_code=result_code or status_code,
                 raw_response=raw_res,
             )
@@ -406,10 +513,10 @@ class ShamCashClient:
         """
         amt = Decimal(str(amount)).quantize(Decimal("0.01"))
         if amt <= Decimal("0.00"):
-            raise ShamCashError("Bill amount must be greater than zero.")
+            raise ShamCashError("يجب أن تكون قيمة الفاتورة أكبر من صفر.")
 
         if currency_id not in (self.CURRENCY_USD, self.CURRENCY_SYP):
-            raise ShamCashError(f"Unsupported currencyId {currency_id}. Must be 1 (USD) or 2 (SYP).")
+            raise ShamCashError("العملة المحددة غير مدعومة لدى شام كاش (العملات المدعومة: الدولار USD أو الليرة السورية SYP).")
 
         payload = {
             "billNo": str(bill_no).strip(),
@@ -429,7 +536,16 @@ class ShamCashClient:
                 try:
                     existing_bill = self.get_bill_info(bill_no)
                     if existing_bill:
-                        return existing_bill
+                        if not existing_bill.get("paymentUrl"):
+                            try:
+                                from apps.payments.models import ShamCashBillRecord
+                                rec = ShamCashBillRecord.objects.filter(bill_no=bill_no).first()
+                                if rec and rec.payment_url:
+                                    existing_bill["paymentUrl"] = rec.payment_url
+                            except Exception:
+                                pass
+                        if existing_bill.get("paymentUrl"):
+                            return existing_bill
                 except Exception as query_err:
                     logger.warning(f"Fallback getBillInfo failed for 1704: {query_err}")
             raise err
@@ -437,7 +553,7 @@ class ShamCashClient:
         data = res.get("data") or {}
         if not data.get("paymentUrl"):
             logger.error(f"ShamCash createBill response missing paymentUrl: {res}")
-            raise ShamCashError("ShamCash response did not include paymentUrl.", raw_response=res)
+            raise ShamCashError("لم تتضمن استجابة شام كاش رابط الدفع (paymentUrl).", raw_response=res)
 
         return data
 

@@ -36,6 +36,7 @@ jobs:
         run: |
           mkdir -p release_apk
           cp android/app/build/outputs/apk/release/app-release.apk release_apk/Raqamiyat-Release.apk
+          cp android/app/build/outputs/apk/release/app-release.apk release_apk/Raqamiyat-v3.2.1.apk
           cp android/app/build/outputs/apk/release/app-release.apk release_apk/Raqamiyat-v2.2.0.apk
           cp android/app/build/outputs/apk/release/app-release.apk release_apk/Raqamiyat-v2.1.0.apk
           cp android/app/build/outputs/apk/release/app-release.apk release_apk/Raqamiyat-v2.0.0.apk

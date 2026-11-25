@@ -273,20 +273,41 @@ class ShamCashGateway(BasePaymentGateway):
         """Test connectivity and encryption against ShamCash API."""
         client = self.get_client()
         if not client.agent_key or not client.raw_secret_key:
-            return {"ok": False, "message": "Agent Key أو Secret Key غير مهيأ."}
+            return {"ok": False, "message": "معرف الوكيل (Agent Key) أو المفتاح السري (Secret Key) غير مهيأ."}
         try:
             # Probe getBillInfo with a non-existent test ID to verify JWE encryption & API handshake
             test_bill_no = f"PROBE-{int(time.time())}"
             try:
                 client.get_bill_info(test_bill_no)
-                return {"ok": True, "message": "اتصال ناجح 100% ومصادقة سليمة مع خوادم شام كاش."}
+                return {
+                    "ok": True,
+                    "message": f"اتصال ناجح 100% ومصادقة سليمة مع خوادم شام كاش ({client.base_url}).",
+                }
             except ShamCashError as e:
                 # 1703 (Bill Not Found) means encryption, authentication, and routing succeeded!
                 if e.error_code == 1703:
                     return {
                         "ok": True,
-                        "message": "تم التحقق بنجاح من صحة المفاتيح والتشفير والاتصال بخوادم شام كاش، والمصادقة سليمة 100%.",
+                        "message": f"تم التحقق بنجاح من صحة المفاتيح والتشفير والاتصال بخوادم شام كاش ({client.base_url})، والمصادقة سليمة 100%.",
                         "code": 1703,
+                    }
+                elif e.error_code == 504:
+                    outbound_ip = ""
+                    try:
+                        import requests as _req
+                        outbound_ip = _req.get("https://api.ipify.org", timeout=3).text.strip()
+                    except Exception:
+                        pass
+                    ip_hint = (
+                        f" (عنوان IP الصادر للخادم: {outbound_ip} — في حال استمرار انتهاء المهلة على بيئة الإنتاج، يرجى التأكد من إضافة هذا الـ IP إلى القائمة البيضاء Whitelist لدى فريق الدعم التقني في شام كاش)"
+                        if outbound_ip
+                        else ""
+                    )
+                    return {
+                        "ok": False,
+                        "message": f"انتهت مهلة الاتصال بخوادم شام كاش ({client.base_url}){ip_hint}.",
+                        "code": 504,
+                        "outbound_ip": outbound_ip,
                     }
                 elif e.error_code in (1701, 1702, 1705, 1706):
                     return {
@@ -310,22 +331,29 @@ class ShamCashGateway(BasePaymentGateway):
         from apps.payments.models import ShamCashBillRecord
         client = self.get_client()
 
-        # Decouple internal ID from billNo per Recommendation (Doc Section 10)
-        bill_no = f"DEP-{deposit.id}-{int(time.time())}"
+        # Decouple internal UUID from billNo per Recommendation (Doc Section 10.1, Page 25):
+        # Short alphanumeric reference with sequence suffix (e.g. DEP-CD3EA39D88-1-4821)
+        short_dep = str(deposit.id).replace("-", "")[:10].upper()
+        seq = ShamCashBillRecord.objects.filter(deposit=deposit).count() + 1
+        bill_no = f"DEP-{short_dep}-{seq}-{int(time.time()) % 10000:04d}"
 
         site_url = getattr(settings, "SITE_URL", "").rstrip("/")
         if site_url:
-            callback_base = f"{site_url}{reverse('shamcash_callback')}"
-            redirect_base = f"{site_url}{reverse('shamcash_redirect')}"
+            callback_url = f"{site_url}{reverse('shamcash_callback')}"
+            redirect_url = f"{site_url}{reverse('shamcash_redirect_bill', kwargs={'bill_no': bill_no})}"
         elif request:
-            callback_base = request.build_absolute_uri(reverse("shamcash_callback"))
-            redirect_base = request.build_absolute_uri(reverse("shamcash_redirect"))
+            callback_url = request.build_absolute_uri(reverse("shamcash_callback"))
+            redirect_url = request.build_absolute_uri(reverse("shamcash_redirect_bill", kwargs={"bill_no": bill_no}))
         else:
-            callback_base = reverse("shamcash_callback")
-            redirect_base = reverse("shamcash_redirect")
+            callback_url = reverse("shamcash_callback")
+            redirect_url = reverse("shamcash_redirect_bill", kwargs={"bill_no": bill_no})
 
-        callback_url = f"{callback_base}?type=deposit&id={deposit.id}&bill_no={bill_no}"
-        redirect_url = f"{redirect_base}?type=deposit&id={deposit.id}&bill_no={bill_no}"
+        # Force HTTPS on callbackUrl and redirectUrl in live mode (Doc Section 6.1 & 9)
+        if client.mode == "live":
+            if callback_url.startswith("http://") and "localhost" not in callback_url and "127.0.0.1" not in callback_url:
+                callback_url = "https://" + callback_url[len("http://"):]
+            if redirect_url.startswith("http://") and "localhost" not in redirect_url and "127.0.0.1" not in redirect_url:
+                redirect_url = "https://" + redirect_url[len("http://"):]
 
         # Dual currency: USD (1) or SYP (2)
         curr_code = deposit.currency.code if deposit.currency else "USD"
@@ -336,7 +364,7 @@ class ShamCashGateway(BasePaymentGateway):
             currency_id = ShamCashClient.CURRENCY_USD
             bill_amount = Decimal(str(deposit.amount)).quantize(Decimal("0.01"))
 
-        notes = f"إيداع محفظة رقم {deposit.id} للمستخدم {deposit.user.email}"
+        notes = f"إيداع محفظة رقميات ({short_dep})"
         try:
             res = client.create_bill(
                 bill_no=bill_no,
@@ -386,8 +414,10 @@ class ShamCashGateway(BasePaymentGateway):
 
             return {
                 "url": res.get("paymentUrl"),
+                "paymentUrl": res.get("paymentUrl"),
                 "payment_id": bill_no,
                 "bill_no": bill_no,
+                "billNo": bill_no,
                 "provider": self.code,
                 "status": "pending",
                 "raw": res,
@@ -395,19 +425,15 @@ class ShamCashGateway(BasePaymentGateway):
         except ShamCashError as err:
             raise PaymentGatewayError(str(err)) from err
 
-    def verify_payment(self, deposit):
-        bill_no = (
-            deposit.gateway_payment_id
-            or (deposit.metadata.get("shamcash_bill_no") if isinstance(deposit.metadata, dict) else None)
-        )
-        if not bill_no:
-            raise PaymentGatewayError("لا يوجد رقم فاتورة شام كاش مسجل لهذا الإيداع.")
-
-        client = self.get_client()
-        try:
-            return client.get_bill_info(bill_no)
-        except ShamCashError as err:
-            raise PaymentGatewayError(str(err)) from err
+    def verify_payment(self, deposit, force: bool = False):
+        """
+        Verify deposit payment status.
+        Per Official ShamCash Doc Section 10.3 (Page 26 - Avoid Polling):
+        Relies on local DB (updated by Webhook) during the first 10 minutes,
+        and invokes getBillInfo only once after >= 10 minutes (unless force=True).
+        """
+        from apps.payments.views_shamcash import reconcile_shamcash_deposit_if_overdue
+        return reconcile_shamcash_deposit_if_overdue(deposit, force=force)
 
     def create_order_payment(self, order, request=None):
         """Create payment bill for direct order checkout."""
@@ -418,22 +444,33 @@ class ShamCashGateway(BasePaymentGateway):
         from apps.payments.models import ShamCashBillRecord
         client = self.get_client()
 
-        # Decouple internal ID from billNo per Recommendation (Doc Section 10)
-        bill_no = f"ORD-{order.number}-{int(time.time())}"
+        # Decouple internal Order number from billNo per Recommendation (Doc Section 10.1, Page 25):
+        # e.g. ORD-10025-1-4821
+        clean_num = str(order.number).strip()
+        if clean_num.upper().startswith("ORD-"):
+            clean_num = clean_num[4:]
+        elif clean_num.upper().startswith("ORD"):
+            clean_num = clean_num[3:]
+        clean_num = clean_num.strip("-") or str(order.id).replace("-", "")[:8].upper()
+        seq = ShamCashBillRecord.objects.filter(order=order).count() + 1
+        bill_no = f"ORD-{clean_num}-{seq}-{int(time.time()) % 10000:04d}"
 
         site_url = getattr(settings, "SITE_URL", "").rstrip("/")
         if site_url:
-            callback_base = f"{site_url}{reverse('shamcash_callback')}"
-            redirect_base = f"{site_url}{reverse('shamcash_redirect')}"
+            callback_url = f"{site_url}{reverse('shamcash_callback')}"
+            redirect_url = f"{site_url}{reverse('shamcash_redirect_bill', kwargs={'bill_no': bill_no})}"
         elif request:
-            callback_base = request.build_absolute_uri(reverse("shamcash_callback"))
-            redirect_base = request.build_absolute_uri(reverse("shamcash_redirect"))
+            callback_url = request.build_absolute_uri(reverse("shamcash_callback"))
+            redirect_url = request.build_absolute_uri(reverse("shamcash_redirect_bill", kwargs={"bill_no": bill_no}))
         else:
-            callback_base = reverse("shamcash_callback")
-            redirect_base = reverse("shamcash_redirect")
+            callback_url = reverse("shamcash_callback")
+            redirect_url = reverse("shamcash_redirect_bill", kwargs={"bill_no": bill_no})
 
-        callback_url = f"{callback_base}?type=order&id={order.id}&bill_no={bill_no}"
-        redirect_url = f"{redirect_base}?type=order&id={order.id}&bill_no={bill_no}"
+        if client.mode == "live":
+            if callback_url.startswith("http://") and "localhost" not in callback_url and "127.0.0.1" not in callback_url:
+                callback_url = "https://" + callback_url[len("http://"):]
+            if redirect_url.startswith("http://") and "localhost" not in redirect_url and "127.0.0.1" not in redirect_url:
+                redirect_url = "https://" + redirect_url[len("http://"):]
 
         # Determine requested currency: USD (1) or SYP (2)
         meta = order.metadata if isinstance(order.metadata, dict) else {}
@@ -534,8 +571,10 @@ class ShamCashGateway(BasePaymentGateway):
 
             return {
                 "url": res.get("paymentUrl"),
+                "paymentUrl": res.get("paymentUrl"),
                 "payment_id": bill_no,
                 "bill_no": bill_no,
+                "billNo": bill_no,
                 "provider": self.code,
                 "status": "pending",
                 "raw": res,
@@ -545,21 +584,15 @@ class ShamCashGateway(BasePaymentGateway):
         except Exception as err:
             raise PaymentGatewayError(f"تعذر إنشاء فاتورة الدفع عبر شام كاش: {err}") from err
 
-    def verify_order_payment(self, order):
-        bill_no = (
-            order.metadata.get("shamcash_bill_no")
-            or order.metadata.get("gateway_payment_id")
-            if isinstance(order.metadata, dict)
-            else None
-        )
-        if not bill_no:
-            raise PaymentGatewayError("لا يوجد رقم فاتورة شام كاش مسجل لهذا الطلب.")
-
-        client = self.get_client()
-        try:
-            return client.get_bill_info(bill_no)
-        except ShamCashError as err:
-            raise PaymentGatewayError(str(err)) from err
+    def verify_order_payment(self, order, force: bool = False):
+        """
+        Verify order payment status.
+        Per Official ShamCash Doc Section 10.3 (Page 26 - Avoid Polling):
+        Relies on local DB (updated by Webhook) during the first 10 minutes,
+        and invokes getBillInfo only once after >= 10 minutes (unless force=True).
+        """
+        from apps.payments.views_shamcash import reconcile_shamcash_order_if_overdue
+        return reconcile_shamcash_order_if_overdue(order, force=force)
 
     def refund_order_payment(self, order, reason="", amount=None, actor=None):
         """

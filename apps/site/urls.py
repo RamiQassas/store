@@ -88,6 +88,7 @@ urlpatterns = [
     # ShamCash Gateway Endpoints, Admin Management & Auditor Portal
     path("payments/shamcash/callback/", views_shamcash.shamcash_callback_view, name="shamcash_callback"),
     path("payments/shamcash/redirect/", views_shamcash.shamcash_redirect_view, name="shamcash_redirect"),
+    path("payments/shamcash/redirect/<str:bill_no>/", views_shamcash.shamcash_redirect_view, name="shamcash_redirect_bill"),
     path("control/shamcash/", views_shamcash_admin.shamcash_dashboard_view, name="shamcash_dashboard"),
     path("control/shamcash/bills/", views_shamcash_admin.shamcash_bills_list_view, name="shamcash_bills"),
     path("control/shamcash/bills/<str:bill_no>/", views_shamcash_admin.shamcash_bill_detail_view, name="shamcash_bill_detail"),

@@ -177,8 +177,8 @@ public class NativePaymentActivity extends AppCompatActivity {
                 HttpURLConnection conn = (HttpURLConnection) new URL(DEPOSIT_API).openConnection();
                 conn.setRequestMethod("POST");
                 conn.setDoOutput(true);
-                conn.setConnectTimeout(12000);
-                conn.setReadTimeout(15000);
+                conn.setConnectTimeout(15000);
+                conn.setReadTimeout(25000);
                 conn.setRequestProperty("Content-Type", "application/json; charset=UTF-8");
                 String cookies = CookieManager.getInstance().getCookie(DOMAIN);
                 if (cookies != null && !cookies.isEmpty()) {
@@ -307,6 +307,11 @@ public class NativePaymentActivity extends AppCompatActivity {
     }
 
     private void openPaymentUrl(String url) {
+        if (MainActivity.isShamCashExternalUrl(url) || "shamcash".equalsIgnoreCase(selectedProvider)) {
+            // Official ShamCash Requirement (Doc Page 26): Open in ShamCash App / System Browser, keep Activity alive to verify on return
+            MainActivity.launchExternalShamCashUrl(this, url);
+            return;
+        }
         Intent intent = new Intent(this, MainActivity.class);
         intent.putExtra(ProductDetailActivity.EXTRA_OPEN_URL, url);
         intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_SINGLE_TOP);
@@ -319,7 +324,8 @@ public class NativePaymentActivity extends AppCompatActivity {
         super.onResume();
         if (waitingForGatewayReturn && !activeDepositId.isEmpty()) {
             waitingForGatewayReturn = false;
-            mainHandler.postDelayed(this::verifyDepositStatus, 1000);
+            mainHandler.postDelayed(this::verifyDepositStatus, 800);
+            mainHandler.postDelayed(this::verifyDepositStatus, 3200);
         }
     }
 

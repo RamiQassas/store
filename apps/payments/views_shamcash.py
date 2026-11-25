@@ -10,19 +10,24 @@ Specification:
 - Zero customer surcharge compliance per Article 7.
 - Idempotent processing of Wallet Deposits and Direct Order Checkouts.
 - Returns HTTP 200 with result code 2500 within the 10-second safety window.
+- Strict Anti-Polling Compliance (Doc Section 10.3, Page 26):
+  getBillInfo is NEVER polled in loops; only invoked once after >= 10 minutes if webhook did not arrive.
 - Dual Currency support: USD (currencyId=1) and SYP (currencyId=2).
 """
 
 import json
 import logging
+import uuid
+from datetime import timedelta
 from decimal import Decimal
-from typing import Any, Dict, Optional
+from typing import Any, Dict, Optional, Tuple
 
 from django.conf import settings
 from django.contrib import messages
+from django.core.cache import cache
 from django.db import transaction
-from django.http import HttpResponse, JsonResponse
-from django.shortcuts import get_object_or_404, redirect
+from django.http import JsonResponse
+from django.shortcuts import redirect
 from django.urls import reverse
 from django.utils import timezone
 from django.views.decorators.csrf import csrf_exempt
@@ -43,6 +48,18 @@ from apps.wallets.services import credit_wallet, get_or_create_wallet
 
 logger = logging.getLogger(__name__)
 
+# Official ShamCash safety window before a single fallback getBillInfo is permitted (Doc Page 26)
+SHAMCASH_FALLBACK_SAFETY_MINUTES = 10
+
+
+def _safe_uuid(val: Any) -> Optional[uuid.UUID]:
+    if not val:
+        return None
+    try:
+        return uuid.UUID(str(val).strip())
+    except (ValueError, TypeError, AttributeError):
+        return None
+
 
 def _get_active_shamcash_integration():
     """Retrieve the most recently updated active PaymentGatewayIntegration for ShamCash."""
@@ -53,6 +70,7 @@ def _get_active_shamcash_integration():
                 is_active=True,
             )
             .exclude(api_key="")
+            .exclude(api_secret="")
             .order_by("-updated_at")
             .first()
             or PaymentGatewayIntegration.all_objects.filter(
@@ -64,14 +82,13 @@ def _get_active_shamcash_integration():
         )
 
 
-def _get_active_shamcash_client():
+def _get_active_shamcash_client() -> Optional[ShamCashClient]:
     """Retrieve active ShamCashClient from DB integration or settings fallback."""
     integration = _get_active_shamcash_integration()
     if integration:
         client = ShamCashClient.from_integration(integration)
         if client.agent_key and client.raw_secret_key:
             return client
-    from django.conf import settings
     agent_key = getattr(settings, "SHAM_CASH_AGENT_KEY", "")
     secret_key = getattr(settings, "SHAM_CASH_SECRET_KEY", "")
     if agent_key and secret_key:
@@ -80,48 +97,245 @@ def _get_active_shamcash_client():
             secret_key=secret_key,
             base_url=getattr(settings, "SHAM_CASH_BASE_URL", None),
             mode=getattr(settings, "SHAM_CASH_MODE", "live"),
+            proxy_url=getattr(settings, "SHAM_CASH_PROXY_URL", None),
         )
     return None
 
 
-def _check_bill_paid_in_shamcash(client, bill_no):
+def _can_invoke_fallback_get_bill_info(bill_no: str, created_at=None, force: bool = False) -> bool:
     """
-    Check if a bill is paid in ShamCash.
-    Returns (is_paid: bool, tran_id: int/str, bill_info: dict)
-    Tries get_bill_info first, then today's get_transactions fallback (fast & bounded).
+    Enforces ShamCash Doc Section 10.3 (Page 26 - Avoid Polling):
+    - Never call getBillInfo within the first 10 minutes of bill creation (unless manual admin force=True).
+    - Only invoke once per bill after the 10-minute safety window if no webhook arrived.
     """
-    if not client or not bill_no:
+    if not bill_no:
+        return False
+    if force:
+        return True
+    if not created_at:
+        return False
+    if timezone.now() - created_at < timedelta(minutes=SHAMCASH_FALLBACK_SAFETY_MINUTES):
+        return False
+    cache_key = f"shamcash_fallback_once:{bill_no}"
+    try:
+        return bool(cache.add(cache_key, 1, timeout=86400))
+    except Exception:
+        return True
+
+
+def _check_bill_paid_in_shamcash(
+    client: Optional[ShamCashClient],
+    bill_no: str,
+    created_at=None,
+    force: bool = False,
+) -> Tuple[bool, Any, dict]:
+    """
+    Checks ShamCash bill status strictly adhering to Doc Page 26:
+    1. First checks local ShamCashBillRecord (updated by official ShamCash Webhook) — 0 network calls!
+    2. Only calls POST /getBillInfo once if force=True or >= 10 minutes elapsed without webhook.
+    """
+    if not bill_no:
         return False, None, {}
-    bill_info = {}
+
+    with bypass_tenant_filter():
+        bill_rec = ShamCashBillRecord.objects.filter(bill_no=bill_no).first()
+
+    if bill_rec:
+        if not created_at:
+            created_at = bill_rec.created_at
+        if bill_rec.status_id == ShamCashClient.STATUS_PAID:
+            return True, bill_rec.tran_id, {
+                "billNo": bill_no,
+                "tranId": bill_rec.tran_id,
+                "statusId": ShamCashClient.STATUS_PAID,
+                "statusName": "paid",
+                "amount": str(bill_rec.amount),
+            }
+        if bill_rec.status_id == ShamCashClient.STATUS_EXPIRED and not force:
+            return False, None, {
+                "billNo": bill_no,
+                "statusId": ShamCashClient.STATUS_EXPIRED,
+                "statusName": "expired",
+            }
+
+    if not client or not _can_invoke_fallback_get_bill_info(bill_no, created_at=created_at, force=force):
+        return False, None, {}
+
     try:
         bill_info = client.get_bill_info(bill_no) or {}
-        status_id = bill_info.get("statusId")
+        raw_st = bill_info.get("statusId")
+        status_id = int(raw_st) if raw_st is not None and str(raw_st).isdigit() else raw_st
+        tran_id = bill_info.get("tranId")
+
+        if bill_rec and status_id is not None:
+            bill_rec.status_id = int(status_id) if str(status_id).isdigit() else bill_rec.status_id
+            bill_rec.status_name = ShamCashClient.STATUS_NAMES.get(bill_rec.status_id, str(status_id))
+            if tran_id and str(tran_id).isdigit():
+                bill_rec.tran_id = int(tran_id)
+            bill_rec.save(update_fields=["status_id", "status_name", "tran_id", "updated_at"])
+
         is_paid = (
-            status_id in (ShamCashClient.STATUS_PAID, 4, "4")
+            status_id == ShamCashClient.STATUS_PAID
             or str(bill_info.get("statusName", "")).lower() == "paid"
-            or bool(bill_info.get("tranId"))
         )
         if is_paid:
-            return True, bill_info.get("tranId"), bill_info
-        # If explicitly expired (3), return immediately
-        if status_id in (ShamCashClient.STATUS_EXPIRED, 3, "3", 5, "5") or str(bill_info.get("statusName", "")).lower() == "expired":
-            return False, None, bill_info
+            return True, tran_id, bill_info
+        return False, None, bill_info
     except Exception as err:
-        logger.warning(f"get_bill_info failed for {bill_no}: {err}")
+        logger.warning(f"Single fallback get_bill_info check failed for {bill_no}: {err}")
+        return False, None, {}
 
-    # Fast fallback: check today's transactions (limit=20, from_date=today) in case getBillInfo is lagging by 1-2s right after payment
-    try:
-        today_str = timezone.now().strftime("%Y-%m-%d")
-        tx_data = client.get_transactions(from_date=today_str, to_date=today_str, limit=25)
-        tx_list = tx_data.get("list", []) if isinstance(tx_data, dict) else (tx_data if isinstance(tx_data, list) else [])
-        for tx in tx_list:
-            if tx.get("billNo") == bill_no and str(tx.get("tranType", "")).lower() == "payment":
-                logger.info(f"Matched paid bill {bill_no} via get_transactions [tranId={tx.get('tranId')}].")
-                return True, tx.get("tranId"), tx
-    except Exception as err:
-        logger.warning(f"get_transactions fallback check failed for {bill_no}: {err}")
 
-    return False, None, bill_info
+def reconcile_shamcash_deposit_if_overdue(deposit: DepositRequest, force: bool = False) -> dict:
+    """
+    Reconciles a ShamCash deposit without violating ShamCash's anti-polling policy.
+    Completes immediately if local ShamCashBillRecord is already Paid via Webhook,
+    or performs the single post-10-minute getBillInfo fallback check when overdue.
+    """
+    if not deposit:
+        return {}
+    if deposit.status == DepositRequest.Status.COMPLETED:
+        return {"statusId": ShamCashClient.STATUS_PAID, "statusName": "paid"}
+
+    with bypass_tenant_filter():
+        bill_rec = ShamCashBillRecord.objects.filter(deposit=deposit).order_by("-created_at").first()
+
+    bill_no = (
+        deposit.gateway_payment_id
+        or (deposit.metadata.get("shamcash_bill_no") if isinstance(deposit.metadata, dict) else "")
+        or (bill_rec.bill_no if bill_rec else "")
+    )
+    if not bill_no:
+        return {}
+
+    meta = deposit.metadata if isinstance(deposit.metadata, dict) else {}
+    if meta.get("shamcash_fallback_checked") and not force:
+        # Still honor local bill_rec if webhook arrived later
+        if bill_rec and bill_rec.status_id == ShamCashClient.STATUS_PAID:
+            if deposit.status == DepositRequest.Status.REJECTED:
+                deposit.status = DepositRequest.Status.PENDING
+                deposit.save(update_fields=["status", "updated_at"])
+            _complete_successful_shamcash_deposit(deposit, bill_rec.tran_id, {"billNo": bill_no, "tranId": bill_rec.tran_id, "statusId": 4})
+            return {"statusId": ShamCashClient.STATUS_PAID, "statusName": "paid"}
+        return {}
+
+    created_at = (bill_rec.created_at if bill_rec else None) or deposit.created_at
+    client = _get_active_shamcash_client()
+    is_paid, tran_id, bill_info = _check_bill_paid_in_shamcash(
+        client, bill_no, created_at=created_at, force=force
+    )
+
+    if bill_info and not force:
+        if not isinstance(deposit.metadata, dict):
+            deposit.metadata = {}
+        deposit.metadata["shamcash_fallback_checked"] = True
+        deposit.save(update_fields=["metadata", "updated_at"])
+
+    if is_paid:
+        if deposit.status == DepositRequest.Status.REJECTED:
+            deposit.status = DepositRequest.Status.PENDING
+            deposit.save(update_fields=["status", "updated_at"])
+        _complete_successful_shamcash_deposit(deposit, tran_id, bill_info)
+        return bill_info or {"statusId": ShamCashClient.STATUS_PAID, "statusName": "paid"}
+
+    status_id = bill_info.get("statusId") if isinstance(bill_info, dict) else None
+    if deposit.status == DepositRequest.Status.PENDING and status_id in (ShamCashClient.STATUS_EXPIRED, 3, "3"):
+        deposit.status = DepositRequest.Status.REJECTED
+        deposit.admin_note = "انتهت مهلة صلاحية الفاتورة في شام كاش (10 دقائق) دون تسديد."
+        deposit.save(update_fields=["status", "admin_note", "updated_at"])
+
+    return bill_info or {"statusId": ShamCashClient.STATUS_PENDING, "statusName": "pending"}
+
+
+def reconcile_shamcash_order_if_overdue(order: Order, force: bool = False) -> dict:
+    """
+    Reconciles a ShamCash order without violating ShamCash's anti-polling policy.
+    Completes immediately if local ShamCashBillRecord is already Paid via Webhook,
+    or performs the single post-10-minute getBillInfo fallback check when overdue.
+    """
+    if not order:
+        return {}
+    if order.status in (Order.Status.PROCESSING, Order.Status.COMPLETED):
+        return {"statusId": ShamCashClient.STATUS_PAID, "statusName": "paid"}
+
+    with bypass_tenant_filter():
+        bill_rec = ShamCashBillRecord.objects.filter(order=order).order_by("-created_at").first()
+
+    meta = order.metadata if isinstance(order.metadata, dict) else {}
+    bill_no = (
+        meta.get("shamcash_bill_no")
+        or meta.get("gateway_payment_id")
+        or (bill_rec.bill_no if bill_rec else "")
+    )
+    if not bill_no:
+        return {}
+
+    if meta.get("shamcash_fallback_checked") and not force:
+        if bill_rec and bill_rec.status_id == ShamCashClient.STATUS_PAID:
+            if order.status == Order.Status.CANCELLED:
+                with bypass_tenant_filter():
+                    order.status = Order.Status.PENDING
+                    order.admin_note = "تم تأكيد السداد عبر شام كاش وتفعيل الطلب."
+                    order.save(update_fields=["status", "admin_note", "updated_at"])
+            finalize_paid_gateway_order(order, {
+                "status": "A",
+                "id": bill_no,
+                "tran_id": bill_rec.tran_id,
+                "bill_no": bill_no,
+                "provider": "sham_cash",
+                "payload": {"billNo": bill_no, "tranId": bill_rec.tran_id, "statusId": 4},
+            })
+            return {"statusId": ShamCashClient.STATUS_PAID, "statusName": "paid"}
+        return {}
+
+    created_at = (bill_rec.created_at if bill_rec else None) or order.created_at
+    client = _get_active_shamcash_client()
+    is_paid, tran_id, bill_info = _check_bill_paid_in_shamcash(
+        client, bill_no, created_at=created_at, force=force
+    )
+
+    if bill_info and not force:
+        with bypass_tenant_filter():
+            if not isinstance(order.metadata, dict):
+                order.metadata = {}
+            order.metadata["shamcash_fallback_checked"] = True
+            order.save(update_fields=["metadata", "updated_at"])
+
+    if is_paid:
+        bill_amount = bill_info.get("amount") if isinstance(bill_info, dict) else None
+        expected_charge = meta.get("gateway_charge_amount")
+        if bill_amount and expected_charge:
+            try:
+                if Decimal(str(bill_amount)) < (Decimal(str(expected_charge)) * Decimal("0.95")):
+                    logger.error(f"SECURITY: Order {order.id} underpaid in ShamCash! Expected {expected_charge}, got {bill_amount}")
+                    return bill_info
+            except Exception:
+                pass
+
+        if order.status == Order.Status.CANCELLED:
+            with bypass_tenant_filter():
+                order.status = Order.Status.PENDING
+                order.admin_note = "تم تأكيد السداد من شام كاش وتفعيل الطلب."
+                order.save(update_fields=["status", "admin_note", "updated_at"])
+
+        finalize_paid_gateway_order(order, {
+            "status": "A",
+            "id": bill_no,
+            "tran_id": tran_id,
+            "bill_no": bill_no,
+            "provider": "sham_cash",
+            "payload": bill_info,
+        })
+        return bill_info or {"statusId": ShamCashClient.STATUS_PAID, "statusName": "paid"}
+
+    status_id = bill_info.get("statusId") if isinstance(bill_info, dict) else None
+    if order.status == Order.Status.PENDING and status_id in (ShamCashClient.STATUS_EXPIRED, 3, "3"):
+        with bypass_tenant_filter():
+            order.status = Order.Status.CANCELLED
+            order.admin_note = "انتهت صلاحية فاتورة شام كاش دون تسديد (10 دقائق)."
+            order.save(update_fields=["status", "admin_note", "updated_at"])
+
+    return bill_info or {"statusId": ShamCashClient.STATUS_PENDING, "statusName": "pending"}
 
 
 def _complete_successful_shamcash_deposit(deposit: DepositRequest, tran_id: Any, status_data: dict) -> bool:
@@ -132,7 +346,7 @@ def _complete_successful_shamcash_deposit(deposit: DepositRequest, tran_id: Any,
     """
     with transaction.atomic():
         with bypass_tenant_filter():
-            locked_deposit = DepositRequest.objects.select_for_update().get(pk=deposit.pk)
+            locked_deposit = DepositRequest.all_objects.select_for_update().get(pk=deposit.pk)
 
             if locked_deposit.status == DepositRequest.Status.COMPLETED:
                 logger.info(f"Deposit {deposit.id} already completed; skipping redundant credit.")
@@ -235,8 +449,10 @@ def _complete_successful_shamcash_deposit(deposit: DepositRequest, tran_id: Any,
 def shamcash_callback_view(request):
     """
     Asynchronous Webhook endpoint invoked by ShamCash backend.
-    Documentation: ShamCash E-Payment Integration Guide v1.0.0 (Section 9).
-    Receives {"encData": "..."} containing encrypted status updates.
+    Documentation: ShamCash E-Payment Integration Guide v1.0.0 (Section 9, Pages 23-24).
+    Receives {"encData": "..."} containing Direct JWE encrypted status updates:
+      {billNo, tranId, statusId (4=Paid, 3=Expired), iat, exp}
+    Returns HTTP 200 within 10 seconds.
     Endpoint: /payments/shamcash/callback/
     """
     client_ip = request.META.get("HTTP_X_FORWARDED_FOR") or request.META.get("REMOTE_ADDR")
@@ -273,14 +489,12 @@ def shamcash_callback_view(request):
         webhook_log.save(update_fields=["error_message"])
         return JsonResponse({"result": 1700, "message": err_msg}, status=400)
 
-    integration = _get_active_shamcash_integration()
-    if not integration:
-        logger.error("ShamCash webhook: No active ShamCash integration configured.")
-        webhook_log.error_message = "No active ShamCash integration found"
+    client = _get_active_shamcash_client()
+    if not client or not client.raw_secret_key:
+        logger.error("ShamCash webhook: No active ShamCash credentials configured.")
+        webhook_log.error_message = "No active ShamCash secret key configured"
         webhook_log.save(update_fields=["error_message"])
         return JsonResponse({"result": 1702, "message": "Integration not active"}, status=500)
-
-    client = ShamCashClient.from_integration(integration)
 
     try:
         # Decrypt Direct JWE payload and verify expiration claim (Doc Section 5 & 9)
@@ -289,15 +503,16 @@ def shamcash_callback_view(request):
         logger.error(f"ShamCash webhook decryption failed: {err}")
         webhook_log.error_message = f"Decryption/validation failed: {err}"
         webhook_log.save(update_fields=["error_message"])
-        return JsonResponse({"result": 1705, "message": f"Decryption failed: {err}"}, status=400)
+        return JsonResponse({"result": err.error_code or 1705, "message": "Decryption failed"}, status=400)
 
     bill_no = str(payload.get("billNo") or "").strip()
     tran_id = payload.get("tranId")
-    status_id = payload.get("statusId")
+    raw_status_id = payload.get("statusId")
+    status_id = int(raw_status_id) if raw_status_id is not None and str(raw_status_id).isdigit() else raw_status_id
 
     webhook_log.bill_no = bill_no
     webhook_log.tran_id = int(tran_id) if tran_id and str(tran_id).isdigit() else None
-    webhook_log.status_id = int(status_id) if status_id is not None else None
+    webhook_log.status_id = status_id if isinstance(status_id, int) else None
     webhook_log.decrypted_payload = payload
     webhook_log.is_valid = True
     webhook_log.save(update_fields=["bill_no", "tran_id", "status_id", "decrypted_payload", "is_valid"])
@@ -311,32 +526,35 @@ def shamcash_callback_view(request):
         webhook_log.save(update_fields=["error_message"])
         return JsonResponse({"result": 1700, "message": "Missing billNo in payload"}, status=400)
 
-    # Update central ShamCashBillRecord status
-    bill_record = ShamCashBillRecord.objects.filter(bill_no=bill_no).first()
-    if bill_record:
-        if status_id is not None:
-            bill_record.status_id = int(status_id)
-            bill_record.status_name = ShamCashClient.STATUS_NAMES.get(int(status_id), str(status_id))
-        if tran_id:
-            bill_record.tran_id = int(tran_id) if str(tran_id).isdigit() else None
-        bill_record.save(update_fields=["status_id", "status_name", "tran_id", "updated_at"])
+    with bypass_tenant_filter():
+        bill_record = ShamCashBillRecord.objects.select_related("deposit", "order").filter(bill_no=bill_no).first()
+        if bill_record:
+            if isinstance(status_id, int):
+                bill_record.status_id = status_id
+                bill_record.status_name = ShamCashClient.STATUS_NAMES.get(status_id, str(status_id))
+            if tran_id and str(tran_id).isdigit():
+                bill_record.tran_id = int(tran_id)
+            bill_record.save(update_fields=["status_id", "status_name", "tran_id", "updated_at"])
 
-    # ── Handle Wallet Deposit ──────────────────────────────────────────────────
-    query_deposit_id = request.GET.get("id") or request.GET.get("deposit_id")
-    is_deposit = bill_no.startswith("DEP-") or (request.GET.get("type") == "deposit") or bool(query_deposit_id)
+    # ── Determine Target (Deposit vs Order) via BillRecord first, then prefix/query ──
+    query_deposit_uuid = _safe_uuid(request.GET.get("id") or request.GET.get("deposit_id"))
+    query_order_uuid = _safe_uuid(request.GET.get("id") or request.GET.get("order_id"))
+
+    is_deposit = (
+        (bill_record and bill_record.deposit_id is not None)
+        or bill_no.startswith("DEP-")
+        or request.GET.get("type") == "deposit"
+    )
 
     if is_deposit:
         with bypass_tenant_filter():
-            deposit = None
-            if query_deposit_id:
-                deposit = DepositRequest.objects.filter(pk=query_deposit_id).first()
+            deposit = bill_record.deposit if (bill_record and bill_record.deposit) else None
+            if not deposit and query_deposit_uuid:
+                deposit = DepositRequest.all_objects.filter(pk=query_deposit_uuid).first()
             if not deposit:
-                deposit = DepositRequest.objects.filter(gateway_payment_id=bill_no).first()
-            if not deposit and "-" in bill_no:
-                parts = bill_no.split("-")
-                if len(parts) >= 2:
-                    possible_id = parts[1]
-                    deposit = DepositRequest.objects.filter(pk=possible_id).first()
+                deposit = DepositRequest.all_objects.filter(gateway_payment_id=bill_no).first()
+            if not deposit:
+                deposit = DepositRequest.all_objects.filter(metadata__shamcash_bill_no=bill_no).first()
 
             if not deposit:
                 logger.error(f"ShamCash webhook: Deposit not found for billNo={bill_no}")
@@ -345,7 +563,10 @@ def shamcash_callback_view(request):
                 return JsonResponse({"result": 1703, "message": "Deposit record not found"}, status=404)
 
             # Status 4 = Paid (Success)
-            if status_id == ShamCashClient.STATUS_PAID:
+            if status_id == ShamCashClient.STATUS_PAID or str(payload.get("statusName", "")).lower() == "paid":
+                if deposit.status == DepositRequest.Status.REJECTED:
+                    deposit.status = DepositRequest.Status.PENDING
+                    deposit.save(update_fields=["status", "updated_at"])
                 _complete_successful_shamcash_deposit(deposit, tran_id, payload)
                 webhook_log.processed_successfully = True
                 webhook_log.save(update_fields=["processed_successfully"])
@@ -366,21 +587,30 @@ def shamcash_callback_view(request):
             return JsonResponse({"result": 2500, "message": f"Status {status_id} recorded"})
 
     # ── Handle Direct Order ────────────────────────────────────────────────────
-    query_order_id = request.GET.get("id") or request.GET.get("order_id")
-    is_order = bill_no.startswith("ORD-") or (request.GET.get("type") == "order") or bool(query_order_id)
+    is_order = (
+        (bill_record and bill_record.order_id is not None)
+        or bill_no.startswith("ORD-")
+        or request.GET.get("type") == "order"
+        or bool(query_order_uuid)
+    )
 
     if is_order:
         with bypass_tenant_filter():
-            order = None
-            if query_order_id:
-                order = Order.all_objects.filter(pk=query_order_id).first()
+            order = bill_record.order if (bill_record and bill_record.order) else None
+            if not order and query_order_uuid:
+                order = Order.all_objects.filter(pk=query_order_uuid).first()
+            if not order:
+                order = Order.all_objects.filter(metadata__shamcash_bill_no=bill_no).first()
             if not order:
                 order = Order.all_objects.filter(metadata__gateway_payment_id=bill_no).first()
             if not order and "-" in bill_no:
                 parts = bill_no.split("-")
                 if len(parts) >= 2:
                     possible_num = parts[1]
-                    order = Order.all_objects.filter(number=possible_num).first()
+                    order = (
+                        Order.all_objects.filter(number=possible_num).first()
+                        or Order.all_objects.filter(number=f"ORD-{possible_num}").first()
+                    )
 
             if not order:
                 logger.error(f"ShamCash webhook: Order not found for billNo={bill_no}")
@@ -395,8 +625,7 @@ def shamcash_callback_view(request):
                 webhook_log.save(update_fields=["processed_successfully"])
                 return JsonResponse({"result": 2500, "message": "Order already processed"})
 
-            if status_id in (ShamCashClient.STATUS_PAID, 4, "4") or str(payload.get("statusName", "")).lower() == "paid":
-                # Anti-tampering check: verify paid amount if present in payload
+            if status_id == ShamCashClient.STATUS_PAID or str(payload.get("statusName", "")).lower() == "paid":
                 webhook_amount = payload.get("amount")
                 expected_charge = order.metadata.get("gateway_charge_amount") if isinstance(order.metadata, dict) else None
                 if webhook_amount and expected_charge:
@@ -411,7 +640,6 @@ def shamcash_callback_view(request):
                     except Exception as exc:
                         logger.warning(f"Error parsing amount for validation: {exc}")
 
-                # If order was prematurely marked CANCELLED on return before paid webhook arrived, restore it to PENDING so finalize_paid_gateway_order processes it!
                 if order.status == Order.Status.CANCELLED:
                     order.status = Order.Status.PENDING
                     order.admin_note = "تم تأكيد سداد الفاتورة عبر إشعار شام كاش الرسمي."
@@ -419,7 +647,7 @@ def shamcash_callback_view(request):
 
                 gateway_data = {
                     "status": "A",
-                    "id": str(tran_id or bill_no),
+                    "id": bill_no,
                     "tran_id": tran_id,
                     "bill_no": bill_no,
                     "provider": "sham_cash",
@@ -448,20 +676,26 @@ def shamcash_callback_view(request):
             webhook_log.save(update_fields=["processed_successfully"])
             return JsonResponse({"result": 2500, "message": f"Status {status_id} recorded"})
 
-    # Fallback response
     webhook_log.processed_successfully = True
     webhook_log.save(update_fields=["processed_successfully"])
     return JsonResponse({"result": 2500, "message": "Notification received successfully"})
 
 
-def shamcash_redirect_view(request):
+def shamcash_redirect_view(request, bill_no: str = ""):
     """
     Browser return endpoint when customer completes payment or returns from ShamCash.
-    Endpoint: /payments/shamcash/redirect/
+    Endpoints:
+      - /payments/shamcash/redirect/<bill_no>/
+      - /payments/shamcash/redirect/
+    Strictly adheres to Doc Section 7 & 10.3: relies on encrypted backend Webhook
+    (and single post-10-minute fallback if overdue), never spamming getBillInfo.
     """
-    bill_no = request.GET.get("bill_no") or request.GET.get("billNo") or ""
-    req_type = request.GET.get("type") or ""
-    obj_id = request.GET.get("id") or ""
+    raw_bill_no = (bill_no or request.GET.get("bill_no") or request.GET.get("billNo") or "").strip()
+    if "?" in raw_bill_no:
+        raw_bill_no = raw_bill_no.split("?", 1)[0].strip()
+
+    req_type = (request.GET.get("type") or "").strip().lower()
+    obj_uuid = _safe_uuid(request.GET.get("id"))
     raw_status = (
         request.GET.get("status")
         or request.GET.get("st")
@@ -476,22 +710,32 @@ def shamcash_redirect_view(request):
         or request.GET.get("cancelled") in ("1", "true", "yes")
     )
 
-    logger.info(f"ShamCash redirect return: type={req_type}, id={obj_id}, bill_no={bill_no}, raw_status={raw_status}, is_cancelled={is_cancelled}")
+    logger.info(
+        f"ShamCash redirect return: type={req_type}, id={obj_uuid}, bill_no={raw_bill_no}, raw_status={raw_status}, is_cancelled={is_cancelled}"
+    )
 
-    integration = _get_active_shamcash_integration()
-    client = ShamCashClient.from_integration(integration) if integration else None
+    with bypass_tenant_filter():
+        bill_rec = (
+            ShamCashBillRecord.objects.select_related("deposit", "order")
+            .filter(bill_no=raw_bill_no)
+            .first()
+            if raw_bill_no
+            else None
+        )
 
     # ── Handle Wallet Deposit Return ──────────────────────────────────────────
-    if req_type == "deposit" or bill_no.startswith("DEP-"):
+    if (bill_rec and bill_rec.deposit_id) or req_type == "deposit" or raw_bill_no.startswith("DEP-"):
         with bypass_tenant_filter():
-            deposit = None
-            if obj_id:
-                deposit = DepositRequest.objects.filter(pk=obj_id).first()
-            if not deposit and bill_no:
-                deposit = DepositRequest.objects.filter(gateway_payment_id=bill_no).first()
+            deposit = bill_rec.deposit if (bill_rec and bill_rec.deposit) else None
+            if not deposit and obj_uuid:
+                deposit = DepositRequest.all_objects.filter(pk=obj_uuid).first()
+            if not deposit and raw_bill_no:
+                deposit = (
+                    DepositRequest.all_objects.filter(gateway_payment_id=raw_bill_no).first()
+                    or DepositRequest.all_objects.filter(metadata__shamcash_bill_no=raw_bill_no).first()
+                )
 
             if deposit:
-                # Handle explicit user cancellation
                 if is_cancelled:
                     if deposit.status == DepositRequest.Status.PENDING:
                         deposit.status = DepositRequest.Status.REJECTED
@@ -499,62 +743,40 @@ def shamcash_redirect_view(request):
                         deposit.save(update_fields=["status", "admin_note", "updated_at"])
                     return redirect(f"{reverse('payment_status')}?type=deposit&id={deposit.id}&status=cancelled")
 
-                # Active fallback verification if still pending
-                active_bill_no = bill_no or getattr(deposit, "gateway_payment_id", "")
-                if not active_bill_no:
-                    from apps.payments.models import ShamCashBillRecord
-                    record = ShamCashBillRecord.objects.filter(deposit=deposit).order_by("-created_at").first()
-                    if record:
-                        active_bill_no = record.bill_no
-
-                payment_succeeded = False
-                if deposit.status == DepositRequest.Status.PENDING and client and active_bill_no:
-                    try:
-                        is_paid, checked_tran_id, bill_info = _check_bill_paid_in_shamcash(client, active_bill_no)
-                        if is_paid:
-                            _complete_successful_shamcash_deposit(deposit, checked_tran_id or bill_info.get("tranId"), bill_info)
-                            payment_succeeded = True
-                        else:
-                            status_id = bill_info.get("statusId") if isinstance(bill_info, dict) else None
-                            if status_id in (ShamCashClient.STATUS_EXPIRED, 3, "3", 5, "5") or str(bill_info.get("statusName", "") if isinstance(bill_info, dict) else "").lower() == "expired":
-                                deposit.status = DepositRequest.Status.REJECTED
-                                deposit.admin_note = "انتهت صلاحية الفاتورة دون دفع."
-                                deposit.save(update_fields=["status", "admin_note", "updated_at"])
-                    except Exception as err:
-                        logger.warning(f"Could not actively verify ShamCash bill on return: {err}")
-
+                reconcile_shamcash_deposit_if_overdue(deposit, force=False)
                 deposit.refresh_from_db()
-                if deposit.status == DepositRequest.Status.COMPLETED or payment_succeeded:
+
+                active_bill_no = raw_bill_no or deposit.gateway_payment_id or ""
+                if deposit.status == DepositRequest.Status.COMPLETED:
                     st = "success"
                 elif deposit.status == DepositRequest.Status.REJECTED:
                     st = "cancelled" if ("المستخدم" in (deposit.admin_note or "")) else "failed"
                 else:
-                    # Keep PENDING while payment_status_view polls ShamCash in real-time (do NOT cancel unless user explicitly cancelled!)
                     st = "pending"
                 return redirect(f"{reverse('payment_status')}?type=deposit&id={deposit.id}&status={st}&bill_no={active_bill_no}")
 
         return redirect("dashboard_deposits")
 
     # ── Handle Direct Order Return ───────────────────────────────────────────
-    if req_type == "order" or bill_no.startswith("ORD-"):
+    if (bill_rec and bill_rec.order_id) or req_type == "order" or raw_bill_no.startswith("ORD-"):
         with bypass_tenant_filter():
-            order = None
-            if obj_id:
-                order = Order.all_objects.filter(pk=obj_id).first()
-            if not order and bill_no:
-                from apps.payments.models import ShamCashBillRecord
-                bill_rec = ShamCashBillRecord.objects.filter(bill_no=bill_no).first()
-                if bill_rec and bill_rec.order:
-                    order = bill_rec.order
-            if not order and bill_no and bill_no.startswith("ORD-"):
-                parts = bill_no.split("-")
+            order = bill_rec.order if (bill_rec and bill_rec.order) else None
+            if not order and obj_uuid:
+                order = Order.all_objects.filter(pk=obj_uuid).first()
+            if not order and raw_bill_no:
+                order = (
+                    Order.all_objects.filter(metadata__shamcash_bill_no=raw_bill_no).first()
+                    or Order.all_objects.filter(metadata__gateway_payment_id=raw_bill_no).first()
+                )
+            if not order and raw_bill_no.startswith("ORD-"):
+                parts = raw_bill_no.split("-")
                 if len(parts) >= 2:
-                    order = Order.all_objects.filter(number=parts[1]).first()
-            if not order and bill_no:
-                order = Order.all_objects.filter(metadata__gateway_payment_id=bill_no).first()
+                    order = (
+                        Order.all_objects.filter(number=parts[1]).first()
+                        or Order.all_objects.filter(number=f"ORD-{parts[1]}").first()
+                    )
 
             if order:
-                # Handle explicit user cancellation
                 if is_cancelled:
                     if order.status == Order.Status.PENDING:
                         order.status = Order.Status.CANCELLED
@@ -568,64 +790,21 @@ def shamcash_redirect_view(request):
                         )
                     return redirect(f"{reverse('payment_status')}?type=order&id={order.id}&status=cancelled")
 
-                # Active fallback verification if still pending
-                active_bill_no = (
-                    bill_no
-                    or (order.metadata.get("gateway_payment_id") if order.metadata else "")
-                    or (order.metadata.get("shamcash_bill_no") if order.metadata else "")
-                )
-                if not active_bill_no:
-                    from apps.payments.models import ShamCashBillRecord
-                    record = ShamCashBillRecord.objects.filter(order=order).order_by("-created_at").first()
-                    if record:
-                        active_bill_no = record.bill_no
-
-                client = client or _get_active_shamcash_client()
-                payment_succeeded = False
-                if order.status == Order.Status.PENDING and client and active_bill_no:
-                    is_paid, tran_id, bill_info = _check_bill_paid_in_shamcash(client, active_bill_no)
-                    if is_paid:
-                        # Anti-tampering check: verify bill amount
-                        bill_amount = bill_info.get("amount") if isinstance(bill_info, dict) else None
-                        expected_charge = order.metadata.get("gateway_charge_amount") if isinstance(order.metadata, dict) else None
-                        if bill_amount and expected_charge:
-                            try:
-                                b_amt = Decimal(str(bill_amount))
-                                exp_amt = Decimal(str(expected_charge))
-                                if b_amt < (exp_amt * Decimal("0.95")):
-                                    logger.error(f"SECURITY: Order {order.id} underpaid in bill check! Expected {exp_amt}, received {b_amt}")
-                                    is_paid = False
-                            except Exception as exc:
-                                logger.warning(f"Error checking bill amount: {exc}")
-
-                    if is_paid:
-                        gateway_data = {
-                            "status": "A",
-                            "id": str(tran_id or active_bill_no),
-                            "tran_id": tran_id,
-                            "bill_no": active_bill_no,
-                            "provider": "sham_cash",
-                            "payload": bill_info,
-                        }
-                        finalize_paid_gateway_order(order, gateway_data)
-                        payment_succeeded = True
-                    else:
-                        status_id = bill_info.get("statusId") if isinstance(bill_info, dict) else None
-                        if status_id in (ShamCashClient.STATUS_EXPIRED, 3, "3", 5, "5") or str(bill_info.get("statusName", "") if isinstance(bill_info, dict) else "").lower() == "expired":
-                            order.status = Order.Status.CANCELLED
-                            order.admin_note = "انتهت مهلة الدفع في شام كاش."
-                            order.save(update_fields=["status", "admin_note", "updated_at"])
-
+                reconcile_shamcash_order_if_overdue(order, force=False)
                 order.refresh_from_db()
-                if order.status in (Order.Status.PROCESSING, Order.Status.COMPLETED) or payment_succeeded:
+
+                active_bill_no = (
+                    raw_bill_no
+                    or (order.metadata.get("shamcash_bill_no") if isinstance(order.metadata, dict) else "")
+                    or (order.metadata.get("gateway_payment_id") if isinstance(order.metadata, dict) else "")
+                )
+                if order.status in (Order.Status.PROCESSING, Order.Status.COMPLETED):
                     st = "success"
                 elif order.status == Order.Status.CANCELLED:
                     st = "cancelled" if ("المستخدم" in (order.admin_note or "")) else "failed"
                 else:
-                    # Keep order PENDING so payment_status_view can poll ShamCash in real-time (1-3s propagation) or allow user explicit cancel!
                     st = "pending"
                 return redirect(f"{reverse('payment_status')}?type=order&id={order.id}&status={st}&bill_no={active_bill_no}")
 
-    # Default fallback
     messages.info(request, "شكراً لاستخدامك خدمة شام كاش.")
     return redirect("dashboard")

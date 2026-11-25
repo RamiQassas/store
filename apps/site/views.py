@@ -1302,33 +1302,14 @@ def order_detail(request, pk):
         messages.success(request, "تم تقديم طلب استرداد الأموال بنجاح! سيتم فحص طلبك وإعادة المبلغ مباشرة إلى وسيلة الدفع المستخدمة فور الموافقة.")
         return redirect("dashboard_order_detail", pk=order.id)
 
-    # Auto-refresh payment status from ShamCash / Paymera if order is PENDING or was prematurely marked CANCELLED on return
+    # Reconcile ShamCash status cleanly (checks local Webhook DB first; single getBillInfo only after >=10m)
     if order.status in (Order.Status.PENDING, Order.Status.CANCELLED) and isinstance(order.metadata, dict):
         gw_prov = (order.metadata.get("payment_provider") or order.metadata.get("payment_gateway") or "").lower()
-        bill_ref = order.metadata.get("shamcash_bill_no") or order.metadata.get("gateway_payment_id") or ""
-        if gw_prov in ("sham_cash", "shamcash") and bill_ref:
+        if gw_prov in ("sham_cash", "shamcash"):
             try:
-                from apps.payments.views_shamcash import _get_active_shamcash_client, _check_bill_paid_in_shamcash
-                from apps.orders.services import finalize_paid_gateway_order
-                from apps.common.tenant_utils import bypass_tenant_filter
-                sc_client = _get_active_shamcash_client()
-                if sc_client:
-                    is_paid, checked_tran_id, bill_info = _check_bill_paid_in_shamcash(sc_client, bill_ref)
-                    if is_paid:
-                        if order.status == Order.Status.CANCELLED:
-                            with bypass_tenant_filter():
-                                order.status = Order.Status.PENDING
-                                order.admin_note = "تم تأكيد السداد من شام كاش وتفعيل الطلب."
-                                order.save(update_fields=["status", "admin_note", "updated_at"])
-                        finalize_paid_gateway_order(order, {
-                            "status": "A",
-                            "id": str(checked_tran_id or bill_ref),
-                            "tran_id": checked_tran_id,
-                            "bill_no": bill_ref,
-                            "provider": "sham_cash",
-                            "payload": bill_info,
-                        })
-                        order.refresh_from_db()
+                from apps.payments.views_shamcash import reconcile_shamcash_order_if_overdue
+                reconcile_shamcash_order_if_overdue(order, force=False)
+                order.refresh_from_db()
             except Exception:
                 pass
 
@@ -5194,33 +5175,14 @@ def control_order_detail(request, pk):
             
         return redirect("control_order_detail", pk=pk)
     
-    # Auto-refresh payment status from ShamCash / Paymera if order is PENDING or was prematurely marked CANCELLED on return
+    # Reconcile ShamCash status cleanly (checks local Webhook DB first; single getBillInfo only after >=10m)
     if order.status in (Order.Status.PENDING, Order.Status.CANCELLED) and isinstance(order.metadata, dict):
         gw_prov = (order.metadata.get("payment_provider") or order.metadata.get("payment_gateway") or "").lower()
-        bill_ref = order.metadata.get("shamcash_bill_no") or order.metadata.get("gateway_payment_id") or ""
-        if gw_prov in ("sham_cash", "shamcash") and bill_ref:
+        if gw_prov in ("sham_cash", "shamcash"):
             try:
-                from apps.payments.views_shamcash import _get_active_shamcash_client, _check_bill_paid_in_shamcash
-                from apps.orders.services import finalize_paid_gateway_order
-                from apps.common.tenant_utils import bypass_tenant_filter
-                sc_client = _get_active_shamcash_client()
-                if sc_client:
-                    is_paid, checked_tran_id, bill_info = _check_bill_paid_in_shamcash(sc_client, bill_ref)
-                    if is_paid:
-                        if order.status == Order.Status.CANCELLED:
-                            with bypass_tenant_filter():
-                                order.status = Order.Status.PENDING
-                                order.admin_note = "تم تأكيد السداد من شام كاش وتفعيل الطلب."
-                                order.save(update_fields=["status", "admin_note", "updated_at"])
-                        finalize_paid_gateway_order(order, {
-                            "status": "A",
-                            "id": str(checked_tran_id or bill_ref),
-                            "tran_id": checked_tran_id,
-                            "bill_no": bill_ref,
-                            "provider": "sham_cash",
-                            "payload": bill_info,
-                        })
-                        order.refresh_from_db()
+                from apps.payments.views_shamcash import reconcile_shamcash_order_if_overdue
+                reconcile_shamcash_order_if_overdue(order, force=False)
+                order.refresh_from_db()
             except Exception:
                 pass
 
@@ -8248,14 +8210,14 @@ def api_app_version_info(request):
     platform_url = (getattr(settings, "SITE_URL", "https://raqamiyatapp.com") or "https://raqamiyatapp.com").rstrip("/")
     return JsonResponse({
         "status": "ok",
-        "version_code": 320,
-        "version_name": "3.2.0",
+        "version_code": 321,
+        "version_name": "3.2.1",
         "live_sync": True,
         "commit": get_local_commit_sha(),
         "apk_url": "https://github.com/RamiQassas/store/releases/download/v2.0.0-apk/Raqamiyat-Release.apk",
         "local_apk_url": f"{platform_url}/download/app/?direct=1",
         "force_update": False,
-        "release_notes": "إظهار جميع حسابات Google المسجلة على الهاتف بلمسة واحدة عند تسجيل الدخول، وتثبيت التحديثات تلقائياً من داخل التطبيق.",
+        "release_notes": "دعم الدفع المباشر عبر تطبيق شام كاش الرسمي (الربط العميق والمتصفح الآمن) مع تحديث حالة الطلب والمحفظة فورياً.",
     })
 
 
@@ -8855,7 +8817,7 @@ def download_android_apk(request):
                 open(found_path, "rb"),
                 content_type="application/vnd.android.package-archive",
                 as_attachment=True,
-                filename="Raqamiyat-v3.2.0.apk"
+                filename="Raqamiyat-v3.2.1.apk"
             )
             response["Content-Length"] = os.path.getsize(found_path)
             response["Cache-Control"] = "no-store"
@@ -14333,37 +14295,12 @@ def payment_status_view(request):
                 gw = deposit.payment_method.gateway
                 if getattr(gw, "provider", "") == "sham_cash":
                     try:
-                        from apps.payments.shamcash import ShamCashClient
-                        from apps.payments.views_shamcash import _get_active_shamcash_client, _check_bill_paid_in_shamcash
-                        from apps.payments.views_shamcash import _complete_successful_shamcash_deposit
-                        client = _get_active_shamcash_client()
-                        active_bill = deposit.gateway_payment_id or ""
-                        if not active_bill:
-                            from apps.payments.models import ShamCashBillRecord
-                            record = ShamCashBillRecord.objects.filter(deposit=deposit).order_by("-created_at").first()
-                            if record:
-                                active_bill = record.bill_no
-                        if not active_bill:
-                            active_bill = request.GET.get("bill_no") or request.GET.get("billNo") or ""
-
-                        if client and active_bill:
-                            is_paid, checked_tran_id, bill_info = _check_bill_paid_in_shamcash(client, active_bill)
-                            if is_paid:
-                                if deposit.status == DepositRequest.Status.REJECTED:
-                                    deposit.status = DepositRequest.Status.PENDING
-                                    deposit.save(update_fields=["status", "updated_at"])
-                                _complete_successful_shamcash_deposit(deposit, checked_tran_id or bill_info.get("tranId"), bill_info)
-                                deposit.refresh_from_db()
-                            elif deposit.status == DepositRequest.Status.PENDING:
-                                status_id = bill_info.get("statusId") if isinstance(bill_info, dict) else None
-                                if status_id in (ShamCashClient.STATUS_EXPIRED, 3, "3", 5, "5") or str(bill_info.get("statusName", "") if isinstance(bill_info, dict) else "").lower() == "expired":
-                                    deposit.status = DepositRequest.Status.REJECTED
-                                    deposit.admin_note = "انتهت صلاحية الفاتورة دون دفع."
-                                    deposit.save(update_fields=["status", "admin_note", "updated_at"])
-                                    deposit.refresh_from_db()
+                        from apps.payments.views_shamcash import reconcile_shamcash_deposit_if_overdue
+                        reconcile_shamcash_deposit_if_overdue(deposit, force=False)
+                        deposit.refresh_from_db()
                     except Exception as err:
                         import logging
-                        logging.getLogger(__name__).warning(f"Could not actively check ShamCash bill in payment_status_view: {err}")
+                        logging.getLogger(__name__).warning(f"Could not reconcile ShamCash deposit in payment_status_view: {err}")
                 elif getattr(gw, "provider", "") == "mtn_pay":
                     try:
                         from apps.payments.gateways import gateway_for
@@ -14507,39 +14444,12 @@ def payment_status_view(request):
 
                 elif active_bill:
                     try:
-                        from apps.payments.shamcash import ShamCashClient
-                        from apps.payments.views_shamcash import _get_active_shamcash_client, _check_bill_paid_in_shamcash
-                        from apps.orders.services import finalize_paid_gateway_order
-                        client = _get_active_shamcash_client()
-                        if client:
-                            is_paid, checked_tran_id, bill_info = _check_bill_paid_in_shamcash(client, active_bill)
-                            if is_paid:
-                                if order.status == Order.Status.CANCELLED:
-                                    from apps.common.tenant_utils import bypass_tenant_filter
-                                    with bypass_tenant_filter():
-                                        order.status = Order.Status.PENDING
-                                        order.admin_note = "تم تأكيد السداد من شام كاش وتفعيل الطلب."
-                                        order.save(update_fields=["status", "admin_note", "updated_at"])
-                                gateway_data = {
-                                    "status": "A",
-                                    "id": str(checked_tran_id or active_bill),
-                                    "tran_id": checked_tran_id,
-                                    "bill_no": active_bill,
-                                    "provider": "sham_cash",
-                                    "payload": bill_info,
-                                }
-                                finalize_paid_gateway_order(order, gateway_data)
-                                order.refresh_from_db()
-                            elif order.status == Order.Status.PENDING:
-                                status_id = bill_info.get("statusId") if isinstance(bill_info, dict) else None
-                                if status_id in (ShamCashClient.STATUS_EXPIRED, 3, "3", 5, "5") or str(bill_info.get("statusName", "") if isinstance(bill_info, dict) else "").lower() == "expired":
-                                    order.status = Order.Status.CANCELLED
-                                    order.admin_note = "انتهت مهلة الدفع في شام كاش."
-                                    order.save(update_fields=["status", "admin_note", "updated_at"])
-                                    order.refresh_from_db()
+                        from apps.payments.views_shamcash import reconcile_shamcash_order_if_overdue
+                        reconcile_shamcash_order_if_overdue(order, force=False)
+                        order.refresh_from_db()
                     except Exception as err:
                         import logging
-                        logging.getLogger(__name__).warning(f"Could not actively check ShamCash order in payment_status_view: {err}")
+                        logging.getLogger(__name__).warning(f"Could not reconcile ShamCash order in payment_status_view: {err}")
 
             redirect_url = reverse("dashboard_order_detail", kwargs={"pk": order.id})
             invoice_url = reverse("dashboard_order_invoice", kwargs={"pk": order.id})

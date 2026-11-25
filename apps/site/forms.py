@@ -298,6 +298,11 @@ class PaymentGatewayIntegrationForm(forms.ModelForm):
 
     def clean_base_url(self):
         val = (self.cleaned_data.get("base_url") or "").strip().rstrip("/")
+        provider = self.data.get("provider") or (self.instance.provider if self.instance and self.instance.pk else "")
+        mode = self.data.get("mode") or (self.instance.mode if self.instance and self.instance.pk else "live")
+        if provider == PaymentGatewayIntegration.Provider.SHAM_CASH:
+            from apps.payments.shamcash import ShamCashClient
+            return ShamCashClient.normalize_base_url(val, mode=mode)
         if val and not val.startswith(("http://", "https://")):
             val = f"https://{val}"
         return val
