@@ -497,6 +497,7 @@ def _build_app_google_login_context(request, active_store=None):
         "skey": request.session.session_key or "",
         "tid": tid,
         "store_id": str(active_store.pk) if active_store else "",
+        "from_app": bool(is_app_webview),
     }
     app_sso_ticket = signing.dumps(ticket_payload, salt="raqamiyat_app_ticket")
 
@@ -8109,7 +8110,8 @@ def google_oauth_callback_wrapper(request):
     request.session["session_scope"] = str(active_store.pk) if active_store else "main"
     request.session["last_activity"] = timezone.now().timestamp()
 
-    if not ticket:
+    from_app = bool(ticket_data.get("from_app"))
+    if not ticket and from_app:
         try:
             from django.core.cache import cache
             client_ip = _get_client_ip_for_sso(request)
@@ -8118,7 +8120,8 @@ def google_oauth_callback_wrapper(request):
         except Exception:
             pass
 
-    _bind_user_to_app_ticket(request, user, ticket)
+    if from_app:
+        _bind_user_to_app_ticket(request, user, ticket)
 
     if active_store:
         sso_token = signing.dumps({"uid": str(user.id)}, salt="raqamiyat_app_sso")
@@ -8129,8 +8132,8 @@ def google_oauth_callback_wrapper(request):
         )
 
     ua = request.META.get("HTTP_USER_AGENT", "") or ""
-    if "RaqamiyatAndroid" in ua or "Android" not in ua:
-        return redirect("/dashboard/")
+    if not from_app or "RaqamiyatAndroid" in ua or "Android" not in ua:
+        return redirect("/")
 
     return _render_android_app_return_response(user, redirect_path="/dashboard/")
 
@@ -8138,20 +8141,30 @@ def google_oauth_callback_wrapper(request):
 def app_sso_handoff(request):
     """
     Called right after Google OAuth login completes.
-    1. Binds the user session into the originating Android WebView ticket (if provided).
-    2. If called from inside the Android WebView (`RaqamiyatAndroid`) or a non-Android browser,
-       redirects directly to `/dashboard/`.
-    3. If called from Chrome Custom Tabs / Android browser, returns the app bounce page.
+    1. Binds the user session into the originating Android WebView ticket (if from_app=True).
+    2. Normal web browsers (Chrome/Safari/etc.) always redirect directly to `/`.
+    3. Only Chrome Custom Tabs opened from inside the Raqamiyat Android App return the app bounce page.
     """
     from urllib.parse import quote
+    from django.core import signing
 
     ticket = (request.GET.get("ticket") or "").strip()
+    from_app = False
+    if ticket:
+        try:
+            tdata = signing.loads(ticket, salt="raqamiyat_app_ticket", max_age=900)
+            from_app = bool(tdata.get("from_app"))
+        except Exception:
+            from_app = False
     if not ticket:
         try:
             from django.core.cache import cache
             client_ip = _get_client_ip_for_sso(request)
             if client_ip:
-                ticket = cache.get(f"app_sso_pending_ip_{client_ip}") or ""
+                cached_t = cache.get(f"app_sso_pending_ip_{client_ip}") or ""
+                if cached_t:
+                    ticket = cached_t
+                    from_app = True
         except Exception:
             pass
 
@@ -8159,11 +8172,12 @@ def app_sso_handoff(request):
         handoff_target = f"/auth/app-sso-handoff/?ticket={quote(ticket)}" if ticket else "/auth/app-sso-handoff/"
         return redirect(f"/auth/login/?next={quote(handoff_target)}")
 
-    _bind_user_to_app_ticket(request, request.user, ticket)
+    if from_app:
+        _bind_user_to_app_ticket(request, request.user, ticket)
 
     ua = request.META.get("HTTP_USER_AGENT", "") or ""
-    if "RaqamiyatAndroid" in ua or "Android" not in ua:
-        return redirect("/dashboard/")
+    if not from_app or "RaqamiyatAndroid" in ua or "Android" not in ua:
+        return redirect("/")
 
     return _render_android_app_return_response(request.user, redirect_path="/dashboard/")
 

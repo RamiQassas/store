@@ -404,10 +404,18 @@ class MySocialAccountAdapter(DefaultSocialAccountAdapter):
                 ticket_vals = parse_qs(parsed_next.query).get("ticket")
                 ticket_str = ticket_vals[0] if (ticket_vals and ticket_vals[0]) else ""
                 if ticket_str:
-                    _bind_user_to_app_ticket(request, user, ticket_str)
-                    ua = (request.META.get("HTTP_USER_AGENT") or "")
-                    if "Android" in ua and "RaqamiyatAndroid" not in ua and not active_store:
-                        next_url = f"/auth/app-sso-handoff/?ticket={quote(ticket_str)}"
+                    from django.core import signing
+                    is_from_app = False
+                    try:
+                        tdata = signing.loads(ticket_str, salt="raqamiyat_app_ticket", max_age=900)
+                        is_from_app = bool(tdata.get("from_app"))
+                    except Exception:
+                        is_from_app = False
+                    if is_from_app:
+                        _bind_user_to_app_ticket(request, user, ticket_str)
+                        ua = (request.META.get("HTTP_USER_AGENT") or "")
+                        if "Android" in ua and "RaqamiyatAndroid" not in ua and not active_store:
+                            next_url = f"/auth/app-sso-handoff/?ticket={quote(ticket_str)}"
             except Exception as ticket_err:
                 logger.warning(f"Failed binding app ticket in pre_social_login: {ticket_err}")
 
