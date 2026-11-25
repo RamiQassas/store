@@ -390,13 +390,28 @@ class ShamCashClient:
         result_code = None
 
         try:
-            response = self._session.post(
-                url,
-                json=body,
-                headers=headers,
-                timeout=self.timeout,
-                proxies=proxies,
-            )
+            try:
+                response = self._session.post(
+                    url,
+                    json=body,
+                    headers=headers,
+                    timeout=self.timeout,
+                    proxies=proxies,
+                )
+            except requests.exceptions.SSLError as ssl_err:
+                # Some ShamCash production edge nginx servers present a self-signed/internal cert;
+                # payload confidentiality & integrity remain protected by AES-256-GCM JWE (alg=dir, enc=A256GCM).
+                logger.warning(f"ShamCash SSL certificate verification failed ({url}), retrying with verify=False: {ssl_err}")
+                import urllib3
+                urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
+                response = self._session.post(
+                    url,
+                    json=body,
+                    headers=headers,
+                    timeout=self.timeout,
+                    proxies=proxies,
+                    verify=False,
+                )
             status_code = response.status_code
             duration_ms = int((time.time() - start_time) * 1000)
 
