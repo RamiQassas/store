@@ -149,6 +149,10 @@
                     <label style="display: block; font-size: 0.75rem; color: #94a3b8; margin-bottom: 0.25rem;">المفتاح السري (Secret Key - Base64)</label>
                     <input type="password" name="secret_key" dir="ltr" autocomplete="new-password" placeholder="اتركه فارغاً للإبقاء على المفتاح السري المحفوظ" style="width: 100%; padding: 0.45rem 0.65rem; border-radius: 8px; background: #020617; color: #fff; border: 1px solid rgba(255,255,255,0.15); font-family: monospace; font-size: 0.8rem;">
                 </div>
+                <div style="grid-column: span 2;">
+                    <label style="display: block; font-size: 0.75rem; color: #94a3b8; margin-bottom: 0.25rem;">بروكسي عبور سوري (Proxy URL - اختياري إذا كان الخادم خارج سوريا ولم يتم تفعيل الـ IP بعد)</label>
+                    <input type="text" name="proxy_url" dir="ltr" value="{{ effective_proxy_url }}" placeholder="http://user:pass@syria-ip:port (اتركه فارغاً للاتصال المباشر)" style="width: 100%; padding: 0.45rem 0.65rem; border-radius: 8px; background: #020617; color: #fff; border: 1px solid rgba(255,255,255,0.15); font-family: monospace; font-size: 0.8rem;">
+                </div>
             </div>
             <div style="display: flex; justify-content: flex-end; gap: 0.5rem;">
                 <button type="submit" class="btn btn-primary btn-sm" style="background: #00C9A7; color: #000; border: none; font-weight: 800;">
@@ -183,6 +187,25 @@
                 <div style="color: #94a3b8; font-size: 0.75rem; margin-bottom: 0.25rem;">رابط الويب هوك المعتمد (callbackUrl):</div>
                 <div style="font-family: monospace; font-size: 0.8rem; color: #a78bfa; word-break: break-all;">
                     {{ request.scheme }}://{{ request.get_host }}{% url 'shamcash_callback' %}
+                </div>
+            </div>
+
+            <div style="background: rgba(245, 158, 11, 0.08); padding: 0.9rem; border-radius: 8px; border: 1px solid rgba(245, 158, 11, 0.35); grid-column: span 2;">
+                <div style="display: flex; justify-content: space-between; align-items: center; gap: 0.5rem; flex-wrap: wrap; margin-bottom: 0.35rem;">
+                    <span style="color: #fbbf24; font-size: 0.78rem; font-weight: 800;">
+                        <i class="fas fa-network-wired ml-1"></i> عنوان IP الخادم الصادر (مطلوب للقائمة البيضاء IP Whitelist في شام كاش):
+                    </span>
+                    {% if server_outbound_ip %}
+                    <button type="button" onclick="navigator.clipboard.writeText('{{ server_outbound_ip }}'); this.innerText='تم النسخ ✓';" class="btn btn-outline btn-sm text-[10px]" style="border-color: rgba(245,158,11,0.45); color: #fbbf24; padding: 0.2rem 0.6rem;">
+                        نسخ الـ IP
+                    </button>
+                    {% endif %}
+                </div>
+                <div dir="ltr" style="font-family: monospace; font-size: 0.95rem; font-weight: 900; color: #fff;">
+                    {{ server_outbound_ip|default:"اضغط فحص الاتصال الفوري لإظهار الـ IP" }}
+                </div>
+                <div style="font-size: 0.74rem; color: #cbd5e1; margin-top: 0.35rem; line-height: 1.5;">
+                    جدار حماية الإنتاج في شام كاش (<code>payment.shamcash.sy</code>) مغلق أمام جميع عناوين الـ IP خارج سوريا افتراضياً؛ يرجى إرسال عنوان الـ IP أعلاه لفريق الدعم التقني في شام كاش لفتحه في الـ Whitelist لمتجركم.
                 </div>
             </div>
         </div>

@@ -104,14 +104,13 @@ def shamcash_dashboard_view(request):
         new_mode = (request.POST.get("mode") or "live").strip().lower()
         if new_mode not in ("live", "sandbox"):
             new_mode = "live"
-        new_base_url = (request.POST.get("base_url") or "").strip().rstrip("/")
-        if new_base_url and not new_base_url.startswith(("http://", "https://")):
-            new_base_url = f"https://{new_base_url}"
-        if not new_base_url:
-            new_base_url = ShamCashClient.LIVE_BASE_URL if new_mode == "live" else ShamCashClient.STAGING_BASE_URL
+        new_base_url = ShamCashClient.normalize_base_url(request.POST.get("base_url"), mode=new_mode)
 
         new_agent_key = (request.POST.get("agent_key") or "").strip()
         new_secret_key = (request.POST.get("secret_key") or "").strip()
+        raw_proxy = request.POST.get("proxy_url")
+        proxy_submitted = raw_proxy is not None
+        new_proxy_url = (raw_proxy or "").strip()
 
         if new_secret_key:
             try:
@@ -124,6 +123,7 @@ def shamcash_dashboard_view(request):
                 return redirect("shamcash_dashboard")
 
         if not integration:
+            init_settings = {"proxy_url": new_proxy_url} if new_proxy_url else {}
             integration = PaymentGatewayIntegration.all_objects.create(
                 name="شام كاش (ShamCash)",
                 provider=PaymentGatewayIntegration.Provider.SHAM_CASH,
@@ -131,6 +131,7 @@ def shamcash_dashboard_view(request):
                 base_url=new_base_url,
                 api_key=new_agent_key,
                 api_secret=new_secret_key,
+                settings=init_settings,
                 is_active=True,
                 can_deposit=True,
                 can_withdraw=False,
@@ -146,6 +147,11 @@ def shamcash_dashboard_view(request):
             clean_settings = dict(integration.settings) if isinstance(integration.settings, dict) else {}
             clean_settings.pop("agent_key", None)
             clean_settings.pop("secret_key", None)
+            if proxy_submitted:
+                if new_proxy_url:
+                    clean_settings["proxy_url"] = new_proxy_url
+                else:
+                    clean_settings.pop("proxy_url", None)
             integration.settings = clean_settings
             integration.save()
 
@@ -157,6 +163,11 @@ def shamcash_dashboard_view(request):
             dup_settings = dict(dup.settings) if isinstance(dup.settings, dict) else {}
             dup_settings.pop("agent_key", None)
             dup_settings.pop("secret_key", None)
+            if proxy_submitted:
+                if new_proxy_url:
+                    dup_settings["proxy_url"] = new_proxy_url
+                else:
+                    dup_settings.pop("proxy_url", None)
             PaymentGatewayIntegration.all_objects.filter(pk=dup.pk).update(
                 mode=integration.mode,
                 base_url=integration.base_url,
@@ -172,9 +183,30 @@ def shamcash_dashboard_view(request):
     eff_agent_key = (getattr(integration, "api_key", "") if integration else "") or getattr(settings, "SHAM_CASH_AGENT_KEY", "")
     eff_secret_key = (getattr(integration, "api_secret", "") if integration else "") or getattr(settings, "SHAM_CASH_SECRET_KEY", "")
     eff_mode = (getattr(integration, "mode", "") if integration else "") or getattr(settings, "SHAM_CASH_MODE", "live")
-    eff_base_url = (getattr(integration, "base_url", "") if integration else "") or getattr(settings, "SHAM_CASH_BASE_URL", ShamCashClient.LIVE_BASE_URL)
-    if eff_mode == "live" and "shamlogix" in eff_base_url.lower():
-        eff_base_url = ShamCashClient.LIVE_BASE_URL
+    eff_base_url = ShamCashClient.normalize_base_url(
+        (getattr(integration, "base_url", "") if integration else "") or getattr(settings, "SHAM_CASH_BASE_URL", ShamCashClient.LIVE_BASE_URL),
+        mode=eff_mode,
+    )
+    eff_proxy_url = ""
+    if integration and isinstance(integration.settings, dict):
+        eff_proxy_url = str(integration.settings.get("proxy_url") or "").strip()
+    if not eff_proxy_url:
+        eff_proxy_url = str(getattr(settings, "SHAM_CASH_PROXY_URL", "") or "").strip()
+
+    # Detect production server's outbound IPv4 (cached 15 minutes) for ShamCash Firewall IP Whitelisting
+    from django.core.cache import cache
+    server_outbound_ip = cache.get("shamcash_server_outbound_ipv4")
+    if not server_outbound_ip:
+        import requests as _req
+        for ip_api in ("https://api4.ipify.org", "https://ipv4.icanhazip.com", "https://api.ipify.org"):
+            try:
+                candidate_ip = _req.get(ip_api, timeout=2.5).text.strip()
+                if candidate_ip and len(candidate_ip) <= 45:
+                    server_outbound_ip = candidate_ip
+                    cache.set("shamcash_server_outbound_ipv4", server_outbound_ip, 900)
+                    break
+            except Exception:
+                continue
 
     # Aggregate metrics
     bills_qs = ShamCashBillRecord.objects.all()
@@ -203,6 +235,8 @@ def shamcash_dashboard_view(request):
         "has_secret_key": bool(eff_secret_key),
         "effective_base_url": eff_base_url,
         "effective_mode": eff_mode,
+        "effective_proxy_url": eff_proxy_url,
+        "server_outbound_ip": server_outbound_ip or "",
         "total_bills": total_bills,
         "paid_bills_count": paid_bills_count,
         "expired_bills_count": expired_bills_count,
