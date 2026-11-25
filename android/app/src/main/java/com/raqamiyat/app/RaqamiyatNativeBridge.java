@@ -138,7 +138,7 @@ public class RaqamiyatNativeBridge {
 
     @JavascriptInterface
     public String getAppVersion() {
-        return "2.3.0";
+        return "3.2.3";
     }
 }
 

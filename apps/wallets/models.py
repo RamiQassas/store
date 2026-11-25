@@ -70,6 +70,10 @@ class Wallet(TimeStampedModel):
         return f"{self.user} - {self.available_balance} {self.currency}"
     
     @property
+    def balance(self):
+        return self.available_balance
+
+    @property
     def total_balance(self):
         return self.available_balance + self.frozen_balance + self.held_balance
     

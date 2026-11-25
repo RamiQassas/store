@@ -7533,13 +7533,17 @@ def _get_app_user(request):
         if auth_hdr.startswith("Bearer "):
             token = auth_hdr[7:].strip()
     if not token:
+        token = (request.GET.get("app_auth_token") or request.POST.get("app_auth_token") or "").strip()
+    if not token:
         return None
     try:
         from django.core import signing
         from django.contrib.auth import get_user_model
+        from apps.common.tenant_utils import bypass_tenant_filter
         data = signing.loads(token, salt="raqamiyat_app_auth", max_age=30 * 86400)
         UserModel = get_user_model()
-        return UserModel.objects.filter(id=data.get("uid"), is_active=True).first()
+        with bypass_tenant_filter():
+            return UserModel.all_objects.filter(id=data.get("uid"), is_active=True).first()
     except Exception:
         return None
 
@@ -7854,14 +7858,25 @@ def api_app_session_info(request):
 
     is_admin = _is_app_admin(user, store) if is_auth else False
     redirect_url = "/control/" if (is_auth and getattr(user, "is_staff", False) and store is None) else "/dashboard/"
+    google_ctx = {}
+    if not is_auth:
+        try:
+            google_ctx = _build_app_google_login_context(request, store)
+        except Exception:
+            google_ctx = {}
     return JsonResponse({
         "is_authenticated": is_auth,
         "username": user.username if is_auth else "",
-        "full_name": (user.get_full_name() or user.username) if is_auth else "",
+        "email": getattr(user, "email", "") if is_auth else "",
+        "phone": (getattr(user, "phone_number", "") or getattr(user, "phone", "")) if is_auth else "",
+        "full_name": (user.get_full_name() or getattr(user, "display_name", "") or user.username) if is_auth else "",
+        "is_verified": bool(getattr(user, "is_verified", False) or getattr(user, "kyc_verified", False)) if is_auth else False,
         "is_admin": is_admin,
         "can_manage_studio": is_admin,
         "app_auth_token": _issue_app_auth_token(user) if is_auth else "",
         "redirect_url": redirect_url if is_auth else "",
+        "google_login_url": google_ctx.get("app_google_login_url", ""),
+        "app_sso_ticket": google_ctx.get("app_sso_ticket", ""),
     })
 
 
@@ -8217,6 +8232,8 @@ def app_sso_exchange(request):
 
     token = (request.GET.get("token") or "").strip()
     if not token:
+        if request.GET.get("format") == "json":
+            return JsonResponse({"status": "error", "message": "رمز المصادقة مفقود"}, status=400)
         return redirect("/auth/login/")
 
     try:
@@ -8230,10 +8247,24 @@ def app_sso_exchange(request):
             active_store = getattr(request, "store", None)
             request.session["session_scope"] = str(active_store.pk) if active_store else "main"
             request.session["last_activity"] = timezone.now().timestamp()
+            if request.GET.get("format") == "json":
+                is_admin = _is_app_admin(user, active_store)
+                return JsonResponse({
+                    "status": "success",
+                    "is_authenticated": True,
+                    "username": user.username,
+                    "email": getattr(user, "email", ""),
+                    "full_name": user.get_full_name() or getattr(user, "display_name", "") or user.username,
+                    "is_admin": is_admin,
+                    "can_manage_studio": is_admin,
+                    "app_auth_token": _issue_app_auth_token(user),
+                })
             messages.success(request, "تم تسجيل الدخول في تطبيق رقميات بنجاح ⚡")
             return redirect("/dashboard/")
     except Exception as exc:
         logger.warning("App SSO exchange failed: %s", exc)
+        if request.GET.get("format") == "json":
+            return JsonResponse({"status": "error", "message": "انتهت صلاحية جلسة المصادقة"}, status=400)
 
     return redirect("/auth/login/")
 
@@ -8267,14 +8298,14 @@ def api_app_version_info(request):
     platform_url = (getattr(settings, "SITE_URL", "https://raqamiyatapp.com") or "https://raqamiyatapp.com").rstrip("/")
     return JsonResponse({
         "status": "ok",
-        "version_code": 322,
-        "version_name": "3.2.2",
+        "version_code": 323,
+        "version_name": "3.2.3",
         "live_sync": True,
         "commit": get_local_commit_sha(),
         "apk_url": "https://github.com/RamiQassas/store/releases/download/v2.0.0-apk/Raqamiyat-Release.apk",
         "local_apk_url": f"{platform_url}/download/app/?direct=1",
         "force_update": False,
-        "release_notes": "تنفيذ جميع بوابات الدفع بالكامل من داخل تطبيق رقميات بدون تحويل إلى المتصفح الخارجي، مع إكمال الطلب وتحديث الرصيد تلقائياً.",
+        "release_notes": "تطوير جذري لتطبيق رقميات الأصيل (Native Android): عرض الرصيد الحقيقي بالدولار والليرة السورية، ظهور جميع بوابات الدفع مع الشعارات وحالات قريباً/الصيانة، الدفع المباشر عبر كاش موبايل (SMS OTP)، وتبويبات طلباتي وحسابي والسلة الأصيلة.",
     })
 
 
@@ -8359,62 +8390,611 @@ def api_app_notifications(request):
     return JsonResponse({"status": "success", "notifications": items[:25]})
 
 
+def _resolve_abs_app_url(request, raw_url):
+    if not raw_url:
+        return ""
+    s = str(raw_url).strip()
+    if not s or s == "None":
+        return ""
+    if s.startswith("http://") or s.startswith("https://"):
+        return s
+    platform_url = (getattr(settings, "SITE_URL", "https://raqamiyatapp.com") or "https://raqamiyatapp.com").rstrip("/")
+    if s.startswith("/"):
+        return f"{platform_url}{s}"
+    return f"{platform_url}/{s}"
+
+
+def api_app_gateway_logo(request, provider):
+    """
+    Guaranteed raster (PNG/JPEG) logo endpoint for Android Glide image loader.
+    Serves any uploaded non-SVG gateway/method logo first, then official static raster logos,
+    or generates a crisp high-DPI PNG badge via Pillow so Android never receives an unrenderable .svg.
+    """
+    import io
+    import os
+    from django.http import HttpResponse
+    from apps.common.tenant_utils import bypass_tenant_filter
+    from apps.payments.models import PaymentGatewayIntegration, PaymentMethod
+
+    prov = str(provider or "").strip().lower()
+    if prov == "shamcash":
+        prov = "sham_cash"
+    elif prov in ("mtn", "cash_mobile"):
+        prov = "mtn_pay"
+
+    candidate_files = []
+    with bypass_tenant_filter():
+        for g in PaymentGatewayIntegration.all_objects.filter(provider=prov).order_by("-is_active", "-updated_at"):
+            if g.logo and g.logo.name and not g.logo.name.lower().endswith(".svg"):
+                try:
+                    candidate_files.append(g.logo.path)
+                except Exception:
+                    pass
+        kw = "شام" if prov == "sham_cash" else ("mtn" if prov == "mtn_pay" else ("بيميرا" if prov == "paymera" else prov))
+        for pm in PaymentMethod.all_objects.filter(name__icontains=kw).order_by("-is_active", "-updated_at"):
+            if pm.logo and pm.logo.name and not pm.logo.name.lower().endswith(".svg"):
+                try:
+                    candidate_files.append(pm.logo.path)
+                except Exception:
+                    pass
+
+    if prov == "mtn_pay":
+        candidate_files.extend([
+            os.path.join(settings.BASE_DIR, "apps", "site", "static", "site", "img", "brands", "cash-mobile.jpg"),
+            os.path.join(settings.BASE_DIR, "staticfiles", "site", "img", "brands", "cash-mobile.jpg"),
+        ])
+    elif prov == "paymera":
+        candidate_files.extend([
+            os.path.join(settings.MEDIA_ROOT, "payment-methods", "logos", "paymera.png"),
+            os.path.join(settings.BASE_DIR, "media", "payment-methods", "logos", "paymera.png"),
+        ])
+    elif prov == "sham_cash":
+        candidate_files.extend([
+            os.path.join(settings.MEDIA_ROOT, "payment-methods", "logos", "shamcash.png"),
+            os.path.join(settings.MEDIA_ROOT, "payment-methods", "logos", "shamcash.jpg"),
+            os.path.join(settings.BASE_DIR, "apps", "site", "static", "site", "img", "brands", "shamcash.png"),
+        ])
+
+    for path_item in candidate_files:
+        if path_item and os.path.isfile(path_item):
+            try:
+                ext = os.path.splitext(path_item)[1].lower()
+                ctype = "image/png" if ext == ".png" else ("image/webp" if ext == ".webp" else "image/jpeg")
+                with open(path_item, "rb") as f:
+                    raw = f.read()
+                resp = HttpResponse(raw, content_type=ctype)
+                resp["Cache-Control"] = "public, max-age=3600"
+                return resp
+            except Exception:
+                pass
+
+    # Generate crisp 192x192 PNG brand icon via Pillow
+    try:
+        from PIL import Image, ImageDraw, ImageFont
+        img = Image.new("RGBA", (192, 192), (0, 0, 0, 0))
+        draw = ImageDraw.Draw(img)
+        if prov == "sham_cash":
+            bg_top, bg_bot, label = (0, 201, 167), (0, 131, 176), "SC"
+        elif prov == "mtn_pay":
+            bg_top, bg_bot, label = (255, 203, 5), (230, 168, 0), "MTN"
+        elif prov == "paymera":
+            bg_top, bg_bot, label = (59, 130, 246), (29, 78, 216), "PAY"
+        else:
+            bg_top, bg_bot, label = (212, 168, 83), (180, 130, 40), "RQ"
+
+        for y in range(192):
+            t = y / 191.0
+            r = int(bg_top[0] * (1 - t) + bg_bot[0] * t)
+            g_c = int(bg_top[1] * (1 - t) + bg_bot[1] * t)
+            b = int(bg_top[2] * (1 - t) + bg_bot[2] * t)
+            draw.line([(0, y), (191, y)], fill=(r, g_c, b, 255))
+
+        mask = Image.new("L", (192, 192), 0)
+        ImageDraw.Draw(mask).rounded_rectangle([(0, 0), (191, 191)], radius=42, fill=255)
+        out = Image.new("RGBA", (192, 192), (0, 0, 0, 0))
+        out.paste(img, (0, 0), mask)
+        d2 = ImageDraw.Draw(out)
+        txt_col = (15, 23, 42, 255) if prov == "mtn_pay" else (255, 255, 255, 255)
+        try:
+            font = ImageFont.truetype("arialbd.ttf", 64 if len(label) <= 2 else 52)
+        except Exception:
+            font = ImageFont.load_default()
+        bbox = d2.textbbox((0, 0), label, font=font)
+        tw, th = bbox[2] - bbox[0], bbox[3] - bbox[1]
+        d2.text(((192 - tw) / 2, (192 - th) / 2 - 6), label, fill=txt_col, font=font)
+        buf = io.BytesIO()
+        out.save(buf, format="PNG")
+        resp = HttpResponse(buf.getvalue(), content_type="image/png")
+        resp["Cache-Control"] = "public, max-age=1800"
+        return resp
+    except Exception:
+        return HttpResponse(status=404)
+
+
+def _get_app_syp_currency_and_rates(store=None):
+    from decimal import Decimal
+    from apps.common.models import Currency
+    from apps.common.tenant_utils import bypass_tenant_filter
+
+    syp_curr = None
+    with bypass_tenant_filter():
+        if store:
+            syp_curr = Currency.all_objects.filter(store=store, code="SYP", is_active=True).first()
+        if not syp_curr:
+            syp_curr = (
+                Currency.all_objects.filter(store__isnull=True, code="SYP", is_active=True).first()
+                or Currency.all_objects.filter(code="SYP", is_active=True).first()
+                or Currency.all_objects.filter(code="SYP").first()
+            )
+
+    buy_rate = Decimal("14500.00")
+    sell_rate = Decimal("14000.00")
+    if syp_curr:
+        try:
+            br = Decimal(str(syp_curr.buy_rate or "0"))
+            sr = Decimal(str(syp_curr.sell_rate or "0"))
+            if br > Decimal("1"):
+                buy_rate = br
+            if sr > Decimal("1"):
+                sell_rate = sr
+            elif br > Decimal("1"):
+                sell_rate = br
+        except Exception:
+            pass
+    return syp_curr, float(buy_rate), float(sell_rate)
+
+
+def _compute_mtn_fee_equation(syp_amount_val):
+    from decimal import Decimal
+    try:
+        amt_major = Decimal(str(syp_amount_val or "0"))
+        fee = None
+        if amt_major >= Decimal("0"):
+            if amt_major <= Decimal("9.99"):
+                fee = Decimal("0.75")
+            elif amt_major <= Decimal("99.99"):
+                fee = Decimal("1")
+            elif amt_major <= Decimal("199.99"):
+                fee = Decimal("1.5")
+            elif amt_major <= Decimal("50000"):
+                fee = Decimal("2")
+        if fee is not None:
+            tot = amt_major + fee
+            a_s = f"{amt_major.normalize():f}".rstrip("0").rstrip(".") if "." in f"{amt_major.normalize():f}" else f"{amt_major.normalize():f}"
+            f_s = f"{fee.normalize():f}".rstrip("0").rstrip(".") if "." in f"{fee.normalize():f}" else f"{fee.normalize():f}"
+            t_s = f"{tot.normalize():f}".rstrip("0").rstrip(".") if "." in f"{tot.normalize():f}" else f"{tot.normalize():f}"
+            return float(fee), float(tot), f"{a_s} + {f_s} = {t_s} ل.س"
+    except Exception:
+        pass
+    return 0.0, float(syp_amount_val or 0), ""
+
+
+def _get_saved_mtn_phones_for_user(user):
+    if not user or not getattr(user, "is_authenticated", False):
+        return []
+    try:
+        from apps.payments.models import MTNPayInvoiceRecord
+        prev_phones = (
+            MTNPayInvoiceRecord.objects.filter(user=user)
+            .exclude(customer_phone="")
+            .order_by("-updated_at")
+            .values_list("customer_phone", flat=True)[:20]
+        )
+        seen = set()
+        out = []
+        for raw_p in prev_phones:
+            digits = "".join(c for c in str(raw_p or "") if c.isdigit())
+            if digits.startswith("963") and len(digits) == 12:
+                local10 = "0" + digits[3:]
+            elif digits.startswith("00963") and len(digits) == 14:
+                local10 = "0" + digits[5:]
+            else:
+                local10 = digits
+            if len(local10) == 10 and local10.startswith(("094", "095", "096")) and local10 not in seen:
+                seen.add(local10)
+                out.append(local10)
+                if len(out) >= 5:
+                    break
+        return out
+    except Exception:
+        return []
+
+
+def _build_app_gateways_payload(request, user=None):
+    """
+    Dynamically builds the complete list of payment gateways and deposit methods
+    for the current store/platform with real uploaded logos, Arabic titles, currencies,
+    limits, fees, and live Coming Soon / Maintenance flags.
+    """
+    from decimal import Decimal
+    from apps.common.models import Currency
+    from apps.common.tenant_utils import bypass_tenant_filter
+    from apps.payments.models import PaymentGatewayIntegration, PaymentMethod
+
+    req_store = getattr(request, "store", None)
+    store_filter = {"store": req_store} if req_store else {"store__isnull": True}
+    syp_curr, syp_buy_rate, _ = _get_app_syp_currency_and_rates(req_store)
+
+    gateways_out = []
+    covered_pm_ids = set()
+    covered_providers = set()
+
+    with bypass_tenant_filter():
+        usd_curr = (
+            Currency.all_objects.filter(code="USD", is_active=True, **store_filter).first()
+            or Currency.all_objects.filter(code="USD").first()
+        )
+        gw_list = list(
+            PaymentGatewayIntegration.all_objects.filter(is_active=True, **store_filter)
+        )
+
+        def _gw_sort_key(g):
+            order_map = {"sham_cash": 0, "mtn_pay": 1, "paymera": 2, "baniyas_crypto": 3}
+            return (order_map.get(g.provider, 9), g.name or "")
+
+        gw_list.sort(key=_gw_sort_key)
+
+        for gw in gw_list:
+            if gw.provider in covered_providers:
+                continue
+            covered_providers.add(gw.provider)
+
+            pm = PaymentMethod.all_objects.filter(gateway=gw, is_active=True, **store_filter).first()
+            if pm:
+                covered_pm_ids.add(str(pm.id))
+
+            if gw.provider == "sham_cash":
+                default_title = "شام كاش (ShamCash)"
+                default_sub = "دفع وشحن فوري مباشر عبر تطبيق شام كاش (USD / SYP)"
+                default_currs = ["USD", "SYP"]
+            elif gw.provider == "mtn_pay":
+                default_title = "كاش موبايل (Cash Mobile)"
+                default_sub = "دفع فوري عبر رقم هاتف MTN ورمز التحقق SMS"
+                default_currs = ["SYP", "USD"]
+            elif gw.provider == "paymera":
+                default_title = "بيميرا (Paymera)"
+                default_sub = "بوابة الدفع الإلكتروني المباشرة والفورية"
+                default_currs = ["SYP", "USD"]
+            else:
+                default_title = gw.name or gw.get_provider_display()
+                default_sub = "بوابة دفع إلكترونية فورية"
+                default_currs = ["USD", "SYP"]
+
+            clean_gw_name = gw.name if (gw.name and not any(ch in gw.name for ch in ("\ufffd", "?"))) else ""
+            clean_pm_name = pm.name if (pm and pm.name and not any(ch in pm.name for ch in ("\ufffd", "?"))) else ""
+            title = clean_gw_name or clean_pm_name or default_title
+            subtitle = (pm.description.strip() if (pm and pm.description and pm.description.strip()) else "") or default_sub
+
+            raw_logo = ""
+            if gw.logo:
+                try:
+                    if gw.logo.name and "shamcash.svg" not in gw.logo.name:
+                        raw_logo = gw.logo.url
+                except Exception:
+                    pass
+            if not raw_logo and pm and pm.logo:
+                try:
+                    if pm.logo.name and "shamcash.svg" not in pm.logo.name:
+                        raw_logo = pm.logo.url
+                except Exception:
+                    pass
+            if not raw_logo and getattr(gw, "logo_url", None):
+                cand = str(gw.logo_url).strip()
+                if not cand.lower().endswith(".svg"):
+                    raw_logo = cand
+            if not raw_logo or raw_logo.lower().endswith(".svg"):
+                raw_logo = f"/api/app/gateway-logo/{gw.provider}/"
+            logo_abs = _resolve_abs_app_url(request, raw_logo)
+
+            currs = list(default_currs)
+            if pm:
+                pm_currs = [c.code.upper() for c in pm.supported_currencies.all() if c.code]
+                if pm_currs:
+                    currs = pm_currs
+                    if gw.provider in ("mtn_pay", "paymera") and "USD" not in currs:
+                        currs.append("USD")
+
+            min_usd, max_usd = 1.0, 10000.0
+            min_syp, max_syp = round(syp_buy_rate), round(10000.0 * syp_buy_rate)
+            if pm:
+                try:
+                    u_min, u_max = pm.get_effective_deposit_limits(user=user, currency=usd_curr)
+                    min_usd, max_usd = float(u_min), float(u_max)
+                except Exception:
+                    pass
+                if syp_curr:
+                    try:
+                        s_min, s_max = pm.get_effective_deposit_limits(user=user, currency=syp_curr)
+                        min_syp, max_syp = float(s_min), float(s_max)
+                    except Exception:
+                        pass
+            if gw.provider == "mtn_pay":
+                max_syp = min(max_syp, 50000.0)
+                max_usd = round(max_syp / max(syp_buy_rate, 1.0), 2)
+
+            is_maint = bool(gw.is_maintenance_mode or (pm and pm.is_maintenance_mode))
+            is_soon = bool(gw.is_coming_soon)
+            is_unavail = bool(is_maint or is_soon)
+            badge = "قيد الصيانة" if is_maint else ("قريباً" if is_soon else "فوري ⚡")
+            unavail_msg = gw.unavailable_message if gw.is_temporarily_unavailable else (
+                f"وسيلة الدفع {title} قيد الصيانة حالياً." if is_maint else ""
+            )
+
+            fee_pct = 0.0
+            fee_fix = 0.0
+            if pm and isinstance(pm.deposit_fee_settings, dict) and pm.deposit_fee_settings.get("enabled", True):
+                try:
+                    fee_pct = float(pm.deposit_fee_settings.get("percent", 0) or 0)
+                    fee_fix = float(pm.deposit_fee_settings.get("fixed", 0) or 0)
+                except Exception:
+                    pass
+
+            gateways_out.append({
+                "id": str(gw.id),
+                "payment_method_id": str(pm.id) if pm else "",
+                "code": gw.provider,
+                "provider": gw.provider,
+                "type": "gateway",
+                "name": title,
+                "subtitle": subtitle,
+                "logo_url": logo_abs,
+                "currencies": currs,
+                "for_deposit": bool(gw.can_deposit and (not pm or pm.can_deposit)),
+                "for_checkout": True,
+                "min_usd": min_usd,
+                "max_usd": max_usd,
+                "min_syp": min_syp,
+                "max_syp": max_syp,
+                "fee_percent": fee_pct,
+                "fee_fixed": fee_fix,
+                "is_coming_soon": is_soon,
+                "is_maintenance_mode": is_maint,
+                "is_unavailable": is_unavail,
+                "badge_label": badge,
+                "unavailable_message": unavail_msg,
+                "instructions": "",
+                "static_rows": [],
+                "form_fields": [],
+                "qr_url": "",
+            })
+
+        # Also include active manual/custom PaymentMethods configured on the site (e.g. bank/crypto/transfers)
+        manual_pms = PaymentMethod.all_objects.filter(
+            is_active=True, can_deposit=True, **store_filter
+        ).order_by("display_order", "name")
+        for pm in manual_pms:
+            if str(pm.id) in covered_pm_ids:
+                continue
+            if pm.gateway_id and pm.gateway and pm.gateway.provider in covered_providers:
+                continue
+            if pm.requires_kyc and (not user or not getattr(user, "is_authenticated", False) or not getattr(user, "is_verified", False)):
+                continue
+
+            raw_logo = ""
+            if pm.logo:
+                try:
+                    if not pm.logo.name.lower().endswith(".svg"):
+                        raw_logo = pm.logo.url
+                except Exception:
+                    pass
+            if not raw_logo:
+                raw_logo = "/api/app/gateway-logo/raqamiyat/"
+            logo_abs = _resolve_abs_app_url(request, raw_logo)
+            pm_currs = [c.code.upper() for c in pm.supported_currencies.all() if c.code] or ["USD", "SYP"]
+
+            min_usd, max_usd = float(pm.deposit_min_amount or 1), float(pm.deposit_max_amount or 10000)
+            min_syp, max_syp = round(min_usd * syp_buy_rate), round(max_usd * syp_buy_rate)
+            try:
+                u_min, u_max = pm.get_effective_deposit_limits(user=user, currency=usd_curr)
+                min_usd, max_usd = float(u_min), float(u_max)
+                if syp_curr:
+                    s_min, s_max = pm.get_effective_deposit_limits(user=user, currency=syp_curr)
+                    min_syp, max_syp = float(s_min), float(s_max)
+            except Exception:
+                pass
+
+            static_rows = []
+            if isinstance(pm.deposit_info_schema, dict) and isinstance(pm.deposit_info_schema.get("rows"), list):
+                static_rows = pm.deposit_info_schema.get("rows")
+            form_fields = []
+            if isinstance(pm.deposit_form_schema, dict) and isinstance(pm.deposit_form_schema.get("fields"), list):
+                form_fields = pm.deposit_form_schema.get("fields")
+
+            fee_pct = 0.0
+            fee_fix = 0.0
+            if isinstance(pm.deposit_fee_settings, dict) and pm.deposit_fee_settings.get("enabled", True):
+                try:
+                    fee_pct = float(pm.deposit_fee_settings.get("percent", 0) or 0)
+                    fee_fix = float(pm.deposit_fee_settings.get("fixed", 0) or 0)
+                except Exception:
+                    pass
+
+            is_maint = bool(pm.is_maintenance_mode)
+            gateways_out.append({
+                "id": str(pm.id),
+                "payment_method_id": str(pm.id),
+                "code": f"manual:{pm.id}",
+                "provider": f"manual:{pm.id}",
+                "type": "manual",
+                "name": pm.name,
+                "subtitle": (pm.description or pm.method_type or "إيداع وتحويل مباشر").strip(),
+                "logo_url": logo_abs,
+                "currencies": pm_currs,
+                "for_deposit": True,
+                "for_checkout": False,
+                "min_usd": min_usd,
+                "max_usd": max_usd,
+                "min_syp": min_syp,
+                "max_syp": max_syp,
+                "fee_percent": fee_pct,
+                "fee_fixed": fee_fix,
+                "is_coming_soon": False,
+                "is_maintenance_mode": is_maint,
+                "is_unavailable": is_maint,
+                "badge_label": "قيد الصيانة" if is_maint else (pm.method_type or "تحويل"),
+                "unavailable_message": f"وسيلة الدفع {pm.name} قيد الصيانة حالياً." if is_maint else "",
+                "instructions": pm.deposit_instructions or "",
+                "static_rows": static_rows,
+                "form_fields": form_fields,
+                "qr_url": _resolve_abs_app_url(request, pm.deposit_qr_image.url) if pm.deposit_qr_image else "",
+            })
+
+    return gateways_out
+
+
+def _wallet_balances_dict(wallet, syp_curr, syp_buy_rate):
+    from decimal import Decimal
+    avail = Decimal(str(wallet.available_balance or "0"))
+    pending = Decimal(str(wallet.pending_balance or "0"))
+    held = Decimal(str((wallet.held_balance or Decimal("0")) + (wallet.frozen_balance or Decimal("0"))))
+    debt = Decimal(str(wallet.debt_balance or "0"))
+
+    w_code = wallet.currency.code.upper() if wallet.currency and wallet.currency.code else "USD"
+    if w_code == "USD":
+        avail_usd = float(avail)
+        pending_usd = float(pending)
+        held_usd = float(held)
+        debt_usd = float(debt)
+    else:
+        try:
+            avail_usd = float(wallet.currency.to_base(avail, "deposit"))
+            pending_usd = float(wallet.currency.to_base(pending, "deposit"))
+            held_usd = float(wallet.currency.to_base(held, "deposit"))
+            debt_usd = float(wallet.currency.to_base(debt, "deposit"))
+        except Exception:
+            avail_usd = float(avail)
+            pending_usd = float(pending)
+            held_usd = float(held)
+            debt_usd = float(debt)
+
+    if syp_curr:
+        try:
+            avail_syp = float(syp_curr.from_base(Decimal(str(avail_usd)), "deposit"))
+            pending_syp = float(syp_curr.from_base(Decimal(str(pending_usd)), "deposit"))
+        except Exception:
+            avail_syp = round(avail_usd * syp_buy_rate, 0)
+            pending_syp = round(pending_usd * syp_buy_rate, 0)
+    else:
+        avail_syp = round(avail_usd * syp_buy_rate, 0)
+        pending_syp = round(pending_usd * syp_buy_rate, 0)
+
+    return {
+        "balance": round(avail_usd, 2),
+        "available_balance_usd": round(avail_usd, 2),
+        "available_balance_syp": round(avail_syp, 0),
+        "pending_balance_usd": round(pending_usd, 2),
+        "pending_balance_syp": round(pending_syp, 0),
+        "held_balance_usd": round(held_usd, 2),
+        "debt_balance_usd": round(debt_usd, 2),
+        "wallet_currency": w_code,
+    }
+
+
 def api_app_wallet_info(request):
-    """Returns wallet balance and available Paymera / ShamCash gateways for the Android App."""
+    """
+    Returns live wallet balances (USD & SYP), exchange rates, all platform payment
+    gateways with real logos and status flags, saved MTN phones, and recent transactions.
+    """
+    req_store = getattr(request, "store", None)
+    syp_curr, syp_buy_rate, syp_sell_rate = _get_app_syp_currency_and_rates(req_store)
     user = _get_app_user(request)
-    if not user or not user.is_authenticated:
-        return JsonResponse({"status": "ok", "is_authenticated": False})
+    is_auth = bool(user and user.is_authenticated)
+    gateways = _build_app_gateways_payload(request, user=user if is_auth else None)
+
+    shamcash_on = any(g["code"] == "sham_cash" and not g["is_unavailable"] for g in gateways)
+    paymera_on = any(g["code"] == "paymera" and not g["is_unavailable"] for g in gateways)
+    mtn_pay_on = any(g["code"] == "mtn_pay" and not g["is_unavailable"] for g in gateways)
+
+    if not is_auth:
+        google_ctx = {}
+        try:
+            google_ctx = _build_app_google_login_context(request, req_store)
+        except Exception:
+            pass
+        return JsonResponse({
+            "status": "ok",
+            "is_authenticated": False,
+            "syp_rate": syp_buy_rate,
+            "syp_buy_rate": syp_buy_rate,
+            "syp_sell_rate": syp_sell_rate,
+            "gateways": gateways,
+            "shamcash_enabled": shamcash_on,
+            "paymera_enabled": paymera_on,
+            "mtn_pay_enabled": mtn_pay_on,
+            "google_login_url": google_ctx.get("app_google_login_url", ""),
+        })
 
     from apps.wallets.services import get_or_create_wallet
-    from apps.payments.models import PaymentGatewayIntegration
+    from apps.payments.models import DepositRequest
 
     wallet = get_or_create_wallet(user)
-    req_store = getattr(request, "store", None)
-    gw_filter = {"store": req_store} if req_store else {"store__isnull": True}
-    shamcash_on = PaymentGatewayIntegration.all_objects.filter(
-        provider=PaymentGatewayIntegration.Provider.SHAM_CASH,
-        is_active=True,
-        is_coming_soon=False,
-        is_maintenance_mode=False,
-        **gw_filter
-    ).exists() or (not req_store and bool(getattr(settings, "SHAM_CASH_AGENT_KEY", "")) and not PaymentGatewayIntegration.all_objects.filter(provider=PaymentGatewayIntegration.Provider.SHAM_CASH, store__isnull=True, is_coming_soon=True).exists() and not PaymentGatewayIntegration.all_objects.filter(provider=PaymentGatewayIntegration.Provider.SHAM_CASH, store__isnull=True, is_maintenance_mode=True).exists())
-    paymera_on = PaymentGatewayIntegration.all_objects.filter(
-        provider=PaymentGatewayIntegration.Provider.PAYMERA,
-        is_active=True,
-        is_coming_soon=False,
-        is_maintenance_mode=False,
-        **gw_filter
-    ).exists()
-    mtn_pay_on = PaymentGatewayIntegration.all_objects.filter(
-        provider=PaymentGatewayIntegration.Provider.MTN_PAY,
-        is_active=True,
-        is_coming_soon=False,
-        is_maintenance_mode=False,
-        **gw_filter
-    ).exists()
+    bal_data = _wallet_balances_dict(wallet, syp_curr, syp_buy_rate)
 
-    return JsonResponse({
+    recent_ops = []
+    try:
+        deps = DepositRequest.all_objects.filter(user=user).select_related("payment_method", "currency").order_by("-created_at")[:12]
+        for d in deps:
+            st_map = {
+                "completed": "مكتمل",
+                "pending": "قيد الانتظار",
+                "under_review": "قيد المراجعة",
+                "rejected": "مرفوض",
+                "refunded": "مسترد",
+            }
+            recent_ops.append({
+                "id": str(d.id),
+                "kind": "deposit",
+                "title": f"شحن عبر {d.payment_method.name}" if d.payment_method else "شحن المحفظة",
+                "amount": float(d.amount),
+                "currency": d.currency.code if d.currency else "USD",
+                "status": d.status,
+                "status_ar": st_map.get(d.status, d.get_status_display()),
+                "reference": d.transaction_id or "",
+                "created_at": timezone.localtime(d.created_at).strftime("%Y-%m-%d %H:%M") if d.created_at else "",
+            })
+    except Exception:
+        pass
+
+    is_admin = _is_app_admin(user, req_store)
+    resp = {
         "status": "success",
         "is_authenticated": True,
-        "balance": float(wallet.balance),
-        "currency": wallet.currency.code if wallet.currency else "USD",
+        "currency": "USD",
+        "syp_rate": syp_buy_rate,
+        "syp_buy_rate": syp_buy_rate,
+        "syp_sell_rate": syp_sell_rate,
         "shamcash_enabled": shamcash_on,
         "paymera_enabled": paymera_on,
         "mtn_pay_enabled": mtn_pay_on,
-    })
+        "gateways": gateways,
+        "saved_mtn_phones": _get_saved_mtn_phones_for_user(user),
+        "recent_transactions": recent_ops,
+        "app_auth_token": _issue_app_auth_token(user),
+        "user": {
+            "username": user.username,
+            "full_name": user.get_full_name() or getattr(user, "display_name", "") or user.username,
+            "email": getattr(user, "email", ""),
+            "phone": getattr(user, "phone_number", "") or getattr(user, "phone", ""),
+            "is_verified": bool(getattr(user, "is_verified", False) or getattr(user, "kyc_verified", False)),
+            "is_admin": is_admin,
+        },
+    }
+    resp.update(bal_data)
+    return JsonResponse(resp)
 
 
 @csrf_exempt
 def api_app_payment_deposit(request):
     """
-    Initiates a ShamCash or Paymera deposit directly via API from inside the Native Android App.
+    Initiates an API gateway deposit (ShamCash, MTN Cash Mobile, Paymera) or submits
+    a manual PaymentMethod deposit request directly from inside the Native Android App.
     """
     if request.method != "POST":
         return JsonResponse({"status": "error", "message": "Method not allowed"}, status=405)
 
     user = _get_app_user(request)
     if not user or not user.is_authenticated:
-        return JsonResponse({"status": "error", "message": "يرجى تسجيل الدخول أولاً لإتمام الدفع"}, status=401)
+        return JsonResponse({"status": "error", "requires_auth": True, "message": "يرجى تسجيل الدخول أولاً لإتمام الدفع"}, status=401)
 
     import json as _json
     from decimal import Decimal, InvalidOperation
@@ -8430,11 +9010,12 @@ def api_app_payment_deposit(request):
     except Exception:
         payload = request.POST
 
-    provider = str(payload.get("provider", "")).strip().lower()
-    if provider not in ("shamcash", "sham_cash", "paymera", "mtn_pay", "mtn"):
-        return JsonResponse({"status": "error", "message": "بوابة الدفع غير مدعومة. اختر شام كاش أو بيميرا أو MTNPay"}, status=400)
-    if provider == "mtn":
-        provider = "mtn_pay"
+    provider = str(payload.get("provider", "")).strip()
+    provider_low = provider.lower()
+    if provider_low == "shamcash":
+        provider_low = "sham_cash"
+    elif provider_low in ("mtn", "cash_mobile"):
+        provider_low = "mtn_pay"
 
     try:
         amount = Decimal(str(payload.get("amount", "0")).strip())
@@ -8445,15 +9026,64 @@ def api_app_payment_deposit(request):
         return JsonResponse({"status": "error", "message": "يجب أن يكون المبلغ أكبر من صفر"}, status=400)
 
     curr_code = str(payload.get("currency_code", "USD")).strip().upper()
-    currency = Currency.objects.filter(code=curr_code, is_active=True).first() or Currency.all_objects.filter(code=curr_code).first()
-    if not currency:
-        currency = Currency.objects.filter(is_active=True).first() or Currency.all_objects.first()
-
     store = getattr(request, "store", None)
     pm_store_filter = {"store": store} if store else {"store__isnull": True}
-    pm = PaymentMethod.all_objects.filter(is_active=True, gateway__provider=provider, **pm_store_filter).first()
+
+    currency = (
+        Currency.all_objects.filter(code=curr_code, is_active=True, **pm_store_filter).first()
+        or Currency.all_objects.filter(code=curr_code, is_active=True).first()
+        or Currency.all_objects.filter(code=curr_code).first()
+        or Currency.all_objects.filter(is_active=True).first()
+    )
+
+    # Support manual deposit method ("manual:<uuid>") or explicit payment_method_id
+    pm_id = str(payload.get("payment_method_id", "")).strip()
+    if provider_low.startswith("manual:"):
+        pm_id = provider.split(":", 1)[1].strip()
+
+    if provider_low.startswith("manual:") or (pm_id and provider_low not in ("sham_cash", "paymera", "mtn_pay", "baniyas_crypto")):
+        pm = PaymentMethod.all_objects.filter(id=pm_id, is_active=True, can_deposit=True, **pm_store_filter).first()
+        if not pm:
+            return JsonResponse({"status": "error", "message": "وسيلة الإيداع غير متاحة حالياً"}, status=400)
+        if pm.is_maintenance_mode:
+            return JsonResponse({"status": "error", "message": f"وسيلة الدفع {pm.name} قيد الصيانة حالياً."}, status=400)
+
+        tx_ref = str(payload.get("reference_number") or payload.get("sender_info") or "").strip()
+        dyn_fields = payload.get("dynamic_fields") if isinstance(payload.get("dynamic_fields"), dict) else {}
+        note_text = str(payload.get("customer_note") or "").strip()
+
+        deposit = DepositRequest.objects.create(
+            user=user,
+            store=store,
+            payment_method=pm,
+            amount=amount,
+            final_amount=amount,
+            currency=currency,
+            status=DepositRequest.Status.PENDING,
+            sender_identifier=tx_ref[:150] if tx_ref else "",
+            customer_note=note_text or "طلب إيداع من تطبيق رقميات للأندرويد",
+            dynamic_data=dyn_fields,
+            metadata={"payment_provider": f"manual:{pm.id}", "from_android_app": True},
+        )
+        deposit.calculate_fees()
+        deposit.save(update_fields=["fee_amount", "final_amount"])
+        return JsonResponse({
+            "status": "success",
+            "payment_mode": "manual",
+            "provider": f"manual:{pm.id}",
+            "deposit_id": str(deposit.id),
+            "bill_no": deposit.transaction_id or str(deposit.id)[:8].upper(),
+            "amount": str(deposit.amount),
+            "currency": currency.code if currency else curr_code,
+            "message": "تم استلام طلب الإيداع بنجاح! سيتم مراجعته وإضافة الرصيد إلى محفظتك قريباً.",
+        })
+
+    if provider_low not in ("sham_cash", "paymera", "mtn_pay", "baniyas_crypto"):
+        return JsonResponse({"status": "error", "message": "بوابة الدفع المحددة غير مدعومة حالياً"}, status=400)
+
+    pm = PaymentMethod.all_objects.filter(is_active=True, gateway__provider=provider_low, **pm_store_filter).first()
     if not pm:
-        kw_map = "شام" if provider in ("shamcash", "sham_cash") else ("mtn" if provider == "mtn_pay" else "بيميرا")
+        kw_map = "شام" if provider_low == "sham_cash" else ("mtn" if provider_low == "mtn_pay" else "بيميرا")
         pm = PaymentMethod.all_objects.filter(is_active=True, name__icontains=kw_map, **pm_store_filter).first()
     if not pm:
         pm = PaymentMethod.all_objects.filter(is_active=True, **pm_store_filter).first()
@@ -8463,6 +9093,7 @@ def api_app_payment_deposit(request):
         return JsonResponse({"status": "error", "message": pm.gateway.unavailable_message}, status=400)
     if pm.is_maintenance_mode:
         return JsonResponse({"status": "error", "message": f"وسيلة الدفع {pm.name} قيد الصيانة حالياً، تم إيقاف الإيداع مؤقتاً."}, status=400)
+
     deposit = DepositRequest.objects.create(
         user=user,
         store=store,
@@ -8471,23 +9102,48 @@ def api_app_payment_deposit(request):
         final_amount=amount,
         currency=currency,
         status=DepositRequest.Status.PENDING,
-        customer_note=f"دفع عبر التطبيق ({provider})",
-        metadata={"payment_provider": provider, "from_android_app": True},
+        customer_note=f"دفع عبر التطبيق ({provider_low})",
+        metadata={"payment_provider": provider_low, "from_android_app": True},
     )
     deposit.calculate_fees()
     deposit.save(update_fields=["fee_amount", "final_amount"])
 
     try:
-        gw = gateway_for(provider)
+        gw = gateway_for(provider_low)
         res = gw.create_payment(deposit, request=request)
-        payment_url = res.get("paymentUrl") or res.get("url") or deposit.metadata.get("shamcash_url") or deposit.metadata.get("paymera_url") or ""
+        raw_pay_url = res.get("paymentUrl") or res.get("url") or deposit.metadata.get("shamcash_url") or deposit.metadata.get("paymera_url") or ""
+        payment_url = _resolve_abs_app_url(request, raw_pay_url) if raw_pay_url else ""
         bill_no = res.get("billNo") or deposit.gateway_payment_id or ""
+
+        if provider_low == "mtn_pay":
+            inv_num = res.get("invoice_number") or (deposit.metadata or {}).get("mtn_invoice_number")
+            syp_amt = (deposit.metadata or {}).get("syp_amount") or float(deposit.amount)
+            fee_syp, total_syp, eq_str = _compute_mtn_fee_equation(syp_amt)
+            return JsonResponse({
+                "status": "success",
+                "payment_mode": "mtn_native",
+                "provider": "mtn_pay",
+                "deposit_id": str(deposit.id),
+                "mtn_invoice_number": int(inv_num) if inv_num else 0,
+                "syp_amount": float(syp_amt),
+                "mtn_fee_syp": fee_syp,
+                "mtn_total_syp": total_syp,
+                "mtn_equation": eq_str,
+                "saved_mtn_phones": _get_saved_mtn_phones_for_user(user),
+                "payment_url": payment_url,
+                "bill_no": str(inv_num or bill_no),
+                "amount": str(deposit.amount),
+                "currency": currency.code if currency else "SYP",
+                "message": "تم تجهيز فاتورة كاش موبايل، أدخل رقم هاتف MTN لإرسال رمز التأكيد.",
+            })
+
         return JsonResponse({
             "status": "success",
-            "provider": provider,
+            "payment_mode": "gateway",
+            "provider": provider_low,
             "deposit_id": str(deposit.id),
             "payment_url": payment_url,
-            "bill_no": bill_no,
+            "bill_no": str(bill_no),
             "amount": str(deposit.amount),
             "currency": currency.code if currency else "USD",
             "message": "تم إنشاء رابط الدفع بنجاح",
@@ -8496,14 +9152,14 @@ def api_app_payment_deposit(request):
         deposit.status = DepositRequest.Status.REJECTED
         deposit.admin_note = str(exc)
         deposit.save(update_fields=["status", "admin_note"])
-        return JsonResponse({"status": "error", "message": f"خطأ من بوابة الدفع: {exc}"}, status=400)
+        return JsonResponse({"status": "error", "message": f"{exc}"}, status=400)
     except Exception as exc:
         logger.exception("App payment init error: %s", exc)
         return JsonResponse({"status": "error", "message": f"تعذر بدء عملية الدفع: {exc}"}, status=500)
 
 
 def api_app_payment_status(request, pk):
-    """Checks and verifies a ShamCash or Paymera deposit status from the Native Android App."""
+    """Checks and verifies a ShamCash, MTN Cash Mobile, or Paymera deposit status from the Native Android App."""
     user = _get_app_user(request)
     if not user or not user.is_authenticated:
         return JsonResponse({"status": "error", "message": "غير مصرح"}, status=401)
@@ -8516,8 +9172,8 @@ def api_app_payment_status(request, pk):
     if not deposit:
         return JsonResponse({"status": "error", "message": "العملية غير موجودة"}, status=404)
 
-    provider = (deposit.metadata or {}).get("payment_provider", "shamcash")
-    if deposit.status != DepositRequest.Status.COMPLETED:
+    provider = (deposit.metadata or {}).get("payment_provider", "sham_cash")
+    if deposit.status != DepositRequest.Status.COMPLETED and not str(provider).startswith("manual:"):
         try:
             gw = gateway_for("sham_cash" if provider == "shamcash" else provider)
             gw.verify_payment(deposit)
@@ -8525,21 +9181,163 @@ def api_app_payment_status(request, pk):
         except Exception as exc:
             logger.warning("App payment verify warning for %s: %s", pk, exc)
 
+    req_store = getattr(request, "store", None)
+    syp_curr, syp_buy_rate, _ = _get_app_syp_currency_and_rates(req_store)
     wallet = get_or_create_wallet(user)
-    return JsonResponse({
+    bal_data = _wallet_balances_dict(wallet, syp_curr, syp_buy_rate)
+    resp = {
         "status": "success",
         "deposit_status": deposit.status,
         "is_completed": deposit.status == DepositRequest.Status.COMPLETED,
-        "wallet_balance": float(wallet.balance),
-        "currency": wallet.currency.code if wallet.currency else "USD",
-    })
+        "wallet_balance": bal_data["available_balance_usd"],
+        "currency": "USD",
+    }
+    resp.update(bal_data)
+    return JsonResponse(resp)
+
+
+@csrf_exempt
+def api_app_mtn_initiate(request):
+    """
+    100% Native Android endpoint to initiate MTN Cash Mobile phone payment (`pos_web/payment_phone/initiate`).
+    Sends SMS verification code to the user's 10-digit MTN phone number.
+    """
+    if request.method != "POST":
+        return JsonResponse({"status": "error", "message": "Method not allowed"}, status=405)
+
+    user = _get_app_user(request)
+    if not user or not user.is_authenticated:
+        return JsonResponse({"status": "error", "requires_auth": True, "message": "يرجى تسجيل الدخول أولاً"}, status=401)
+
+    import json as _json
+    from apps.payments.models import MTNPayInvoiceRecord
+    from apps.payments.mtn_pay import MTNPaymentClient, MTNPayError
+    from apps.payments.views_mtn import _expire_invoice_if_needed
+
+    try:
+        payload = _json.loads(request.body.decode("utf-8") or "{}") if request.body else request.POST
+    except Exception:
+        payload = request.POST
+
+    try:
+        inv_num = int(str(payload.get("invoice_number") or "0").strip())
+    except ValueError:
+        inv_num = 0
+    phone = str(payload.get("phone") or "").strip()
+
+    invoice = MTNPayInvoiceRecord.objects.filter(invoice_number=inv_num, user=user).first()
+    if not invoice:
+        return JsonResponse({"status": "error", "message": "الفاتورة غير موجودة أو غير صالحة"}, status=404)
+
+    is_expired, remaining_sec = _expire_invoice_if_needed(invoice)
+    if is_expired:
+        return JsonResponse({"status": "error", "expired": True, "message": "انتهت مهلة الفاتورة (10 دقائق)، يرجى إنشاء عملية جديدة."}, status=400)
+
+    client = MTNPaymentClient(invoice.terminal)
+    try:
+        client.initiate_phone_payment(invoice_number=invoice.invoice_number, customer_phone=phone)
+        invoice.refresh_from_db()
+        return JsonResponse({
+            "status": "success",
+            "message": "تم إرسال رمز التحقق SMS إلى رقم هاتفك بنجاح.",
+            "invoice_number": invoice.invoice_number,
+            "operation_number": invoice.operation_number,
+            "remaining_seconds": remaining_sec,
+        })
+    except MTNPayError as exc:
+        return JsonResponse({"status": "error", "message": str(exc)}, status=400)
+    except Exception as exc:
+        logger.exception("Native MTN initiate error: %s", exc)
+        return JsonResponse({"status": "error", "message": "تعذر الاتصال ببوابة كاش موبايل حالياً، حاول مجدداً."}, status=500)
+
+
+@csrf_exempt
+def api_app_mtn_confirm(request):
+    """
+    100% Native Android endpoint to confirm MTN Cash Mobile SMS OTP (`pos_web/payment_phone/confirm`).
+    Completes the deposit or product order immediately and returns updated balances / order keys.
+    """
+    if request.method != "POST":
+        return JsonResponse({"status": "error", "message": "Method not allowed"}, status=405)
+
+    user = _get_app_user(request)
+    if not user or not user.is_authenticated:
+        return JsonResponse({"status": "error", "requires_auth": True, "message": "يرجى تسجيل الدخول أولاً"}, status=401)
+
+    import json as _json
+    from apps.payments.models import MTNPayInvoiceRecord
+    from apps.payments.mtn_pay import MTNPaymentClient, MTNPayError
+    from apps.payments.views_mtn import _expire_invoice_if_needed
+    from apps.wallets.services import get_or_create_wallet
+
+    try:
+        payload = _json.loads(request.body.decode("utf-8") or "{}") if request.body else request.POST
+    except Exception:
+        payload = request.POST
+
+    try:
+        inv_num = int(str(payload.get("invoice_number") or "0").strip())
+    except ValueError:
+        inv_num = 0
+    sms_code = str(payload.get("code") or "").strip()
+
+    invoice = MTNPayInvoiceRecord.objects.filter(invoice_number=inv_num, user=user).first()
+    if not invoice:
+        return JsonResponse({"status": "error", "message": "الفاتورة غير موجودة أو غير صالحة"}, status=404)
+
+    is_expired, _ = _expire_invoice_if_needed(invoice)
+    if is_expired:
+        return JsonResponse({"status": "error", "expired": True, "message": "انتهت مهلة الفاتورة وتم إغلاقها تلقائياً."}, status=400)
+
+    client = MTNPaymentClient(invoice.terminal)
+    try:
+        updated_inv, _ = client.confirm_phone_payment(invoice_number=invoice.invoice_number, sms_code=sms_code)
+        req_store = getattr(request, "store", None)
+        syp_curr, syp_buy_rate, _ = _get_app_syp_currency_and_rates(req_store)
+        wallet = get_or_create_wallet(user)
+        bal_data = _wallet_balances_dict(wallet, syp_curr, syp_buy_rate)
+
+        order_id = str(updated_inv.order_id) if updated_inv.order_id else ""
+        order_number = updated_inv.order.number if updated_inv.order else ""
+        fulfillment_items = {}
+        if updated_inv.order:
+            try:
+                updated_inv.order.refresh_from_db()
+                from apps.site.templatetags.site_tags import clean_fulfillment_items
+                fulfillment_items = dict(clean_fulfillment_items(updated_inv.order.fulfillment_data))
+            except Exception:
+                pass
+
+        resp = {
+            "status": "success",
+            "is_paid": updated_inv.is_paid,
+            "message": "تم تأكيد الدفع عبر كاش موبايل بنجاح!",
+            "invoice_number": updated_inv.invoice_number,
+            "transaction_id": updated_inv.transaction_id or "",
+            "order_id": order_id,
+            "order_number": order_number,
+            "fulfillment": fulfillment_items,
+        }
+        resp.update(bal_data)
+        return JsonResponse(resp)
+    except MTNPayError as exc:
+        invoice.refresh_from_db()
+        return JsonResponse({
+            "status": "error",
+            "abuse_remaining": invoice.abuse_remaining,
+            "message": str(exc),
+        }, status=400)
+    except Exception as exc:
+        logger.exception("Native MTN confirm error: %s", exc)
+        return JsonResponse({"status": "error", "message": "تعذر تأكيد رمز التحقق حالياً، حاول مجدداً."}, status=500)
 
 
 @csrf_exempt
 def api_app_create_order(request):
     """
     Native Android App direct purchase endpoint.
-    Supports instant wallet purchase as well as direct gateway checkout (ShamCash / Paymera).
+    Supports instant wallet purchase as well as direct gateway checkout (ShamCash / MTN Cash Mobile / Paymera),
+    dynamic customer_inputs (form_schema), and multi-item native cart checkout.
     """
     if request.method != "POST":
         return JsonResponse({"status": "error", "message": "Method not allowed"}, status=405)
@@ -8559,6 +9357,7 @@ def api_app_create_order(request):
     from apps.common.tenant_utils import bypass_tenant_filter
     from apps.orders.services import (
         create_order,
+        create_multi_item_order,
         create_pending_gateway_order,
         resolve_variant_provider_and_product,
         mark_variant_unavailable,
@@ -8582,12 +9381,96 @@ def api_app_create_order(request):
     except Exception:
         payload = request.POST
 
-    product_id = str(payload.get("product_id", "")).strip()
-    variant_id = str(payload.get("variant_id", "")).strip()
     payment_method = str(payload.get("payment_method", "wallet")).strip().lower() or "wallet"
     gateway_curr = str(payload.get("currency_code") or payload.get("gateway_currency") or "USD").strip().upper()
     if gateway_curr not in ("USD", "SYP"):
         gateway_curr = "USD"
+    coupon_code = str(payload.get("coupon_code") or "").strip() or None
+
+    shipping_name = str(payload.get("shipping_name", "")).strip() or getattr(user, "display_name", "") or user.username or "عميل رقميات"
+    shipping_phone = str(payload.get("shipping_phone", "")).strip() or getattr(user, "phone_number", "") or getattr(user, "phone", "") or ""
+    shipping_address = str(payload.get("shipping_address", "")).strip() or "طلب مباشر من تطبيق رقميات للأندرويد"
+
+    req_store = getattr(request, "store", None)
+    syp_curr, syp_buy_rate, _ = _get_app_syp_currency_and_rates(req_store)
+
+    # Multi-item Native Cart Checkout support (Wallet)
+    cart_items_raw = payload.get("cart_items")
+    if isinstance(cart_items_raw, list) and len(cart_items_raw) > 0 and payment_method == "wallet":
+        items_data = []
+        total_needed = Decimal("0.00")
+        for ci in cart_items_raw:
+            if not isinstance(ci, dict):
+                continue
+            p_id = str(ci.get("product_id") or "").strip()
+            v_id = str(ci.get("variant_id") or "").strip()
+            qty_i = max(1, int(ci.get("quantity") or 1))
+            prod_i = Product.all_objects.filter(pk=p_id, is_active=True, is_publicly_visible=True).first() if p_id else None
+            if not prod_i:
+                continue
+            var_i = ProductVariant.all_objects.filter(id=v_id, product=prod_i).first() if (v_id and v_id != "default") else prod_i.variants.filter(is_active=True).first()
+            if not var_i:
+                continue
+            u_price = Decimal(str(var_i.price)) if (var_i.price and var_i.price > Decimal("0.00")) else var_i.get_price_for_user(user)
+            total_needed += u_price * Decimal(qty_i)
+            item_meta = {"client_platform": "app", "from_android_app": True}
+            if ci.get("custom_input"):
+                item_meta["note"] = str(ci.get("custom_input")).strip()
+                item_meta["player_id"] = str(ci.get("custom_input")).strip()
+            items_data.append({"variant_id": var_i.id, "quantity": qty_i, "metadata": item_meta})
+
+        if not items_data:
+            return JsonResponse({"status": "error", "message": "السلة فارغة أو المنتجات غير متوفرة حالياً"}, status=400)
+
+        wallet = get_or_create_wallet(user)
+        if wallet.available_balance < total_needed:
+            missing_usd = float(total_needed - wallet.available_balance)
+            missing_syp = round(missing_usd * syp_buy_rate)
+            return JsonResponse({
+                "status": "error",
+                "insufficient_balance": True,
+                "message": f"رصيد محفظتك غير كافٍ لإتمام السلة. ينقصك ${missing_usd:,.2f} (حوالي {missing_syp:,.0f} ل.س). اشحن محفظتك فوراً عبر شام كاش أو كاش موبايل.",
+            }, status=400)
+
+        try:
+            order = create_multi_item_order(
+                customer=user,
+                items_data=items_data,
+                coupon_code=coupon_code,
+                metadata={"client_platform": "app", "from_android_app": True},
+                shipping_name=shipping_name,
+                shipping_phone=shipping_phone,
+                shipping_address=shipping_address,
+            )
+            wallet.refresh_from_db()
+            bal_data = _wallet_balances_dict(wallet, syp_curr, syp_buy_rate)
+            from apps.site.templatetags.site_tags import clean_fulfillment_items
+            ff_clean = dict(clean_fulfillment_items(order.fulfillment_data))
+            resp = {
+                "status": "success",
+                "payment_mode": "wallet",
+                "order_id": str(order.id),
+                "order_number": str(order.number),
+                "order_status": order.status,
+                "status_display": order.get_status_display(),
+                "fulfillment": ff_clean,
+                "message": f"تم تأكيد طلب السلة بنجاح! رقم الطلب #{order.number}",
+            }
+            resp.update(bal_data)
+            return JsonResponse(resp)
+        except Exception as exc:
+            logger.exception("App multi-item cart order error: %s", exc)
+            return JsonResponse({"status": "error", "message": str(exc) or "تعذر إتمام طلب السلة"}, status=400)
+
+    product_id = str(payload.get("product_id", "")).strip()
+    variant_id = str(payload.get("variant_id", "")).strip()
+    if not product_id and isinstance(cart_items_raw, list) and len(cart_items_raw) == 1 and isinstance(cart_items_raw[0], dict):
+        product_id = str(cart_items_raw[0].get("product_id", "")).strip()
+        variant_id = str(cart_items_raw[0].get("variant_id", "")).strip()
+        payload = dict(payload)
+        payload["quantity"] = cart_items_raw[0].get("quantity", 1)
+        if cart_items_raw[0].get("custom_input") and not payload.get("custom_input"):
+            payload["custom_input"] = cart_items_raw[0].get("custom_input")
 
     try:
         quantity = max(1, int(str(payload.get("quantity", "1")).strip() or "1"))
@@ -8649,14 +9532,21 @@ def api_app_create_order(request):
         schema_fields = []
         if isinstance(getattr(product, "form_schema", None), dict):
             schema_fields = product.form_schema.get("fields") or []
-        if schema_fields and isinstance(schema_fields[0], dict) and schema_fields[0].get("name"):
-            metadata[str(schema_fields[0]["name"])] = custom_input
+        if schema_fields and isinstance(schema_fields[0], dict):
+            f_key = schema_fields[0].get("name") or schema_fields[0].get("id") or schema_fields[0].get("label")
+            if f_key:
+                metadata.setdefault(str(f_key), custom_input)
         metadata.setdefault("player_id", custom_input)
         metadata.setdefault("note", custom_input)
 
-    shipping_name = str(payload.get("shipping_name", "")).strip() or getattr(user, "display_name", "") or user.username or "عميل رقميات"
-    shipping_phone = str(payload.get("shipping_phone", "")).strip() or getattr(user, "phone_number", "") or getattr(user, "phone", "") or ""
-    shipping_address = str(payload.get("shipping_address", "")).strip() or "طلب مباشر من تطبيق رقميات للأندرويد"
+    # Validate required form_schema fields if present
+    if isinstance(getattr(product, "form_schema", None), dict):
+        for f in (product.form_schema.get("fields") or []):
+            if isinstance(f, dict) and f.get("required"):
+                f_key = str(f.get("name") or f.get("id") or f.get("label") or "").strip()
+                f_lbl = str(f.get("label") or f_key or "البيانات المطلوبة").strip()
+                if f_key and not str(metadata.get(f_key, "")).strip():
+                    return JsonResponse({"status": "error", "message": f"يرجى إدخال الحقل المطلوب: {f_lbl}"}, status=400)
 
     base_unit_price = Decimal(str(variant.price)) if (variant.price and variant.price > Decimal("0.00")) else variant.get_price_for_user(user)
     total_price = base_unit_price * Decimal(quantity)
@@ -8668,11 +9558,10 @@ def api_app_create_order(request):
             gw_provider = PaymentGatewayIntegration.Provider.SHAM_CASH
         elif payment_method in ("paymera", "direct_paymera"):
             gw_provider = PaymentGatewayIntegration.Provider.PAYMERA
-        elif payment_method in ("mtn_pay", "mtn", "direct_mtn_pay"):
+        elif payment_method in ("mtn_pay", "mtn", "direct_mtn_pay", "cash_mobile"):
             gw_provider = PaymentGatewayIntegration.Provider.MTN_PAY
 
         selected_gateway = None
-        req_store = getattr(request, "store", None)
         gw_filter = {"store": req_store} if req_store else {"store__isnull": True}
         if gw_provider:
             with bypass_tenant_filter():
@@ -8696,6 +9585,7 @@ def api_app_create_order(request):
                 customer=user,
                 variant_id=variant.id,
                 quantity=quantity,
+                coupon_code=coupon_code,
                 fulfillment_data=order_metadata,
                 metadata=order_metadata,
                 shipping_name=shipping_name,
@@ -8706,13 +9596,36 @@ def api_app_create_order(request):
             )
             gw_instance = gateway_for(selected_gateway if selected_gateway else gw_provider)
             gw_res = gw_instance.create_order_payment(order, request=request)
-            payment_url = gw_res.get("url") or gw_res.get("paymentUrl") or ""
+            raw_pay_url = gw_res.get("url") or gw_res.get("paymentUrl") or ""
+            payment_url = _resolve_abs_app_url(request, raw_pay_url) if raw_pay_url else ""
+
+            if gw_provider == PaymentGatewayIntegration.Provider.MTN_PAY:
+                inv_num = gw_res.get("invoice_number") or (order.metadata or {}).get("mtn_invoice_number")
+                syp_amt = (order.metadata or {}).get("syp_amount") or round(float(order.total_amount) * syp_buy_rate)
+                fee_syp, total_syp, eq_str = _compute_mtn_fee_equation(syp_amt)
+                return JsonResponse({
+                    "status": "success",
+                    "payment_mode": "mtn_native",
+                    "provider": "mtn_pay",
+                    "order_id": str(order.id),
+                    "order_number": str(order.number),
+                    "mtn_invoice_number": int(inv_num) if inv_num else 0,
+                    "syp_amount": float(syp_amt),
+                    "mtn_fee_syp": fee_syp,
+                    "mtn_total_syp": total_syp,
+                    "mtn_equation": eq_str,
+                    "saved_mtn_phones": _get_saved_mtn_phones_for_user(user),
+                    "payment_url": payment_url,
+                    "message": "تم تجهيز فاتورة كاش موبايل، أدخل رقم هاتف MTN لإرسال رمز التأكيد.",
+                })
+
             if not payment_url:
                 raise PaymentGatewayError("لم يتم استلام رابط الدفع من بوابة الدفع.")
 
             return JsonResponse({
                 "status": "success",
                 "payment_mode": "gateway",
+                "provider": gw_provider,
                 "order_id": str(order.id),
                 "order_number": str(order.number),
                 "payment_url": payment_url,
@@ -8726,14 +9639,17 @@ def api_app_create_order(request):
     wallet = get_or_create_wallet(user)
     if wallet.available_balance < total_price:
         missing_amount = total_price - wallet.available_balance
-        display_missing = missing_amount
+        missing_usd = float(missing_amount)
         if wallet.currency and wallet.currency.code != "USD":
-            display_missing = wallet.currency.from_base(missing_amount)
-        curr_sym = wallet.currency.symbol if wallet.currency else "$"
+            try:
+                missing_usd = float(wallet.currency.to_base(missing_amount, "deposit"))
+            except Exception:
+                pass
+        missing_syp = round(missing_usd * syp_buy_rate)
         return JsonResponse({
             "status": "error",
             "insufficient_balance": True,
-            "message": f"رصيد محفظتك غير كافٍ. تحتاج إلى {display_missing:,.2f} {curr_sym} إضافية، أو يمكنك الشراء مباشرة عبر شام كاش أو بيميرا.",
+            "message": f"رصيد محفظتك غير كافٍ. تحتاج إلى ${missing_usd:,.2f} إضافية (حوالي {missing_syp:,.0f} ل.س)، أو يمكنك الشراء مباشرة عبر شام كاش أو كاش موبايل أو بيميرا.",
         }, status=400)
 
     try:
@@ -8741,52 +9657,374 @@ def api_app_create_order(request):
             customer=user,
             variant_id=variant.id,
             quantity=quantity,
+            coupon_code=coupon_code,
             fulfillment_data=metadata,
             metadata=metadata,
             shipping_name=shipping_name,
             shipping_phone=shipping_phone,
             shipping_address=shipping_address,
         )
-        return JsonResponse({
+        wallet.refresh_from_db()
+        bal_data = _wallet_balances_dict(wallet, syp_curr, syp_buy_rate)
+        from apps.site.templatetags.site_tags import clean_fulfillment_items
+        ff_clean = dict(clean_fulfillment_items(order.fulfillment_data))
+        resp = {
             "status": "success",
             "payment_mode": "wallet",
             "order_id": str(order.id),
             "order_number": str(order.number),
             "order_status": order.status,
             "status_display": order.get_status_display(),
+            "fulfillment": ff_clean,
             "message": f"تم تأكيد طلبك بنجاح! رقم الطلب #{order.number}",
-        })
+        }
+        resp.update(bal_data)
+        return JsonResponse(resp)
     except Exception as exc:
         logger.exception("App wallet order error: %s", exc)
         return JsonResponse({"status": "error", "message": str(exc) or "تعذر إتمام الطلب"}, status=400)
 
 
+def api_app_orders_list(request):
+    """
+    Returns authenticated user's orders list for the Native Android Orders Tab,
+    including live provider status sync, product thumbnails, USD & SYP amounts,
+    and copyable digital fulfillment keys/PINs.
+    """
+    user = _get_app_user(request)
+    if not user or not user.is_authenticated:
+        return JsonResponse({"status": "ok", "is_authenticated": False, "orders": []})
+
+    from apps.site.templatetags.site_tags import clean_fulfillment_items
+
+    req_store = getattr(request, "store", None)
+    syp_curr, syp_buy_rate, _ = _get_app_syp_currency_and_rates(req_store)
+    store_filter = {"store": req_store} if req_store else {"store__isnull": True}
+
+    qs = (
+        Order.all_objects.filter(customer=user, **store_filter)
+        .prefetch_related("items__variant__product")
+        .order_by("-created_at")[:40]
+    )
+
+    from datetime import timedelta
+    recent_sync_cutoff = timezone.now() - timedelta(minutes=30)
+    orders_out = []
+    for o in qs:
+        # Only reconcile very recent pending ShamCash orders (<= 30m) so list loading stays <50ms
+        if o.status == Order.Status.PENDING and o.created_at and o.created_at >= recent_sync_cutoff and isinstance(o.metadata, dict):
+            gw_prov = (o.metadata.get("payment_provider") or o.metadata.get("payment_gateway") or "").lower()
+            if gw_prov in ("sham_cash", "shamcash"):
+                try:
+                    from apps.payments.views_shamcash import reconcile_shamcash_order_if_overdue
+                    reconcile_shamcash_order_if_overdue(o, force=False)
+                    o.refresh_from_db()
+                except Exception:
+                    pass
+
+        first_item = None
+        items_summary = []
+        total_qty = 0
+        for it in o.items.all():
+            if first_item is None:
+                first_item = it
+            total_qty += it.quantity
+            v_name = it.variant.name if it.variant else ""
+            p_name = it.variant.product.name if (it.variant and it.variant.product) else v_name
+            lbl = f"{p_name} ({v_name})" if (p_name and v_name and p_name != v_name) else (p_name or v_name or "منتج رقميات")
+            if it.quantity > 1:
+                lbl = f"{lbl} ×{it.quantity}"
+            items_summary.append(lbl)
+
+        img_url = ""
+        if first_item and first_item.variant and first_item.variant.product and first_item.variant.product.image:
+            try:
+                img_url = _resolve_abs_app_url(request, first_item.variant.product.image.url)
+            except Exception:
+                img_url = ""
+
+        usd_amt = float(o.total_amount or 0)
+        syp_amt = round(usd_amt * syp_buy_rate)
+        if syp_curr:
+            try:
+                from decimal import Decimal
+                syp_amt = float(syp_curr.from_base(Decimal(str(usd_amt)), "deposit"))
+            except Exception:
+                pass
+
+        ff_dict = {}
+        try:
+            ff_dict = {str(k): str(v) for k, v in clean_fulfillment_items(o.fulfillment_data)}
+        except Exception:
+            pass
+
+        cust_meta = []
+        try:
+            cust_meta = o.formatted_metadata() or []
+        except Exception:
+            pass
+
+        meta = o.metadata if isinstance(o.metadata, dict) else {}
+        pay_prov = (meta.get("payment_provider") or meta.get("payment_gateway") or "wallet").lower()
+        pay_label_map = {
+            "wallet": "محفظة رقميات",
+            "sham_cash": "شام كاش",
+            "shamcash": "شام كاش",
+            "mtn_pay": "كاش موبايل",
+            "paymera": "بيميرا",
+        }
+
+        orders_out.append({
+            "id": str(o.id),
+            "number": str(o.number),
+            "title": "، ".join(items_summary) if items_summary else f"طلب #{o.number}",
+            "image_url": img_url,
+            "quantity": max(1, total_qty),
+            "total_usd": round(usd_amt, 2),
+            "total_syp": round(syp_amt, 0),
+            "status": o.status,
+            "status_ar": o.get_status_display(),
+            "is_paid": bool(o.is_paid),
+            "can_cancel": bool(o.status == Order.Status.PENDING and not o.is_paid),
+            "payment_method_ar": pay_label_map.get(pay_prov, pay_prov),
+            "fulfillment": ff_dict,
+            "customer_inputs": cust_meta,
+            "created_at": timezone.localtime(o.created_at).strftime("%Y-%m-%d %H:%M") if o.created_at else "",
+        })
+
+    return JsonResponse({
+        "status": "success",
+        "is_authenticated": True,
+        "syp_rate": syp_buy_rate,
+        "orders": orders_out,
+    })
+
+
+@csrf_exempt
+def api_app_order_action(request, pk):
+    """Allows canceling an unpaid pending order or syncing status from inside the Native Android App."""
+    if request.method != "POST":
+        return JsonResponse({"status": "error", "message": "Method not allowed"}, status=405)
+
+    user = _get_app_user(request)
+    if not user or not user.is_authenticated:
+        return JsonResponse({"status": "error", "message": "غير مصرح"}, status=401)
+
+    import json as _json
+    try:
+        payload = _json.loads(request.body.decode("utf-8") or "{}") if request.body else request.POST
+    except Exception:
+        payload = request.POST
+
+    action = str(payload.get("action") or "").strip()
+    order = Order.all_objects.filter(pk=pk, customer=user).first()
+    if not order:
+        return JsonResponse({"status": "error", "message": "الطلب غير موجود"}, status=404)
+
+    if action == "cancel":
+        if order.status == Order.Status.PENDING and not order.is_paid:
+            order.status = Order.Status.CANCELLED
+            order.admin_note = "تم إلغاء الطلب المعلق من قبل العميل عبر التطبيق."
+            order.save(update_fields=["status", "admin_note", "updated_at"])
+            OrderLog.objects.create(order=order, status=Order.Status.CANCELLED, note="إلغاء الطلب المعلق من التطبيق.", created_by=user)
+            return JsonResponse({"status": "success", "message": "تم إلغاء الطلب بنجاح."})
+        return JsonResponse({"status": "error", "message": "لا يمكن إلغاء هذا الطلب في حالته الحالية."}, status=400)
+
+    if action == "sync":
+        if order.status in (Order.Status.PROCESSING, Order.Status.PENDING):
+            try:
+                from apps.orders.sync_service import sync_single_order_status
+                _, order, _ = sync_single_order_status(order, actor=None, note_prefix="تحديث من التطبيق")
+            except Exception:
+                pass
+        return JsonResponse({
+            "status": "success",
+            "order_status": order.status,
+            "status_ar": order.get_status_display(),
+            "message": f"حالة الطلب الحالية: {order.get_status_display()}",
+        })
+
+    return JsonResponse({"status": "error", "message": "إجراء غير معروف"}, status=400)
+
+
+@csrf_exempt
+def api_app_native_login(request):
+    """
+    100% Native Android login endpoint (Email / Username / Phone + Password).
+    Authenticates the user, establishes session cookies, and issues a persistent `app_auth_token`.
+    """
+    if request.method != "POST":
+        return JsonResponse({"status": "error", "message": "Method not allowed"}, status=405)
+
+    import json as _json
+    try:
+        payload = _json.loads(request.body.decode("utf-8") or "{}") if request.body else request.POST
+    except Exception:
+        payload = request.POST
+
+    identifier = str(payload.get("identifier") or payload.get("email") or payload.get("username") or "").strip()
+    password = str(payload.get("password") or "")
+    if not identifier or not password:
+        return JsonResponse({"status": "error", "message": "يرجى إدخال البريد الإلكتروني أو اسم المستخدم وكلمة المرور."}, status=400)
+
+    active_store = getattr(request, "store", None)
+    user = authenticate(request, username=identifier, password=password)
+    if not user:
+        return JsonResponse({"status": "error", "message": "بيانات تسجيل الدخول غير صحيحة، تحقق من البريد وكلمة المرور."}, status=401)
+    if not user.is_active:
+        return JsonResponse({"status": "error", "message": "هذا الحساب غير مفعل حالياً."}, status=403)
+
+    if active_store is None and getattr(user, "store_id", None) is not None:
+        from apps.common.tenant_utils import bypass_tenant_filter
+        with bypass_tenant_filter():
+            is_owner = user.owned_stores.exists()
+        if not is_owner and not (user.is_superuser or user.is_staff or getattr(user, "role", None) in ("super_admin", "admin")):
+            return JsonResponse({"status": "error", "message": "هذا الحساب مرتبط بمتجر فرعي."}, status=403)
+
+    user.backend = "apps.stores.auth_backend.TenantModelBackend"
+    login(request, user, backend="apps.stores.auth_backend.TenantModelBackend")
+    request.session["session_scope"] = str(active_store.pk) if active_store else "main"
+    request.session["last_activity"] = timezone.now().timestamp()
+
+    from apps.wallets.services import get_or_create_wallet
+    syp_curr, syp_buy_rate, _ = _get_app_syp_currency_and_rates(active_store)
+    wallet = get_or_create_wallet(user)
+    bal_data = _wallet_balances_dict(wallet, syp_curr, syp_buy_rate)
+    is_admin = _is_app_admin(user, active_store)
+
+    resp = {
+        "status": "success",
+        "is_authenticated": True,
+        "app_auth_token": _issue_app_auth_token(user),
+        "username": user.username,
+        "email": getattr(user, "email", ""),
+        "full_name": user.get_full_name() or getattr(user, "display_name", "") or user.username,
+        "is_admin": is_admin,
+        "can_manage_studio": is_admin,
+        "message": "تم تسجيل الدخول بنجاح!",
+    }
+    resp.update(bal_data)
+    return JsonResponse(resp)
+
+
+@csrf_exempt
+def api_app_native_logout(request):
+    """Logs out the current session cleanly for the Native Android App."""
+    from django.contrib.auth import logout as auth_logout
+    try:
+        auth_logout(request)
+    except Exception:
+        pass
+    return JsonResponse({"status": "success", "message": "تم تسجيل الخروج بنجاح"})
+
+
+@csrf_exempt
+def api_app_redeem_recharge_card(request):
+    """Redeems a Raqamiyat RechargeCard (`RC-...`) natively from the Android Wallet screen."""
+    if request.method != "POST":
+        return JsonResponse({"status": "error", "message": "Method not allowed"}, status=405)
+
+    user = _get_app_user(request)
+    if not user or not user.is_authenticated:
+        return JsonResponse({"status": "error", "requires_auth": True, "message": "يرجى تسجيل الدخول أولاً لشحن البطاقة"}, status=401)
+
+    import json as _json
+    from django.db import transaction
+    from apps.common.models import SiteFeatureFlag
+    from apps.wallets.models import RechargeCard
+    from apps.wallets.services import credit_wallet, WalletError, get_or_create_wallet
+
+    req_store = getattr(request, "store", None)
+    if not SiteFeatureFlag.is_feature_enabled("feature_recharge_cards", store=req_store):
+        return JsonResponse({"status": "error", "message": "خدمة شحن البطاقات غير مفعلة حالياً."}, status=400)
+
+    try:
+        payload = _json.loads(request.body.decode("utf-8") or "{}") if request.body else request.POST
+    except Exception:
+        payload = request.POST
+
+    code_input = str(payload.get("code") or payload.get("recharge_code") or "").strip().upper()
+    if not code_input:
+        return JsonResponse({"status": "error", "message": "يرجى إدخال رمز بطاقة الشحن."}, status=400)
+
+    store_filter = {"store": req_store} if req_store else {"store__isnull": True}
+    card = RechargeCard.all_objects.filter(code=code_input, **store_filter).first()
+    if not card or card.status != RechargeCard.Status.ACTIVE:
+        return JsonResponse({"status": "error", "message": "رمز الشحن غير صحيح أو تم استخدامه مسبقاً."}, status=400)
+
+    try:
+        with transaction.atomic():
+            card = RechargeCard.all_objects.select_for_update().get(id=card.id)
+            if card.status != RechargeCard.Status.ACTIVE:
+                raise WalletError("البطاقة لم تعد صالحة للاستخدام.")
+            wallet = get_or_create_wallet(user)
+            credited_amount = card.amount
+            if card.currency != wallet.currency:
+                base_val = card.currency.to_base(card.amount, operation="deposit")
+                credited_amount = wallet.currency.from_base(base_val, operation="deposit")
+
+            credit_wallet(
+                wallet_id=wallet.id,
+                amount=credited_amount,
+                reference=f"recharge:{card.id}",
+                description=f"شحن بطاقة رصيد رقم {card.code}",
+                created_by=user,
+                metadata={
+                    "source_amount": str(card.amount),
+                    "source_currency": card.currency.code,
+                    "recharge_card_code": card.code,
+                },
+                source="recharge_card",
+                reason="شحن بطاقة رصيد",
+            )
+            card.status = RechargeCard.Status.REDEEMED
+            card.redeemed_by = user
+            card.redeemed_at = timezone.now()
+            card.save()
+
+        wallet.refresh_from_db()
+        syp_curr, syp_buy_rate, _ = _get_app_syp_currency_and_rates(req_store)
+        bal_data = _wallet_balances_dict(wallet, syp_curr, syp_buy_rate)
+        resp = {
+            "status": "success",
+            "message": f"تم شحن محفظتك بنجاح بقيمة {card.amount:.2f} {card.currency.code}!",
+        }
+        resp.update(bal_data)
+        return JsonResponse(resp)
+    except Exception as exc:
+        return JsonResponse({"status": "error", "message": f"فشل شحن البطاقة: {exc}"}, status=400)
+
+
 def api_offline_catalog(request):
     """
-    Returns complete catalog data in a lightweight format for ServiceWorker
-    offline caching and Android App offline browsing.
+    Returns complete catalog data (with live SYP exchange rate, product form_schema,
+    and active gateways) for ServiceWorker and Native Android App browsing.
     """
     import time
     from django.core.cache import cache
-    cache_key = "api_offline_catalog_data"
-    cached_data = cache.get(cache_key)
-    if cached_data:
-        return JsonResponse(cached_data, safe=False)
 
     store = getattr(request, "store", None)
+    store_key = str(store.id) if store else "main"
+    cache_key = f"api_offline_catalog_v4_{store_key}"
+    cached_data = cache.get(cache_key)
+    if cached_data and request.GET.get("nocache") != "1":
+        return JsonResponse(cached_data, safe=False)
+
+    _, syp_buy_rate, syp_sell_rate = _get_app_syp_currency_and_rates(store)
+
     if store:
-        products_qs = Product.objects.filter(store=store, is_active=True).select_related('category').prefetch_related('variants')
-        categories_qs = Category.objects.filter(store=store, is_active=True)
+        products_qs = Product.objects.filter(store=store, is_active=True, is_publicly_visible=True).select_related('category').prefetch_related('variants')
+        categories_qs = Category.objects.filter(store=store, is_active=True, is_publicly_visible=True)
     else:
-        products_qs = Product.objects.filter(store__isnull=True, is_active=True).select_related('category').prefetch_related('variants')
-        categories_qs = Category.objects.filter(store__isnull=True, is_active=True)
+        products_qs = Product.objects.filter(store__isnull=True, is_active=True, is_publicly_visible=True).select_related('category').prefetch_related('variants')
+        categories_qs = Category.objects.filter(store__isnull=True, is_active=True, is_publicly_visible=True)
 
     categories_list = []
     for cat in categories_qs:
         categories_list.append({
             "id": str(cat.id),
             "name": cat.name,
-            "image": cat.image.url if cat.image else None,
+            "image": _resolve_abs_app_url(request, cat.image.url) if cat.image else None,
             "product_type": getattr(cat, "product_type", "physical")
         })
 
@@ -8795,6 +10033,8 @@ def api_offline_catalog(request):
         variants_list = []
         first_sku = str(p.id)[:8].upper()
         for idx, v in enumerate(p.variants.all()):
+            if not getattr(v, "is_active", True) or getattr(v, "is_temporarily_disabled", False):
+                continue
             if idx == 0 and getattr(v, "sku", None):
                 first_sku = v.sku
             variants_list.append({
@@ -8802,33 +10042,60 @@ def api_offline_catalog(request):
                 "name": v.name,
                 "sku": getattr(v, "sku", ""),
                 "price": float(v.price) if v.price else 0.0,
+                "price_syp": round(float(v.price) * syp_buy_rate, 0) if v.price else 0.0,
                 "is_active": getattr(v, "is_active", True)
             })
+        p_price = float(p.base_price) if p.base_price else (variants_list[0]["price"] if variants_list else 0.0)
+        schema_fields = []
+        if isinstance(getattr(p, "form_schema", None), dict) and isinstance(p.form_schema.get("fields"), list):
+            for f in p.form_schema.get("fields"):
+                if isinstance(f, dict):
+                    schema_fields.append({
+                        "name": str(f.get("name") or f.get("id") or f.get("label") or "note"),
+                        "label": str(f.get("label") or f.get("name") or "البيانات المطلوبة"),
+                        "type": str(f.get("type") or "text"),
+                        "placeholder": str(f.get("placeholder") or ""),
+                        "required": bool(f.get("required", False)),
+                        "options": f.get("options") if isinstance(f.get("options"), list) else [],
+                    })
         products_list.append({
             "id": str(p.id),
             "name": p.name,
             "code": first_sku,
             "description": p.description or "",
+            "instructions": getattr(p, "instructions", "") or "",
             "category_id": str(p.category_id) if p.category_id else None,
             "category_name": p.category.name if p.category else "",
-            "image": p.image.url if p.image else None,
-            "price": float(p.base_price) if p.base_price else 0.0,
+            "image": _resolve_abs_app_url(request, p.image.url) if p.image else None,
+            "price": p_price,
+            "price_syp": round(p_price * syp_buy_rate, 0),
             "product_type": getattr(p, "product_type", "physical"),
             "is_featured": getattr(p, "is_featured", False),
             "is_sale": getattr(p, "is_sale", False),
             "is_out_of_stock": getattr(p, "is_out_of_stock", False),
-            "delivery_time_display": getattr(p, "delivery_time_display", "") or "",
+            "delivery_time_display": getattr(p, "delivery_time_display", "") or "تسليم فوري ⚡",
+            "form_fields": schema_fields,
             "variants": variants_list
         })
 
+    gateways_summary = []
+    try:
+        gateways_summary = _build_app_gateways_payload(request, user=None)
+    except Exception:
+        pass
+
     data = {
-        "version": "3.0.0",
+        "version": "3.2.3",
         "timestamp": time.time(),
+        "syp_rate": syp_buy_rate,
+        "syp_buy_rate": syp_buy_rate,
+        "syp_sell_rate": syp_sell_rate,
+        "gateways": gateways_summary,
         "categories": categories_list,
         "products": products_list,
         "total_products": len(products_list)
     }
-    cache.set(cache_key, data, 300)
+    cache.set(cache_key, data, 180)
     return JsonResponse(data, safe=False)
 
 
@@ -8896,7 +10163,7 @@ def download_android_apk(request):
                 open(found_path, "rb"),
                 content_type="application/vnd.android.package-archive",
                 as_attachment=True,
-                filename="Raqamiyat-v3.2.2.apk"
+                filename="Raqamiyat-v3.2.3.apk"
             )
             response["Content-Length"] = os.path.getsize(found_path)
             response["Cache-Control"] = "no-store"

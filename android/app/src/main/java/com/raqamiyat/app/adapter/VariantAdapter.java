@@ -10,11 +10,11 @@ import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.raqamiyat.app.R;
+import com.raqamiyat.app.RaqamiyatLocalStore;
 import com.raqamiyat.app.model.VariantItem;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Locale;
 
 public class VariantAdapter extends RecyclerView.Adapter<VariantAdapter.VH> {
 
@@ -24,10 +24,20 @@ public class VariantAdapter extends RecyclerView.Adapter<VariantAdapter.VH> {
 
     private final List<VariantItem> items = new ArrayList<>();
     private int selectedPos = 0;
+    private String currency = "USD";
+    private double sypRate = 15000.0;
     private final OnVariantSelectedListener listener;
 
     public VariantAdapter(OnVariantSelectedListener listener) {
         this.listener = listener;
+    }
+
+    public void updateCurrencyConfig(String currencyCode, double sypExchangeRate) {
+        this.currency = "SYP".equalsIgnoreCase(currencyCode) ? "SYP" : "USD";
+        if (sypExchangeRate > 1.0) {
+            this.sypRate = sypExchangeRate;
+        }
+        notifyDataSetChanged();
     }
 
     public void submitList(List<VariantItem> variants) {
@@ -51,7 +61,7 @@ public class VariantAdapter extends RecyclerView.Adapter<VariantAdapter.VH> {
         VariantItem item = items.get(position);
         boolean isSelected = position == selectedPos;
         holder.name.setText(item.name);
-        holder.price.setText(String.format(Locale.US, "$%.2f", item.price));
+        holder.price.setText(RaqamiyatLocalStore.formatPriceInCurrency(item.price, currency, sypRate));
         holder.container.setBackgroundResource(isSelected ? R.drawable.bg_chip_selected : R.drawable.bg_chip_unselected);
         holder.name.setTextColor(isSelected ? 0xFF030712 : 0xFFF8FAFC);
         holder.price.setTextColor(isSelected ? 0xFF030712 : 0xFFFBBF24);

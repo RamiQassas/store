@@ -1,17 +1,19 @@
 <?xml version="1.0" encoding="utf-8"?>
 <RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:background="#030712"
     android:layoutDirection="rtl">
 
-    <!-- Top App Bar -->
+    <!-- Luxury Top App Bar -->
     <LinearLayout
         android:id="@+id/detail_topbar"
         android:layout_width="match_parent"
         android:layout_height="56dp"
         android:layout_alignParentTop="true"
         android:background="#0B1120"
+        android:elevation="8dp"
         android:gravity="center_vertical"
         android:orientation="horizontal"
         android:paddingHorizontal="12dp">
@@ -30,48 +32,67 @@
             android:layout_height="wrap_content"
             android:layout_weight="1"
             android:paddingHorizontal="8dp"
-            android:text="تفاصيل المنتج"
+            android:text="تفاصيل وشراء المنتج"
             android:textColor="#F8FAFC"
-            android:textSize="16sp"
+            android:textSize="15sp"
+            android:textStyle="bold" />
+
+        <TextView
+            android:id="@+id/btn_detail_currency"
+            android:layout_width="wrap_content"
+            android:layout_height="30dp"
+            android:layout_marginEnd="6dp"
+            android:background="@drawable/bg_chip_selected"
+            android:gravity="center"
+            android:paddingHorizontal="10dp"
+            android:text="USD $"
+            android:textColor="#030712"
+            android:textSize="11sp"
             android:textStyle="bold" />
 
         <TextView
             android:id="@+id/detail_code_badge"
             android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
+            android:layout_height="30dp"
             android:background="@drawable/bg_chip_unselected"
+            android:gravity="center"
             android:paddingHorizontal="10dp"
-            android:paddingVertical="4dp"
             android:textColor="#22D3EE"
-            android:textSize="11sp"
+            android:textSize="10.5sp"
             android:textStyle="bold" />
     </LinearLayout>
 
     <ScrollView
         android:layout_width="match_parent"
         android:layout_height="match_parent"
+        android:layout_above="@id/detail_bottom_bar"
         android:layout_below="@id/detail_topbar"
-        android:layout_above="@id/detail_bottom_bar">
+        android:clipToPadding="false"
+        android:paddingBottom="20dp">
 
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="vertical"
-            android:padding="16dp">
+            android:padding="14dp">
 
-            <FrameLayout
+            <androidx.cardview.widget.CardView
                 android:layout_width="match_parent"
-                android:layout_height="290dp"
-                android:background="#FFFFFF">
+                android:layout_height="260dp"
+                app:cardBackgroundColor="#FFFFFF"
+                app:cardCornerRadius="20dp"
+                app:cardElevation="6dp">
 
                 <ImageView
                     android:id="@+id/detail_image"
                     android:layout_width="match_parent"
                     android:layout_height="match_parent"
-                    android:scaleType="fitCenter"
-                    android:contentDescription="صورة المنتج" />
-            </FrameLayout>
+                    android:contentDescription="صورة المنتج"
+                    android:padding="8dp"
+                    android:scaleType="fitCenter" />
+            </androidx.cardview.widget.CardView>
 
+            <!-- Category & Instant Delivery Badges -->
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
@@ -95,8 +116,13 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:layout_marginStart="8dp"
-                    android:textColor="#94A3B8"
-                    android:textSize="11sp" />
+                    android:background="@drawable/bg_badge_green"
+                    android:paddingHorizontal="10dp"
+                    android:paddingVertical="4dp"
+                    android:text="⚡ تسليم فوري"
+                    android:textColor="#6EE7B7"
+                    android:textSize="10.5sp"
+                    android:textStyle="bold" />
             </LinearLayout>
 
             <TextView
@@ -105,17 +131,62 @@
                 android:layout_height="wrap_content"
                 android:layout_marginTop="10dp"
                 android:textColor="#FFFFFF"
-                android:textSize="20sp"
+                android:textSize="19sp"
                 android:textStyle="bold" />
 
-            <TextView
-                android:id="@+id/detail_price"
-                android:layout_width="wrap_content"
+            <!-- Price Card (Primary + Secondary Currency) -->
+            <LinearLayout
+                android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="6dp"
-                android:textColor="#FBBF24"
-                android:textSize="22sp"
-                android:textStyle="bold" />
+                android:layout_marginTop="10dp"
+                android:background="@drawable/bg_wallet_hero"
+                android:gravity="center_vertical"
+                android:orientation="horizontal"
+                android:padding="14dp">
+
+                <LinearLayout
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:orientation="vertical">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="سعر الباقة المحددة"
+                        android:textColor="#94A3B8"
+                        android:textSize="11sp" />
+
+                    <TextView
+                        android:id="@+id/detail_price"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="2dp"
+                        android:textColor="#FBBF24"
+                        android:textSize="22sp"
+                        android:textStyle="bold" />
+
+                    <TextView
+                        android:id="@+id/detail_price_secondary"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="2dp"
+                        android:textColor="#22D3EE"
+                        android:textSize="12sp"
+                        android:textStyle="bold" />
+                </LinearLayout>
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:background="@drawable/bg_chip_unselected"
+                    android:paddingHorizontal="10dp"
+                    android:paddingVertical="6dp"
+                    android:text="🔒 ضمان رقميات 100%"
+                    android:textColor="#E2E8F0"
+                    android:textSize="10.5sp"
+                    android:textStyle="bold" />
+            </LinearLayout>
 
             <!-- Variants -->
             <TextView
@@ -123,9 +194,9 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="16dp"
-                android:text="الخيارات والباقات المتوفرة"
-                android:textColor="#CBD5E1"
-                android:textSize="13sp"
+                android:text="اختر الباقة أو الفئة المطلوبة:"
+                android:textColor="#F8FAFC"
+                android:textSize="13.5sp"
                 android:textStyle="bold" />
 
             <androidx.recyclerview.widget.RecyclerView
@@ -136,42 +207,66 @@
                 android:nestedScrollingEnabled="false" />
 
             <!-- Description -->
-            <TextView
+            <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="18dp"
-                android:text="وصف المنتج"
-                android:textColor="#CBD5E1"
-                android:textSize="13sp"
-                android:textStyle="bold" />
+                android:layout_marginTop="16dp"
+                android:background="@drawable/bg_card_dark"
+                android:orientation="vertical"
+                android:padding="14dp">
 
-            <TextView
-                android:id="@+id/detail_description"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="6dp"
-                android:lineSpacingMultiplier="1.35"
-                android:textColor="#94A3B8"
-                android:textSize="13sp" />
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="تفاصيل ووصف الخدمة"
+                    android:textColor="#F8FAFC"
+                    android:textSize="13.5sp"
+                    android:textStyle="bold" />
+
+                <TextView
+                    android:id="@+id/detail_description"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="6dp"
+                    android:lineSpacingMultiplier="1.35"
+                    android:textColor="#CBD5E1"
+                    android:textSize="12.5sp" />
+            </LinearLayout>
         </LinearLayout>
     </ScrollView>
 
-    <!-- Bottom Action Bar -->
+    <!-- Bottom Dual Action Bar (Add to Cart + Instant Buy) -->
     <LinearLayout
         android:id="@+id/detail_bottom_bar"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_alignParentBottom="true"
         android:background="#0B1120"
+        android:elevation="12dp"
         android:orientation="horizontal"
         android:padding="12dp">
 
         <Button
-            android:id="@+id/btn_detail_buy"
-            android:layout_width="match_parent"
+            android:id="@+id/btn_detail_add_cart"
+            android:layout_width="wrap_content"
             android:layout_height="50dp"
+            android:layout_marginEnd="8dp"
+            android:background="@drawable/bg_chip_unselected"
+            android:paddingHorizontal="16dp"
+            android:text="🛒 للسلة"
+            android:textAllCaps="false"
+            android:textColor="#22D3EE"
+            android:textSize="13.5sp"
+            android:textStyle="bold" />
+
+        <Button
+            android:id="@+id/btn_detail_buy"
+            android:layout_width="0dp"
+            android:layout_height="50dp"
+            android:layout_weight="1"
             android:background="@drawable/bg_button_gold"
-            android:text="طلب وشراء المنتج الآن ⚡"
+            android:text="شراء فوري الآن ⚡"
+            android:textAllCaps="false"
             android:textColor="#030712"
             android:textSize="15sp"
             android:textStyle="bold" />

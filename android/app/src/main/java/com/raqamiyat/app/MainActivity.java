@@ -4,11 +4,13 @@ import android.Manifest;
 import android.app.NotificationChannel;
 import android.app.NotificationManager;
 import android.content.ClipData;
+import android.content.ClipboardManager;
 import android.content.Context;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.graphics.Bitmap;
 import android.graphics.Color;
+import android.graphics.Typeface;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
@@ -16,7 +18,11 @@ import android.os.Environment;
 import android.os.Handler;
 import android.os.Looper;
 import android.provider.MediaStore;
+import android.text.Editable;
+import android.text.TextWatcher;
+import android.view.Gravity;
 import android.view.View;
+import android.view.ViewGroup;
 import android.view.animation.AlphaAnimation;
 import android.webkit.CookieManager;
 import android.webkit.PermissionRequest;
@@ -28,34 +34,39 @@ import android.webkit.WebResourceResponse;
 import android.webkit.WebSettings;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
-import android.text.Editable;
-import android.text.TextWatcher;
 import android.widget.Button;
 import android.widget.EditText;
+import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.ProgressBar;
 import android.widget.RelativeLayout;
 import android.widget.TextView;
 import android.widget.Toast;
 
-import androidx.recyclerview.widget.GridLayoutManager;
-import androidx.recyclerview.widget.LinearLayoutManager;
-import androidx.recyclerview.widget.RecyclerView;
-
-import com.raqamiyat.app.adapter.CategoryAdapter;
-import com.raqamiyat.app.adapter.ProductAdapter;
-import com.raqamiyat.app.model.ProductItem;
-
-import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.ActivityCompat;
 import androidx.core.app.NotificationCompat;
 import androidx.core.content.ContextCompat;
 import androidx.core.content.FileProvider;
+import androidx.recyclerview.widget.GridLayoutManager;
+import androidx.recyclerview.widget.LinearLayoutManager;
+import androidx.recyclerview.widget.RecyclerView;
 import androidx.swiperefreshlayout.widget.SwipeRefreshLayout;
 
-import java.io.ByteArrayInputStream;
+import com.bumptech.glide.Glide;
+import com.bumptech.glide.load.engine.DiskCacheStrategy;
+import com.google.android.material.dialog.MaterialAlertDialogBuilder;
+import com.raqamiyat.app.adapter.CategoryAdapter;
+import com.raqamiyat.app.adapter.ProductAdapter;
+import com.raqamiyat.app.model.CartItem;
+import com.raqamiyat.app.model.GatewayItem;
+import com.raqamiyat.app.model.ProductItem;
+import com.raqamiyat.app.model.VariantItem;
+
+import org.json.JSONArray;
+import org.json.JSONObject;
+
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
@@ -65,6 +76,7 @@ import java.nio.charset.StandardCharsets;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Locale;
 import java.util.Scanner;
@@ -81,6 +93,13 @@ public class MainActivity extends AppCompatActivity implements ConnectivityHelpe
     private static final int PRODUCT_DETAIL_REQUEST_CODE = 4001;
     private static final int NATIVE_STUDIO_REQUEST_CODE = 4002;
 
+    private static final int TAB_HOME = 0;
+    private static final int TAB_CATALOG = 1;
+    private static final int TAB_WALLET = 2;
+    private static final int TAB_ORDERS = 3;
+    private static final int TAB_ACCOUNT = 4;
+
+    // Storefront Views
     private LinearLayout nativeStoreContainer;
     private SwipeRefreshLayout nativeCatalogSwipe;
     private RecyclerView nativeCategoriesRv;
@@ -88,20 +107,50 @@ public class MainActivity extends AppCompatActivity implements ConnectivityHelpe
     private EditText nativeSearchInput;
     private TextView nativeEmptyState;
     private Button btnAdminQuickStudio;
+    private TextView btnNativeCurrency;
     private Button btnNativePay;
     private Button btnNativeNotif;
     private Button btnNativeCart;
+    private LinearLayout heroWalletBanner;
+    private TextView heroWalletLabel;
+    private TextView heroWalletValue;
+    private LinearLayout heroGatewaysStrip;
 
+    // Native Orders Views
+    private LinearLayout nativeOrdersContainer;
+    private SwipeRefreshLayout nativeOrdersSwipe;
+    private LinearLayout nativeOrdersList;
+    private Button btnOrdersRefresh;
+
+    // Native Account Views
+    private LinearLayout nativeAccountContainer;
+    private LinearLayout nativeAccountBody;
+
+    // Data & State
     private CatalogRepository catalogRepository;
     private AppNotificationSync notificationSync;
     private final List<AppNotificationSync.AppNotifItem> latestNotifications = new ArrayList<>();
     private CategoryAdapter categoryAdapter;
     private ProductAdapter productAdapter;
     private final List<ProductItem> allProducts = new ArrayList<>();
+    private final List<GatewayItem> liveGateways = new ArrayList<>();
     private String activeCategoryId = "";
     private String activeSearchQuery = "";
+    private int activeNativeTab = TAB_HOME;
     private boolean isNativeMode = true;
 
+    // Live User & Wallet Snapshot
+    private boolean isAuthenticated = false;
+    private boolean isAdminUser = false;
+    private String userFullName = "";
+    private String userEmail = "";
+    private String userNameHandle = "";
+    private boolean userIsVerified = false;
+    private double liveBalanceUsd = 0.0;
+    private double liveBalanceSyp = 0.0;
+    private String cachedGoogleLoginUrl = "";
+
+    // WebView Portal Views (Fallback for external payment gateways / admin studio pages)
     private WebView webView;
     private SwipeRefreshLayout swipeRefresh;
     private ProgressBar progressBar;
@@ -130,7 +179,6 @@ public class MainActivity extends AppCompatActivity implements ConnectivityHelpe
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
-        // Native immersive luxury system bars
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
             getWindow().setStatusBarColor(0xFF030712);
             getWindow().setNavigationBarColor(0xFF030712);
@@ -138,7 +186,7 @@ public class MainActivity extends AppCompatActivity implements ConnectivityHelpe
 
         setContentView(R.layout.activity_main);
 
-        // Initialize Native Storefront Views
+        // Bind Storefront Views
         nativeStoreContainer = findViewById(R.id.native_store_container);
         nativeCatalogSwipe = findViewById(R.id.native_catalog_swipe);
         nativeCategoriesRv = findViewById(R.id.native_categories_rv);
@@ -146,11 +194,24 @@ public class MainActivity extends AppCompatActivity implements ConnectivityHelpe
         nativeSearchInput = findViewById(R.id.native_search_input);
         nativeEmptyState = findViewById(R.id.native_empty_state);
         btnAdminQuickStudio = findViewById(R.id.btn_admin_quick_studio);
+        btnNativeCurrency = findViewById(R.id.btn_native_currency);
         btnNativePay = findViewById(R.id.btn_native_pay);
         btnNativeNotif = findViewById(R.id.btn_native_notif);
         btnNativeCart = findViewById(R.id.btn_native_cart);
+        heroWalletBanner = findViewById(R.id.hero_wallet_banner);
+        heroWalletLabel = findViewById(R.id.hero_wallet_label);
+        heroWalletValue = findViewById(R.id.hero_wallet_value);
+        heroGatewaysStrip = findViewById(R.id.hero_gateways_strip);
 
-        // Initialize WebView Portal Views
+        // Bind Native Orders & Account Views
+        nativeOrdersContainer = findViewById(R.id.native_orders_container);
+        nativeOrdersSwipe = findViewById(R.id.native_orders_swipe);
+        nativeOrdersList = findViewById(R.id.native_orders_list);
+        btnOrdersRefresh = findViewById(R.id.btn_orders_refresh);
+        nativeAccountContainer = findViewById(R.id.native_account_container);
+        nativeAccountBody = findViewById(R.id.native_account_body);
+
+        // Bind WebView Views
         webView = findViewById(R.id.main_webview);
         swipeRefresh = findViewById(R.id.swipe_refresh);
         progressBar = findViewById(R.id.page_progress);
@@ -161,7 +222,7 @@ public class MainActivity extends AppCompatActivity implements ConnectivityHelpe
         btnRetry = findViewById(R.id.btn_retry_connection);
         btnBrowseCached = findViewById(R.id.btn_browse_cached);
 
-        // Core Native Systems
+        // Core Systems
         localStore = new RaqamiyatLocalStore(this);
         catalogRepository = new CatalogRepository(localStore);
         notificationSync = new AppNotificationSync(this);
@@ -172,13 +233,16 @@ public class MainActivity extends AppCompatActivity implements ConnectivityHelpe
         createNotificationChannel();
         connectivityHelper.startMonitoring();
         setupNativeStorefront();
+        setupNativeOrdersView();
         setupWebView();
         setupErrorView();
         setupSwipeRefresh();
         setupBottomNavigation();
         checkAndRequestPermissions();
 
-        // Handle Deep Linking or Start Native Storefront
+        updateHeaderBadges();
+        renderAccountTab();
+
         Intent intent = getIntent();
         String openUrlExtra = intent != null ? intent.getStringExtra(ProductDetailActivity.EXTRA_OPEN_URL) : null;
         if (openUrlExtra != null && !openUrlExtra.isEmpty()) {
@@ -186,15 +250,18 @@ public class MainActivity extends AppCompatActivity implements ConnectivityHelpe
         } else if (intent != null && intent.getData() != null) {
             handleIncomingDeepLink(intent.getData());
         } else {
-            showNativeMode(true);
+            switchToNativeTab(TAB_HOME);
         }
 
-        // Load native products & check admin session & sync notifications & check updates
         loadNativeCatalog(false);
-        refreshAdminSessionBadge();
+        syncLiveWalletAndSession();
         notificationSync.startContinuousBackgroundSync();
         syncAppNotifications();
         checkForAppUpdatesInBackground();
+    }
+
+    private int dp(int val) {
+        return Math.round(val * getResources().getDisplayMetrics().density);
     }
 
     private void setupNativeStorefront() {
@@ -211,10 +278,23 @@ public class MainActivity extends AppCompatActivity implements ConnectivityHelpe
             detailIntent.putExtra(ProductDetailActivity.EXTRA_PRODUCT, product);
             startActivityForResult(detailIntent, PRODUCT_DETAIL_REQUEST_CODE);
         });
+        productAdapter.setOnAddToCartClickListener(product -> {
+            VariantItem v = (product.variants != null && !product.variants.isEmpty()) ? product.variants.get(0) : null;
+            double uPrice = v != null ? v.price : product.price;
+            String vId = v != null ? v.id : "default";
+            String vName = v != null ? v.name : product.name;
+            int cnt = localStore.addToCart(new CartItem(product.id, vId, product.name, vName, product.imageUrl, uPrice, 1, ""));
+            updateHeaderBadges();
+            Toast.makeText(MainActivity.this, "🛒 تمت الإضافة إلى السلة (" + cnt + ")", Toast.LENGTH_SHORT).show();
+        });
+        productAdapter.updateCurrencyConfig(localStore.getPreferredCurrency(), localStore.getSypRate());
         nativeProductsRv.setAdapter(productAdapter);
 
         nativeCatalogSwipe.setColorSchemeColors(0xFF06B6D4, 0xFFD4A853);
-        nativeCatalogSwipe.setOnRefreshListener(() -> loadNativeCatalog(true));
+        nativeCatalogSwipe.setOnRefreshListener(() -> {
+            loadNativeCatalog(true);
+            syncLiveWalletAndSession();
+        });
 
         nativeSearchInput.addTextChangedListener(new TextWatcher() {
             @Override
@@ -231,21 +311,650 @@ public class MainActivity extends AppCompatActivity implements ConnectivityHelpe
         });
 
         btnAdminQuickStudio.setOnClickListener(v -> launchNativeStudio());
-        btnNativePay.setOnClickListener(v -> {
+
+        btnNativeCurrency.setOnClickListener(v -> {
+            String next = localStore.togglePreferredCurrency();
+            onGlobalCurrencyChanged();
+            Toast.makeText(this, "تم التبديل إلى " + ("USD".equals(next) ? "الدولار الأمريكي ($)" : "الليرة السورية (ل.س)"), Toast.LENGTH_SHORT).show();
+        });
+
+        View.OnClickListener openWalletAction = v -> {
             if (!connectivityHelper.isOnline()) {
-                nativeBridge.showOfflineTransactionAlert("الدفع وشحن المحفظة");
+                nativeBridge.showOfflineTransactionAlert("المحفظة وبوابات الدفع");
                 return;
             }
             startActivity(new Intent(MainActivity.this, NativePaymentActivity.class));
+        };
+        btnNativePay.setOnClickListener(openWalletAction);
+        heroWalletBanner.setOnClickListener(v -> {
+            if (!isAuthenticated) {
+                openNativeLoginSheet();
+            } else {
+                openWalletAction.onClick(v);
+            }
         });
+
         btnNativeNotif.setOnClickListener(v -> showNotificationsInboxDialog());
-        btnNativeCart.setOnClickListener(v -> {
-            if (!connectivityHelper.isOnline()) {
-                nativeBridge.showOfflineTransactionAlert("سلة المشتريات");
+        btnNativeCart.setOnClickListener(v -> NativeCartHelper.showCartSheet(
+                MainActivity.this,
+                catalogRepository,
+                localStore,
+                new NativeCartHelper.CartUpdateCallback() {
+                    @Override
+                    public void onCartChanged() {
+                        updateHeaderBadges();
+                    }
+
+                    @Override
+                    public void onOrderCompleted(String orderNumber) {
+                        updateHeaderBadges();
+                        syncLiveWalletAndSession();
+                        switchToNativeTab(TAB_ORDERS);
+                    }
+                }
+        ));
+    }
+
+    private void setupNativeOrdersView() {
+        nativeOrdersSwipe.setColorSchemeColors(0xFF06B6D4, 0xFFD4A853);
+        nativeOrdersSwipe.setOnRefreshListener(this::loadNativeOrders);
+        btnOrdersRefresh.setOnClickListener(v -> loadNativeOrders());
+    }
+
+    private void onGlobalCurrencyChanged() {
+        String curr = localStore.getPreferredCurrency();
+        double rate = localStore.getSypRate();
+        updateHeaderBadges();
+        productAdapter.updateCurrencyConfig(curr, rate);
+        updateHeroWalletBanner();
+        if (activeNativeTab == TAB_ORDERS) {
+            loadNativeOrders();
+        } else if (activeNativeTab == TAB_ACCOUNT) {
+            renderAccountTab();
+        }
+    }
+
+    private void updateHeaderBadges() {
+        String curr = localStore.getPreferredCurrency();
+        btnNativeCurrency.setText("USD".equals(curr) ? "USD $" : "ل.س SYP");
+        int cartCnt = localStore.getCartCount();
+        btnNativeCart.setText("🛒 " + cartCnt);
+    }
+
+    private void updateHeroWalletBanner() {
+        if (!isAuthenticated) {
+            heroWalletLabel.setText("مرحباً بك في تطبيق رقميات ⚡");
+            heroWalletValue.setText("اضغط هنا لتسجيل الدخول ومزامنة رصيدك ←");
+        } else {
+            String curr = localStore.getPreferredCurrency();
+            heroWalletLabel.setText(!userFullName.isEmpty() ? ("رصيد محفظة " + userFullName) : "رصيد محفظتك الحقيقي");
+            if ("USD".equals(curr)) {
+                double sypEq = liveBalanceSyp > 0 ? liveBalanceSyp : (liveBalanceUsd * localStore.getSypRate());
+                heroWalletValue.setText(String.format(Locale.US, "$%.2f  •  %s", liveBalanceUsd, RaqamiyatLocalStore.formatSypAmount(sypEq)));
+            } else {
+                double sypDisp = liveBalanceSyp > 0 ? liveBalanceSyp : (liveBalanceUsd * localStore.getSypRate());
+                heroWalletValue.setText(String.format(Locale.US, "%s  •  $%.2f", RaqamiyatLocalStore.formatSypAmount(sypDisp), liveBalanceUsd));
+            }
+        }
+
+        // Render Official Gateways Logos Strip via Glide
+        heroGatewaysStrip.removeAllViews();
+        int shown = 0;
+        for (GatewayItem g : liveGateways) {
+            if (!"gateway".equals(g.type)) continue;
+            if (shown >= 3) break;
+            shown++;
+
+            LinearLayout box = new LinearLayout(this);
+            box.setBackgroundResource(R.drawable.bg_logo_box);
+            box.setGravity(Gravity.CENTER);
+            LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(dp(34), dp(34));
+            lp.setMarginStart(dp(5));
+            box.setLayoutParams(lp);
+            if (g.isUnavailable) box.setAlpha(0.5f);
+
+            ImageView iv = new ImageView(this);
+            iv.setLayoutParams(new LinearLayout.LayoutParams(dp(26), dp(26)));
+            iv.setScaleType(ImageView.ScaleType.FIT_CENTER);
+            String logoUrl = !g.logoUrl.isEmpty() ? g.logoUrl : (CatalogRepository.DOMAIN + "/api/app/gateway-logo/" + g.provider + "/");
+            Glide.with(this)
+                    .load(logoUrl)
+                    .diskCacheStrategy(DiskCacheStrategy.ALL)
+                    .placeholder(R.mipmap.ic_launcher)
+                    .into(iv);
+            box.addView(iv);
+            heroGatewaysStrip.addView(box);
+        }
+    }
+
+    private void syncLiveWalletAndSession() {
+        catalogRepository.fetchWalletAndGateways((code, obj, err) -> {
+            if (obj == null) return;
+            isAuthenticated = obj.optBoolean("is_authenticated", false);
+            cachedGoogleLoginUrl = obj.optString("google_login_url", "");
+
+            List<GatewayItem> gws = GatewayItem.parseList(obj.optJSONArray("gateways"));
+            if (!gws.isEmpty()) {
+                liveGateways.clear();
+                liveGateways.addAll(gws);
+            }
+
+            if (isAuthenticated) {
+                liveBalanceUsd = obj.optDouble("available_balance_usd", obj.optDouble("balance", 0.0));
+                liveBalanceSyp = obj.optDouble("available_balance_syp", liveBalanceUsd * localStore.getSypRate());
+                JSONObject u = obj.optJSONObject("user");
+                if (u != null) {
+                    userFullName = u.optString("full_name", "");
+                    userEmail = u.optString("email", "");
+                    userNameHandle = u.optString("username", "");
+                    userIsVerified = u.optBoolean("is_verified", false);
+                    isAdminUser = u.optBoolean("is_admin", false);
+                }
+            } else {
+                isAdminUser = false;
+                liveBalanceUsd = 0.0;
+                liveBalanceSyp = 0.0;
+            }
+
+            btnAdminQuickStudio.setVisibility(isAdminUser ? View.VISIBLE : View.GONE);
+            productAdapter.updateCurrencyConfig(localStore.getPreferredCurrency(), localStore.getSypRate());
+            updateHeroWalletBanner();
+            if (activeNativeTab == TAB_ACCOUNT) {
+                renderAccountTab();
+            }
+        });
+    }
+
+    private void openNativeLoginSheet() {
+        NativeAuthHelper.showLoginSheet(this, catalogRepository, localStore, cachedGoogleLoginUrl, authData -> {
+            syncLiveWalletAndSession();
+            if (activeNativeTab == TAB_ORDERS) {
+                loadNativeOrders();
+            } else if (activeNativeTab == TAB_ACCOUNT) {
+                renderAccountTab();
+            }
+        });
+    }
+
+    private void loadNativeOrders() {
+        nativeOrdersSwipe.setRefreshing(true);
+        catalogRepository.getJson(CatalogRepository.ORDERS_API_URL, (code, obj, err) -> {
+            nativeOrdersSwipe.setRefreshing(false);
+            nativeOrdersList.removeAllViews();
+
+            if (obj == null) {
+                addOrdersEmptyCard("تعذر جلب الطلبات حالياً، اسحب للأسفل لإعادة المحاولة.", false);
                 return;
             }
-            showWebMode(BASE_URL + "cart/");
+            if (!obj.optBoolean("is_authenticated", false)) {
+                addOrdersEmptyCard("سجّل دخولك لعرض سجل طلباتك وأكواد الشحن الفورية.", true);
+                return;
+            }
+
+            JSONArray arr = obj.optJSONArray("orders");
+            if (arr == null || arr.length() == 0) {
+                addOrdersEmptyCard("لا توجد طلبات سابقة في حسابك حتى الآن.\nابدأ بتصفح المنتجات واستمتع بالتسليم الفوري ⚡", false);
+                return;
+            }
+
+            String prefCurr = localStore.getPreferredCurrency();
+            for (int i = 0; i < arr.length(); i++) {
+                JSONObject o = arr.optJSONObject(i);
+                if (o == null) continue;
+
+                final String orderId = o.optString("id", "");
+                final String orderNumber = o.optString("number", "");
+                String title = o.optString("title", "طلب رقميات");
+                String imgUrl = o.optString("image_url", "");
+                double totalUsd = o.optDouble("total_usd", 0.0);
+                double totalSyp = o.optDouble("total_syp", totalUsd * localStore.getSypRate());
+                String st = o.optString("status", "");
+                String stAr = o.optString("status_ar", st);
+                String payAr = o.optString("payment_method_ar", "محفظة رقميات");
+                String createdAt = o.optString("created_at", "");
+                boolean canCancel = o.optBoolean("can_cancel", false);
+
+                LinearLayout card = new LinearLayout(this);
+                card.setOrientation(LinearLayout.VERTICAL);
+                card.setBackgroundResource(R.drawable.bg_card_dark);
+                card.setPadding(dp(14), dp(14), dp(14), dp(14));
+                LinearLayout.LayoutParams cLp = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+                cLp.bottomMargin = dp(10);
+                card.setLayoutParams(cLp);
+
+                // Top Row: Image + Title + Status Badge
+                LinearLayout topRow = new LinearLayout(this);
+                topRow.setOrientation(LinearLayout.HORIZONTAL);
+                topRow.setGravity(Gravity.CENTER_VERTICAL);
+
+                ImageView iv = new ImageView(this);
+                LinearLayout.LayoutParams ivLp = new LinearLayout.LayoutParams(dp(46), dp(46));
+                ivLp.setMarginEnd(dp(10));
+                iv.setLayoutParams(ivLp);
+                iv.setBackgroundResource(R.drawable.bg_logo_box);
+                iv.setPadding(dp(3), dp(3), dp(3), dp(3));
+                if (!imgUrl.isEmpty()) {
+                    Glide.with(this).load(imgUrl).placeholder(R.mipmap.ic_launcher).into(iv);
+                } else {
+                    iv.setImageResource(R.mipmap.ic_launcher);
+                }
+                topRow.addView(iv);
+
+                LinearLayout infoCol = new LinearLayout(this);
+                infoCol.setOrientation(LinearLayout.VERTICAL);
+                infoCol.setLayoutParams(new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f));
+
+                TextView tTv = new TextView(this);
+                tTv.setText(title);
+                tTv.setTextColor(0xFFFFFFFF);
+                tTv.setTextSize(13.5f);
+                tTv.setTypeface(tTv.getTypeface(), Typeface.BOLD);
+                infoCol.addView(tTv);
+
+                TextView subTv = new TextView(this);
+                subTv.setText("#" + orderNumber + " • " + payAr + " • " + createdAt);
+                subTv.setTextColor(0xFF94A3B8);
+                subTv.setTextSize(10.5f);
+                infoCol.addView(subTv);
+                topRow.addView(infoCol);
+
+                TextView badge = new TextView(this);
+                badge.setText(stAr);
+                badge.setTextSize(10.5f);
+                badge.setTypeface(badge.getTypeface(), Typeface.BOLD);
+                badge.setPadding(dp(10), dp(4), dp(10), dp(4));
+                if ("completed".equals(st) || "delivered".equals(st)) {
+                    badge.setTextColor(0xFF6EE7B7);
+                    badge.setBackgroundResource(R.drawable.bg_badge_green);
+                } else if ("cancelled".equals(st) || "refunded".equals(st)) {
+                    badge.setTextColor(0xFFFCA5A5);
+                    badge.setBackgroundResource(R.drawable.bg_badge_red);
+                } else {
+                    badge.setTextColor(0xFFFDE68A);
+                    badge.setBackgroundResource(R.drawable.bg_badge_amber);
+                }
+                topRow.addView(badge);
+                card.addView(topRow);
+
+                // Price Row
+                TextView priceTv = new TextView(this);
+                String pDisp = "SYP".equals(prefCurr)
+                        ? (RaqamiyatLocalStore.formatSypAmount(totalSyp) + String.format(Locale.US, " (≈ $%.2f)", totalUsd))
+                        : (String.format(Locale.US, "$%.2f", totalUsd) + " (≈ " + RaqamiyatLocalStore.formatSypAmount(totalSyp) + ")");
+                priceTv.setText("الإجمالي: " + pDisp);
+                priceTv.setTextColor(0xFFFBBF24);
+                priceTv.setTextSize(13f);
+                priceTv.setTypeface(priceTv.getTypeface(), Typeface.BOLD);
+                priceTv.setPadding(0, dp(8), 0, 0);
+                card.addView(priceTv);
+
+                // Deliverable Digital Codes / PINs Box
+                JSONObject ff = o.optJSONObject("fulfillment");
+                if (ff != null && ff.length() > 0) {
+                    LinearLayout codeBox = new LinearLayout(this);
+                    codeBox.setOrientation(LinearLayout.VERTICAL);
+                    codeBox.setBackgroundResource(R.drawable.bg_gateway_selected);
+                    codeBox.setPadding(dp(12), dp(10), dp(12), dp(10));
+                    LinearLayout.LayoutParams cbLp = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+                    cbLp.topMargin = dp(10);
+                    codeBox.setLayoutParams(cbLp);
+
+                    Iterator<String> keys = ff.keys();
+                    while (keys.hasNext()) {
+                        final String k = keys.next();
+                        final String v = ff.optString(k, "");
+                        if (v.isEmpty()) continue;
+
+                        LinearLayout kRow = new LinearLayout(this);
+                        kRow.setOrientation(LinearLayout.HORIZONTAL);
+                        kRow.setGravity(Gravity.CENTER_VERTICAL);
+
+                        TextView kvTv = new TextView(this);
+                        kvTv.setLayoutParams(new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f));
+                        kvTv.setText("🎁 " + k + ": " + v);
+                        kvTv.setTextColor(0xFFFFFFFF);
+                        kvTv.setTextSize(12.5f);
+                        kvTv.setTypeface(kvTv.getTypeface(), Typeface.BOLD);
+                        kRow.addView(kvTv);
+
+                        TextView copyBtn = new TextView(this);
+                        copyBtn.setText("نسخ 📋");
+                        copyBtn.setTextColor(0xFF22D3EE);
+                        copyBtn.setTextSize(11.5f);
+                        copyBtn.setTypeface(copyBtn.getTypeface(), Typeface.BOLD);
+                        copyBtn.setPadding(dp(8), dp(4), dp(8), dp(4));
+                        copyBtn.setOnClickListener(view -> {
+                            ClipboardManager cm = (ClipboardManager) getSystemService(Context.CLIPBOARD_SERVICE);
+                            if (cm != null) {
+                                cm.setPrimaryClip(ClipData.newPlainText(k, v));
+                                Toast.makeText(MainActivity.this, "تم نسخ الكود بنجاح!", Toast.LENGTH_SHORT).show();
+                            }
+                        });
+                        kRow.addView(copyBtn);
+                        codeBox.addView(kRow);
+                    }
+                    card.addView(codeBox);
+                }
+
+                // Action Buttons Row
+                LinearLayout actionsRow = new LinearLayout(this);
+                actionsRow.setOrientation(LinearLayout.HORIZONTAL);
+                LinearLayout.LayoutParams arLp = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+                arLp.topMargin = dp(10);
+                actionsRow.setLayoutParams(arLp);
+
+                Button detailsBtn = new Button(this);
+                detailsBtn.setLayoutParams(new LinearLayout.LayoutParams(0, dp(34), 1f));
+                detailsBtn.setBackgroundResource(R.drawable.bg_chip_unselected);
+                detailsBtn.setText("📄 الفاتورة والتفاصيل");
+                detailsBtn.setAllCaps(false);
+                detailsBtn.setTextColor(0xFFE2E8F0);
+                detailsBtn.setTextSize(11f);
+                detailsBtn.setOnClickListener(v -> showWebMode(BASE_URL + "dashboard/orders/" + orderId + "/"));
+                actionsRow.addView(detailsBtn);
+
+                if ("processing".equals(st) || "pending".equals(st)) {
+                    Button syncBtn = new Button(this);
+                    LinearLayout.LayoutParams sLp = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, dp(34));
+                    sLp.setMarginStart(dp(6));
+                    syncBtn.setLayoutParams(sLp);
+                    syncBtn.setBackgroundResource(R.drawable.bg_chip_unselected);
+                    syncBtn.setPadding(dp(10), 0, dp(10), 0);
+                    syncBtn.setText("🔄 تحديث الحالة");
+                    syncBtn.setAllCaps(false);
+                    syncBtn.setTextColor(0xFF22D3EE);
+                    syncBtn.setTextSize(11f);
+                    syncBtn.setOnClickListener(v -> performOrderAction(orderId, "sync"));
+                    actionsRow.addView(syncBtn);
+                }
+
+                if (canCancel) {
+                    Button cancelBtn = new Button(this);
+                    LinearLayout.LayoutParams xLp = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, dp(34));
+                    xLp.setMarginStart(dp(6));
+                    cancelBtn.setLayoutParams(xLp);
+                    cancelBtn.setBackgroundResource(R.drawable.bg_badge_red);
+                    cancelBtn.setPadding(dp(10), 0, dp(10), 0);
+                    cancelBtn.setText("✕ إلغاء");
+                    cancelBtn.setAllCaps(false);
+                    cancelBtn.setTextColor(0xFFFCA5A5);
+                    cancelBtn.setTextSize(11f);
+                    cancelBtn.setOnClickListener(v -> performOrderAction(orderId, "cancel"));
+                    actionsRow.addView(cancelBtn);
+                }
+
+                card.addView(actionsRow);
+                nativeOrdersList.addView(card);
+            }
         });
+    }
+
+    private void performOrderAction(String orderId, String action) {
+        try {
+            JSONObject payload = new JSONObject();
+            payload.put("action", action);
+            catalogRepository.postJson(BASE_URL + "api/app/orders/" + orderId + "/action/", payload, (code, json, err) -> {
+                if (json != null) {
+                    Toast.makeText(this, json.optString("message", "تم التحديث"), Toast.LENGTH_SHORT).show();
+                }
+                loadNativeOrders();
+            });
+        } catch (Exception ignored) {
+        }
+    }
+
+    private void addOrdersEmptyCard(String text, boolean showLoginBtn) {
+        LinearLayout card = new LinearLayout(this);
+        card.setOrientation(LinearLayout.VERTICAL);
+        card.setGravity(Gravity.CENTER);
+        card.setBackgroundResource(R.drawable.bg_card_dark);
+        card.setPadding(dp(24), dp(32), dp(24), dp(32));
+
+        TextView tv = new TextView(this);
+        tv.setText(text);
+        tv.setTextColor(0xFFCBD5E1);
+        tv.setTextSize(13.5f);
+        tv.setGravity(Gravity.CENTER);
+        card.addView(tv);
+
+        if (showLoginBtn) {
+            Button btn = new Button(this);
+            btn.setBackgroundResource(R.drawable.bg_button_gold);
+            btn.setText("تسجيل الدخول الآن ⚡");
+            btn.setAllCaps(false);
+            btn.setTextColor(0xFF030712);
+            btn.setTypeface(btn.getTypeface(), Typeface.BOLD);
+            LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, dp(44));
+            lp.topMargin = dp(16);
+            btn.setLayoutParams(lp);
+            btn.setPadding(dp(24), 0, dp(24), 0);
+            btn.setOnClickListener(v -> openNativeLoginSheet());
+            card.addView(btn);
+        }
+        nativeOrdersList.addView(card);
+    }
+
+    private void renderAccountTab() {
+        nativeAccountBody.removeAllViews();
+
+        // 1. Profile / Login Hero Card
+        LinearLayout hero = new LinearLayout(this);
+        hero.setOrientation(LinearLayout.VERTICAL);
+        hero.setBackgroundResource(R.drawable.bg_wallet_hero);
+        hero.setPadding(dp(18), dp(18), dp(18), dp(18));
+
+        if (!isAuthenticated) {
+            TextView t1 = new TextView(this);
+            t1.setText("مرحباً بك في رقميات | Raqamiyat");
+            t1.setTextColor(0xFFFFFFFF);
+            t1.setTextSize(17f);
+            t1.setTypeface(t1.getTypeface(), Typeface.BOLD);
+            hero.addView(t1);
+
+            TextView t2 = new TextView(this);
+            t2.setText("سجّل دخولك لمزامنة محفظتك، عرض الرصيد بالدولار والليرة السورية، ومتابعة طلباتك الفورية.");
+            t2.setTextColor(0xFFCBD5E1);
+            t2.setTextSize(12f);
+            t2.setPadding(0, dp(6), 0, dp(14));
+            hero.addView(t2);
+
+            Button loginBtn = new Button(this);
+            loginBtn.setBackgroundResource(R.drawable.bg_button_gold);
+            loginBtn.setText("🔐 تسجيل الدخول السريع");
+            loginBtn.setAllCaps(false);
+            loginBtn.setTextColor(0xFF030712);
+            loginBtn.setTextSize(14f);
+            loginBtn.setTypeface(loginBtn.getTypeface(), Typeface.BOLD);
+            loginBtn.setLayoutParams(new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dp(48)));
+            loginBtn.setOnClickListener(v -> openNativeLoginSheet());
+            hero.addView(loginBtn);
+        } else {
+            TextView nameTv = new TextView(this);
+            nameTv.setText((!userFullName.isEmpty() ? userFullName : userNameHandle) + (userIsVerified ? "  ✓ موثق" : ""));
+            nameTv.setTextColor(0xFFFFFFFF);
+            nameTv.setTextSize(18f);
+            nameTv.setTypeface(nameTv.getTypeface(), Typeface.BOLD);
+            hero.addView(nameTv);
+
+            if (!userEmail.isEmpty()) {
+                TextView emailTv = new TextView(this);
+                emailTv.setText(userEmail);
+                emailTv.setTextColor(0xFF94A3B8);
+                emailTv.setTextSize(12f);
+                hero.addView(emailTv);
+            }
+
+            TextView balTv = new TextView(this);
+            balTv.setText("رصيد المحفظة: " + localStore.formatPrice(liveBalanceUsd) + "  (" + localStore.formatSecondaryPrice(liveBalanceUsd) + ")");
+            balTv.setTextColor(0xFFFBBF24);
+            balTv.setTextSize(15f);
+            balTv.setTypeface(balTv.getTypeface(), Typeface.BOLD);
+            balTv.setPadding(0, dp(10), 0, dp(12));
+            hero.addView(balTv);
+
+            Button topupBtn = new Button(this);
+            topupBtn.setBackgroundResource(R.drawable.bg_button_gold);
+            topupBtn.setText("💳 شحن المحفظة وبوابات الدفع ⚡");
+            topupBtn.setAllCaps(false);
+            topupBtn.setTextColor(0xFF030712);
+            topupBtn.setTextSize(13.5f);
+            topupBtn.setTypeface(topupBtn.getTypeface(), Typeface.BOLD);
+            topupBtn.setLayoutParams(new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dp(46)));
+            topupBtn.setOnClickListener(v -> startActivity(new Intent(MainActivity.this, NativePaymentActivity.class)));
+            hero.addView(topupBtn);
+        }
+        nativeAccountBody.addView(hero);
+
+        // 2. Global Currency Selector Card
+        LinearLayout currCard = new LinearLayout(this);
+        currCard.setOrientation(LinearLayout.VERTICAL);
+        currCard.setBackgroundResource(R.drawable.bg_card_dark);
+        currCard.setPadding(dp(16), dp(14), dp(16), dp(14));
+        LinearLayout.LayoutParams ccLp = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+        ccLp.topMargin = dp(14);
+        currCard.setLayoutParams(ccLp);
+
+        TextView cTitle = new TextView(this);
+        cTitle.setText("💱 عملة العرض والشراء في التطبيق");
+        cTitle.setTextColor(0xFFFFFFFF);
+        cTitle.setTextSize(14f);
+        cTitle.setTypeface(cTitle.getTypeface(), Typeface.BOLD);
+        currCard.addView(cTitle);
+
+        TextView cSub = new TextView(this);
+        cSub.setText("سعر الصرف المباشر: 1$ = " + RaqamiyatLocalStore.formatSypAmount(localStore.getSypRate()));
+        cSub.setTextColor(0xFF94A3B8);
+        cSub.setTextSize(11.5f);
+        cSub.setPadding(0, dp(2), 0, dp(10));
+        currCard.addView(cSub);
+
+        LinearLayout cBtns = new LinearLayout(this);
+        cBtns.setOrientation(LinearLayout.HORIZONTAL);
+        boolean isUsd = "USD".equals(localStore.getPreferredCurrency());
+
+        Button bUsd = new Button(this);
+        LinearLayout.LayoutParams b1Lp = new LinearLayout.LayoutParams(0, dp(40), 1f);
+        b1Lp.setMarginEnd(dp(8));
+        bUsd.setLayoutParams(b1Lp);
+        bUsd.setBackgroundResource(isUsd ? R.drawable.bg_chip_selected : R.drawable.bg_chip_unselected);
+        bUsd.setText("الدولار ($ USD)");
+        bUsd.setAllCaps(false);
+        bUsd.setTextColor(isUsd ? 0xFF030712 : 0xFFE2E8F0);
+        bUsd.setTypeface(bUsd.getTypeface(), Typeface.BOLD);
+        bUsd.setOnClickListener(v -> {
+            localStore.setPreferredCurrency("USD");
+            onGlobalCurrencyChanged();
+        });
+        cBtns.addView(bUsd);
+
+        Button bSyp = new Button(this);
+        bSyp.setLayoutParams(new LinearLayout.LayoutParams(0, dp(40), 1f));
+        bSyp.setBackgroundResource(!isUsd ? R.drawable.bg_chip_selected : R.drawable.bg_chip_unselected);
+        bSyp.setText("الليرة السورية (ل.س)");
+        bSyp.setAllCaps(false);
+        bSyp.setTextColor(!isUsd ? 0xFF030712 : 0xFFE2E8F0);
+        bSyp.setTypeface(bSyp.getTypeface(), Typeface.BOLD);
+        bSyp.setOnClickListener(v -> {
+            localStore.setPreferredCurrency("SYP");
+            onGlobalCurrencyChanged();
+        });
+        cBtns.addView(bSyp);
+        currCard.addView(cBtns);
+        nativeAccountBody.addView(currCard);
+
+        // 3. Quick Actions Menu
+        addAccountActionRow("💳 المحفظة وبوابات الدفع وسجل الإيداعات", "شام كاش، كاش موبايل، بيميرا وكروت الشحن",
+                () -> startActivity(new Intent(this, NativePaymentActivity.class)));
+        addAccountActionRow("📦 سجل طلباتي وأكواد البطاقات", "استعراض جميع مشترياتك ونسخ الأكواد بلمسة واحدة",
+                () -> switchToNativeTab(TAB_ORDERS));
+        addAccountActionRow("🔔 مركز الإشعارات والعروض الحصرية", "أحدث التخفيضات والتنبيهات في رقميات",
+                this::showNotificationsInboxDialog);
+
+        if (isAuthenticated) {
+            addAccountActionRow("🛡️ الأمان وتوثيق الهوية (KYC & 2FA)", "إدارة كلمة المرور، التحقق بخطوتين وتوثيق الحساب",
+                    () -> showWebMode(BASE_URL + "dashboard/"));
+        }
+
+        if (isAdminUser) {
+            addAccountActionRow("🎛️ لوحة تحكم الإدارة الشاملة", "إدارة الطلبات، المنتجات، شام كاش والبوابات",
+                    () -> showWebMode(BASE_URL + "control/"));
+            addAccountActionRow("📷 استوديو تصوير المنتجات بالذكاء الاصطناعي", "عزل الخلفية وتحديث صور المنتجات بالكاميرا",
+                    this::launchNativeStudio);
+        }
+
+        addAccountActionRow("💬 الدعم الفني والتواصل معنا", "فريق دعم رقميات في خدمتك على مدار الساعة",
+                () -> showWebMode(BASE_URL + "contact/"));
+
+        if (isAuthenticated) {
+            Button logoutBtn = new Button(this);
+            LinearLayout.LayoutParams loLp = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dp(46));
+            loLp.topMargin = dp(16);
+            logoutBtn.setLayoutParams(loLp);
+            logoutBtn.setBackgroundResource(R.drawable.bg_badge_red);
+            logoutBtn.setText("🚪 تسجيل الخروج من الحساب");
+            logoutBtn.setAllCaps(false);
+            logoutBtn.setTextColor(0xFFFCA5A5);
+            logoutBtn.setTypeface(logoutBtn.getTypeface(), Typeface.BOLD);
+            logoutBtn.setOnClickListener(v -> {
+                catalogRepository.postJson(CatalogRepository.LOGOUT_API_URL, new JSONObject(), (c, j, e) -> {
+                    localStore.saveAppAuthToken("");
+                    localStore.saveQuickAccountSnapshot(0.0, "", "");
+                    CookieManager.getInstance().removeAllCookies(null);
+                    CookieManager.getInstance().flush();
+                    isAuthenticated = false;
+                    isAdminUser = false;
+                    liveBalanceUsd = 0.0;
+                    liveBalanceSyp = 0.0;
+                    btnAdminQuickStudio.setVisibility(View.GONE);
+                    updateHeroWalletBanner();
+                    renderAccountTab();
+                    Toast.makeText(this, "تم تسجيل الخروج بنجاح", Toast.LENGTH_SHORT).show();
+                });
+            });
+            nativeAccountBody.addView(logoutBtn);
+        }
+    }
+
+    private void addAccountActionRow(String titleText, String subtitleText, Runnable onClick) {
+        LinearLayout row = new LinearLayout(this);
+        row.setOrientation(LinearLayout.HORIZONTAL);
+        row.setGravity(Gravity.CENTER_VERTICAL);
+        row.setBackgroundResource(R.drawable.bg_card_dark);
+        row.setPadding(dp(14), dp(13), dp(14), dp(13));
+        LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+        lp.topMargin = dp(10);
+        row.setLayoutParams(lp);
+
+        LinearLayout col = new LinearLayout(this);
+        col.setOrientation(LinearLayout.VERTICAL);
+        col.setLayoutParams(new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f));
+
+        TextView t1 = new TextView(this);
+        t1.setText(titleText);
+        t1.setTextColor(0xFFF8FAFC);
+        t1.setTextSize(13.5f);
+        t1.setTypeface(t1.getTypeface(), Typeface.BOLD);
+        col.addView(t1);
+
+        TextView t2 = new TextView(this);
+        t2.setText(subtitleText);
+        t2.setTextColor(0xFF94A3B8);
+        t2.setTextSize(11f);
+        col.addView(t2);
+
+        row.addView(col);
+
+        TextView arrow = new TextView(this);
+        arrow.setText("←");
+        arrow.setTextColor(0xFF22D3EE);
+        arrow.setTextSize(15f);
+        arrow.setTypeface(arrow.getTypeface(), Typeface.BOLD);
+        row.addView(arrow);
+
+        row.setOnClickListener(v -> {
+            if (onClick != null) onClick.run();
+        });
+        nativeAccountBody.addView(row);
     }
 
     private void syncAppNotifications() {
@@ -259,7 +968,7 @@ public class MainActivity extends AppCompatActivity implements ConnectivityHelpe
     private void showNotificationsInboxDialog() {
         syncAppNotifications();
         if (latestNotifications.isEmpty()) {
-            new com.google.android.material.dialog.MaterialAlertDialogBuilder(this)
+            new MaterialAlertDialogBuilder(this)
                     .setTitle("🔔 إشعارات وعروض رقميات")
                     .setMessage("لا توجد إشعارات أو عروض جديدة حالياً.")
                     .setPositiveButton("حسناً", (d, w) -> d.dismiss())
@@ -272,7 +981,7 @@ public class MainActivity extends AppCompatActivity implements ConnectivityHelpe
             String icon = "discount".equals(item.category) ? "🔥 " : ("update".equals(item.category) ? "⚡ " : ("promo".equals(item.category) ? "🎁 " : "💬 "));
             titles[i] = icon + item.title + "\n" + item.body;
         }
-        new com.google.android.material.dialog.MaterialAlertDialogBuilder(this)
+        new MaterialAlertDialogBuilder(this)
                 .setTitle("🔔 أحدث الإشعارات والعروض")
                 .setItems(titles, (dialog, which) -> {
                     AppNotificationSync.AppNotifItem picked = latestNotifications.get(which);
@@ -293,6 +1002,11 @@ public class MainActivity extends AppCompatActivity implements ConnectivityHelpe
                 categoryAdapter.submitList(data.categories);
                 allProducts.clear();
                 allProducts.addAll(data.products);
+                if (!data.gateways.isEmpty() && liveGateways.isEmpty()) {
+                    liveGateways.addAll(data.gateways);
+                    updateHeroWalletBanner();
+                }
+                productAdapter.updateCurrencyConfig(localStore.getPreferredCurrency(), localStore.getSypRate());
                 applyProductFilters();
                 if (!isInitialPageLoaded) {
                     isInitialPageLoaded = true;
@@ -331,20 +1045,25 @@ public class MainActivity extends AppCompatActivity implements ConnectivityHelpe
         nativeEmptyState.setVisibility(filtered.isEmpty() ? View.VISIBLE : View.GONE);
     }
 
-    private void refreshAdminSessionBadge() {
-        catalogRepository.checkSession((isAuthenticated, isAdmin, displayName) -> {
-            btnAdminQuickStudio.setVisibility(isAdmin ? View.VISIBLE : View.GONE);
-        });
-    }
-
-    private void showNativeMode(boolean isHomeTab) {
+    private void switchToNativeTab(int tab) {
         isNativeMode = true;
-        nativeStoreContainer.setVisibility(View.VISIBLE);
+        activeNativeTab = tab;
         swipeRefresh.setVisibility(View.GONE);
         nativeErrorView.setVisibility(View.GONE);
-        updateBottomNavigationActiveTab(isHomeTab ? BASE_URL : CATALOG_URL);
-        if (!isHomeTab) {
+
+        nativeStoreContainer.setVisibility((tab == TAB_HOME || tab == TAB_CATALOG) ? View.VISIBLE : View.GONE);
+        nativeOrdersContainer.setVisibility(tab == TAB_ORDERS ? View.VISIBLE : View.GONE);
+        nativeAccountContainer.setVisibility(tab == TAB_ACCOUNT ? View.VISIBLE : View.GONE);
+
+        setActiveBottomTabHighlight(tab);
+
+        if (tab == TAB_CATALOG) {
             nativeSearchInput.requestFocus();
+        } else if (tab == TAB_ORDERS) {
+            loadNativeOrders();
+        } else if (tab == TAB_ACCOUNT) {
+            renderAccountTab();
+            syncLiveWalletAndSession();
         }
     }
 
@@ -417,13 +1136,15 @@ public class MainActivity extends AppCompatActivity implements ConnectivityHelpe
         }
         isNativeMode = false;
         nativeStoreContainer.setVisibility(View.GONE);
+        nativeOrdersContainer.setVisibility(View.GONE);
+        nativeAccountContainer.setVisibility(View.GONE);
         nativeErrorView.setVisibility(View.GONE);
         swipeRefresh.setVisibility(View.VISIBLE);
         if (connectivityHelper != null && connectivityHelper.isOnline() && webView != null) {
             webView.getSettings().setCacheMode(WebSettings.LOAD_DEFAULT);
         }
         webView.loadUrl(url);
-        updateBottomNavigationActiveTab(url);
+        updateBottomNavigationActiveTabFromUrl(url);
     }
 
     private void launchNativeStudio() {
@@ -433,29 +1154,22 @@ public class MainActivity extends AppCompatActivity implements ConnectivityHelpe
 
     private void setupWebView() {
         WebSettings settings = webView.getSettings();
-
-        // JavaScript & DOM Storage
         settings.setJavaScriptEnabled(true);
         settings.setDomStorageEnabled(true);
         settings.setDatabaseEnabled(true);
         settings.setAllowFileAccess(true);
         settings.setAllowContentAccess(true);
         settings.setMediaPlaybackRequiresUserGesture(false);
-
-        // Responsive Viewport Configuration (strictly 1:1, prevent horizontal blowout)
         settings.setUseWideViewPort(true);
         settings.setLoadWithOverviewMode(false);
-        settings.setTextZoom(100); // Prevents system font size from breaking layouts
+        settings.setTextZoom(100);
         settings.setSupportZoom(false);
         settings.setBuiltInZoomControls(false);
         settings.setDisplayZoomControls(false);
-
-        // Mixed Content Security
         settings.setMixedContentMode(WebSettings.MIXED_CONTENT_NEVER_ALLOW);
-
-        // Hardware Acceleration & Clean Chrome User-Agent (allows in-app Google OAuth without WebView blocks)
         settings.setSupportMultipleWindows(false);
         settings.setJavaScriptCanOpenWindowsAutomatically(true);
+
         String rawUa = settings.getUserAgentString();
         String cleanedUa = rawUa != null
                 ? rawUa.replace("; wv", "").replaceAll("Version/\\d+(?:\\.\\d+)?\\s*", "").replaceAll("\\s+", " ").trim()
@@ -464,10 +1178,9 @@ public class MainActivity extends AppCompatActivity implements ConnectivityHelpe
             cleanedUa = "Mozilla/5.0 (Linux; Android 13; Mobile) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Mobile Safari/537.36";
         }
         cleanChromeUserAgent = cleanedUa;
-        appWebViewUserAgent = cleanedUa + " RaqamiyatAndroid/3.2 NativeApp";
+        appWebViewUserAgent = cleanedUa + " RaqamiyatAndroid/3.2.3 NativeApp";
         settings.setUserAgentString(appWebViewUserAgent);
 
-        // Support direct in-app APK and file downloads inside WebView
         webView.setDownloadListener((url, userAgent, contentDisposition, mimetype, contentLength) -> {
             if (url != null && (url.contains("/download/app") || url.contains("/download/apk") || url.endsWith(".apk"))) {
                 downloadAndInstallApkInApp(url);
@@ -478,23 +1191,18 @@ public class MainActivity extends AppCompatActivity implements ConnectivityHelpe
             }
         });
 
-        // Cookies & Sessions
         CookieManager cookieManager = CookieManager.getInstance();
         cookieManager.setAcceptCookie(true);
         cookieManager.setAcceptThirdPartyCookies(webView, true);
 
-        // Set initial cache mode based on connectivity
         if (connectivityHelper.isOnline()) {
             settings.setCacheMode(WebSettings.LOAD_DEFAULT);
         } else {
             settings.setCacheMode(WebSettings.LOAD_CACHE_ELSE_NETWORK);
         }
 
-        // Disable browser text-selection context menu
         webView.setOnLongClickListener(v -> true);
         webView.setHapticFeedbackEnabled(true);
-
-        // Register Native JavaScript Bridge
         webView.addJavascriptInterface(nativeBridge, "RaqamiyatNative");
 
         webView.setWebViewClient(new WebViewClient() {
@@ -508,6 +1216,7 @@ public class MainActivity extends AppCompatActivity implements ConnectivityHelpe
             public boolean shouldOverrideUrlLoading(WebView view, String url) {
                 return handleUrlNavigation(url);
             }
+
             @Override
             public void onPageStarted(WebView view, String url, Bitmap favicon) {
                 progressBar.setVisibility(View.VISIBLE);
@@ -521,14 +1230,12 @@ public class MainActivity extends AppCompatActivity implements ConnectivityHelpe
                 nativeErrorView.setVisibility(View.GONE);
                 CookieManager.getInstance().flush();
 
-                // Dismiss splash screen smoothly after first load
                 if (!isInitialPageLoaded) {
                     isInitialPageLoaded = true;
                     dismissSplashOverlay();
                 }
 
-                updateBottomNavigationActiveTab(url);
-                refreshAdminSessionBadge();
+                syncLiveWalletAndSession();
                 if (webView != null) {
                     webView.evaluateJavascript(
                             "(function(){document.querySelectorAll('.rq-bottom-nav,.rq-mobile-bottom-nav,#rq-web-bottom-nav').forEach(function(e){e.style.display='none';});})();",
@@ -569,7 +1276,6 @@ public class MainActivity extends AppCompatActivity implements ConnectivityHelpe
             @Nullable
             @Override
             public WebResourceResponse shouldInterceptRequest(WebView view, WebResourceRequest request) {
-                // If offline and request is an image, check local image disk cache
                 String url = request.getUrl().toString();
                 if (!connectivityHelper.isOnline() && (url.contains("/media/") || url.endsWith(".png") || url.endsWith(".jpg") || url.endsWith(".jpeg"))) {
                     File cachedImg = localStore.getCachedImageFile(url);
@@ -592,16 +1298,11 @@ public class MainActivity extends AppCompatActivity implements ConnectivityHelpe
                 progressBar.setProgress(newProgress);
             }
 
-            // WebRTC Camera & Microphone permission for Camera Studio
             @Override
             public void onPermissionRequest(final PermissionRequest request) {
-                runOnUiThread(() -> {
-                    String[] resources = request.getResources();
-                    request.grant(resources);
-                });
+                runOnUiThread(() -> request.grant(request.getResources()));
             }
 
-            // Native Camera & File Chooser (Supports both single and multiple selection)
             @Override
             public boolean onShowFileChooser(WebView webView, ValueCallback<Uri[]> filePathCallback, FileChooserParams fileChooserParams) {
                 if (mFilePathCallback != null) {
@@ -610,7 +1311,6 @@ public class MainActivity extends AppCompatActivity implements ConnectivityHelpe
                 mFilePathCallback = filePathCallback;
 
                 boolean allowsMultiple = (fileChooserParams.getMode() == FileChooserParams.MODE_OPEN_MULTIPLE);
-
                 Intent takePictureIntent = new Intent(MediaStore.ACTION_IMAGE_CAPTURE);
                 if (takePictureIntent.resolveActivity(getPackageManager()) != null) {
                     File photoFile = null;
@@ -619,12 +1319,10 @@ public class MainActivity extends AppCompatActivity implements ConnectivityHelpe
                         takePictureIntent.putExtra("PhotoPath", mCameraPhotoPath);
                     } catch (IOException ignored) {
                     }
-
                     if (photoFile != null) {
                         mCameraPhotoPath = "file:" + photoFile.getAbsolutePath();
                         Uri photoURI = FileProvider.getUriForFile(MainActivity.this,
-                                getPackageName() + ".fileprovider",
-                                photoFile);
+                                getPackageName() + ".fileprovider", photoFile);
                         takePictureIntent.putExtra(MediaStore.EXTRA_OUTPUT, photoURI);
                     } else {
                         takePictureIntent = null;
@@ -639,7 +1337,6 @@ public class MainActivity extends AppCompatActivity implements ConnectivityHelpe
                 }
 
                 Intent[] intentArray = (takePictureIntent != null) ? new Intent[]{takePictureIntent} : new Intent[0];
-
                 Intent chooserIntent = new Intent(Intent.ACTION_CHOOSER);
                 chooserIntent.putExtra(Intent.EXTRA_INTENT, contentSelectionIntent);
                 chooserIntent.putExtra(Intent.EXTRA_TITLE, "التقاط صورة المنتج أو اختيار من المعرض");
@@ -673,7 +1370,7 @@ public class MainActivity extends AppCompatActivity implements ConnectivityHelpe
 
         btnBrowseCached.setOnClickListener(v -> {
             nativeErrorView.setVisibility(View.GONE);
-            webView.loadUrl(CATALOG_URL);
+            switchToNativeTab(TAB_HOME);
         });
     }
 
@@ -685,24 +1382,23 @@ public class MainActivity extends AppCompatActivity implements ConnectivityHelpe
         View navAccount = findViewById(R.id.nav_item_account);
 
         if (navHome != null) {
-            navHome.setOnClickListener(v -> showNativeMode(true));
+            navHome.setOnClickListener(v -> switchToNativeTab(TAB_HOME));
         }
         if (navCatalog != null) {
-            navCatalog.setOnClickListener(v -> showNativeMode(false));
+            navCatalog.setOnClickListener(v -> switchToNativeTab(TAB_CATALOG));
         }
         if (navWallet != null) {
-            navWallet.setOnClickListener(v -> showWebMode("https://raqamiyatapp.com/dashboard/wallet/"));
+            navWallet.setOnClickListener(v -> startActivity(new Intent(MainActivity.this, NativePaymentActivity.class)));
         }
         if (navOrders != null) {
-            navOrders.setOnClickListener(v -> showWebMode("https://raqamiyatapp.com/dashboard/orders/"));
+            navOrders.setOnClickListener(v -> switchToNativeTab(TAB_ORDERS));
         }
         if (navAccount != null) {
-            navAccount.setOnClickListener(v -> showWebMode("https://raqamiyatapp.com/dashboard/"));
+            navAccount.setOnClickListener(v -> switchToNativeTab(TAB_ACCOUNT));
         }
     }
 
-    private void updateBottomNavigationActiveTab(String url) {
-        if (url == null) return;
+    private void setActiveBottomTabHighlight(int tab) {
         TextView textHome = findViewById(R.id.nav_text_home);
         TextView textCatalog = findViewById(R.id.nav_text_catalog);
         TextView textWallet = findViewById(R.id.nav_text_wallet);
@@ -711,24 +1407,27 @@ public class MainActivity extends AppCompatActivity implements ConnectivityHelpe
 
         int colorInactive = 0xFF94A3B8;
         int colorActiveGold = 0xFFD4A853;
-        int colorActiveCyan = 0xFF06B6D4;
+        int colorActiveCyan = 0xFF22D3EE;
 
-        if (textHome != null) textHome.setTextColor(colorInactive);
-        if (textCatalog != null) textCatalog.setTextColor(colorInactive);
-        if (textWallet != null) textWallet.setTextColor(colorInactive);
-        if (textOrders != null) textOrders.setTextColor(colorInactive);
-        if (textAccount != null) textAccount.setTextColor(colorInactive);
+        if (textHome != null) textHome.setTextColor(tab == TAB_HOME ? colorActiveGold : colorInactive);
+        if (textCatalog != null) textCatalog.setTextColor(tab == TAB_CATALOG ? colorActiveGold : colorInactive);
+        if (textWallet != null) textWallet.setTextColor(tab == TAB_WALLET ? colorActiveCyan : colorInactive);
+        if (textOrders != null) textOrders.setTextColor(tab == TAB_ORDERS ? colorActiveGold : colorInactive);
+        if (textAccount != null) textAccount.setTextColor(tab == TAB_ACCOUNT ? colorActiveGold : colorInactive);
+    }
 
+    private void updateBottomNavigationActiveTabFromUrl(String url) {
+        if (url == null) return;
         if (url.contains("/dashboard/wallet/")) {
-            if (textWallet != null) textWallet.setTextColor(colorActiveCyan);
+            setActiveBottomTabHighlight(TAB_WALLET);
         } else if (url.contains("/catalog/")) {
-            if (textCatalog != null) textCatalog.setTextColor(colorActiveGold);
+            setActiveBottomTabHighlight(TAB_CATALOG);
         } else if (url.contains("/dashboard/orders/")) {
-            if (textOrders != null) textOrders.setTextColor(colorActiveGold);
-        } else if (url.contains("/dashboard/") || url.contains("/accounts/")) {
-            if (textAccount != null) textAccount.setTextColor(colorActiveGold);
-        } else if (url.equals(BASE_URL) || url.equals("https://raqamiyatapp.com") || url.endsWith("raqamiyatapp.com/")) {
-            if (textHome != null) textHome.setTextColor(colorActiveGold);
+            setActiveBottomTabHighlight(TAB_ORDERS);
+        } else if (url.contains("/dashboard/") || url.contains("/accounts/") || url.contains("/control/")) {
+            setActiveBottomTabHighlight(TAB_ACCOUNT);
+        } else {
+            setActiveBottomTabHighlight(TAB_HOME);
         }
     }
 
@@ -749,6 +1448,7 @@ public class MainActivity extends AppCompatActivity implements ConnectivityHelpe
             if (isOnline) {
                 webView.getSettings().setCacheMode(WebSettings.LOAD_DEFAULT);
                 syncCatalogCacheInBackground();
+                syncLiveWalletAndSession();
             } else {
                 webView.getSettings().setCacheMode(WebSettings.LOAD_CACHE_ELSE_NETWORK);
             }
@@ -757,14 +1457,13 @@ public class MainActivity extends AppCompatActivity implements ConnectivityHelpe
 
     private void showConnectivityBanner(boolean isOnline) {
         if (!isOnline) {
-            connectivityBanner.setBackgroundColor(Color.parseColor("#b45309")); // Amber
+            connectivityBanner.setBackgroundColor(Color.parseColor("#b45309"));
             bannerText.setText("⚠️ أنت تتصفح بدون إنترنت • يتم عرض البيانات المخزنة محلياً");
             connectivityBanner.setVisibility(View.VISIBLE);
         } else {
-            connectivityBanner.setBackgroundColor(Color.parseColor("#059669")); // Emerald
+            connectivityBanner.setBackgroundColor(Color.parseColor("#059669"));
             bannerText.setText("⚡ تم استعادة الاتصال بالإنترنت • البيانات محدثة");
             connectivityBanner.setVisibility(View.VISIBLE);
-            // Hide banner after 3.5 seconds
             mainHandler.postDelayed(() -> {
                 if (connectivityHelper.isOnline()) {
                     connectivityBanner.setVisibility(View.GONE);
@@ -779,7 +1478,7 @@ public class MainActivity extends AppCompatActivity implements ConnectivityHelpe
                 HttpURLConnection conn = (HttpURLConnection) new URL(OFFLINE_API_URL).openConnection();
                 conn.setConnectTimeout(6000);
                 conn.setReadTimeout(8000);
-                conn.setRequestProperty("User-Agent", "RaqamiyatAndroid/2.0 CacheSync");
+                conn.setRequestProperty("User-Agent", "RaqamiyatAndroid/3.2.3 CacheSync");
                 conn.connect();
 
                 if (conn.getResponseCode() == 200) {
@@ -805,7 +1504,13 @@ public class MainActivity extends AppCompatActivity implements ConnectivityHelpe
     @Override
     protected void onActivityResult(int requestCode, int resultCode, @Nullable Intent data) {
         if (requestCode == PRODUCT_DETAIL_REQUEST_CODE) {
+            updateHeaderBadges();
+            syncLiveWalletAndSession();
             if (resultCode == RESULT_OK && data != null) {
+                if (data.getBooleanExtra(ProductDetailActivity.EXTRA_OPEN_NATIVE_ORDERS, false)) {
+                    switchToNativeTab(TAB_ORDERS);
+                    return;
+                }
                 String openUrl = data.getStringExtra(ProductDetailActivity.EXTRA_OPEN_URL);
                 if (openUrl != null && !openUrl.isEmpty()) {
                     showWebMode(openUrl);
@@ -824,11 +1529,9 @@ public class MainActivity extends AppCompatActivity implements ConnectivityHelpe
                 super.onActivityResult(requestCode, resultCode, data);
                 return;
             }
-
             Uri[] results = null;
             if (resultCode == RESULT_OK) {
                 if (data != null && data.getClipData() != null) {
-                    // Multiple files selected
                     ClipData clipData = data.getClipData();
                     int count = clipData.getItemCount();
                     results = new Uri[count];
@@ -836,14 +1539,11 @@ public class MainActivity extends AppCompatActivity implements ConnectivityHelpe
                         results[i] = clipData.getItemAt(i).getUri();
                     }
                 } else if (data != null && data.getData() != null) {
-                    // Single file selected from gallery
                     results = new Uri[]{data.getData()};
                 } else if (mCameraPhotoPath != null) {
-                    // Camera photo capture
                     results = new Uri[]{Uri.parse(mCameraPhotoPath)};
                 }
             }
-
             mFilePathCallback.onReceiveValue(results);
             mFilePathCallback = null;
         } else {
@@ -855,16 +1555,14 @@ public class MainActivity extends AppCompatActivity implements ConnectivityHelpe
     public void onBackPressed() {
         if (nativeErrorView.getVisibility() == View.VISIBLE) {
             nativeErrorView.setVisibility(View.GONE);
-            webView.loadUrl(BASE_URL);
+            switchToNativeTab(TAB_HOME);
             return;
         }
-
         if (!isNativeMode && webView.canGoBack()) {
             webView.goBack();
-        } else if (!isNativeMode) {
-            showNativeMode(true);
+        } else if (!isNativeMode || activeNativeTab != TAB_HOME) {
+            switchToNativeTab(TAB_HOME);
         } else {
-            // Double back to exit
             if (backPressedTime + 2000 > System.currentTimeMillis()) {
                 super.onBackPressed();
             } else {
@@ -886,26 +1584,7 @@ public class MainActivity extends AppCompatActivity implements ConnectivityHelpe
     }
 
     private void launchGoogleCustomTab(String url) {
-        try {
-            androidx.browser.customtabs.CustomTabsIntent customTabsIntent =
-                    new androidx.browser.customtabs.CustomTabsIntent.Builder()
-                            .setShowTitle(true)
-                            .setToolbarColor(0xFF030712)
-                            .build();
-            if (isPackageInstalled("com.android.chrome")) {
-                customTabsIntent.intent.setPackage("com.android.chrome");
-            }
-            customTabsIntent.launchUrl(this, Uri.parse(url));
-        } catch (Exception e) {
-            try {
-                Intent browserIntent = new Intent(Intent.ACTION_VIEW, Uri.parse(url));
-                if (isPackageInstalled("com.android.chrome")) {
-                    browserIntent.setPackage("com.android.chrome");
-                }
-                startActivity(browserIntent);
-            } catch (Exception ignored) {
-            }
-        }
+        NativeAuthHelper.launchGoogleAuthTab(this, url);
     }
 
     private void downloadAndInstallApkInApp(final String apkUrl) {
@@ -916,7 +1595,7 @@ public class MainActivity extends AppCompatActivity implements ConnectivityHelpe
                 conn.setInstanceFollowRedirects(true);
                 conn.setConnectTimeout(15000);
                 conn.setReadTimeout(30000);
-                conn.setRequestProperty("User-Agent", "RaqamiyatAndroid/3.2 AutoUpdater");
+                conn.setRequestProperty("User-Agent", "RaqamiyatAndroid/3.2.3 AutoUpdater");
                 conn.connect();
                 if (conn.getResponseCode() == 200) {
                     File outFile = new File(getCacheDir(), "Raqamiyat-Update.apk");
@@ -962,14 +1641,14 @@ public class MainActivity extends AppCompatActivity implements ConnectivityHelpe
                 HttpURLConnection conn = (HttpURLConnection) new URL(BASE_URL + "api/app/version/").openConnection();
                 conn.setConnectTimeout(5000);
                 conn.setReadTimeout(6000);
-                conn.setRequestProperty("User-Agent", "RaqamiyatAndroid/3.2 UpdateCheck");
+                conn.setRequestProperty("User-Agent", "RaqamiyatAndroid/3.2.3 UpdateCheck");
                 conn.connect();
                 if (conn.getResponseCode() == 200) {
                     Scanner scanner = new Scanner(conn.getInputStream(), StandardCharsets.UTF_8.name());
                     String json = scanner.useDelimiter("\\A").hasNext() ? scanner.next() : "";
                     scanner.close();
                     if (!json.isEmpty()) {
-                        org.json.JSONObject obj = new org.json.JSONObject(json);
+                        JSONObject obj = new JSONObject(json);
                         int serverCode = obj.optInt("version_code", 0);
                         String serverName = obj.optString("version_name", "");
                         String apkUrl = obj.optString("local_apk_url", obj.optString("apk_url", BASE_URL + "download/app/?direct=1"));
@@ -983,7 +1662,7 @@ public class MainActivity extends AppCompatActivity implements ConnectivityHelpe
                             hasPromptedAppUpdate = true;
                             mainHandler.post(() -> {
                                 if (!isFinishing()) {
-                                    new com.google.android.material.dialog.MaterialAlertDialogBuilder(MainActivity.this)
+                                    new MaterialAlertDialogBuilder(MainActivity.this)
                                             .setTitle("⚡ يتوفر تحديث جديد لتطبيق رقميات (" + serverName + ")")
                                             .setMessage(notes + "\n\nاضغط تحديث ليتم تحميل وتثبيت النسخة الجديدة تلقائياً.")
                                             .setPositiveButton("تحديث تلقائي الآن", (d, w) -> downloadAndInstallApkInApp(apkUrl))
@@ -1003,9 +1682,12 @@ public class MainActivity extends AppCompatActivity implements ConnectivityHelpe
     protected void onResume() {
         super.onResume();
         CookieManager.getInstance().flush();
+        updateHeaderBadges();
+        productAdapter.updateCurrencyConfig(localStore.getPreferredCurrency(), localStore.getSypRate());
         loadNativeCatalog(false);
-        refreshAdminSessionBadge();
+        syncLiveWalletAndSession();
         syncAppNotifications();
+
         if (isWaitingForExternalPayment) {
             isWaitingForExternalPayment = false;
             if (!isNativeMode && webView != null && connectivityHelper != null && connectivityHelper.isOnline()) {
@@ -1021,18 +1703,10 @@ public class MainActivity extends AppCompatActivity implements ConnectivityHelpe
         }
         if (isWaitingForGoogleAuth) {
             isWaitingForGoogleAuth = false;
-            Runnable checkSsoJs = () -> {
-                if (webView != null) {
-                    webView.evaluateJavascript(
-                            "if(window.rqCheckAppSsoNow){window.rqCheckAppSsoNow();}else{window.location.reload();}",
-                            null
-                    );
-                }
-                refreshAdminSessionBadge();
-            };
-            mainHandler.postDelayed(checkSsoJs, 150);
-            mainHandler.postDelayed(checkSsoJs, 750);
-            mainHandler.postDelayed(checkSsoJs, 1800);
+            Runnable checkSso = this::syncLiveWalletAndSession;
+            mainHandler.postDelayed(checkSso, 200);
+            mainHandler.postDelayed(checkSso, 900);
+            mainHandler.postDelayed(checkSso, 2000);
         }
     }
 
@@ -1059,7 +1733,13 @@ public class MainActivity extends AppCompatActivity implements ConnectivityHelpe
             String target = uri.getQueryParameter("url");
             if (target != null && !target.isEmpty() && target.startsWith("https://raqamiyatapp.com")) {
                 isWaitingForExternalPayment = false;
-                showWebMode(target);
+                if (target.contains("/dashboard/orders")) {
+                    switchToNativeTab(TAB_ORDERS);
+                } else if (target.contains("/dashboard/wallet")) {
+                    startActivity(new Intent(this, NativePaymentActivity.class));
+                } else {
+                    showWebMode(target);
+                }
             }
             return;
         }
@@ -1067,45 +1747,54 @@ public class MainActivity extends AppCompatActivity implements ConnectivityHelpe
             String token = uri.getQueryParameter("token");
             if (token != null && !token.isEmpty()) {
                 isWaitingForGoogleAuth = false;
-                String exchangeUrl = BASE_URL + "auth/app-sso-exchange/?token=" + Uri.encode(token);
-                showWebMode(exchangeUrl);
-                Toast.makeText(this, "جاري تأكيد تسجيل الدخول في التطبيق...", Toast.LENGTH_SHORT).show();
+                String exchangeJsonUrl = BASE_URL + "auth/app-sso-exchange/?format=json&token=" + Uri.encode(token);
+                catalogRepository.getJson(exchangeJsonUrl, (code, json, err) -> {
+                    if (code == 200 && json != null && json.optBoolean("is_authenticated", false)) {
+                        String appTok = json.optString("app_auth_token", "");
+                        if (!appTok.isEmpty()) localStore.saveAppAuthToken(appTok);
+                        Toast.makeText(this, "✓ تم تسجيل الدخول بنجاح في تطبيق رقميات!", Toast.LENGTH_SHORT).show();
+                        syncLiveWalletAndSession();
+                        switchToNativeTab(TAB_HOME);
+                    } else {
+                        showWebMode(BASE_URL + "auth/app-sso-exchange/?token=" + Uri.encode(token));
+                    }
+                });
             }
             return;
         }
         if (deepUrl.contains("/control/camera-studio")) {
             launchNativeStudio();
+        } else if (deepUrl.contains("/payments/")) {
+            showWebMode(deepUrl);
+        } else if (deepUrl.contains("/dashboard/orders")) {
+            switchToNativeTab(TAB_ORDERS);
+        } else if (deepUrl.contains("/dashboard/wallet")) {
+            startActivity(new Intent(this, NativePaymentActivity.class));
         } else if (deepUrl.contains("/auth/app-sso-exchange")
-                || deepUrl.contains("/payments/")
                 || deepUrl.contains("/accounts/")
                 || deepUrl.contains("/auth/")
-                || deepUrl.contains("/dashboard/")
                 || deepUrl.contains("/control/")
                 || deepUrl.contains("/catalog/")
                 || deepUrl.contains("/cart/")) {
             showWebMode(deepUrl);
         } else if (deepUrl.contains("raqamiyatapp.com")) {
-            showNativeMode(true);
+            switchToNativeTab(TAB_HOME);
         }
     }
 
     private boolean handleUrlNavigation(String url) {
         if (url == null) return false;
 
-        // Custom App SSO Deep Link
         if (url.startsWith("raqamiyat://")) {
             handleIncomingDeepLink(Uri.parse(url));
             return true;
         }
 
-        // If ShamCash native app is installed and handles this URL directly, launch ShamCash App (never Chrome);
-        // otherwise keep inside Raqamiyat's WebView so shamcash:// / intent:// triggers the ShamCash App directly.
         if (isShamCashExternalUrl(url) && tryLaunchNativeShamCashAppOnly(this, url)) {
             isWaitingForExternalPayment = true;
             return true;
         }
 
-        // Android Intent URI scheme
         if (url.startsWith("intent:")) {
             try {
                 Intent intent = Intent.parseUri(url, Intent.URI_INTENT_SCHEME);
@@ -1118,38 +1807,32 @@ public class MainActivity extends AppCompatActivity implements ConnectivityHelpe
             }
         }
 
-        // WhatsApp, Tel, Mailto, Telegram protocols
-        if (url.startsWith("whatsapp:") || url.startsWith("tel:") || url.startsWith("mailto:")
-                || url.startsWith("tg:")) {
+        if (url.startsWith("whatsapp:") || url.startsWith("tel:") || url.startsWith("mailto:") || url.startsWith("tg:")) {
             try {
-                Intent intent = new Intent(Intent.ACTION_VIEW, Uri.parse(url));
-                startActivity(intent);
+                startActivity(new Intent(Intent.ACTION_VIEW, Uri.parse(url)));
                 return true;
             } catch (Exception ignored) {
                 return true;
             }
         }
 
-        // Google Sign-In & OAuth Account Picker:
-        // Open via Chrome Custom Tabs targeting Chrome so all Google accounts signed into the
-        // device appear immediately, while state=app_<ticket> binds the session directly to this app WebView.
         if (url.contains("accounts.google.com") || url.contains("/accounts/google/login")) {
             isWaitingForGoogleAuth = true;
             launchGoogleCustomTab(url);
             return true;
         }
 
-        // Intercept Camera Studio in Admin Panel -> Launch Native Camera Studio with Product Code Prompt
         if (url.contains("/control/camera-studio")) {
             launchNativeStudio();
             return true;
         }
 
-        // Keep Raqamiyat pages and payment gateways inside the in-app WebView
         if (url.startsWith("http://") || url.startsWith("https://")) {
             if (isNativeMode) {
                 isNativeMode = false;
                 nativeStoreContainer.setVisibility(View.GONE);
+                nativeOrdersContainer.setVisibility(View.GONE);
+                nativeAccountContainer.setVisibility(View.GONE);
                 nativeErrorView.setVisibility(View.GONE);
                 swipeRefresh.setVisibility(View.VISIBLE);
             }
@@ -1166,11 +1849,12 @@ public class MainActivity extends AppCompatActivity implements ConnectivityHelpe
 
     @Override
     public void onOpenGoogleLogin() {
-        showWebMode(BASE_URL + "auth/login/");
+        openNativeLoginSheet();
     }
 
     @Override
     public void onTransactionSuccess(String orderId) {
+        syncLiveWalletAndSession();
         NotificationCompat.Builder builder = new NotificationCompat.Builder(this, CHANNEL_ID)
                 .setSmallIcon(R.mipmap.ic_launcher)
                 .setContentTitle("رقميات | تم تأكيد طلبك بنجاح ⚡")

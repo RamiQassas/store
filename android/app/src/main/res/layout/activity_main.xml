@@ -2,20 +2,20 @@
 <RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="#0a0a0f">
+    android:background="#030712">
 
-    <!-- Connectivity Status Banner (Animated Slide In/Out) -->
+    <!-- Connectivity Status Banner -->
     <LinearLayout
         android:id="@+id/connectivity_banner"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_alignParentTop="true"
         android:background="#b45309"
-        android:paddingVertical="7dp"
-        android:paddingHorizontal="14dp"
-        android:gravity="center"
         android:elevation="12dp"
+        android:gravity="center"
         android:orientation="horizontal"
+        android:paddingHorizontal="14dp"
+        android:paddingVertical="7dp"
         android:visibility="gone">
 
         <TextView
@@ -34,19 +34,21 @@
         android:layout_width="match_parent"
         android:layout_height="2.5dp"
         android:layout_below="@id/connectivity_banner"
+        android:elevation="10dp"
         android:indeterminate="false"
         android:max="100"
         android:progressDrawable="@android:color/holo_blue_bright"
-        android:elevation="10dp"
         android:visibility="gone" />
 
-    <!-- Real Native Android Storefront Container (Home & Products) -->
+    <!-- ══════════════════════════════════════════════════════════════ -->
+    <!-- 1. NATIVE STOREFRONT CONTAINER (الرئيسية والخدمات)             -->
+    <!-- ══════════════════════════════════════════════════════════════ -->
     <LinearLayout
         android:id="@+id/native_store_container"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:layout_below="@id/page_progress"
         android:layout_above="@id/native_bottom_navigation"
+        android:layout_below="@id/page_progress"
         android:background="#030712"
         android:layoutDirection="rtl"
         android:orientation="vertical"
@@ -57,21 +59,22 @@
             android:layout_width="match_parent"
             android:layout_height="56dp"
             android:background="#0B1120"
+            android:elevation="6dp"
             android:gravity="center_vertical"
             android:orientation="horizontal"
-            android:paddingHorizontal="14dp">
+            android:paddingHorizontal="10dp">
 
             <ImageView
                 android:layout_width="32dp"
                 android:layout_height="32dp"
-                android:src="@mipmap/ic_launcher"
-                android:contentDescription="رقميات" />
+                android:contentDescription="رقميات"
+                android:src="@mipmap/ic_launcher" />
 
             <LinearLayout
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
+                android:layout_marginStart="8dp"
                 android:layout_weight="1"
-                android:layout_marginStart="10dp"
                 android:orientation="vertical">
 
                 <TextView
@@ -79,94 +82,156 @@
                     android:layout_height="wrap_content"
                     android:text="رقميات | Raqamiyat"
                     android:textColor="#D4A853"
-                    android:textSize="15sp"
+                    android:textSize="14sp"
                     android:textStyle="bold" />
 
                 <TextView
                     android:id="@+id/native_store_subtitle"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="متجر المنتجات والخدمات الرقمية"
+                    android:text="شحن فوري • بطاقات وخدمات رقمية"
                     android:textColor="#94A3B8"
-                    android:textSize="10sp" />
+                    android:textSize="9.5sp" />
             </LinearLayout>
 
             <Button
                 android:id="@+id/btn_admin_quick_studio"
-                android:layout_width="wrap_content"
-                android:layout_height="34dp"
-                android:layout_marginEnd="6dp"
+                android:layout_width="36dp"
+                android:layout_height="32dp"
+                android:layout_marginEnd="4dp"
                 android:background="@drawable/bg_button_cyan"
-                android:paddingHorizontal="10dp"
-                android:text="📷 استوديو الإدارة"
+                android:padding="0dp"
+                android:text="📷"
+                android:textColor="#030712"
+                android:textSize="12sp"
+                android:visibility="gone" />
+
+            <TextView
+                android:id="@+id/btn_native_currency"
+                android:layout_width="wrap_content"
+                android:layout_height="32dp"
+                android:layout_marginEnd="5dp"
+                android:background="@drawable/bg_chip_selected"
+                android:gravity="center"
+                android:paddingHorizontal="9dp"
+                android:text="USD $"
                 android:textColor="#030712"
                 android:textSize="11sp"
-                android:textStyle="bold"
-                android:visibility="gone" />
+                android:textStyle="bold" />
 
             <Button
                 android:id="@+id/btn_native_pay"
                 android:layout_width="wrap_content"
-                android:layout_height="34dp"
-                android:layout_marginEnd="6dp"
+                android:layout_height="32dp"
+                android:layout_marginEnd="5dp"
                 android:background="@drawable/bg_button_gold"
-                android:paddingHorizontal="10dp"
+                android:paddingHorizontal="9dp"
                 android:text="💳 شحن"
+                android:textAllCaps="false"
                 android:textColor="#030712"
                 android:textSize="11sp"
                 android:textStyle="bold" />
 
             <Button
                 android:id="@+id/btn_native_notif"
-                android:layout_width="38dp"
-                android:layout_height="34dp"
-                android:layout_marginEnd="6dp"
+                android:layout_width="34dp"
+                android:layout_height="32dp"
+                android:layout_marginEnd="5dp"
                 android:background="@drawable/bg_chip_unselected"
+                android:padding="0dp"
                 android:text="🔔"
                 android:textColor="#F8FAFC"
-                android:textSize="13sp" />
+                android:textSize="12sp" />
 
             <Button
                 android:id="@+id/btn_native_cart"
                 android:layout_width="wrap_content"
-                android:layout_height="34dp"
+                android:layout_height="32dp"
                 android:background="@drawable/bg_chip_unselected"
-                android:paddingHorizontal="10dp"
-                android:text="🛒 السلة"
-                android:textColor="#F8FAFC"
+                android:paddingHorizontal="8dp"
+                android:text="🛒 0"
+                android:textAllCaps="false"
+                android:textColor="#22D3EE"
                 android:textSize="11sp"
                 android:textStyle="bold" />
         </LinearLayout>
 
-        <!-- Native Search Bar -->
+        <!-- Luxury Hero Wallet & Official Gateways Strip -->
+        <LinearLayout
+            android:id="@+id/hero_wallet_banner"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginHorizontal="10dp"
+            android:layout_marginTop="8dp"
+            android:background="@drawable/bg_wallet_hero"
+            android:gravity="center_vertical"
+            android:orientation="horizontal"
+            android:paddingHorizontal="12dp"
+            android:paddingVertical="10dp">
+
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:orientation="vertical">
+
+                <TextView
+                    android:id="@+id/hero_wallet_label"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="رصيد محفظتك المتاح ⚡"
+                    android:textColor="#CBD5E1"
+                    android:textSize="10.5sp" />
+
+                <TextView
+                    android:id="@+id/hero_wallet_value"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="1dp"
+                    android:text="سجّل دخولك لمزامنة الرصيد"
+                    android:textColor="#FBBF24"
+                    android:textSize="15sp"
+                    android:textStyle="bold" />
+            </LinearLayout>
+
+            <!-- Official Payment Gateways Logos Strip -->
+            <LinearLayout
+                android:id="@+id/hero_gateways_strip"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:gravity="center_vertical"
+                android:orientation="horizontal" />
+        </LinearLayout>
+
+        <!-- Native Search Bar & Category Chips -->
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:background="#060B16"
+            android:background="#030712"
             android:orientation="vertical"
-            android:paddingHorizontal="12dp"
-            android:paddingTop="10dp"
-            android:paddingBottom="8dp">
+            android:paddingHorizontal="10dp"
+            android:paddingTop="8dp"
+            android:paddingBottom="6dp">
 
             <EditText
                 android:id="@+id/native_search_input"
                 android:layout_width="match_parent"
-                android:layout_height="44dp"
+                android:layout_height="42dp"
                 android:background="@drawable/bg_input_dark"
-                android:hint="🔍 ابحث عن منتج، تصنيف، أو كود المنتج..."
+                android:hint="🔍 ابحث عن بطاقة، لعبة، اشتراك، أو كود..."
                 android:imeOptions="actionSearch"
                 android:inputType="text"
                 android:paddingHorizontal="14dp"
                 android:singleLine="true"
                 android:textColor="#FFFFFF"
                 android:textColorHint="#64748B"
-                android:textSize="13sp" />
+                android:textSize="12.5sp" />
 
             <androidx.recyclerview.widget.RecyclerView
                 android:id="@+id/native_categories_rv"
                 android:layout_width="match_parent"
-                android:layout_height="42dp"
-                android:layout_marginTop="10dp"
+                android:layout_height="40dp"
+                android:layout_marginTop="8dp"
                 android:clipToPadding="false" />
         </LinearLayout>
 
@@ -186,7 +251,7 @@
                     android:layout_width="match_parent"
                     android:layout_height="match_parent"
                     android:clipToPadding="false"
-                    android:padding="6dp" />
+                    android:padding="5dp" />
 
                 <TextView
                     android:id="@+id/native_empty_state"
@@ -201,13 +266,127 @@
         </androidx.swiperefreshlayout.widget.SwipeRefreshLayout>
     </LinearLayout>
 
-    <!-- Main Web Content Area (Only for Wallet, Orders, Account & Admin Portal) -->
+    <!-- ══════════════════════════════════════════════════════════════ -->
+    <!-- 2. NATIVE ORDERS CONTAINER (طلباتي - 100% Native)              -->
+    <!-- ══════════════════════════════════════════════════════════════ -->
+    <LinearLayout
+        android:id="@+id/native_orders_container"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:layout_above="@id/native_bottom_navigation"
+        android:layout_below="@id/page_progress"
+        android:background="#030712"
+        android:layoutDirection="rtl"
+        android:orientation="vertical"
+        android:visibility="gone">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="56dp"
+            android:background="#0B1120"
+            android:elevation="6dp"
+            android:gravity="center_vertical"
+            android:orientation="horizontal"
+            android:paddingHorizontal="14dp">
+
+            <TextView
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="📦 طلباتي وأكواد التسليم"
+                android:textColor="#FFFFFF"
+                android:textSize="16sp"
+                android:textStyle="bold" />
+
+            <Button
+                android:id="@+id/btn_orders_refresh"
+                android:layout_width="wrap_content"
+                android:layout_height="34dp"
+                android:background="@drawable/bg_chip_unselected"
+                android:paddingHorizontal="12dp"
+                android:text="🔄 تحديث"
+                android:textAllCaps="false"
+                android:textColor="#22D3EE"
+                android:textSize="11sp"
+                android:textStyle="bold" />
+        </LinearLayout>
+
+        <androidx.swiperefreshlayout.widget.SwipeRefreshLayout
+            android:id="@+id/native_orders_swipe"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent">
+
+            <ScrollView
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:clipToPadding="false"
+                android:padding="12dp">
+
+                <LinearLayout
+                    android:id="@+id/native_orders_list"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical" />
+            </ScrollView>
+        </androidx.swiperefreshlayout.widget.SwipeRefreshLayout>
+    </LinearLayout>
+
+    <!-- ══════════════════════════════════════════════════════════════ -->
+    <!-- 3. NATIVE ACCOUNT CONTAINER (حسابي - 100% Native)              -->
+    <!-- ══════════════════════════════════════════════════════════════ -->
+    <LinearLayout
+        android:id="@+id/native_account_container"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:layout_above="@id/native_bottom_navigation"
+        android:layout_below="@id/page_progress"
+        android:background="#030712"
+        android:layoutDirection="rtl"
+        android:orientation="vertical"
+        android:visibility="gone">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="56dp"
+            android:background="#0B1120"
+            android:elevation="6dp"
+            android:gravity="center_vertical"
+            android:orientation="horizontal"
+            android:paddingHorizontal="14dp">
+
+            <TextView
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="👤 حسابي وإعدادات التطبيق"
+                android:textColor="#FFFFFF"
+                android:textSize="16sp"
+                android:textStyle="bold" />
+        </LinearLayout>
+
+        <ScrollView
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:clipToPadding="false"
+            android:padding="14dp">
+
+            <LinearLayout
+                android:id="@+id/native_account_body"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical" />
+        </ScrollView>
+    </LinearLayout>
+
+    <!-- ══════════════════════════════════════════════════════════════ -->
+    <!-- 4. WEBVIEW PORTAL (Only for External Gateways / Admin Tools)  -->
+    <!-- ══════════════════════════════════════════════════════════════ -->
     <androidx.swiperefreshlayout.widget.SwipeRefreshLayout
         android:id="@+id/swipe_refresh"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:layout_below="@id/page_progress"
         android:layout_above="@id/native_bottom_navigation"
+        android:layout_below="@id/page_progress"
         android:visibility="gone">
 
         <WebView
@@ -223,11 +402,12 @@
         android:layout_width="match_parent"
         android:layout_height="58dp"
         android:layout_alignParentBottom="true"
-        android:background="#030712"
-        android:orientation="horizontal"
+        android:background="#0B1120"
+        android:elevation="16dp"
         android:gravity="center"
-        android:paddingVertical="4dp"
-        android:elevation="14dp">
+        android:layoutDirection="rtl"
+        android:orientation="horizontal"
+        android:paddingVertical="4dp">
 
         <!-- 1. الرئيسية -->
         <LinearLayout
@@ -235,10 +415,10 @@
             android:layout_width="0dp"
             android:layout_height="match_parent"
             android:layout_weight="1"
-            android:gravity="center"
+            android:background="?android:attr/selectableItemBackground"
             android:clickable="true"
             android:focusable="true"
-            android:background="?android:attr/selectableItemBackground"
+            android:gravity="center"
             android:orientation="vertical">
 
             <TextView
@@ -246,7 +426,7 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="🏠"
-                android:textSize="18sp" />
+                android:textSize="17sp" />
 
             <TextView
                 android:id="@+id/nav_text_home"
@@ -254,20 +434,20 @@
                 android:layout_height="wrap_content"
                 android:text="الرئيسية"
                 android:textColor="#D4A853"
-                android:textSize="10sp"
+                android:textSize="10.5sp"
                 android:textStyle="bold" />
         </LinearLayout>
 
-        <!-- 2. الخدمات -->
+        <!-- 2. المنتجات -->
         <LinearLayout
             android:id="@+id/nav_item_catalog"
             android:layout_width="0dp"
             android:layout_height="match_parent"
             android:layout_weight="1"
-            android:gravity="center"
+            android:background="?android:attr/selectableItemBackground"
             android:clickable="true"
             android:focusable="true"
-            android:background="?android:attr/selectableItemBackground"
+            android:gravity="center"
             android:orientation="vertical">
 
             <TextView
@@ -275,27 +455,27 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="⚡"
-                android:textSize="18sp" />
+                android:textSize="17sp" />
 
             <TextView
                 android:id="@+id/nav_text_catalog"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="الخدمات"
+                android:text="المنتجات"
                 android:textColor="#94A3B8"
-                android:textSize="10sp" />
+                android:textSize="10.5sp" />
         </LinearLayout>
 
-        <!-- 3. المحفظة والرصيد -->
+        <!-- 3. المحفظة -->
         <LinearLayout
             android:id="@+id/nav_item_wallet"
             android:layout_width="0dp"
             android:layout_height="match_parent"
             android:layout_weight="1"
-            android:gravity="center"
+            android:background="?android:attr/selectableItemBackground"
             android:clickable="true"
             android:focusable="true"
-            android:background="?android:attr/selectableItemBackground"
+            android:gravity="center"
             android:orientation="vertical">
 
             <TextView
@@ -303,7 +483,7 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="💳"
-                android:textSize="18sp" />
+                android:textSize="17sp" />
 
             <TextView
                 android:id="@+id/nav_text_wallet"
@@ -311,7 +491,7 @@
                 android:layout_height="wrap_content"
                 android:text="المحفظة"
                 android:textColor="#94A3B8"
-                android:textSize="10sp" />
+                android:textSize="10.5sp" />
         </LinearLayout>
 
         <!-- 4. طلباتي -->
@@ -320,10 +500,10 @@
             android:layout_width="0dp"
             android:layout_height="match_parent"
             android:layout_weight="1"
-            android:gravity="center"
+            android:background="?android:attr/selectableItemBackground"
             android:clickable="true"
             android:focusable="true"
-            android:background="?android:attr/selectableItemBackground"
+            android:gravity="center"
             android:orientation="vertical">
 
             <TextView
@@ -331,7 +511,7 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="📦"
-                android:textSize="18sp" />
+                android:textSize="17sp" />
 
             <TextView
                 android:id="@+id/nav_text_orders"
@@ -339,7 +519,7 @@
                 android:layout_height="wrap_content"
                 android:text="طلباتي"
                 android:textColor="#94A3B8"
-                android:textSize="10sp" />
+                android:textSize="10.5sp" />
         </LinearLayout>
 
         <!-- 5. حسابي -->
@@ -348,10 +528,10 @@
             android:layout_width="0dp"
             android:layout_height="match_parent"
             android:layout_weight="1"
-            android:gravity="center"
+            android:background="?android:attr/selectableItemBackground"
             android:clickable="true"
             android:focusable="true"
-            android:background="?android:attr/selectableItemBackground"
+            android:gravity="center"
             android:orientation="vertical">
 
             <TextView
@@ -359,7 +539,7 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="👤"
-                android:textSize="18sp" />
+                android:textSize="17sp" />
 
             <TextView
                 android:id="@+id/nav_text_account"
@@ -367,73 +547,73 @@
                 android:layout_height="wrap_content"
                 android:text="حسابي"
                 android:textColor="#94A3B8"
-                android:textSize="10sp" />
+                android:textSize="10.5sp" />
         </LinearLayout>
     </LinearLayout>
 
-    <!-- Custom Native Offline Fallback View (Shown only on catastrophic failure) -->
+    <!-- Custom Native Offline Fallback View -->
     <LinearLayout
         android:id="@+id/native_error_view"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:background="#0a0a0f"
+        android:elevation="8dp"
         android:gravity="center"
         android:orientation="vertical"
         android:padding="32dp"
-        android:visibility="gone"
-        android:elevation="8dp">
+        android:visibility="gone">
 
         <ImageView
             android:layout_width="72dp"
             android:layout_height="72dp"
-            android:src="@mipmap/ic_launcher"
-            android:layout_marginBottom="16dp" />
+            android:layout_marginBottom="16dp"
+            android:src="@mipmap/ic_launcher" />
 
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
+            android:layout_marginBottom="8dp"
             android:text="تعذر الاتصال بالخادم"
             android:textColor="#FFFFFF"
             android:textSize="18sp"
-            android:textStyle="bold"
-            android:layout_marginBottom="8dp" />
+            android:textStyle="bold" />
 
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
+            android:layout_marginBottom="24dp"
+            android:gravity="center"
             android:text="يبدو أنك غير متصل بالإنترنت حالياً. يمكنك تصفح المنتجات والخدمات المحفوظة محلياً، أو إعادة المحاولة فور توفر الشبكة."
             android:textColor="#94A3B8"
-            android:textSize="13sp"
-            android:gravity="center"
-            android:layout_marginBottom="24dp" />
+            android:textSize="13sp" />
 
         <LinearLayout
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:orientation="horizontal"
-            android:gravity="center">
+            android:gravity="center"
+            android:orientation="horizontal">
 
             <Button
                 android:id="@+id/btn_retry_connection"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
+                android:layout_marginEnd="10dp"
+                android:backgroundTint="#06B6D4"
+                android:paddingHorizontal="20dp"
                 android:text="إعادة المحاولة 🔄"
                 android:textColor="#000000"
-                android:backgroundTint="#06B6D4"
                 android:textSize="12sp"
-                android:textStyle="bold"
-                android:paddingHorizontal="20dp"
-                android:layout_marginEnd="10dp" />
+                android:textStyle="bold" />
 
             <Button
                 android:id="@+id/btn_browse_cached"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
+                android:backgroundTint="#1E293B"
+                android:paddingHorizontal="16dp"
                 android:text="الكتالوج المحفوظ 📦"
                 android:textColor="#FFFFFF"
-                android:backgroundTint="#1E293B"
-                android:textSize="12sp"
-                android:paddingHorizontal="16dp" />
+                android:textSize="12sp" />
         </LinearLayout>
     </LinearLayout>
 
@@ -442,7 +622,7 @@
         android:id="@+id/splash_overlay"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:background="#0a0a0f"
+        android:background="#030712"
         android:elevation="20dp">
 
         <LinearLayout
@@ -455,26 +635,26 @@
             <ImageView
                 android:layout_width="86dp"
                 android:layout_height="86dp"
-                android:src="@mipmap/ic_launcher"
-                android:layout_marginBottom="14dp" />
+                android:layout_marginBottom="14dp"
+                android:src="@mipmap/ic_launcher" />
 
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
+                android:layout_marginBottom="4dp"
+                android:letterSpacing="0.04"
                 android:text="رقميات | Raqamiyat"
                 android:textColor="#D4A853"
                 android:textSize="20sp"
-                android:textStyle="bold"
-                android:letterSpacing="0.04"
-                android:layout_marginBottom="4dp" />
+                android:textStyle="bold" />
 
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="بوابتك المتكاملة للخدمات والمنتجات"
+                android:layout_marginBottom="24dp"
+                android:text="متجرك العالمي للبطاقات والخدمات الرقمية"
                 android:textColor="#64748B"
-                android:textSize="11sp"
-                android:layout_marginBottom="24dp" />
+                android:textSize="11.5sp" />
 
             <ProgressBar
                 android:layout_width="28dp"

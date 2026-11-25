@@ -12,11 +12,11 @@ import androidx.recyclerview.widget.RecyclerView;
 import com.bumptech.glide.Glide;
 import com.bumptech.glide.load.engine.DiskCacheStrategy;
 import com.raqamiyat.app.R;
+import com.raqamiyat.app.RaqamiyatLocalStore;
 import com.raqamiyat.app.model.ProductItem;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Locale;
 
 public class ProductAdapter extends RecyclerView.Adapter<ProductAdapter.VH> {
 
@@ -24,11 +24,30 @@ public class ProductAdapter extends RecyclerView.Adapter<ProductAdapter.VH> {
         void onProductClick(ProductItem product);
     }
 
+    public interface OnAddToCartClickListener {
+        void onAddToCart(ProductItem product);
+    }
+
     private final List<ProductItem> items = new ArrayList<>();
     private final OnProductClickListener listener;
+    private OnAddToCartClickListener cartListener;
+    private String currency = "USD";
+    private double sypRate = 15000.0;
 
     public ProductAdapter(OnProductClickListener listener) {
         this.listener = listener;
+    }
+
+    public void setOnAddToCartClickListener(OnAddToCartClickListener cartListener) {
+        this.cartListener = cartListener;
+    }
+
+    public void updateCurrencyConfig(String currencyCode, double sypExchangeRate) {
+        this.currency = "SYP".equalsIgnoreCase(currencyCode) ? "SYP" : "USD";
+        if (sypExchangeRate > 1.0) {
+            this.sypRate = sypExchangeRate;
+        }
+        notifyDataSetChanged();
     }
 
     public void submitList(List<ProductItem> products) {
@@ -51,12 +70,30 @@ public class ProductAdapter extends RecyclerView.Adapter<ProductAdapter.VH> {
         ProductItem item = items.get(position);
         holder.name.setText(item.name);
         holder.category.setText(item.categoryName != null && !item.categoryName.isEmpty() ? item.categoryName : "رقميات");
-        holder.price.setText(item.price > 0
-                ? String.format(Locale.US, "$%.2f", item.price)
-                : "حسب الباقة");
+
+        if (item.price > 0) {
+            String formatted = RaqamiyatLocalStore.formatPriceInCurrency(item.price, currency, sypRate);
+            if (item.variants != null && item.variants.size() > 1) {
+                holder.price.setText("يبدأ من " + formatted);
+            } else {
+                holder.price.setText(formatted);
+            }
+        } else {
+            holder.price.setText("حسب الباقة");
+        }
 
         holder.badgeStock.setVisibility(item.isOutOfStock ? View.VISIBLE : View.GONE);
-        holder.badgeFeatured.setVisibility(item.isFeatured && !item.isOutOfStock ? View.VISIBLE : View.GONE);
+        if (!item.isOutOfStock && (item.isFeatured || item.isSale)) {
+            holder.badgeFeatured.setText(item.isSale ? "عرض 🔥" : "مميز ★");
+            holder.badgeFeatured.setVisibility(View.VISIBLE);
+        } else {
+            holder.badgeFeatured.setVisibility(View.GONE);
+        }
+        holder.badgeInstant.setVisibility(item.isOutOfStock ? View.GONE : View.VISIBLE);
+
+        holder.btnBuy.setText(item.isOutOfStock ? "غير متوفر" : "شراء فوري ⚡");
+        holder.btnBuy.setAlpha(item.isOutOfStock ? 0.5f : 1.0f);
+        holder.btnCart.setVisibility(item.isOutOfStock ? View.GONE : View.VISIBLE);
 
         if (item.imageUrl != null && !item.imageUrl.isEmpty()) {
             Glide.with(holder.image.getContext())
@@ -69,8 +106,17 @@ public class ProductAdapter extends RecyclerView.Adapter<ProductAdapter.VH> {
             holder.image.setImageResource(R.mipmap.ic_launcher);
         }
 
-        holder.itemView.setOnClickListener(v -> {
+        View.OnClickListener openDetail = v -> {
             if (listener != null) {
+                listener.onProductClick(item);
+            }
+        };
+        holder.itemView.setOnClickListener(openDetail);
+        holder.btnBuy.setOnClickListener(openDetail);
+        holder.btnCart.setOnClickListener(v -> {
+            if (!item.isOutOfStock && cartListener != null) {
+                cartListener.onAddToCart(item);
+            } else if (listener != null) {
                 listener.onProductClick(item);
             }
         });
@@ -88,6 +134,9 @@ public class ProductAdapter extends RecyclerView.Adapter<ProductAdapter.VH> {
         final TextView price;
         final TextView badgeStock;
         final TextView badgeFeatured;
+        final TextView badgeInstant;
+        final TextView btnBuy;
+        final TextView btnCart;
 
         VH(@NonNull View itemView) {
             super(itemView);
@@ -97,6 +146,9 @@ public class ProductAdapter extends RecyclerView.Adapter<ProductAdapter.VH> {
             price = itemView.findViewById(R.id.product_price);
             badgeStock = itemView.findViewById(R.id.badge_stock);
             badgeFeatured = itemView.findViewById(R.id.badge_featured);
+            badgeInstant = itemView.findViewById(R.id.badge_instant);
+            btnBuy = itemView.findViewById(R.id.btn_card_buy);
+            btnCart = itemView.findViewById(R.id.btn_card_cart);
         }
     }
 }
