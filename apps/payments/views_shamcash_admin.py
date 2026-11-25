@@ -180,6 +180,40 @@ def shamcash_dashboard_view(request):
         messages.success(request, "تم حفظ مفاتيح ودومين شام كاش الرسمي بنجاح وتأمينها.")
         return redirect("shamcash_dashboard")
 
+    # ── Reset Financial Data Action ──────────────────────────────────────────
+    if request.method == "POST" and request.POST.get("action") == "reset_shamcash_financial_data":
+        confirm_word = (request.POST.get("confirm_reset") or "").strip()
+        reset_scope = (request.POST.get("reset_scope") or "bills_and_reconciliation").strip()
+        if confirm_word not in ("تصفير", "RESET", "reset"):
+            messages.error(request, "لم يتم التصفير: يرجى كتابة كلمة (تصفير) للتأكيد.")
+            return redirect("shamcash_dashboard")
+
+        with transaction.atomic():
+            deleted_refunds, _ = ShamCashRefundRecord.objects.all().delete()
+            deleted_bills, _ = ShamCashBillRecord.objects.all().delete()
+            deleted_batches, _ = ShamCashReconciliationBatch.objects.all().delete()
+            deleted_webhooks = 0
+            deleted_api_logs = 0
+            if reset_scope == "all_including_logs":
+                deleted_webhooks, _ = ShamCashWebhookLog.objects.all().delete()
+                deleted_api_logs, _ = ShamCashApiLog.objects.all().delete()
+
+            ActivityLog.objects.create(
+                user=request.user,
+                action="shamcash_financial_reset",
+                description=(
+                    f"تصفير البيانات المالية لبوابة شام كاش (النطاق: {reset_scope}) — "
+                    f"فواتير: {deleted_bills}، استردادات: {deleted_refunds}، تسويات: {deleted_batches}، "
+                    f"ويب هوك: {deleted_webhooks}، سجلات API: {deleted_api_logs}"
+                ),
+            )
+
+        messages.success(
+            request,
+            f"تم تصفير البيانات المالية لشام كاش بنجاح (تم مسح {deleted_bills} فاتورة و{deleted_refunds} عملية استرداد).",
+        )
+        return redirect("shamcash_dashboard")
+
     eff_agent_key = (getattr(integration, "api_key", "") if integration else "") or getattr(settings, "SHAM_CASH_AGENT_KEY", "")
     eff_secret_key = (getattr(integration, "api_secret", "") if integration else "") or getattr(settings, "SHAM_CASH_SECRET_KEY", "")
     eff_mode = (getattr(integration, "mode", "") if integration else "") or getattr(settings, "SHAM_CASH_MODE", "live")
@@ -208,20 +242,123 @@ def shamcash_dashboard_view(request):
             except Exception:
                 continue
 
-    # Aggregate metrics
-    bills_qs = ShamCashBillRecord.objects.all()
+    # ── Filters & Date Range ─────────────────────────────────────────────────
+    import csv
+    from datetime import timedelta
+    from django.utils.dateparse import parse_date
+
+    period = (request.GET.get("period") or "all").strip().lower()
+    date_from_str = (request.GET.get("date_from") or "").strip()
+    date_to_str = (request.GET.get("date_to") or "").strip()
+    type_filter = (request.GET.get("type") or "").strip().lower()
+    currency_filter = (request.GET.get("currency") or "").strip()
+    status_filter = (request.GET.get("status") or "").strip()
+    query = (request.GET.get("q") or "").strip()
+
+    now_local = timezone.localtime(timezone.now())
+    if period == "today" and not date_from_str:
+        date_from_str = now_local.date().isoformat()
+        date_to_str = now_local.date().isoformat()
+    elif period == "7d" and not date_from_str:
+        date_from_str = (now_local.date() - timedelta(days=6)).isoformat()
+        date_to_str = now_local.date().isoformat()
+    elif period == "30d" and not date_from_str:
+        date_from_str = (now_local.date() - timedelta(days=29)).isoformat()
+        date_to_str = now_local.date().isoformat()
+
+    bills_qs = ShamCashBillRecord.objects.select_related("user").all()
+    if date_from_str:
+        df = parse_date(date_from_str)
+        if df:
+            bills_qs = bills_qs.filter(created_at__date__gte=df)
+    if date_to_str:
+        dt = parse_date(date_to_str)
+        if dt:
+            bills_qs = bills_qs.filter(created_at__date__lte=dt)
+    if type_filter in ("deposit", "order"):
+        bills_qs = bills_qs.filter(bill_type=type_filter)
+    if currency_filter in ("1", "2"):
+        bills_qs = bills_qs.filter(currency_id=int(currency_filter))
+    if status_filter and status_filter.isdigit():
+        bills_qs = bills_qs.filter(status_id=int(status_filter))
+    if query:
+        bills_qs = bills_qs.filter(
+            Q(bill_no__icontains=query)
+            | Q(tran_id__icontains=query)
+            | Q(user__email__icontains=query)
+            | Q(note__icontains=query)
+        )
+
+    # ── Export Filtered Inventory as CSV ─────────────────────────────────────
+    if request.GET.get("export") == "csv":
+        response = HttpResponse(content_type="text/csv; charset=utf-8-sig")
+        response["Content-Disposition"] = f'attachment; filename="shamcash_inventory_{now_local.strftime("%Y%m%d_%H%M")}.csv"'
+        writer = csv.writer(response)
+        writer.writerow(["رقم الفاتورة (billNo)", "النوع", "العميل", "المبلغ", "العملة", "المسترد", "الحالة", "رقم عملية شام كاش (tranId)", "تاريخ الإنشاء"])
+        for b in bills_qs.order_by("-created_at")[:5000]:
+            writer.writerow([
+                b.bill_no,
+                "طلب منتج" if b.bill_type == "order" else "إيداع محفظة",
+                b.user.email if b.user else "",
+                str(b.amount),
+                b.currency_code,
+                str(b.total_refunded_amount),
+                ShamCashClient.STATUS_ARABIC_NAMES.get(b.status_id, b.status_name),
+                b.tran_id or "",
+                timezone.localtime(b.created_at).strftime("%Y-%m-%d %H:%M"),
+            ])
+        return response
+
+    # ── Aggregate Financial Metrics & Inventory Breakdown ────────────────────
+    paid_statuses = (ShamCashClient.STATUS_PAID, ShamCashClient.STATUS_PARTLY_REFUNDED)
     total_bills = bills_qs.count()
     paid_bills_count = bills_qs.filter(status_id=ShamCashClient.STATUS_PAID).count()
+    pending_bills_count = bills_qs.filter(status_id=ShamCashClient.STATUS_PENDING).count()
     expired_bills_count = bills_qs.filter(status_id=ShamCashClient.STATUS_EXPIRED).count()
     refunded_bills_count = bills_qs.filter(status_id__in=(ShamCashClient.STATUS_REFUNDED, ShamCashClient.STATUS_PARTLY_REFUNDED)).count()
+    deposit_bills_count = bills_qs.filter(bill_type="deposit").count()
+    order_bills_count = bills_qs.filter(bill_type="order").count()
 
-    total_usd_volume = bills_qs.filter(status_id=ShamCashClient.STATUS_PAID, currency_id=ShamCashClient.CURRENCY_USD).aggregate(s=Sum("amount"))["s"] or Decimal("0.00")
-    total_syp_volume = bills_qs.filter(status_id=ShamCashClient.STATUS_PAID, currency_id=ShamCashClient.CURRENCY_SYP).aggregate(s=Sum("amount"))["s"] or Decimal("0.00")
-    total_refunded_amount = bills_qs.aggregate(s=Sum("total_refunded_amount"))["s"] or Decimal("0.00")
+    total_usd_volume = bills_qs.filter(status_id__in=paid_statuses, currency_id=ShamCashClient.CURRENCY_USD).aggregate(s=Sum("amount"))["s"] or Decimal("0.00")
+    total_syp_volume = bills_qs.filter(status_id__in=paid_statuses, currency_id=ShamCashClient.CURRENCY_SYP).aggregate(s=Sum("amount"))["s"] or Decimal("0.00")
+    refunded_usd_volume = bills_qs.filter(currency_id=ShamCashClient.CURRENCY_USD).aggregate(s=Sum("total_refunded_amount"))["s"] or Decimal("0.00")
+    refunded_syp_volume = bills_qs.filter(currency_id=ShamCashClient.CURRENCY_SYP).aggregate(s=Sum("total_refunded_amount"))["s"] or Decimal("0.00")
+    net_usd_volume = max(Decimal("0.00"), total_usd_volume - refunded_usd_volume)
+    net_syp_volume = max(Decimal("0.00"), total_syp_volume - refunded_syp_volume)
+    pending_usd_volume = bills_qs.filter(status_id=ShamCashClient.STATUS_PENDING, currency_id=ShamCashClient.CURRENCY_USD).aggregate(s=Sum("amount"))["s"] or Decimal("0.00")
+    pending_syp_volume = bills_qs.filter(status_id=ShamCashClient.STATUS_PENDING, currency_id=ShamCashClient.CURRENCY_SYP).aggregate(s=Sum("amount"))["s"] or Decimal("0.00")
+    total_refunded_amount = refunded_usd_volume + refunded_syp_volume
 
     success_rate = (paid_bills_count / total_bills * 100) if total_bills > 0 else 0.0
 
-    recent_bills = bills_qs.order_by("-created_at")[:10]
+    # Inventory breakdown by status
+    inventory_rows = []
+    for st_id, st_label in (
+        (ShamCashClient.STATUS_PAID, "مدفوع بالكامل"),
+        (ShamCashClient.STATUS_PENDING, "قيد الانتظار"),
+        (ShamCashClient.STATUS_EXPIRED, "منتهي الصلاحية"),
+        (ShamCashClient.STATUS_REFUNDED, "مسترد بالكامل"),
+        (ShamCashClient.STATUS_PARTLY_REFUNDED, "مسترد جزئياً"),
+    ):
+        sub = bills_qs.filter(status_id=st_id)
+        cnt = sub.count()
+        usd_sum = sub.filter(currency_id=ShamCashClient.CURRENCY_USD).aggregate(s=Sum("amount"))["s"] or Decimal("0.00")
+        syp_sum = sub.filter(currency_id=ShamCashClient.CURRENCY_SYP).aggregate(s=Sum("amount"))["s"] or Decimal("0.00")
+        inventory_rows.append({
+            "status_id": st_id,
+            "label": st_label,
+            "count": cnt,
+            "usd_sum": usd_sum,
+            "syp_sum": syp_sum,
+            "pct": round((cnt / total_bills * 100), 1) if total_bills > 0 else 0.0,
+        })
+
+    api_calls_total = ShamCashApiLog.objects.count()
+    api_calls_success = ShamCashApiLog.objects.filter(is_success=True).count()
+    webhooks_total = ShamCashWebhookLog.objects.count()
+    webhooks_valid = ShamCashWebhookLog.objects.filter(is_valid=True, processed_successfully=True).count()
+
+    recent_bills = bills_qs.order_by("-created_at")[:25]
     recent_webhooks = ShamCashWebhookLog.objects.order_by("-created_at")[:10]
     recent_api_logs = ShamCashApiLog.objects.order_by("-created_at")[:8]
     compliance_profile = _get_or_create_compliance_profile()
@@ -237,14 +374,35 @@ def shamcash_dashboard_view(request):
         "effective_mode": eff_mode,
         "effective_proxy_url": eff_proxy_url,
         "server_outbound_ip": server_outbound_ip or "",
+        "period": period,
+        "date_from": date_from_str,
+        "date_to": date_to_str,
+        "type_filter": type_filter,
+        "currency_filter": currency_filter,
+        "status_filter": status_filter,
+        "query": query,
         "total_bills": total_bills,
         "paid_bills_count": paid_bills_count,
+        "pending_bills_count": pending_bills_count,
         "expired_bills_count": expired_bills_count,
         "refunded_bills_count": refunded_bills_count,
+        "deposit_bills_count": deposit_bills_count,
+        "order_bills_count": order_bills_count,
         "total_usd_volume": total_usd_volume,
         "total_syp_volume": total_syp_volume,
+        "refunded_usd_volume": refunded_usd_volume,
+        "refunded_syp_volume": refunded_syp_volume,
+        "net_usd_volume": net_usd_volume,
+        "net_syp_volume": net_syp_volume,
+        "pending_usd_volume": pending_usd_volume,
+        "pending_syp_volume": pending_syp_volume,
         "total_refunded_amount": total_refunded_amount,
         "success_rate": round(success_rate, 1),
+        "inventory_rows": inventory_rows,
+        "api_calls_total": api_calls_total,
+        "api_calls_success": api_calls_success,
+        "webhooks_total": webhooks_total,
+        "webhooks_valid": webhooks_valid,
         "recent_bills": recent_bills,
         "recent_webhooks": recent_webhooks,
         "recent_api_logs": recent_api_logs,
