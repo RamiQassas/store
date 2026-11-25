@@ -381,6 +381,11 @@ public class MainActivity extends AppCompatActivity implements ConnectivityHelpe
     }
 
     private void showWebMode(String url) {
+        if (isShamCashExternalUrl(url)) {
+            isWaitingForExternalPayment = true;
+            launchExternalShamCashUrl(this, url);
+            return;
+        }
         isNativeMode = false;
         nativeStoreContainer.setVisibility(View.GONE);
         nativeErrorView.setVisibility(View.GONE);
@@ -1015,6 +1020,14 @@ public class MainActivity extends AppCompatActivity implements ConnectivityHelpe
     private void handleIncomingDeepLink(Uri uri) {
         if (uri == null) return;
         String deepUrl = uri.toString();
+        if ("raqamiyat".equals(uri.getScheme()) && "open".equals(uri.getHost())) {
+            String target = uri.getQueryParameter("url");
+            if (target != null && !target.isEmpty() && target.startsWith("https://raqamiyatapp.com")) {
+                isWaitingForExternalPayment = false;
+                showWebMode(target);
+            }
+            return;
+        }
         if ("raqamiyat".equals(uri.getScheme()) && "auth".equals(uri.getHost())) {
             String token = uri.getQueryParameter("token");
             if (token != null && !token.isEmpty()) {
@@ -1050,8 +1063,9 @@ public class MainActivity extends AppCompatActivity implements ConnectivityHelpe
             return true;
         }
 
-        // Open native ShamCash app ONLY when an explicit shamcash:// app scheme is invoked
-        if (url.startsWith("shamcash:") || url.startsWith("shamcash://")) {
+        // Open ShamCash App / System Deep Link for ShamCash URLs so user pays in ShamCash App directly;
+        // all other gateways (Paymera, MTN Cash Mobile) stay inside Raqamiyat's in-app WebView.
+        if (isShamCashExternalUrl(url)) {
             isWaitingForExternalPayment = true;
             launchExternalShamCashUrl(this, url);
             return true;

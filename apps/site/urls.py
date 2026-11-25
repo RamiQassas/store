@@ -4,6 +4,7 @@ from apps.payments import views_mtn, views_paymera, views_shamcash, views_shamca
 from apps.stores import views_admin, views_saas
 
 urlpatterns = [
+    path(".well-known/assetlinks.json", views.android_assetlinks_json, name="android_assetlinks_json"),
     # User Dashboard
     path("dashboard/", views.dashboard, name="dashboard"),
     path("dashboard/wallet/", views.wallet_page, name="dashboard_wallet"),

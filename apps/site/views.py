@@ -8201,6 +8201,26 @@ def app_sso_exchange(request):
     return redirect("/auth/login/")
 
 
+def android_assetlinks_json(request):
+    """
+    Serves Android App Links verification file so https://raqamiyatapp.com/payments/shamcash/redirect/...
+    automatically returns the user into the Raqamiyat Android App after completing payment in ShamCash.
+    """
+    data = [
+        {
+            "relation": ["delegate_permission/common.handle_all_urls"],
+            "target": {
+                "namespace": "android_app",
+                "package_name": "com.raqamiyat.app",
+                "sha256_cert_fingerprints": [
+                    "9B:09:A7:D0:FD:8F:25:36:22:25:32:A3:52:F2:66:58:F7:9D:7F:AB:1C:F1:E1:E3:24:02:ED:2A:23:A7:0E:9C"
+                ],
+            },
+        }
+    ]
+    return JsonResponse(data, safe=False)
+
+
 def api_app_version_info(request):
     """
     Returns live app/platform sync & version metadata for automatic updates inside
