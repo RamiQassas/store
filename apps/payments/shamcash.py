@@ -206,9 +206,28 @@ class ShamCashClient:
                 raise ShamCashError("المفتاح السري لبوابة شام كاش غير صالح (يجب أن يكون 32 بايت بصيغة Base64).") from err
 
         self._session = requests.Session()
+        # Isolate ShamCash transport strictly from global env proxies; only use explicit ShamCash proxy_url
+        self._session.trust_env = False
         tls_adapter = _ShamCashTLSAdapter(max_retries=0)
         self._session.mount("https://", tls_adapter)
         self._session.mount("http://", HTTPAdapter(max_retries=0))
+
+    @staticmethod
+    def mask_proxy_url(proxy_url: Optional[str]) -> str:
+        """Mask credentials inside a proxy URL for safe admin UI display."""
+        raw = (proxy_url or "").strip()
+        if not raw:
+            return ""
+        try:
+            p = urlparse(raw)
+            if p.password:
+                netloc = f"{p.username or ''}:****@{p.hostname or ''}"
+                if p.port:
+                    netloc += f":{p.port}"
+                return f"{p.scheme}://{netloc}"
+            return raw
+        except Exception:
+            return "configured"
 
     @classmethod
     def from_integration(cls, integration) -> "ShamCashClient":

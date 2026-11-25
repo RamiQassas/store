@@ -295,11 +295,13 @@ class ShamCashGateway(BasePaymentGateway):
                     outbound_ip = ""
                     try:
                         import requests as _req
-                        outbound_ip = _req.get("https://api.ipify.org", timeout=3).text.strip()
+                        proxies = {"http": client.proxy_url, "https": client.proxy_url} if client.proxy_url else None
+                        outbound_ip = _req.get("https://api4.ipify.org", proxies=proxies, timeout=4).text.strip()
                     except Exception:
                         pass
+                    via_label = "عبر البروكسي المخصص" if client.proxy_url else "الاتصال المباشر للخادم"
                     ip_hint = (
-                        f" (عنوان IP الصادر للخادم: {outbound_ip} — في حال استمرار انتهاء المهلة على بيئة الإنتاج، يرجى التأكد من إضافة هذا الـ IP إلى القائمة البيضاء Whitelist لدى فريق الدعم التقني في شام كاش)"
+                        f" (IP الصادر لـ {via_label}: {outbound_ip} — يرجى التأكد من أن هذا الـ IP سوري أو مضاف في القائمة البيضاء Whitelist لدى شام كاش)"
                         if outbound_ip
                         else ""
                     )

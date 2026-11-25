@@ -180,6 +180,66 @@ def shamcash_dashboard_view(request):
         messages.success(request, "تم حفظ مفاتيح ودومين شام كاش الرسمي بنجاح وتأمينها.")
         return redirect("shamcash_dashboard")
 
+    # ── Update ShamCash-Only Proxy / VPN Action ──────────────────────────────
+    if request.method == "POST" and request.POST.get("action") == "update_shamcash_proxy":
+        raw_proxy = (request.POST.get("proxy_url") or "").strip()
+        clear_proxy = request.POST.get("clear_proxy") == "1"
+        if clear_proxy:
+            raw_proxy = ""
+        elif raw_proxy and "://" not in raw_proxy:
+            raw_proxy = f"http://{raw_proxy}"
+
+        if raw_proxy:
+            from urllib.parse import urlparse
+            parsed_p = urlparse(raw_proxy)
+            if parsed_p.scheme.lower() not in ("http", "https", "socks5", "socks5h") or not parsed_p.hostname or not parsed_p.port:
+                messages.error(
+                    request,
+                    "صيغة البروكسي غير صالحة. استخدم صيغة مثل: http://user:pass@ip:port أو socks5h://user:pass@ip:port",
+                )
+                return redirect("shamcash_dashboard")
+
+        if not integration:
+            integration = PaymentGatewayIntegration.all_objects.create(
+                name="شام كاش (ShamCash)",
+                provider=PaymentGatewayIntegration.Provider.SHAM_CASH,
+                mode=getattr(settings, "SHAM_CASH_MODE", "live"),
+                base_url=getattr(settings, "SHAM_CASH_BASE_URL", ShamCashClient.LIVE_BASE_URL),
+                api_key=getattr(settings, "SHAM_CASH_AGENT_KEY", ""),
+                api_secret=getattr(settings, "SHAM_CASH_SECRET_KEY", ""),
+                settings={"proxy_url": raw_proxy} if raw_proxy else {},
+                is_active=True,
+                can_deposit=True,
+                can_withdraw=False,
+            )
+        else:
+            s_dict = dict(integration.settings) if isinstance(integration.settings, dict) else {}
+            if raw_proxy:
+                s_dict["proxy_url"] = raw_proxy
+            else:
+                s_dict.pop("proxy_url", None)
+            integration.settings = s_dict
+            integration.save(update_fields=["settings", "updated_at"])
+
+        for dup in PaymentGatewayIntegration.all_objects.filter(
+            provider=PaymentGatewayIntegration.Provider.SHAM_CASH,
+            store__isnull=True,
+        ).exclude(pk=integration.pk):
+            dup_s = dict(dup.settings) if isinstance(dup.settings, dict) else {}
+            if raw_proxy:
+                dup_s["proxy_url"] = raw_proxy
+            else:
+                dup_s.pop("proxy_url", None)
+            PaymentGatewayIntegration.all_objects.filter(pk=dup.pk).update(settings=dup_s)
+
+        from django.core.cache import cache
+        cache.delete("shamcash_proxy_outbound_ipv4")
+        if raw_proxy:
+            messages.success(request, "تم تفعيل البروكسي / VPN لبوابة شام كاش فقط بنجاح (دون التأثير على باقي الموقع).")
+        else:
+            messages.info(request, "تم إلغاء البروكسي وإرجاع بوابة شام كاش للاتصال المباشر.")
+        return redirect("shamcash_dashboard")
+
     # ── Reset Financial Data Action ──────────────────────────────────────────
     if request.method == "POST" and request.POST.get("action") == "reset_shamcash_financial_data":
         confirm_word = (request.POST.get("confirm_reset") or "").strip()
@@ -227,7 +287,7 @@ def shamcash_dashboard_view(request):
     if not eff_proxy_url:
         eff_proxy_url = str(getattr(settings, "SHAM_CASH_PROXY_URL", "") or "").strip()
 
-    # Detect production server's outbound IPv4 (cached 15 minutes) for ShamCash Firewall IP Whitelisting
+    # Detect outbound IPv4 (server direct IP, and proxy outbound IP if proxy_url is configured)
     from django.core.cache import cache
     server_outbound_ip = cache.get("shamcash_server_outbound_ipv4")
     if not server_outbound_ip:
@@ -241,6 +301,21 @@ def shamcash_dashboard_view(request):
                     break
             except Exception:
                 continue
+
+    proxy_outbound_ip = ""
+    proxy_check_error = ""
+    if eff_proxy_url:
+        proxy_outbound_ip = cache.get("shamcash_proxy_outbound_ipv4") or ""
+        if not proxy_outbound_ip:
+            import requests as _req
+            try:
+                p_map = {"http": eff_proxy_url, "https": eff_proxy_url}
+                candidate_pip = _req.get("https://api4.ipify.org", proxies=p_map, timeout=4).text.strip()
+                if candidate_pip and len(candidate_pip) <= 45:
+                    proxy_outbound_ip = candidate_pip
+                    cache.set("shamcash_proxy_outbound_ipv4", proxy_outbound_ip, 300)
+            except Exception as p_err:
+                proxy_check_error = str(p_err)[:140]
 
     # ── Filters & Date Range ─────────────────────────────────────────────────
     import csv
@@ -394,6 +469,9 @@ def shamcash_dashboard_view(request):
         "effective_base_url": eff_base_url,
         "effective_mode": eff_mode,
         "effective_proxy_url": eff_proxy_url,
+        "masked_proxy_url": ShamCashClient.mask_proxy_url(eff_proxy_url),
+        "proxy_outbound_ip": proxy_outbound_ip,
+        "proxy_check_error": proxy_check_error,
         "server_outbound_ip": server_outbound_ip or "",
         "period": period,
         "date_from": date_from_str,
