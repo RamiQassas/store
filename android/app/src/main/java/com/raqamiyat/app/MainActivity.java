@@ -380,10 +380,39 @@ public class MainActivity extends AppCompatActivity implements ConnectivityHelpe
         }
     }
 
+    public static boolean tryLaunchNativeShamCashAppOnly(Context context, String url) {
+        if (context == null || url == null || url.isEmpty()) return false;
+        String lower = url.trim().toLowerCase(Locale.ROOT);
+        if (lower.startsWith("shamcash:") || lower.startsWith("shamcash://")) {
+            launchExternalShamCashUrl(context, url);
+            return true;
+        }
+        try {
+            PackageManager pm = context.getPackageManager();
+            Intent probe = new Intent(Intent.ACTION_VIEW, Uri.parse(url));
+            probe.addCategory(Intent.CATEGORY_BROWSABLE);
+            List<android.content.pm.ResolveInfo> handlers = pm.queryIntentActivities(probe, 0);
+            if (handlers != null) {
+                for (android.content.pm.ResolveInfo ri : handlers) {
+                    if (ri.activityInfo == null || ri.activityInfo.packageName == null) continue;
+                    String pkg = ri.activityInfo.packageName.toLowerCase(Locale.ROOT);
+                    if (pkg.contains("shamcash") || pkg.contains("shamlogix")) {
+                        Intent appIntent = new Intent(Intent.ACTION_VIEW, Uri.parse(url));
+                        appIntent.setPackage(ri.activityInfo.packageName);
+                        appIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                        context.startActivity(appIntent);
+                        return true;
+                    }
+                }
+            }
+        } catch (Exception ignored) {
+        }
+        return false;
+    }
+
     private void showWebMode(String url) {
-        if (isShamCashExternalUrl(url)) {
+        if (isShamCashExternalUrl(url) && tryLaunchNativeShamCashAppOnly(this, url)) {
             isWaitingForExternalPayment = true;
-            launchExternalShamCashUrl(this, url);
             return;
         }
         isNativeMode = false;
@@ -1063,11 +1092,10 @@ public class MainActivity extends AppCompatActivity implements ConnectivityHelpe
             return true;
         }
 
-        // Open ShamCash App / System Deep Link for ShamCash URLs so user pays in ShamCash App directly;
-        // all other gateways (Paymera, MTN Cash Mobile) stay inside Raqamiyat's in-app WebView.
-        if (isShamCashExternalUrl(url)) {
+        // If ShamCash native app is installed and handles this URL directly, launch ShamCash App (never Chrome);
+        // otherwise keep inside Raqamiyat's WebView so shamcash:// / intent:// triggers the ShamCash App directly.
+        if (isShamCashExternalUrl(url) && tryLaunchNativeShamCashAppOnly(this, url)) {
             isWaitingForExternalPayment = true;
-            launchExternalShamCashUrl(this, url);
             return true;
         }
 

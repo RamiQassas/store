@@ -327,12 +327,11 @@ public class ProductDetailActivity extends AppCompatActivity {
                     mainHandler.post(() -> {
                         loading.dismiss();
                         if (!paymentUrl.isEmpty()) {
-                            if (MainActivity.isShamCashExternalUrl(paymentUrl) || "shamcash".equalsIgnoreCase(paymentMethod)) {
+                            if (MainActivity.tryLaunchNativeShamCashAppOnly(ProductDetailActivity.this, paymentUrl)) {
                                 String statusPage = !orderId.isEmpty()
                                         ? (CatalogRepository.DOMAIN + "/payments/status/?type=order&id=" + Uri.encode(orderId))
                                         : (CatalogRepository.DOMAIN + "/dashboard/orders/");
                                 openUrlInMainApp(statusPage);
-                                MainActivity.launchExternalShamCashUrl(ProductDetailActivity.this, paymentUrl);
                             } else {
                                 openUrlInMainApp(paymentUrl);
                             }
@@ -419,9 +418,8 @@ public class ProductDetailActivity extends AppCompatActivity {
                     mainHandler.post(() -> {
                         loading.dismiss();
                         if (!redirectUrl.isEmpty()) {
-                            if (MainActivity.isShamCashExternalUrl(redirectUrl)) {
+                            if (MainActivity.tryLaunchNativeShamCashAppOnly(ProductDetailActivity.this, redirectUrl)) {
                                 openUrlInMainApp(CatalogRepository.DOMAIN + "/dashboard/orders/");
-                                MainActivity.launchExternalShamCashUrl(ProductDetailActivity.this, redirectUrl);
                             } else {
                                 openUrlInMainApp(redirectUrl);
                             }

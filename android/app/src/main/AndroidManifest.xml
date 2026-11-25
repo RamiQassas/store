@@ -30,6 +30,7 @@
             <action android:name="android.intent.action.VIEW" />
             <data android:scheme="shamcash" />
         </intent>
+        <package android:name="com.shamcash.app" />
     </queries>
 
     <application

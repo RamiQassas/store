@@ -407,7 +407,7 @@ class ShamCashGateway(BasePaymentGateway):
             currency_id = ShamCashClient.CURRENCY_USD
             bill_amount = Decimal(str(deposit.amount)).quantize(Decimal("0.01"))
 
-        notes = f"إيداع - {bill_no}"
+        notes = f"إيداع محفظة رقميات رقم إيداع {bill_no}"
         try:
             res = client.create_bill(
                 bill_no=bill_no,
@@ -563,7 +563,7 @@ class ShamCashGateway(BasePaymentGateway):
             syp_currency = Currency.all_objects.filter(code="SYP", is_active=True).first()
             syp_rate = Decimal(str(getattr(syp_currency, "buy_rate", 15000) or 15000))
 
-        notes = f"سداد فاتورة - {bill_no}"
+        notes = f"شراء من رقميات رقم فاتورة {bill_no}"
         try:
             res = client.create_bill(
                 bill_no=bill_no,
@@ -656,7 +656,7 @@ class ShamCashGateway(BasePaymentGateway):
 
         client = self.get_client()
         idempotency_key = f"REF-ORD-{order.id}-{uuid.uuid4().hex[:12]}"
-        api_note = f"استرداد فاتورة {bill_no}"
+        api_note = f"استرداد أموال من فاتورة رقميات {bill_no}"
 
         try:
             res = client.refund_bill(
@@ -666,7 +666,11 @@ class ShamCashGateway(BasePaymentGateway):
                 idempotency_key=idempotency_key,
             )
             tran_id = res.get("tranId")
-            record_note = f"رقم عملية الاسترجاع: {tran_id}" if tran_id else f"استرداد فاتورة {bill_no}"
+            record_note = (
+                f"استرداد أموال من فاتورة رقميات {bill_no} - رقم عملية الاسترجاع: {tran_id}"
+                if tran_id
+                else api_note
+            )
 
             bill_record = ShamCashBillRecord.objects.filter(bill_no=bill_no).first()
             if bill_record:
@@ -713,7 +717,7 @@ class ShamCashGateway(BasePaymentGateway):
 
         client = self.get_client()
         idempotency_key = f"REF-DEP-{deposit.id}-{uuid.uuid4().hex[:12]}"
-        api_note = f"استرداد فاتورة {bill_no}"
+        api_note = f"استرداد أموال من إيداع رقم {bill_no}"
 
         try:
             res = client.refund_bill(
@@ -723,7 +727,11 @@ class ShamCashGateway(BasePaymentGateway):
                 idempotency_key=idempotency_key,
             )
             tran_id = res.get("tranId")
-            record_note = f"رقم عملية الاسترجاع: {tran_id}" if tran_id else f"استرداد فاتورة {bill_no}"
+            record_note = (
+                f"استرداد أموال من إيداع رقم {bill_no} - رقم عملية الاسترجاع: {tran_id}"
+                if tran_id
+                else api_note
+            )
 
             bill_record = ShamCashBillRecord.objects.filter(bill_no=bill_no).first()
             if bill_record:

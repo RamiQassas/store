@@ -1917,7 +1917,7 @@ def process_order_refund_to_shamcash(order, actor=None, reason=None) -> tuple[bo
         return False, "مبلغ الاسترداد غير صالح أو يساوي صفراً."
 
     # 4. Call ShamCash refundBill API (Arabic-only, no extra reason details)
-    refund_note = f"استرداد فاتورة {bill_no}"
+    refund_note = f"استرداد أموال من فاتورة رقميات {bill_no}"
     idempotency_key = f"REF-{uuid.uuid4().hex[:30]}"
     try:
         gw = gateway_for("sham_cash")
@@ -1950,7 +1950,7 @@ def process_order_refund_to_shamcash(order, actor=None, reason=None) -> tuple[bo
         old_status = order.status
         new_status = Order.Status.CANCELLED if old_status == Order.Status.PENDING else Order.Status.REFUNDED
         order.status = new_status
-        order.admin_note = (order.admin_note or "") + f"\n[استرداد عبر شام كاش]: رقم عملية الاسترجاع: {tran_id or bill_no}"
+        order.admin_note = (order.admin_note or "") + f"\n[استرداد عبر شام كاش]: استرداد أموال من فاتورة رقميات {bill_no} - رقم عملية الاسترجاع: {tran_id or bill_no}"
 
         meta["shamcash_refunded"] = True
         meta["shamcash_refund_timestamp"] = timezone.now().isoformat()
@@ -2378,7 +2378,7 @@ def process_deposit_refund_to_gateway(deposit, actor=None, reason=None, otp=None
             gw = gateway_for("sham_cash")
             client = gw.get_client()
             refund_amount = Decimal(str(deposit.amount)).quantize(Decimal("0.01"))
-            refund_note = f"استرداد فاتورة {bill_no}"
+            refund_note = f"استرداد أموال من إيداع رقم {bill_no}"
             idempotency_key = f"depref_{deposit.id.hex[:12]}_{int(timezone.now().timestamp())}"
             refund_res = client.refund_bill(
                 bill_no=bill_no,
@@ -2443,7 +2443,7 @@ def process_deposit_refund_to_gateway(deposit, actor=None, reason=None, otp=None
             locked_w.held_balance -= refund_wallet_amount
             locked_w.save(update_fields=["held_balance", "updated_at"])
             refund_desc = (
-                f"استرداد عبر شام كاش - رقم عملية الاسترجاع: {refund_tx_id or bill_no}"
+                f"استرداد أموال من إيداع رقم {bill_no} - رقم عملية الاسترجاع: {refund_tx_id or bill_no}"
                 if is_shamcash
                 else f"استرداد مبلغ الإيداع #{deposit.transaction_id} إلى بوابة الدفع (خصم من الرصيد المجمد)"
             )
@@ -2466,7 +2466,7 @@ def process_deposit_refund_to_gateway(deposit, actor=None, reason=None, otp=None
             )
         else:
             refund_desc = (
-                f"استرداد عبر شام كاش - رقم عملية الاسترجاع: {refund_tx_id or bill_no}"
+                f"استرداد أموال من إيداع رقم {bill_no} - رقم عملية الاسترجاع: {refund_tx_id or bill_no}"
                 if is_shamcash
                 else f"استرداد مبلغ الإيداع #{deposit.transaction_id} إلى بوابة الدفع"
             )
@@ -2494,7 +2494,7 @@ def process_deposit_refund_to_gateway(deposit, actor=None, reason=None, otp=None
         meta["refund_raw_res"] = _json_safe(raw_refund_res)
         deposit.metadata = meta
         deposit.admin_note = (
-            f"استرداد عبر شام كاش - رقم عملية الاسترجاع: {refund_tx_id or bill_no}"
+            f"استرداد أموال من إيداع رقم {bill_no} - رقم عملية الاسترجاع: {refund_tx_id or bill_no}"
             if is_shamcash
             else (deposit.admin_note or "") + f"\n[استرداد إيداع]: تمت الموافقة وإعادة المبلغ للبوابة في {timezone.now().strftime('%Y-%m-%d %H:%M')}. المرجع: {refund_tx_id or '---'}."
         )
@@ -2508,7 +2508,7 @@ def process_deposit_refund_to_gateway(deposit, actor=None, reason=None, otp=None
                     amount=Decimal(str(deposit.amount)),
                     idempotency_key=f"depref_{deposit.id.hex[:12]}_{int(timezone.now().timestamp())}",
                     tran_id=refund_tx_id if isinstance(refund_tx_id, int) else None,
-                    note=f"رقم عملية الاسترجاع: {refund_tx_id}" if refund_tx_id else f"استرداد فاتورة {bill_no}",
+                    note=f"استرداد أموال من إيداع رقم {bill_no} - رقم عملية الاسترجاع: {refund_tx_id}" if refund_tx_id else f"استرداد أموال من إيداع رقم {bill_no}",
                     status="success",
                     created_by=actor if (actor and getattr(actor, "is_authenticated", False)) else None,
                     raw_response=raw_refund_res,

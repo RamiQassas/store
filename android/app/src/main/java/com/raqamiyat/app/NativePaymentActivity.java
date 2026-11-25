@@ -307,8 +307,7 @@ public class NativePaymentActivity extends AppCompatActivity {
     }
 
     private void openPaymentUrl(String url) {
-        if (MainActivity.isShamCashExternalUrl(url) || "shamcash".equalsIgnoreCase(selectedProvider)) {
-            MainActivity.launchExternalShamCashUrl(this, url);
+        if (MainActivity.tryLaunchNativeShamCashAppOnly(this, url)) {
             return;
         }
         Intent intent = new Intent(this, MainActivity.class);
