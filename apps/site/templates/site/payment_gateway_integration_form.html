@@ -25,6 +25,16 @@
 
 <form method="post" enctype="multipart/form-data" class="grid grid-cols-1 lg:grid-cols-12 gap-8">
     {% csrf_token %}
+    {% if form.errors %}
+    <div class="lg:col-span-12 p-4 rounded-2xl bg-rose-950/60 border border-rose-500/40 text-rose-200 text-xs font-bold">
+        <div class="mb-1"><i class="fas fa-exclamation-triangle ml-1"></i> يرجى تصحيح الحقول التالية قبل الحفظ:</div>
+        <ul class="list-disc pr-5 space-y-1">
+            {% for field, errors in form.errors.items %}
+            <li>{{ field }}: {{ errors|striptags }}</li>
+            {% endfor %}
+        </ul>
+    </div>
+    {% endif %}
     <div class="lg:col-span-8 glass-panel p-8 stack gap-6">
         
         <!-- Gateway Logo Upload & Preview -->
@@ -242,15 +252,15 @@ document.addEventListener('DOMContentLoaded', function() {
             if (wrapSettings) wrapSettings.style.display = 'none';
             if (wrapExtraRow) wrapExtraRow.style.display = 'none';
         } else if (provider === 'sham_cash') {
-            if (lblBase) lblBase.textContent = 'رابط خادم شام كاش (ShamCash API URL)';
-            if (hintBase) hintBase.textContent = 'اختياري: اتركه فارغاً لاستخدام الرابط الافتراضي لبيئة شام كاش المحددة.';
-            if (inputBase) inputBase.placeholder = 'https://api.shamcash.com';
+            if (lblBase) lblBase.textContent = 'رابط خادم شام كاش الرسمي (ShamCash Base URL)';
+            if (hintBase) hintBase.textContent = 'رابط بيئة الإنتاج الرسمي: https://payment.shamcash.sy/v4';
+            if (inputBase) inputBase.placeholder = 'https://payment.shamcash.sy/v4';
             if (lblKey) lblKey.textContent = 'مفتاح الوكيل (ShamCash Agent Key)';
             if (hintKey) hintKey.textContent = 'المفتاح الأول (Agent Key) المخصص لحسابك في شام كاش.';
             if (inputKey) inputKey.placeholder = 'أدخل Agent Key';
             if (lblSecret) lblSecret.textContent = 'المفتاح السري (ShamCash Secret Key / JWE)';
-            if (hintSecret) hintSecret.textContent = 'المفتاح الثاني (Secret Key) المستخدم لتوقيع وتشفير JWE.';
-            if (inputSecret) inputSecret.placeholder = 'أدخل Secret Key';
+            if (hintSecret) hintSecret.textContent = 'المفتاح الثاني (Secret Key) المستخدم لتوقيع وتشفير JWE. اتركه فارغاً للإبقاء على المفتاح السري المحفوظ.';
+            if (inputSecret && !inputSecret.placeholder.includes('محفوظ')) inputSecret.placeholder = 'أدخل Secret Key';
             if (wrapTid) wrapTid.style.display = 'none';
             if (wrapWebhook) wrapWebhook.style.display = 'none';
             if (wrapAssets) wrapAssets.style.display = 'none';

@@ -244,10 +244,17 @@ class ShamCashGateway(BasePaymentGateway):
             self.integration = (
                 PaymentGatewayIntegration.all_objects.filter(
                     provider=PaymentGatewayIntegration.Provider.SHAM_CASH,
-                    is_active=True
+                    is_active=True,
                 )
                 .exclude(api_key="")
                 .exclude(api_secret="")
+                .order_by("-updated_at")
+                .first()
+                or PaymentGatewayIntegration.all_objects.filter(
+                    provider=PaymentGatewayIntegration.Provider.SHAM_CASH,
+                    is_active=True,
+                )
+                .order_by("-updated_at")
                 .first()
             )
 
@@ -259,7 +266,7 @@ class ShamCashGateway(BasePaymentGateway):
             agent_key=getattr(settings, "SHAM_CASH_AGENT_KEY", ""),
             secret_key=getattr(settings, "SHAM_CASH_SECRET_KEY", ""),
             base_url=getattr(settings, "SHAM_CASH_BASE_URL", None),
-            mode=getattr(settings, "SHAM_CASH_MODE", "sandbox"),
+            mode=getattr(settings, "SHAM_CASH_MODE", "live"),
         )
 
     def check_health(self) -> Dict[str, Any]:

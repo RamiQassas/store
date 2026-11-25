@@ -45,7 +45,7 @@ logger = logging.getLogger(__name__)
 
 
 def _get_active_shamcash_integration():
-    """Retrieve active PaymentGatewayIntegration for ShamCash."""
+    """Retrieve the most recently updated active PaymentGatewayIntegration for ShamCash."""
     with bypass_tenant_filter():
         return (
             PaymentGatewayIntegration.all_objects.filter(
@@ -53,6 +53,13 @@ def _get_active_shamcash_integration():
                 is_active=True,
             )
             .exclude(api_key="")
+            .order_by("-updated_at")
+            .first()
+            or PaymentGatewayIntegration.all_objects.filter(
+                provider=PaymentGatewayIntegration.Provider.SHAM_CASH,
+                is_active=True,
+            )
+            .order_by("-updated_at")
             .first()
         )
 
@@ -60,8 +67,10 @@ def _get_active_shamcash_integration():
 def _get_active_shamcash_client():
     """Retrieve active ShamCashClient from DB integration or settings fallback."""
     integration = _get_active_shamcash_integration()
-    if integration and getattr(integration, "api_key", None) and getattr(integration, "api_secret", None):
-        return ShamCashClient.from_integration(integration)
+    if integration:
+        client = ShamCashClient.from_integration(integration)
+        if client.agent_key and client.raw_secret_key:
+            return client
     from django.conf import settings
     agent_key = getattr(settings, "SHAM_CASH_AGENT_KEY", "")
     secret_key = getattr(settings, "SHAM_CASH_SECRET_KEY", "")
@@ -70,7 +79,7 @@ def _get_active_shamcash_client():
             agent_key=agent_key,
             secret_key=secret_key,
             base_url=getattr(settings, "SHAM_CASH_BASE_URL", None),
-            mode=getattr(settings, "SHAM_CASH_MODE", "sandbox"),
+            mode=getattr(settings, "SHAM_CASH_MODE", "live"),
         )
     return None
 

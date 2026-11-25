@@ -258,6 +258,12 @@ class PaymentMethodForm(forms.ModelForm):
 
 
 class PaymentGatewayIntegrationForm(forms.ModelForm):
+    base_url = forms.CharField(
+        required=False,
+        label="رابط API الأساسي",
+        widget=forms.TextInput(attrs={"class": "builder-input", "placeholder": "", "dir": "ltr"}),
+    )
+
     class Meta:
         model = PaymentGatewayIntegration
         fields = [
@@ -271,16 +277,51 @@ class PaymentGatewayIntegrationForm(forms.ModelForm):
             "provider": forms.Select(attrs={"class": "builder-input"}),
             "mode": forms.Select(attrs={"class": "builder-input"}),
             "terminal_id": forms.TextInput(attrs={"class": "builder-input", "placeholder": ""}),
-            "base_url": forms.URLInput(attrs={"class": "builder-input", "placeholder": ""}),
-            "api_key": forms.TextInput(attrs={"class": "builder-input", "autocomplete": "off"}),
-            "api_secret": forms.PasswordInput(attrs={"class": "builder-input", "autocomplete": "new-password", "render_value": True}),
-            "webhook_secret": forms.PasswordInput(attrs={"class": "builder-input", "autocomplete": "new-password", "render_value": True}),
+            "base_url": forms.TextInput(attrs={"class": "builder-input", "placeholder": "", "dir": "ltr"}),
+            "api_key": forms.TextInput(attrs={"class": "builder-input", "autocomplete": "off", "dir": "ltr"}),
+            "api_secret": forms.PasswordInput(attrs={"class": "builder-input", "autocomplete": "new-password", "render_value": False, "dir": "ltr"}),
+            "webhook_secret": forms.PasswordInput(attrs={"class": "builder-input", "autocomplete": "new-password", "render_value": False, "dir": "ltr"}),
             "is_active": forms.CheckboxInput(attrs={"class": "rounded text-cyan"}),
             "can_deposit": forms.CheckboxInput(attrs={"class": "rounded text-cyan"}),
             "can_withdraw": forms.CheckboxInput(attrs={"class": "rounded text-cyan"}),
             "supported_assets": forms.Textarea(attrs={"rows": 4, "class": "font-mono text-xs builder-input", "placeholder": "[\"USDT-TRC20\", \"USDT-BEP20\"]"}),
             "settings": forms.Textarea(attrs={"rows": 5, "class": "font-mono text-xs builder-input", "placeholder": "{}"}),
         }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        for opt_field in ("terminal_id", "base_url", "api_key", "api_secret", "webhook_secret", "supported_assets", "settings"):
+            if opt_field in self.fields:
+                self.fields[opt_field].required = False
+        if self.instance and self.instance.pk and self.instance.api_secret and "api_secret" in self.fields:
+            self.fields["api_secret"].widget.attrs["placeholder"] = "محفوظ ومؤمّن — اتركه فارغاً للإبقاء عليه"
+
+    def clean_base_url(self):
+        val = (self.cleaned_data.get("base_url") or "").strip().rstrip("/")
+        if val and not val.startswith(("http://", "https://")):
+            val = f"https://{val}"
+        return val
+
+    def clean_api_key(self):
+        return (self.cleaned_data.get("api_key") or "").strip()
+
+    def clean_api_secret(self):
+        val = (self.cleaned_data.get("api_secret") or "").strip()
+        if not val and self.instance and self.instance.pk and self.instance.api_secret:
+            return self.instance.api_secret
+        return val
+
+    def clean_supported_assets(self):
+        val = self.cleaned_data.get("supported_assets")
+        return val if isinstance(val, list) else []
+
+    def clean_settings(self):
+        val = self.cleaned_data.get("settings")
+        data = dict(val) if isinstance(val, dict) else {}
+        if self.cleaned_data.get("provider") == PaymentGatewayIntegration.Provider.SHAM_CASH:
+            data.pop("agent_key", None)
+            data.pop("secret_key", None)
+        return data
 
 
 class ModerateUserForm(forms.ModelForm):

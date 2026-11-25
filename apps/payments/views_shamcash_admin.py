@@ -75,6 +75,15 @@ def _get_or_create_compliance_profile():
 # 1. SHAMCASH GATEWAY DASHBOARD
 # ══════════════════════════════════════════════════════════════════════════════
 
+def _mask_secret_value(val: str) -> str:
+    clean = (val or "").strip()
+    if not clean:
+        return "غير مُعيّن"
+    if len(clean) <= 8:
+        return "••••••••"
+    return f"{clean[:4]}••••••••••••{clean[-4:]}"
+
+
 @login_required
 def shamcash_dashboard_view(request):
     """Admin dashboard overview for ShamCash E-Payment gateway."""
@@ -82,9 +91,90 @@ def shamcash_dashboard_view(request):
         messages.error(request, "غير مصرح لك بالوصول إلى هذه اللوحة.")
         return redirect("dashboard")
 
-    integration = PaymentGatewayIntegration.all_objects.filter(
-        provider=PaymentGatewayIntegration.Provider.SHAM_CASH
-    ).first()
+    integration = (
+        PaymentGatewayIntegration.all_objects.filter(
+            provider=PaymentGatewayIntegration.Provider.SHAM_CASH
+        )
+        .order_by("-is_active", "-updated_at")
+        .first()
+    )
+
+    if request.method == "POST" and request.POST.get("action") == "update_shamcash_credentials":
+        import base64
+        new_mode = (request.POST.get("mode") or "live").strip().lower()
+        if new_mode not in ("live", "sandbox"):
+            new_mode = "live"
+        new_base_url = (request.POST.get("base_url") or "").strip().rstrip("/")
+        if new_base_url and not new_base_url.startswith(("http://", "https://")):
+            new_base_url = f"https://{new_base_url}"
+        if not new_base_url:
+            new_base_url = ShamCashClient.LIVE_BASE_URL if new_mode == "live" else ShamCashClient.STAGING_BASE_URL
+
+        new_agent_key = (request.POST.get("agent_key") or "").strip()
+        new_secret_key = (request.POST.get("secret_key") or "").strip()
+
+        if new_secret_key:
+            try:
+                decoded = base64.b64decode(new_secret_key)
+                if len(decoded) != 32:
+                    messages.error(request, f"المفتاح السري (Secret Key) يجب أن يكون Base64 بطول 32 بايت (الحالي: {len(decoded)} بايت).")
+                    return redirect("shamcash_dashboard")
+            except Exception:
+                messages.error(request, "المفتاح السري (Secret Key) ليس بصيغة Base64 صحيحة.")
+                return redirect("shamcash_dashboard")
+
+        if not integration:
+            integration = PaymentGatewayIntegration.all_objects.create(
+                name="شام كاش (ShamCash)",
+                provider=PaymentGatewayIntegration.Provider.SHAM_CASH,
+                mode=new_mode,
+                base_url=new_base_url,
+                api_key=new_agent_key,
+                api_secret=new_secret_key,
+                is_active=True,
+                can_deposit=True,
+                can_withdraw=False,
+            )
+        else:
+            integration.mode = new_mode
+            integration.base_url = new_base_url
+            if new_agent_key:
+                integration.api_key = new_agent_key
+            if new_secret_key:
+                integration.api_secret = new_secret_key
+            integration.is_active = True
+            clean_settings = dict(integration.settings) if isinstance(integration.settings, dict) else {}
+            clean_settings.pop("agent_key", None)
+            clean_settings.pop("secret_key", None)
+            integration.settings = clean_settings
+            integration.save()
+
+        # Synchronize all duplicate platform ShamCash rows so old keys/domains never shadow this update
+        for dup in PaymentGatewayIntegration.all_objects.filter(
+            provider=PaymentGatewayIntegration.Provider.SHAM_CASH,
+            store__isnull=True,
+        ).exclude(pk=integration.pk):
+            dup_settings = dict(dup.settings) if isinstance(dup.settings, dict) else {}
+            dup_settings.pop("agent_key", None)
+            dup_settings.pop("secret_key", None)
+            PaymentGatewayIntegration.all_objects.filter(pk=dup.pk).update(
+                mode=integration.mode,
+                base_url=integration.base_url,
+                api_key=integration.api_key,
+                api_secret=integration.api_secret,
+                is_active=integration.is_active,
+                settings=dup_settings,
+            )
+
+        messages.success(request, "تم حفظ مفاتيح ودومين شام كاش الرسمي بنجاح وتأمينها.")
+        return redirect("shamcash_dashboard")
+
+    eff_agent_key = (getattr(integration, "api_key", "") if integration else "") or getattr(settings, "SHAM_CASH_AGENT_KEY", "")
+    eff_secret_key = (getattr(integration, "api_secret", "") if integration else "") or getattr(settings, "SHAM_CASH_SECRET_KEY", "")
+    eff_mode = (getattr(integration, "mode", "") if integration else "") or getattr(settings, "SHAM_CASH_MODE", "live")
+    eff_base_url = (getattr(integration, "base_url", "") if integration else "") or getattr(settings, "SHAM_CASH_BASE_URL", ShamCashClient.LIVE_BASE_URL)
+    if eff_mode == "live" and "shamlogix" in eff_base_url.lower():
+        eff_base_url = ShamCashClient.LIVE_BASE_URL
 
     # Aggregate metrics
     bills_qs = ShamCashBillRecord.objects.all()
@@ -109,6 +199,10 @@ def shamcash_dashboard_view(request):
 
     context = {
         "integration": integration,
+        "masked_agent_key": _mask_secret_value(eff_agent_key),
+        "has_secret_key": bool(eff_secret_key),
+        "effective_base_url": eff_base_url,
+        "effective_mode": eff_mode,
         "total_bills": total_bills,
         "paid_bills_count": paid_bills_count,
         "expired_bills_count": expired_bills_count,

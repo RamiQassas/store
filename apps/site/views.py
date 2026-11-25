@@ -11313,14 +11313,34 @@ def payment_gateway_integration_edit(request, pk):
     qs = PaymentGatewayIntegration.all_objects.filter(Q(store=store) | Q(store__isnull=True)) if store else PaymentGatewayIntegration.all_objects.all()
     gateway = get_object_or_404(qs, pk=pk)
     form = PaymentGatewayIntegrationForm(request.POST or None, request.FILES or None, instance=gateway)
-    if request.method == "POST" and form.is_valid():
-        gateway = form.save()
-        try:
-            gateway.sync_payment_method()
-        except Exception:
-            pass
-        messages.success(request, "تم تحديث بوابة دفع API ومزامنة وسيلة الدفع بنجاح.")
-        return redirect("payment_gateway_integrations_list")
+    if request.method == "POST":
+        if form.is_valid():
+            gateway = form.save()
+            # Keep any duplicate platform ShamCash rows synchronized so old keys/domains never linger
+            if gateway.provider == PaymentGatewayIntegration.Provider.SHAM_CASH and gateway.store_id is None:
+                for dup in PaymentGatewayIntegration.all_objects.filter(
+                    provider=PaymentGatewayIntegration.Provider.SHAM_CASH,
+                    store__isnull=True,
+                ).exclude(pk=gateway.pk):
+                    dup_settings = dict(dup.settings) if isinstance(dup.settings, dict) else {}
+                    dup_settings.pop("agent_key", None)
+                    dup_settings.pop("secret_key", None)
+                    PaymentGatewayIntegration.all_objects.filter(pk=dup.pk).update(
+                        mode=gateway.mode,
+                        base_url=gateway.base_url,
+                        api_key=gateway.api_key,
+                        api_secret=gateway.api_secret,
+                        is_active=gateway.is_active,
+                        settings=dup_settings,
+                    )
+            try:
+                gateway.sync_payment_method()
+            except Exception:
+                pass
+            messages.success(request, "تم تحديث بوابة دفع API ومزامنة المفاتيح والرابط بنجاح.")
+            return redirect("payment_gateway_integrations_list")
+        else:
+            messages.error(request, "تعذر حفظ الإعدادات. يرجى مراجعة الحقول الموضحة أدناه.")
     return render(request, "site/payment_gateway_integration_form.html", {"form": form, "gateway": gateway, "title": "تعديل بوابة دفع API"})
 
 

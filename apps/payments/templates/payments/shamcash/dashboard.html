@@ -113,32 +113,69 @@
             <h3 style="font-size: 1.05rem; font-weight: 900; color: #fff; display: flex; align-items: center; gap: 0.5rem; margin: 0;">
                 <i class="fas fa-cogs text-cyan"></i> مواصفات ومعلمات الربط التقني
             </h3>
-            {% if integration %}
-            <a href="{% url 'payment_gateway_integration_edit' integration.id %}" class="btn btn-outline btn-sm text-[10px]">
-                <i class="fas fa-edit ml-1"></i> تعديل المفاتيح
-            </a>
-            {% endif %}
+            <div style="display: flex; gap: 0.45rem;">
+                <button type="button" onclick="document.getElementById('shamcash-creds-form-box').style.display = (document.getElementById('shamcash-creds-form-box').style.display === 'none' ? 'block' : 'none')" class="btn btn-primary btn-sm text-[10px]" style="background: rgba(0,201,167,0.2); color: #00C9A7; border: 1px solid rgba(0,201,167,0.4);">
+                    <i class="fas fa-key ml-1"></i> تحديث المفاتيح والدومين
+                </button>
+                {% if integration %}
+                <a href="{% url 'payment_gateway_integration_edit' integration.id %}" class="btn btn-outline btn-sm text-[10px]">
+                    <i class="fas fa-sliders-h ml-1"></i> إعدادات البوابة
+                </a>
+                {% endif %}
+            </div>
         </div>
+
+        <!-- Inline Secure Credentials Update Form -->
+        <form method="post" id="shamcash-creds-form-box" style="display: none; margin-bottom: 1.25rem; padding: 1rem; border-radius: 10px; background: rgba(15, 23, 42, 0.85); border: 1px solid rgba(0, 201, 167, 0.35);">
+            {% csrf_token %}
+            <input type="hidden" name="action" value="update_shamcash_credentials">
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; margin-bottom: 0.75rem;">
+                <div>
+                    <label style="display: block; font-size: 0.75rem; color: #94a3b8; margin-bottom: 0.25rem;">بيئة التشغيل</label>
+                    <select name="mode" class="builder-input" style="width: 100%; padding: 0.45rem; border-radius: 8px; background: #020617; color: #fff; border: 1px solid rgba(255,255,255,0.15);">
+                        <option value="live" {% if effective_mode == 'live' %}selected{% endif %}>الإنتاج الفعلي (Production / Live)</option>
+                        <option value="sandbox" {% if effective_mode == 'sandbox' %}selected{% endif %}>الاختبار (Sandbox)</option>
+                    </select>
+                </div>
+                <div>
+                    <label style="display: block; font-size: 0.75rem; color: #94a3b8; margin-bottom: 0.25rem;">رابط API الرسمي (Base URL)</label>
+                    <input type="text" name="base_url" dir="ltr" value="{{ effective_base_url }}" placeholder="https://payment.shamcash.sy/v4" style="width: 100%; padding: 0.45rem 0.65rem; border-radius: 8px; background: #020617; color: #fff; border: 1px solid rgba(255,255,255,0.15); font-family: monospace; font-size: 0.8rem;">
+                </div>
+                <div>
+                    <label style="display: block; font-size: 0.75rem; color: #94a3b8; margin-bottom: 0.25rem;">مفتاح الوكيل (Agent Key)</label>
+                    <input type="password" name="agent_key" dir="ltr" autocomplete="new-password" placeholder="اتركه فارغاً للإبقاء على المفتاح المحفوظ" style="width: 100%; padding: 0.45rem 0.65rem; border-radius: 8px; background: #020617; color: #fff; border: 1px solid rgba(255,255,255,0.15); font-family: monospace; font-size: 0.8rem;">
+                </div>
+                <div>
+                    <label style="display: block; font-size: 0.75rem; color: #94a3b8; margin-bottom: 0.25rem;">المفتاح السري (Secret Key - Base64)</label>
+                    <input type="password" name="secret_key" dir="ltr" autocomplete="new-password" placeholder="اتركه فارغاً للإبقاء على المفتاح السري المحفوظ" style="width: 100%; padding: 0.45rem 0.65rem; border-radius: 8px; background: #020617; color: #fff; border: 1px solid rgba(255,255,255,0.15); font-family: monospace; font-size: 0.8rem;">
+                </div>
+            </div>
+            <div style="display: flex; justify-content: flex-end; gap: 0.5rem;">
+                <button type="submit" class="btn btn-primary btn-sm" style="background: #00C9A7; color: #000; border: none; font-weight: 800;">
+                    <i class="fas fa-lock ml-1"></i> حفظ وتأمين المفاتيح
+                </button>
+            </div>
+        </form>
 
         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; font-size: 0.85rem;">
             <div style="background: rgba(0,0,0,0.3); padding: 0.85rem; border-radius: 8px; border: 1px solid rgba(255,255,255,0.05);">
-                <div style="color: #94a3b8; font-size: 0.75rem; margin-bottom: 0.25rem;">معرف العميل (Agent Key):</div>
-                <div style="font-family: monospace; font-weight: 700; color: #38bdf8; word-break: break-all;">
-                    {{ integration.api_key|default:"LELCNDrzTrEgXtv00OUdVeECa1CEZZiC" }}
+                <div style="color: #94a3b8; font-size: 0.75rem; margin-bottom: 0.25rem;">معرف الوكيل (Agent Key - محمي):</div>
+                <div dir="ltr" style="font-family: monospace; font-weight: 700; color: #38bdf8; word-break: break-all;">
+                    {{ masked_agent_key }}
                 </div>
             </div>
 
             <div style="background: rgba(0,0,0,0.3); padding: 0.85rem; border-radius: 8px; border: 1px solid rgba(255,255,255,0.05);">
-                <div style="color: #94a3b8; font-size: 0.75rem; margin-bottom: 0.25rem;">نوع التشفير المعتمد:</div>
-                <div style="font-weight: 800; color: #34d399;">
-                    Direct JWE (A256GCM / 256-bit AES)
+                <div style="color: #94a3b8; font-size: 0.75rem; margin-bottom: 0.25rem;">المفتاح السري والتشفير (JWE):</div>
+                <div style="font-weight: 800; color: {% if has_secret_key %}#34d399{% else %}#f59e0b{% endif %};">
+                    {% if has_secret_key %}<i class="fas fa-lock ml-1"></i> محفوظ ومؤمّن (A256GCM){% else %}<i class="fas fa-exclamation-triangle ml-1"></i> بانتظار إدخال المفتاح السري{% endif %}
                 </div>
             </div>
 
             <div style="background: rgba(0,0,0,0.3); padding: 0.85rem; border-radius: 8px; border: 1px solid rgba(255,255,255,0.05); grid-column: span 2;">
                 <div style="color: #94a3b8; font-size: 0.75rem; margin-bottom: 0.25rem;">رابط API الأساسي (Base URL):</div>
-                <div style="font-family: monospace; font-weight: 700; color: #fff;">
-                    {{ integration.base_url|default:"https://dev.shamlogix.tech/services" }}
+                <div dir="ltr" style="font-family: monospace; font-weight: 700; color: #fff;">
+                    {{ effective_base_url }}
                 </div>
             </div>
 

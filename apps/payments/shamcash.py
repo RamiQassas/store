@@ -43,7 +43,7 @@ class ShamCashError(Exception):
 
 class ShamCashClient:
     STAGING_BASE_URL = "https://dev.shamlogix.tech/services"
-    LIVE_BASE_URL = "https://api.shamcash.sy/services"
+    LIVE_BASE_URL = "https://payment.shamcash.sy/v4"
 
     # Official Bill Status Identifiers (Doc Section 6.3 & Table page 16)
     STATUS_PENDING = 1          # pending: Bill is awaiting user payment
@@ -95,8 +95,12 @@ class ShamCashClient:
         self.mode = (mode or "sandbox").strip().lower()
         self.timeout = timeout
 
-        if base_url and base_url.strip():
-            self.base_url = base_url.strip().rstrip("/")
+        cleaned_url = (base_url or "").strip().rstrip("/")
+        if cleaned_url.lower().endswith("/api/electronicpayment"):
+            cleaned_url = cleaned_url[: -len("/api/electronicpayment")].rstrip("/")
+
+        if cleaned_url and not (self.mode == "live" and "shamlogix" in cleaned_url.lower()):
+            self.base_url = cleaned_url
         else:
             self.base_url = (
                 self.LIVE_BASE_URL if self.mode == "live" else self.STAGING_BASE_URL
@@ -124,7 +128,7 @@ class ShamCashClient:
         agent_key = (getattr(integration, "api_key", None) or "").strip()
         secret_key = (getattr(integration, "api_secret", None) or "").strip()
         base_url = (getattr(integration, "base_url", None) or "").strip()
-        mode = getattr(integration, "mode", "sandbox")
+        mode = (getattr(integration, "mode", None) or getattr(settings, "SHAM_CASH_MODE", "live")).strip().lower()
 
         if hasattr(integration, "settings") and isinstance(integration.settings, dict):
             agent_key = agent_key or str(integration.settings.get("agent_key", "")).strip()
@@ -135,7 +139,11 @@ class ShamCashClient:
         if not secret_key:
             secret_key = getattr(settings, "SHAM_CASH_SECRET_KEY", "").strip()
         if not base_url:
-            base_url = getattr(settings, "SHAM_CASH_BASE_URL", "").strip()
+            env_url = getattr(settings, "SHAM_CASH_BASE_URL", "").strip()
+            if env_url and not (mode == "live" and "shamlogix" in env_url.lower()):
+                base_url = env_url
+            else:
+                base_url = cls.LIVE_BASE_URL if mode == "live" else cls.STAGING_BASE_URL
 
         return cls(
             agent_key=agent_key,
