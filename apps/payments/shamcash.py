@@ -37,16 +37,24 @@ class _ShamCashTLSAdapter(HTTPAdapter):
     that request TLS session renegotiation (OP_LEGACY_SERVER_CONNECT).
     """
 
-    def init_poolmanager(self, *args, **kwargs):
+    def __init__(self, verify_ssl: bool = True, **kwargs):
+        self.verify_ssl = verify_ssl
+        super().__init__(**kwargs)
+
+    def _build_ctx(self):
         ctx = create_urllib3_context()
         ctx.options |= getattr(ssl, "OP_LEGACY_SERVER_CONNECT", 0x4)
-        kwargs["ssl_context"] = ctx
+        if not self.verify_ssl:
+            ctx.check_hostname = False
+            ctx.verify_mode = ssl.CERT_NONE
+        return ctx
+
+    def init_poolmanager(self, *args, **kwargs):
+        kwargs["ssl_context"] = self._build_ctx()
         return super().init_poolmanager(*args, **kwargs)
 
     def proxy_manager_for(self, proxy, **proxy_kwargs):
-        ctx = create_urllib3_context()
-        ctx.options |= getattr(ssl, "OP_LEGACY_SERVER_CONNECT", 0x4)
-        proxy_kwargs["ssl_context"] = ctx
+        proxy_kwargs["ssl_context"] = self._build_ctx()
         return super().proxy_manager_for(proxy, **proxy_kwargs)
 
 
@@ -208,9 +216,13 @@ class ShamCashClient:
         self._session = requests.Session()
         # Isolate ShamCash transport strictly from global env proxies; only use explicit ShamCash proxy_url
         self._session.trust_env = False
-        tls_adapter = _ShamCashTLSAdapter(max_retries=0)
-        self._session.mount("https://", tls_adapter)
+        self._session.mount("https://", _ShamCashTLSAdapter(verify_ssl=True, max_retries=0))
         self._session.mount("http://", HTTPAdapter(max_retries=0))
+
+        self._insecure_session = requests.Session()
+        self._insecure_session.trust_env = False
+        self._insecure_session.mount("https://", _ShamCashTLSAdapter(verify_ssl=False, max_retries=0))
+        self._insecure_session.mount("http://", HTTPAdapter(max_retries=0))
 
     @staticmethod
     def mask_proxy_url(proxy_url: Optional[str]) -> str:
@@ -404,7 +416,7 @@ class ShamCashClient:
                 logger.warning(f"ShamCash SSL certificate verification failed ({url}), retrying with verify=False: {ssl_err}")
                 import urllib3
                 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
-                response = self._session.post(
+                response = self._insecure_session.post(
                     url,
                     json=body,
                     headers=headers,
