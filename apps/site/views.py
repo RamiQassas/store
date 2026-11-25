@@ -1664,6 +1664,9 @@ def deposits(request):
                 gw_res = gw.create_payment(deposit, request=request)
                 redirect_url = gw_res.get("url")
                 if redirect_url:
+                    if gw.code == "sham_cash":
+                        from apps.payments.views_shamcash import resolve_shamcash_client_redirect_url
+                        redirect_url = resolve_shamcash_client_redirect_url(request, redirect_url)
                     messages.info(request, "جارٍ تحويلك إلى بوابة الدفع الآمنة لإتمام العملية...")
                     return redirect(redirect_url)
             except PaymentGatewayError as gw_err:
@@ -3251,6 +3254,9 @@ def product_detail(request, pk):
                 payment_url = gw_res.get("url")
                 if not payment_url:
                     raise PaymentGatewayError("لم يتم استلام رابط الدفع من بوابة الدفع.")
+                if gw_instance.code == "sham_cash":
+                    from apps.payments.views_shamcash import resolve_shamcash_client_redirect_url
+                    payment_url = resolve_shamcash_client_redirect_url(request, payment_url)
 
                 if request.headers.get('x-requested-with') == 'XMLHttpRequest' or request.POST.get('ajax') == '1':
                     return JsonResponse({
@@ -14132,6 +14138,9 @@ def cart_checkout_view(request):
             payment_url = gw_res.get("url")
             if not payment_url:
                 raise PaymentGatewayError("لم يتم استلام رابط الدفع من بوابة الدفع، يرجى المحاولة لاحقاً.")
+            if gw_instance.code == "sham_cash":
+                from apps.payments.views_shamcash import resolve_shamcash_client_redirect_url
+                payment_url = resolve_shamcash_client_redirect_url(request, payment_url)
 
             request.session["rq_cart"] = {}
             request.session.modified = True

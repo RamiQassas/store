@@ -806,3 +806,104 @@ def shamcash_redirect_view(request, bill_no: str = ""):
 
     messages.info(request, "شكراً لاستخدامك خدمة شام كاش.")
     return redirect("dashboard")
+
+
+def resolve_shamcash_client_redirect_url(request, payment_url: str) -> str:
+    """
+    For Samsung Internet and other non-Chrome Android browsers that do not automatically
+    hand off HTTP 302 redirects to the ShamCash native app, wrap the URL in our signed
+    Android Intent handoff page. Chrome, Desktop, iOS, and RaqamiyatAndroid receive payment_url directly.
+    """
+    if not payment_url or not request:
+        return payment_url
+    ua = request.META.get("HTTP_USER_AGENT") or ""
+    if "Android" not in ua or "RaqamiyatAndroid" in ua:
+        return payment_url
+    is_non_chrome_android = (
+        "SamsungBrowser" in ua
+        or "Firefox" in ua
+        or "OPR/" in ua
+        or "EdgA" in ua
+        or "UCBrowser" in ua
+        or "HuaweiBrowser" in ua
+        or "MiuiBrowser" in ua
+        or "Chrome/" not in ua
+    )
+    if not is_non_chrome_android:
+        return payment_url
+
+    from django.core import signing
+    from urllib.parse import quote
+    token = signing.dumps({"u": payment_url}, salt="shamcash_browser_handoff")
+    return f"{reverse('shamcash_open_app_handoff')}?t={quote(token)}"
+
+
+def shamcash_open_app_handoff_view(request):
+    """
+    Triggers Android's Intent URI resolver from Samsung Browser / non-Chrome Android browsers
+    so https://payment.shamcash.sy/... opens the ShamCash App directly (with browser fallback).
+    """
+    from django.core import signing
+    from django.http import HttpResponse
+    from urllib.parse import quote, urlparse
+
+    token = (request.GET.get("t") or "").strip()
+    if not token:
+        return redirect("dashboard")
+    try:
+        data = signing.loads(token, salt="shamcash_browser_handoff", max_age=900)
+        payment_url = str(data.get("u") or "").strip()
+    except Exception:
+        return redirect("dashboard")
+
+    parsed = urlparse(payment_url)
+    host = (parsed.hostname or "").lower()
+    if parsed.scheme not in ("https", "http") or not (
+        host.endswith("shamcash.sy") or host.endswith("shamcash.com") or host.endswith("shamlogix.tech")
+    ):
+        return redirect("dashboard")
+
+    host_and_path = f"{parsed.netloc}{parsed.path or '/'}"
+    if parsed.query:
+        host_and_path += f"?{parsed.query}"
+
+    intent_url = (
+        f"intent://{host_and_path}"
+        f"#Intent;scheme={parsed.scheme};action=android.intent.action.VIEW;"
+        f"S.browser_fallback_url={quote(payment_url, safe='')};end"
+    )
+    safe_https = payment_url.replace('"', "%22")
+    safe_intent = intent_url.replace('"', "%22")
+
+    html = f"""<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>جارٍ التحويل إلى تطبيق شام كاش</title>
+  <style>
+    body {{ background:#030712; color:#f8fafc; font-family:sans-serif; display:flex; align-items:center; justify-content:center; min-height:100vh; margin:0; text-align:center; padding:24px; }}
+    .card {{ background:#111827; border:1px solid #1f2937; border-radius:20px; padding:28px 20px; max-width:380px; width:100%; }}
+    .btn {{ display:block; width:100%; box-sizing:border-box; margin-top:16px; padding:14px 20px; border-radius:12px; background:linear-gradient(135deg,#00C9A7,#059669); color:#030712; font-weight:900; font-size:15px; text-decoration:none; }}
+    .sub {{ display:block; margin-top:12px; color:#94a3b8; font-size:13px; text-decoration:underline; }}
+  </style>
+</head>
+<body>
+  <div class="card">
+    <h2 style="margin:0 0 8px;">جارٍ فتح تطبيق شام كاش...</h2>
+    <p style="color:#cbd5e1;font-size:14px;margin:0;">في حال لم يفتح التطبيق تلقائياً خلال لحظات اضغط الزر أدناه.</p>
+    <a class="btn" href="{safe_intent}">الدفع عبر تطبيق شام كاش ⚡</a>
+    <a class="sub" href="{safe_https}">أو المتابعة عبر صفحة الدفع</a>
+  </div>
+  <script>
+    (function() {{
+      try {{ window.location.href = "{safe_intent}"; }} catch (e) {{}}
+      setTimeout(function() {{
+        try {{ window.location.replace("{safe_https}"); }} catch (e) {{}}
+      }}, 2200);
+    }})();
+  </script>
+</body>
+</html>"""
+    return HttpResponse(html)
+

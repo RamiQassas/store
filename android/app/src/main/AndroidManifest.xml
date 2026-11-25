@@ -55,12 +55,13 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
 
-            <!-- Deep linking & Verified Android App Links (returns user from ShamCash App back into Raqamiyat App) -->
+            <!-- Verified Android App Links (ONLY for ShamCash payment return, never hijacks normal browser logins) -->
             <intent-filter android:autoVerify="true">
                 <action android:name="android.intent.action.VIEW" />
                 <category android:name="android.intent.category.DEFAULT" />
                 <category android:name="android.intent.category.BROWSABLE" />
-                <data android:scheme="https" android:host="raqamiyatapp.com" />
+                <data android:scheme="https" android:host="raqamiyatapp.com" android:pathPrefix="/payments/shamcash/redirect" />
+                <data android:scheme="https" android:host="raqamiyatapp.com" android:pathPrefix="/payments/status" />
             </intent-filter>
 
             <!-- App SSO Auth & Payment Return Deep Link -->
