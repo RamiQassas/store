@@ -292,6 +292,8 @@ class ShamCashGateway(BasePaymentGateway):
                         "code": 1703,
                     }
                 elif e.error_code == 504:
+                    import socket, ssl as _ssl
+                    from urllib.parse import urlparse
                     outbound_ip = ""
                     try:
                         import requests as _req
@@ -299,17 +301,42 @@ class ShamCashGateway(BasePaymentGateway):
                         outbound_ip = _req.get("https://api4.ipify.org", proxies=proxies, timeout=4).text.strip()
                     except Exception:
                         pass
+
+                    stage_diag = ""
+                    if not client.proxy_url:
+                        try:
+                            p_host = urlparse(client.base_url).hostname or "payment.shamcash.sy"
+                            target_ip = socket.gethostbyname(p_host)
+                            s = socket.create_connection((target_ip, 443), timeout=3)
+                            try:
+                                ctx = _ssl.create_default_context()
+                                ctx.options |= getattr(_ssl, "OP_LEGACY_SERVER_CONNECT", 0x4)
+                                ss = ctx.wrap_socket(s, server_hostname=p_host)
+                                ss.close()
+                                stage_diag = f"نجح TCP وTLS إلى {target_ip}:443 لكن استجابة HTTP POST تأخرت/توقفت"
+                            except Exception:
+                                stage_diag = f"نجح اتصال TCP إلى {target_ip}:443 لكن مصافحة TLS سقطت/توقفت (حجب جدار حماية / Geo-IP)"
+                            finally:
+                                try:
+                                    s.close()
+                                except Exception:
+                                    pass
+                        except Exception as tcp_err:
+                            stage_diag = f"فشل اتصال TCP بالمنفذ 443 ({tcp_err})"
+
                     via_label = "عبر البروكسي المخصص" if client.proxy_url else "الاتصال المباشر للخادم"
                     ip_hint = (
-                        f" (IP الصادر لـ {via_label}: {outbound_ip} — يرجى التأكد من أن هذا الـ IP سوري أو مضاف في القائمة البيضاء Whitelist لدى شام كاش)"
+                        f" | IP الصادر ({via_label}): {outbound_ip}"
                         if outbound_ip
                         else ""
                     )
+                    diag_hint = f" | التشخيص: {stage_diag}" if stage_diag else ""
                     return {
                         "ok": False,
-                        "message": f"انتهت مهلة الاتصال بخوادم شام كاش ({client.base_url}){ip_hint}.",
+                        "message": f"انتهت مهلة الاتصال بخوادم شام كاش ({client.base_url}){ip_hint}{diag_hint}.",
                         "code": 504,
                         "outbound_ip": outbound_ip,
+                        "stage_diag": stage_diag,
                     }
                 elif e.error_code in (1701, 1702, 1705, 1706):
                     return {
