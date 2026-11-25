@@ -53,14 +53,20 @@
                     </td>
                     <td class="p-4 font-mono text-xs text-slate-400">{{ gateway.base_url|default:"-" }}</td>
                     <td class="p-4 text-center">
-                        {% if gateway.is_active %}
+                        <div class="flex flex-col items-center gap-1">
+                        {% if gateway.is_maintenance_mode %}
+                            <span class="badge danger text-[9px]">قيد الصيانة</span>
+                        {% elif gateway.is_coming_soon %}
+                            <span class="badge warning text-[9px]">قريباً</span>
+                        {% elif gateway.is_active %}
                             <span class="badge success text-[9px]">نشطة</span>
                         {% else %}
                             <span class="badge muted text-[9px]">غير مفعلة</span>
                         {% endif %}
+                        </div>
                     </td>
                     <td class="p-4">
-                        <div class="flex items-center justify-center gap-2">
+                        <div class="flex items-center justify-center gap-2 flex-wrap">
                             {% if gateway.provider == 'sham_cash' %}
                             <a href="{% url 'shamcash_dashboard' %}" class="btn btn-outline btn-sm text-[10px]" style="border-color: rgba(0,201,167,0.4); color: #00C9A7; font-weight: 800;">
                                 <i class="fas fa-shield-alt ml-1"></i> إدارة البوابة
@@ -70,8 +76,24 @@
                                 <i class="fas fa-mobile-screen-button ml-1"></i> إدارة وتفعيل الطرفية (MTNPay)
                             </a>
                             {% endif %}
+                            {% if can_manage_gateways %}
+                            <form method="post" action="{% url 'payment_gateway_integration_toggle_status' gateway.id %}" style="display:inline;">
+                                {% csrf_token %}
+                                <input type="hidden" name="flag" value="coming_soon">
+                                <button type="submit" class="btn btn-outline btn-sm text-[10px]" style="{% if gateway.is_coming_soon %}background: rgba(245,158,11,0.2); border-color: #f59e0b; color: #fbbf24; font-weight: 800;{% else %}border-color: rgba(245,158,11,0.35); color: #f59e0b;{% endif %}">
+                                    <i class="fas fa-clock ml-1"></i> {% if gateway.is_coming_soon %}إلغاء قريباً{% else %}قريباً{% endif %}
+                                </button>
+                            </form>
+                            <form method="post" action="{% url 'payment_gateway_integration_toggle_status' gateway.id %}" style="display:inline;">
+                                {% csrf_token %}
+                                <input type="hidden" name="flag" value="maintenance">
+                                <button type="submit" class="btn btn-outline btn-sm text-[10px]" style="{% if gateway.is_maintenance_mode %}background: rgba(239,68,68,0.2); border-color: #ef4444; color: #f87171; font-weight: 800;{% else %}border-color: rgba(239,68,68,0.35); color: #f87171;{% endif %}">
+                                    <i class="fas fa-tools ml-1"></i> {% if gateway.is_maintenance_mode %}إلغاء الصيانة{% else %}قيد الصيانة{% endif %}
+                                </button>
+                            </form>
                             <a href="{% url 'payment_gateway_integration_edit' gateway.id %}" class="btn btn-outline btn-sm text-[10px]">تعديل</a>
                             <a href="{% url 'payment_gateway_integration_delete' gateway.id %}" class="btn btn-outline btn-sm text-[10px] text-rose-400 border-rose-500/20" onclick="return confirm('حذف بوابة الدفع؟');">حذف</a>
+                            {% endif %}
                         </div>
                     </td>
                 </tr>

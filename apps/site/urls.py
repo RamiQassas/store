@@ -147,6 +147,7 @@ urlpatterns = [
     path("control/payment-gateways/", views.payment_gateway_integrations_list, name="payment_gateway_integrations_list"),
     path("control/payment-gateways/create/", views.payment_gateway_integration_create, name="payment_gateway_integration_create"),
     path("control/payment-gateways/<uuid:pk>/edit/", views.payment_gateway_integration_edit, name="payment_gateway_integration_edit"),
+    path("control/payment-gateways/<uuid:pk>/toggle/", views.payment_gateway_integration_toggle_status, name="payment_gateway_integration_toggle_status"),
     path("control/payment-gateways/<uuid:pk>/delete/", views.payment_gateway_integration_delete, name="payment_gateway_integration_delete"),
     path("control/deposits/", views.control_deposits, name="control_deposits"),
     path("control/deposits/<uuid:pk>/", views.control_deposit_detail, name="control_deposit_detail"),

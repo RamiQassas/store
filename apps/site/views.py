@@ -1523,6 +1523,13 @@ def deposits(request):
         if not method:
             messages.error(request, "وسيلة الدفع المحددة غير متاحة لهذا المتجر.")
             return redirect("dashboard_deposits")
+
+        if method.gateway and method.gateway.is_temporarily_unavailable:
+            messages.error(request, method.gateway.unavailable_message)
+            return redirect("dashboard_deposits")
+        if method.is_maintenance_mode:
+            messages.error(request, f"وسيلة الدفع {method.name} قيد الصيانة حالياً، تم إيقاف الإيداع مؤقتاً.")
+            return redirect("dashboard_deposits")
         
         # KYC Check (Task 9)
         if method.requires_kyc and not request.user.is_kyc_verified:
@@ -3126,6 +3133,13 @@ def product_detail(request, pk):
                 messages.error(request, err_msg)
                 return redirect("product_detail", pk=pk)
 
+            if selected_gateway.is_temporarily_unavailable:
+                err_msg = selected_gateway.unavailable_message
+                if request.headers.get('x-requested-with') == 'XMLHttpRequest' or request.POST.get('ajax') == '1':
+                    return JsonResponse({"success": False, "error": err_msg}, status=400)
+                messages.error(request, err_msg)
+                return redirect("product_detail", pk=pk)
+
         # Check balance only for wallet payments
         if not is_direct_gateway:
             if request.user.wallet.available_balance < price:
@@ -3405,6 +3419,10 @@ def product_detail(request, pk):
                 "name": gw_name,
                 "provider_name": gw.get_provider_display(),
                 "logo": gw_logo,
+                "is_coming_soon": bool(gw.is_coming_soon),
+                "is_maintenance_mode": bool(gw.is_maintenance_mode),
+                "is_unavailable": gw.is_temporarily_unavailable,
+                "unavailable_label": gw.unavailable_badge_label,
             })
 
     # Navigation: previous and next products across products in current category (or store catalog fallback)
@@ -8348,13 +8366,25 @@ def api_app_wallet_info(request):
     req_store = getattr(request, "store", None)
     gw_filter = {"store": req_store} if req_store else {"store__isnull": True}
     shamcash_on = PaymentGatewayIntegration.all_objects.filter(
-        provider=PaymentGatewayIntegration.Provider.SHAM_CASH, is_active=True, **gw_filter
-    ).exists() or (not req_store and bool(getattr(settings, "SHAM_CASH_AGENT_KEY", "")))
+        provider=PaymentGatewayIntegration.Provider.SHAM_CASH,
+        is_active=True,
+        is_coming_soon=False,
+        is_maintenance_mode=False,
+        **gw_filter
+    ).exists() or (not req_store and bool(getattr(settings, "SHAM_CASH_AGENT_KEY", "")) and not PaymentGatewayIntegration.all_objects.filter(provider=PaymentGatewayIntegration.Provider.SHAM_CASH, store__isnull=True, is_coming_soon=True).exists() and not PaymentGatewayIntegration.all_objects.filter(provider=PaymentGatewayIntegration.Provider.SHAM_CASH, store__isnull=True, is_maintenance_mode=True).exists())
     paymera_on = PaymentGatewayIntegration.all_objects.filter(
-        provider=PaymentGatewayIntegration.Provider.PAYMERA, is_active=True, **gw_filter
-    ).exists() or (not req_store and bool(getattr(settings, "PAYMERA_MERCHANT_KEY", "")))
+        provider=PaymentGatewayIntegration.Provider.PAYMERA,
+        is_active=True,
+        is_coming_soon=False,
+        is_maintenance_mode=False,
+        **gw_filter
+    ).exists()
     mtn_pay_on = PaymentGatewayIntegration.all_objects.filter(
-        provider=PaymentGatewayIntegration.Provider.MTN_PAY, is_active=True, **gw_filter
+        provider=PaymentGatewayIntegration.Provider.MTN_PAY,
+        is_active=True,
+        is_coming_soon=False,
+        is_maintenance_mode=False,
+        **gw_filter
     ).exists()
 
     return JsonResponse({
@@ -8423,6 +8453,10 @@ def api_app_payment_deposit(request):
         pm = PaymentMethod.all_objects.filter(is_active=True, **pm_store_filter).first()
     if not pm:
         return JsonResponse({"status": "error", "message": "لا توجد وسيلة دفع مفعلة حالياً لهذا المتجر"}, status=400)
+    if pm.gateway and pm.gateway.is_temporarily_unavailable:
+        return JsonResponse({"status": "error", "message": pm.gateway.unavailable_message}, status=400)
+    if pm.is_maintenance_mode:
+        return JsonResponse({"status": "error", "message": f"وسيلة الدفع {pm.name} قيد الصيانة حالياً، تم إيقاف الإيداع مؤقتاً."}, status=400)
     deposit = DepositRequest.objects.create(
         user=user,
         store=store,
@@ -8642,6 +8676,8 @@ def api_app_create_order(request):
 
         if not selected_gateway:
             return JsonResponse({"status": "error", "message": "بوابة الدفع المحددة غير مفعلة لهذا المتجر"}, status=400)
+        if selected_gateway.is_temporarily_unavailable:
+            return JsonResponse({"status": "error", "message": selected_gateway.unavailable_message}, status=400)
 
         try:
             order_metadata = dict(metadata)
@@ -11341,6 +11377,8 @@ def payment_gateway_integration_edit(request, pk):
                         api_key=gateway.api_key,
                         api_secret=gateway.api_secret,
                         is_active=gateway.is_active,
+                        is_coming_soon=gateway.is_coming_soon,
+                        is_maintenance_mode=gateway.is_maintenance_mode,
                         settings=dup_settings,
                     )
             try:
@@ -11352,6 +11390,48 @@ def payment_gateway_integration_edit(request, pk):
         else:
             messages.error(request, "تعذر حفظ الإعدادات. يرجى مراجعة الحقول الموضحة أدناه.")
     return render(request, "site/payment_gateway_integration_form.html", {"form": form, "gateway": gateway, "title": "تعديل بوابة دفع API"})
+
+
+@admin_required
+def payment_gateway_integration_toggle_status(request, pk):
+    if request.method != "POST":
+        return redirect("payment_gateway_integrations_list")
+    store = getattr(request, "store", None)
+    is_platform_owner = request.user.is_superuser or getattr(request.user, "role", None) in ("super_admin", "admin")
+    if store and not is_platform_owner:
+        messages.error(request, "تعديل حالة بوابات الدفع متاح لمالك منصة رقميات فقط.")
+        return redirect("payment_gateway_integrations_list")
+
+    qs = PaymentGatewayIntegration.all_objects.filter(store=store) if store else PaymentGatewayIntegration.all_objects.filter(store__isnull=True)
+    gateway = get_object_or_404(qs, pk=pk)
+    flag = (request.POST.get("flag") or "").strip().lower()
+
+    if flag == "coming_soon":
+        gateway.is_coming_soon = not gateway.is_coming_soon
+        gateway.save(update_fields=["is_coming_soon", "updated_at"])
+        state_lbl = "تفعيل وضع (قريباً)" if gateway.is_coming_soon else "إلغاء وضع (قريباً)"
+    elif flag == "maintenance":
+        gateway.is_maintenance_mode = not gateway.is_maintenance_mode
+        gateway.save(update_fields=["is_maintenance_mode", "updated_at"])
+        state_lbl = "تفعيل وضع (قيد الصيانة)" if gateway.is_maintenance_mode else "إلغاء وضع (قيد الصيانة)"
+    else:
+        return redirect("payment_gateway_integrations_list")
+
+    if gateway.provider == PaymentGatewayIntegration.Provider.SHAM_CASH and gateway.store_id is None:
+        PaymentGatewayIntegration.all_objects.filter(
+            provider=PaymentGatewayIntegration.Provider.SHAM_CASH,
+            store__isnull=True,
+        ).exclude(pk=gateway.pk).update(
+            is_coming_soon=gateway.is_coming_soon,
+            is_maintenance_mode=gateway.is_maintenance_mode,
+        )
+    try:
+        gateway.sync_payment_method()
+    except Exception:
+        pass
+
+    messages.success(request, f"تم {state_lbl} لبوابة ({gateway.name}) بنجاح.")
+    return redirect("payment_gateway_integrations_list")
 
 
 @admin_required
@@ -13983,19 +14063,21 @@ def cart_checkout_view(request):
             else:
                 selected_gateway = PaymentGatewayIntegration.all_objects.filter(provider=payment_method, is_active=True, **gw_filter).first()
                 if not selected_gateway and _is_valid_uuid(payment_method):
-                    selected_gateway = PaymentGatewayIntegration.all_objects.filter(pk=payment_method, is_active=True).first()
+                    selected_gateway = PaymentGatewayIntegration.all_objects.filter(pk=payment_method, is_active=True, **gw_filter).first()
                 if not selected_gateway:
                     if payment_method in ("paymera", "direct_paymera"):
-                        selected_gateway = PaymentGatewayIntegration.all_objects.filter(provider=PaymentGatewayIntegration.Provider.PAYMERA, is_active=True).first()
+                        selected_gateway = PaymentGatewayIntegration.all_objects.filter(provider=PaymentGatewayIntegration.Provider.PAYMERA, is_active=True, **gw_filter).first()
                     elif payment_method in ("sham_cash", "shamcash", "direct_sham_cash"):
-                        selected_gateway = PaymentGatewayIntegration.all_objects.filter(provider=PaymentGatewayIntegration.Provider.SHAM_CASH, is_active=True).first()
+                        selected_gateway = PaymentGatewayIntegration.all_objects.filter(provider=PaymentGatewayIntegration.Provider.SHAM_CASH, is_active=True, **gw_filter).first()
                     elif payment_method in ("mtn_pay", "mtn", "direct_mtn_pay"):
-                        selected_gateway = PaymentGatewayIntegration.all_objects.filter(provider=PaymentGatewayIntegration.Provider.MTN_PAY, is_active=True).first()
-                    elif payment_method in ("mtn_pay", "mtn", "direct_mtn_pay"):
-                        selected_gateway = PaymentGatewayIntegration.all_objects.filter(provider=PaymentGatewayIntegration.Provider.MTN_PAY, is_active=True).first()
+                        selected_gateway = PaymentGatewayIntegration.all_objects.filter(provider=PaymentGatewayIntegration.Provider.MTN_PAY, is_active=True, **gw_filter).first()
 
         if not selected_gateway:
             messages.error(request, "بوابة الدفع الإلكتروني المحددة غير مفعلة حالياً.")
+            return redirect("cart_detail")
+
+        if selected_gateway.is_temporarily_unavailable:
+            messages.error(request, selected_gateway.unavailable_message)
             return redirect("cart_detail")
 
         gateway_curr = (request.POST.get("gateway_currency") or request.POST.get("shamcash_currency") or "USD").strip().upper()

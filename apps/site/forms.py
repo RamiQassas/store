@@ -268,7 +268,7 @@ class PaymentGatewayIntegrationForm(forms.ModelForm):
         model = PaymentGatewayIntegration
         fields = [
             "name", "logo", "provider", "mode", "terminal_id", "base_url", "api_key", "api_secret",
-            "webhook_secret", "is_active", "can_deposit", "can_withdraw",
+            "webhook_secret", "is_active", "is_coming_soon", "is_maintenance_mode", "can_deposit", "can_withdraw",
             "supported_assets", "settings",
         ]
         widgets = {
@@ -282,6 +282,8 @@ class PaymentGatewayIntegrationForm(forms.ModelForm):
             "api_secret": forms.PasswordInput(attrs={"class": "builder-input", "autocomplete": "new-password", "render_value": False, "dir": "ltr"}),
             "webhook_secret": forms.PasswordInput(attrs={"class": "builder-input", "autocomplete": "new-password", "render_value": False, "dir": "ltr"}),
             "is_active": forms.CheckboxInput(attrs={"class": "rounded text-cyan"}),
+            "is_coming_soon": forms.CheckboxInput(attrs={"class": "rounded text-amber-400"}),
+            "is_maintenance_mode": forms.CheckboxInput(attrs={"class": "rounded text-rose-400"}),
             "can_deposit": forms.CheckboxInput(attrs={"class": "rounded text-cyan"}),
             "can_withdraw": forms.CheckboxInput(attrs={"class": "rounded text-cyan"}),
             "supported_assets": forms.Textarea(attrs={"rows": 4, "class": "font-mono text-xs builder-input", "placeholder": "[\"USDT-TRC20\", \"USDT-BEP20\"]"}),

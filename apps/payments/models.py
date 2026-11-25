@@ -358,6 +358,26 @@ class PaymentMethod(TimeStampedModel):
         return Decimal("1.000000")
 
     @property
+    def is_temporarily_unavailable(self) -> bool:
+        return bool(self.is_coming_soon or self.is_maintenance_mode)
+
+    @property
+    def unavailable_badge_label(self) -> str:
+        if self.is_maintenance_mode:
+            return "قيد الصيانة"
+        if self.is_coming_soon:
+            return "قريباً"
+        return ""
+
+    @property
+    def unavailable_message(self) -> str:
+        if self.is_maintenance_mode:
+            return f"بوابة {self.name} قيد الصيانة حالياً، تم إيقاف الشراء والإيداع عبرها مؤقتاً."
+        if self.is_coming_soon:
+            return f"بوابة {self.name} ستتوفر قريباً، لا يمكن الشراء أو الإيداع عبرها حالياً."
+        return ""
+
+    @property
     def logo_url(self):
         if self.logo:
             try:
@@ -438,12 +458,34 @@ class PaymentGatewayIntegration(TimeStampedModel):
     api_secret = models.CharField(max_length=255, blank=True, verbose_name="API Secret")
     webhook_secret = models.CharField(max_length=255, blank=True, verbose_name="Webhook Secret")
     is_active = models.BooleanField(default=False, verbose_name="نشطة")
+    is_coming_soon = models.BooleanField(default=False, verbose_name="قريباً (إيقاف الشراء والإيداع)")
+    is_maintenance_mode = models.BooleanField(default=False, verbose_name="قيد الصيانة (إيقاف الشراء والإيداع)")
     can_deposit = models.BooleanField(default=True, verbose_name="تدعم الإيداع")
     can_withdraw = models.BooleanField(default=False, verbose_name="تدعم السحب")
     supported_assets = models.JSONField(default=list, blank=True, verbose_name="الأصول المدعومة")
     settings = models.JSONField(default=dict, blank=True, verbose_name="إعدادات إضافية")
     last_health_check_at = models.DateTimeField(null=True, blank=True, verbose_name="آخر فحص اتصال")
     last_health_status = models.CharField(max_length=30, blank=True, verbose_name="نتيجة آخر فحص")
+
+    @property
+    def is_temporarily_unavailable(self) -> bool:
+        return bool(self.is_coming_soon or self.is_maintenance_mode)
+
+    @property
+    def unavailable_badge_label(self) -> str:
+        if self.is_maintenance_mode:
+            return "قيد الصيانة"
+        if self.is_coming_soon:
+            return "قريباً"
+        return ""
+
+    @property
+    def unavailable_message(self) -> str:
+        if self.is_maintenance_mode:
+            return f"بوابة {self.name} قيد الصيانة حالياً، تم إيقاف الشراء والإيداع عبرها مؤقتاً."
+        if self.is_coming_soon:
+            return f"بوابة {self.name} ستتوفر قريباً، لا يمكن الشراء أو الإيداع عبرها حالياً."
+        return ""
 
     @property
     def logo_url(self):
@@ -550,6 +592,7 @@ class PaymentGatewayIntegration(TimeStampedModel):
                 self.logo = pm.logo
                 PaymentGatewayIntegration.all_objects.filter(pk=self.pk).update(logo=pm.logo.name)
             pm.is_active = self.is_active
+            pm.is_maintenance_mode = self.is_maintenance_mode
             pm.can_deposit = self.can_deposit
             pm.can_withdraw = self.can_withdraw
             pm.save()

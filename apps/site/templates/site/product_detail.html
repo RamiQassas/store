@@ -544,7 +544,7 @@
                    id="pm-btn-{{ gw.code }}"
                    data-gw-id="{{ gw.id }}"
                    data-gw-code="{{ gw.code }}"
-                   onclick="selectPdpMethod('{{ gw.id }}', '{{ gw.code }}', this)">
+                   {% if gw.is_unavailable %}style="opacity: 0.58; cursor: not-allowed; pointer-events: none;" title="{{ gw.unavailable_label }}"{% else %}onclick="selectPdpMethod('{{ gw.id }}', '{{ gw.code }}', this)"{% endif %}>
                 <div style="display: flex; align-items: center; justify-content: space-between;">
                   <div style="display: flex; align-items: center; gap: 0.45rem;">
                     {% if gw.logo %}
@@ -554,9 +554,13 @@
                     {% endif %}
                     <span style="font-size: 0.86rem; font-weight: 900; color: var(--rq-navy);">شام كاش</span>
                   </div>
+                  {% if gw.is_unavailable %}
+                  <span style="font-size: 0.68rem; font-weight: 900; padding: 2px 7px; border-radius: 999px; background: {% if gw.is_maintenance_mode %}rgba(239,68,68,0.16); color: #ef4444;{% else %}rgba(245,158,11,0.16); color: #d97706;{% endif %}">{{ gw.unavailable_label }}</span>
+                  {% else %}
                   <span class="pm-radio-ring" style="width: 16px; height: 16px; border-radius: 50%; border: 2px solid var(--rq-border-strong); background: transparent; display: inline-block;"></span>
+                  {% endif %}
                 </div>
-                <span style="font-size: 0.72rem; color: #0d9488; font-weight: 800;">⚡ دفع إلكتروني فوري</span>
+                <span style="font-size: 0.72rem; color: {% if gw.is_unavailable %}#94a3b8{% else %}#0d9488{% endif %}; font-weight: 800;">{% if gw.is_unavailable %}متوقفة مؤقتاً ({{ gw.unavailable_label }}){% else %}⚡ دفع إلكتروني فوري{% endif %}</span>
               </div>
               {% endif %}
               {% endfor %}
@@ -568,7 +572,7 @@
                    id="pm-btn-{{ gw.code }}"
                    data-gw-id="{{ gw.id }}"
                    data-gw-code="{{ gw.code }}"
-                   onclick="selectPdpMethod('{{ gw.id }}', '{{ gw.code }}', this)">
+                   {% if gw.is_unavailable %}style="opacity: 0.58; cursor: not-allowed; pointer-events: none;" title="{{ gw.unavailable_label }}"{% else %}onclick="selectPdpMethod('{{ gw.id }}', '{{ gw.code }}', this)"{% endif %}>
                 <div style="display: flex; align-items: center; justify-content: space-between;">
                   <div style="display: flex; align-items: center; gap: 0.45rem;">
                     {% if gw.logo %}
@@ -578,9 +582,13 @@
                     {% endif %}
                     <span style="font-size: 0.86rem; font-weight: 900; color: var(--rq-navy);">بيميرا</span>
                   </div>
+                  {% if gw.is_unavailable %}
+                  <span style="font-size: 0.68rem; font-weight: 900; padding: 2px 7px; border-radius: 999px; background: {% if gw.is_maintenance_mode %}rgba(239,68,68,0.16); color: #ef4444;{% else %}rgba(245,158,11,0.16); color: #d97706;{% endif %}">{{ gw.unavailable_label }}</span>
+                  {% else %}
                   <span class="pm-radio-ring" style="width: 16px; height: 16px; border-radius: 50%; border: 2px solid var(--rq-border-strong); background: transparent; display: inline-block;"></span>
+                  {% endif %}
                 </div>
-                <span style="font-size: 0.72rem; color: var(--rq-text-muted); font-weight: 700;">بطاقات وبوابات</span>
+                <span style="font-size: 0.72rem; color: var(--rq-text-muted); font-weight: 700;">{% if gw.is_unavailable %}متوقفة مؤقتاً ({{ gw.unavailable_label }}){% else %}بطاقات وبوابات{% endif %}</span>
               </div>
               {% endif %}
               {% endfor %}
@@ -592,7 +600,7 @@
                    id="pm-btn-{{ gw.code }}"
                    data-gw-id="{{ gw.id }}"
                    data-gw-code="{{ gw.code }}"
-                   onclick="selectPdpMethod('{{ gw.id }}', '{{ gw.code }}', this)">
+                   {% if gw.is_unavailable %}style="opacity: 0.58; cursor: not-allowed; pointer-events: none;" title="{{ gw.unavailable_label }}"{% else %}onclick="selectPdpMethod('{{ gw.id }}', '{{ gw.code }}', this)"{% endif %}>
                 <div style="display: flex; align-items: center; justify-content: space-between;">
                   <div style="display: flex; align-items: center; gap: 0.45rem;">
                     {% if gw.logo %}
@@ -604,9 +612,13 @@
                     {% endif %}
                     <span style="font-size: 0.86rem; font-weight: 900; color: var(--rq-navy);">{% if gw.code == 'mtn_pay' %}Cash Mobile{% else %}{{ gw.name }}{% endif %}</span>
                   </div>
+                  {% if gw.is_unavailable %}
+                  <span style="font-size: 0.68rem; font-weight: 900; padding: 2px 7px; border-radius: 999px; background: {% if gw.is_maintenance_mode %}rgba(239,68,68,0.16); color: #ef4444;{% else %}rgba(245,158,11,0.16); color: #d97706;{% endif %}">{{ gw.unavailable_label }}</span>
+                  {% else %}
                   <span class="pm-radio-ring" style="width: 16px; height: 16px; border-radius: 50%; border: 2px solid var(--rq-border-strong); background: transparent; display: inline-block;"></span>
+                  {% endif %}
                 </div>
-                <span style="font-size: 0.72rem; color: {% if gw.code == 'mtn_pay' %}#d97706{% else %}var(--rq-text-muted){% endif %}; font-weight: 800;">{% if gw.code == 'mtn_pay' %}⚡ دفع فوري (MTN Cash){% else %}دفع إلكتروني{% endif %}</span>
+                <span style="font-size: 0.72rem; color: {% if gw.is_unavailable %}#94a3b8{% elif gw.code == 'mtn_pay' %}#d97706{% else %}var(--rq-text-muted){% endif %}; font-weight: 800;">{% if gw.is_unavailable %}متوقفة مؤقتاً ({{ gw.unavailable_label }}){% elif gw.code == 'mtn_pay' %}⚡ دفع فوري (MTN Cash){% else %}دفع إلكتروني{% endif %}</span>
               </div>
               {% endif %}
               {% endfor %}

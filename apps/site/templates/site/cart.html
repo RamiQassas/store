@@ -192,8 +192,8 @@
               <!-- 2. شام كاش (Sham Cash) -->
               {% for gw in gateway_methods %}
               {% if gw.code == 'sham_cash' %}
-              <div class="cart-pm-card" id="cart-pm-sham_cash" data-gw-id="{{ gw.id }}" data-gw-code="{{ gw.code }}" onclick="selectCartPaymentMethod('{{ gw.id }}', '{{ gw.code }}', this)"
-                   style="border: 1.5px solid var(--rq-border); background: var(--rq-surface-card); border-radius: 12px; padding: 0.85rem 1rem; cursor: pointer; transition: all 0.2s ease;">
+              <div class="cart-pm-card" id="cart-pm-sham_cash" data-gw-id="{{ gw.id }}" data-gw-code="{{ gw.code }}" {% if not gw.is_unavailable %}onclick="selectCartPaymentMethod('{{ gw.id }}', '{{ gw.code }}', this)"{% endif %}
+                   style="border: 1.5px solid var(--rq-border); background: var(--rq-surface-card); border-radius: 12px; padding: 0.85rem 1rem; {% if gw.is_unavailable %}opacity: 0.58; cursor: not-allowed; pointer-events: none;{% else %}cursor: pointer;{% endif %} transition: all 0.2s ease;">
                 <div style="display: flex; align-items: center; justify-content: space-between;">
                   <div style="display: flex; align-items: center; gap: 0.55rem;">
                     <div style="width: 32px; height: 32px; border-radius: 8px; background: rgba(13, 148, 136, 0.12); display: flex; align-items: center; justify-content: center; overflow: hidden;">
@@ -217,8 +217,8 @@
               <!-- 3. بيميرا (Paymera) -->
               {% for gw in gateway_methods %}
               {% if gw.code == 'paymera' %}
-              <div class="cart-pm-card" id="cart-pm-paymera" data-gw-id="{{ gw.id }}" data-gw-code="{{ gw.code }}" onclick="selectCartPaymentMethod('{{ gw.id }}', '{{ gw.code }}', this)"
-                   style="border: 1.5px solid var(--rq-border); background: var(--rq-surface-card); border-radius: 12px; padding: 0.85rem 1rem; cursor: pointer; transition: all 0.2s ease;">
+              <div class="cart-pm-card" id="cart-pm-paymera" data-gw-id="{{ gw.id }}" data-gw-code="{{ gw.code }}" {% if not gw.is_unavailable %}onclick="selectCartPaymentMethod('{{ gw.id }}', '{{ gw.code }}', this)"{% endif %}
+                   style="border: 1.5px solid var(--rq-border); background: var(--rq-surface-card); border-radius: 12px; padding: 0.85rem 1rem; {% if gw.is_unavailable %}opacity: 0.58; cursor: not-allowed; pointer-events: none;{% else %}cursor: pointer;{% endif %} transition: all 0.2s ease;">
                 <div style="display: flex; align-items: center; justify-content: space-between;">
                   <div style="display: flex; align-items: center; gap: 0.55rem;">
                     <div style="width: 32px; height: 32px; border-radius: 8px; background: rgba(79, 70, 229, 0.12); display: flex; align-items: center; justify-content: center; overflow: hidden;">
@@ -242,8 +242,8 @@
               <!-- 4. أي بوابات دفع أخرى مفعلة (Cash Mobile / MTN) -->
               {% for gw in gateway_methods %}
               {% if gw.code != 'sham_cash' and gw.code != 'paymera' %}
-              <div class="cart-pm-card" id="cart-pm-{{ gw.code }}" data-gw-id="{{ gw.id }}" data-gw-code="{{ gw.code }}" onclick="selectCartPaymentMethod('{{ gw.id }}', '{{ gw.code }}', this)"
-                   style="border: 1.5px solid var(--rq-border); background: var(--rq-surface-card); border-radius: 12px; padding: 0.85rem 1rem; cursor: pointer; transition: all 0.2s ease;">
+              <div class="cart-pm-card" id="cart-pm-{{ gw.code }}" data-gw-id="{{ gw.id }}" data-gw-code="{{ gw.code }}" {% if not gw.is_unavailable %}onclick="selectCartPaymentMethod('{{ gw.id }}', '{{ gw.code }}', this)"{% endif %}
+                   style="border: 1.5px solid var(--rq-border); background: var(--rq-surface-card); border-radius: 12px; padding: 0.85rem 1rem; {% if gw.is_unavailable %}opacity: 0.58; cursor: not-allowed; pointer-events: none;{% else %}cursor: pointer;{% endif %} transition: all 0.2s ease;">
                 <div style="display: flex; align-items: center; justify-content: space-between;">
                   <div style="display: flex; align-items: center; gap: 0.55rem;">
                     <div style="width: 32px; height: 32px; border-radius: 8px; background: {% if gw.code == 'mtn_pay' %}rgba(245, 158, 11, 0.14){% else %}rgba(100, 116, 139, 0.12){% endif %}; display: flex; align-items: center; justify-content: center; overflow: hidden;">
