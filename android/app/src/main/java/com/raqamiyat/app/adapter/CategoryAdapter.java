@@ -9,6 +9,7 @@ import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.raqamiyat.app.R;
+import com.raqamiyat.app.UiMotion;
 import com.raqamiyat.app.model.CategoryItem;
 
 import java.util.ArrayList;
@@ -46,6 +47,7 @@ public class CategoryAdapter extends RecyclerView.Adapter<CategoryAdapter.VH> {
     @Override
     public VH onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
         View v = LayoutInflater.from(parent.getContext()).inflate(R.layout.item_category_chip, parent, false);
+        UiMotion.attachPressScale(v);
         return new VH(v);
     }
 
@@ -55,8 +57,9 @@ public class CategoryAdapter extends RecyclerView.Adapter<CategoryAdapter.VH> {
         boolean isSelected = item.id.equals(selectedCategoryId);
         holder.title.setText(item.name);
         holder.title.setBackgroundResource(isSelected ? R.drawable.bg_chip_selected : R.drawable.bg_chip_unselected);
-        holder.title.setTextColor(isSelected ? 0xFF030712 : 0xFFE2E8F0);
+        holder.title.setTextColor(isSelected ? 0xFF050811 : 0xFFE2E8F0);
         holder.itemView.setOnClickListener(v -> {
+            UiMotion.hapticTap(v);
             selectedCategoryId = item.id;
             notifyDataSetChanged();
             if (listener != null) {

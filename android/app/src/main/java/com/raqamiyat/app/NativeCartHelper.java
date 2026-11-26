@@ -6,7 +6,6 @@ import android.graphics.Typeface;
 import android.view.Gravity;
 import android.view.View;
 import android.view.ViewGroup;
-import android.widget.Button;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.ProgressBar;
@@ -25,7 +24,7 @@ import org.json.JSONObject;
 import java.util.List;
 
 /**
- * 100% Native Shopping Cart BottomSheet with live USD/SYP pricing and instant Wallet Checkout.
+ * Luxury Native Shopping Cart BottomSheet with rounded glass surface & spring physics.
  */
 public class NativeCartHelper {
 
@@ -50,34 +49,44 @@ public class NativeCartHelper {
         LinearLayout root = new LinearLayout(activity);
         root.setOrientation(LinearLayout.VERTICAL);
         root.setLayoutDirection(View.LAYOUT_DIRECTION_RTL);
-        root.setBackgroundColor(0xFF0B1120);
-        int pad = dp(activity, 18);
-        root.setPadding(pad, pad, pad, dp(activity, 24));
+        root.setBackgroundResource(R.drawable.bg_bottom_sheet);
+        int pad = dp(activity, 20);
+        root.setPadding(pad, dp(activity, 12), pad, dp(activity, 28));
 
-        // Header
+        root.addView(UiMotion.createDragHandle(activity));
+
         LinearLayout header = new LinearLayout(activity);
         header.setOrientation(LinearLayout.HORIZONTAL);
         header.setGravity(Gravity.CENTER_VERTICAL);
 
+        ImageView cartIc = new ImageView(activity);
+        cartIc.setImageResource(R.drawable.ic_cart);
+        cartIc.setColorFilter(0xFFFBBF24);
+        LinearLayout.LayoutParams icLp = new LinearLayout.LayoutParams(dp(activity, 22), dp(activity, 22));
+        icLp.setMarginEnd(dp(activity, 8));
+        cartIc.setLayoutParams(icLp);
+        header.addView(cartIc);
+
         TextView title = new TextView(activity);
         title.setLayoutParams(new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f));
-        title.setText("🛒 سلة مشترياتك");
+        title.setText("سلة المشتريات");
         title.setTextColor(0xFFFFFFFF);
-        title.setTextSize(17f);
+        title.setTextSize(17.5f);
         title.setTypeface(title.getTypeface(), Typeface.BOLD);
         header.addView(title);
 
         TextView clearBtn = new TextView(activity);
-        clearBtn.setText("إفراغ السلة ✕");
+        clearBtn.setText("إفراغ السلة");
         clearBtn.setTextColor(0xFFF87171);
         clearBtn.setTextSize(12f);
-        clearBtn.setPadding(dp(activity, 8), dp(activity, 4), dp(activity, 8), dp(activity, 4));
+        clearBtn.setTypeface(clearBtn.getTypeface(), Typeface.BOLD);
+        clearBtn.setPadding(dp(activity, 10), dp(activity, 5), dp(activity, 10), dp(activity, 5));
         header.addView(clearBtn);
         root.addView(header);
 
         ScrollView scroll = new ScrollView(activity);
         LinearLayout.LayoutParams scLp = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
-        scLp.topMargin = dp(activity, 12);
+        scLp.topMargin = dp(activity, 14);
         scroll.setLayoutParams(scLp);
 
         LinearLayout itemsContainer = new LinearLayout(activity);
@@ -86,7 +95,7 @@ public class NativeCartHelper {
         root.addView(scroll);
 
         TextView totalView = new TextView(activity);
-        totalView.setTextColor(0xFFFBBF24);
+        totalView.setTextColor(0xFFFDE047);
         totalView.setTextSize(16f);
         totalView.setTypeface(totalView.getTypeface(), Typeface.BOLD);
         LinearLayout.LayoutParams totLp = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
@@ -102,16 +111,19 @@ public class NativeCartHelper {
         progress.setLayoutParams(prLp);
         root.addView(progress);
 
-        Button checkoutBtn = new Button(activity);
+        TextView checkoutBtn = new TextView(activity);
         checkoutBtn.setBackgroundResource(R.drawable.bg_button_gold);
-        checkoutBtn.setText("إتمام الشراء الفوري من المحفظة ⚡");
-        checkoutBtn.setTextColor(0xFF030712);
-        checkoutBtn.setTextSize(14.5f);
-        checkoutBtn.setAllCaps(false);
+        checkoutBtn.setGravity(Gravity.CENTER);
+        checkoutBtn.setClickable(true);
+        checkoutBtn.setFocusable(true);
+        checkoutBtn.setText("إتمام الشراء الفوري من المحفظة");
+        checkoutBtn.setTextColor(0xFF050811);
+        checkoutBtn.setTextSize(15f);
         checkoutBtn.setTypeface(checkoutBtn.getTypeface(), Typeface.BOLD);
-        LinearLayout.LayoutParams bLp = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dp(activity, 50));
-        bLp.topMargin = dp(activity, 12);
+        LinearLayout.LayoutParams bLp = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dp(activity, 52));
+        bLp.topMargin = dp(activity, 14);
         checkoutBtn.setLayoutParams(bLp);
+        UiMotion.attachPressScale(checkoutBtn);
         root.addView(checkoutBtn);
 
         final Runnable[] rebuildUi = new Runnable[1];
@@ -120,11 +132,11 @@ public class NativeCartHelper {
             List<CartItem> items = localStore.getCartItems();
             if (items.isEmpty()) {
                 TextView empty = new TextView(activity);
-                empty.setText("سلة المشتريات فارغة حالياً.\nتصفح المنتجات وأضف ما يعجبك بلمسة واحدة!");
+                empty.setText("سلة المشتريات فارغة حالياً.\nأضف بطاقاتك ومنتجاتك المفضلة بلمسة واحدة.");
                 empty.setTextColor(0xFF94A3B8);
-                empty.setTextSize(13f);
+                empty.setTextSize(13.5f);
                 empty.setGravity(Gravity.CENTER);
-                empty.setPadding(0, dp(activity, 28), 0, dp(activity, 28));
+                empty.setPadding(0, dp(activity, 32), 0, dp(activity, 32));
                 itemsContainer.addView(empty);
                 totalView.setVisibility(View.GONE);
                 checkoutBtn.setVisibility(View.GONE);
@@ -145,17 +157,17 @@ public class NativeCartHelper {
                 card.setOrientation(LinearLayout.HORIZONTAL);
                 card.setGravity(Gravity.CENTER_VERTICAL);
                 card.setBackgroundResource(R.drawable.bg_card_dark);
-                card.setPadding(dp(activity, 10), dp(activity, 10), dp(activity, 10), dp(activity, 10));
+                card.setPadding(dp(activity, 12), dp(activity, 12), dp(activity, 12), dp(activity, 12));
                 LinearLayout.LayoutParams cLp = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
                 cLp.bottomMargin = dp(activity, 8);
                 card.setLayoutParams(cLp);
 
                 ImageView img = new ImageView(activity);
-                LinearLayout.LayoutParams iLp = new LinearLayout.LayoutParams(dp(activity, 46), dp(activity, 46));
-                iLp.setMarginEnd(dp(activity, 10));
+                LinearLayout.LayoutParams iLp = new LinearLayout.LayoutParams(dp(activity, 48), dp(activity, 48));
+                iLp.setMarginEnd(dp(activity, 12));
                 img.setLayoutParams(iLp);
                 img.setBackgroundResource(R.drawable.bg_logo_box);
-                img.setPadding(dp(activity, 3), dp(activity, 3), dp(activity, 3), dp(activity, 3));
+                img.setPadding(dp(activity, 4), dp(activity, 4), dp(activity, 4), dp(activity, 4));
                 if (!it.imageUrl.isEmpty()) {
                     Glide.with(activity).load(it.imageUrl).placeholder(R.mipmap.ic_launcher).into(img);
                 } else {
@@ -168,9 +180,9 @@ public class NativeCartHelper {
                 info.setLayoutParams(new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f));
 
                 TextView pName = new TextView(activity);
-                pName.setText(it.productName + (!it.variantName.isEmpty() && !it.variantName.equals(it.productName) ? " (" + it.variantName + ")" : ""));
+                pName.setText(it.productName + (!it.variantName.isEmpty() && !it.variantName.equals(it.productName) ? " • " + it.variantName : ""));
                 pName.setTextColor(0xFFFFFFFF);
-                pName.setTextSize(12.5f);
+                pName.setTextSize(13f);
                 pName.setTypeface(pName.getTypeface(), Typeface.BOLD);
                 pName.setMaxLines(2);
                 info.addView(pName);
@@ -178,12 +190,11 @@ public class NativeCartHelper {
                 TextView pPrice = new TextView(activity);
                 pPrice.setText(localStore.formatPrice(it.unitPriceUsd * it.quantity));
                 pPrice.setTextColor(0xFFFBBF24);
-                pPrice.setTextSize(12f);
+                pPrice.setTextSize(12.5f);
                 pPrice.setTypeface(pPrice.getTypeface(), Typeface.BOLD);
                 info.addView(pPrice);
                 card.addView(info);
 
-                // Qty controls
                 LinearLayout qtyRow = new LinearLayout(activity);
                 qtyRow.setOrientation(LinearLayout.HORIZONTAL);
                 qtyRow.setGravity(Gravity.CENTER_VERTICAL);
@@ -191,11 +202,12 @@ public class NativeCartHelper {
                 TextView minus = new TextView(activity);
                 minus.setText("−");
                 minus.setTextColor(0xFFFFFFFF);
-                minus.setTextSize(15f);
+                minus.setTextSize(16f);
                 minus.setGravity(Gravity.CENTER);
-                minus.setBackgroundResource(R.drawable.bg_chip_unselected);
-                minus.setLayoutParams(new LinearLayout.LayoutParams(dp(activity, 28), dp(activity, 28)));
+                minus.setBackgroundResource(R.drawable.bg_icon_circle);
+                minus.setLayoutParams(new LinearLayout.LayoutParams(dp(activity, 30), dp(activity, 30)));
                 minus.setOnClickListener(v -> {
+                    UiMotion.hapticTap(v);
                     List<CartItem> list = localStore.getCartItems();
                     if (pos < list.size()) {
                         if (list.get(pos).quantity > 1) {
@@ -213,7 +225,7 @@ public class NativeCartHelper {
                 TextView qtyTv = new TextView(activity);
                 qtyTv.setText(String.valueOf(it.quantity));
                 qtyTv.setTextColor(0xFFFFFFFF);
-                qtyTv.setTextSize(13f);
+                qtyTv.setTextSize(13.5f);
                 qtyTv.setTypeface(qtyTv.getTypeface(), Typeface.BOLD);
                 qtyTv.setPadding(dp(activity, 10), 0, dp(activity, 10), 0);
                 qtyRow.addView(qtyTv);
@@ -221,11 +233,12 @@ public class NativeCartHelper {
                 TextView plus = new TextView(activity);
                 plus.setText("+");
                 plus.setTextColor(0xFF22D3EE);
-                plus.setTextSize(15f);
+                plus.setTextSize(16f);
                 plus.setGravity(Gravity.CENTER);
-                plus.setBackgroundResource(R.drawable.bg_chip_unselected);
-                plus.setLayoutParams(new LinearLayout.LayoutParams(dp(activity, 28), dp(activity, 28)));
+                plus.setBackgroundResource(R.drawable.bg_icon_circle);
+                plus.setLayoutParams(new LinearLayout.LayoutParams(dp(activity, 30), dp(activity, 30)));
                 plus.setOnClickListener(v -> {
+                    UiMotion.hapticTap(v);
                     List<CartItem> list = localStore.getCartItems();
                     if (pos < list.size()) {
                         list.get(pos).quantity += 1;
@@ -244,12 +257,14 @@ public class NativeCartHelper {
         };
 
         clearBtn.setOnClickListener(v -> {
+            UiMotion.hapticTap(v);
             localStore.clearCart();
             if (callback != null) callback.onCartChanged();
             rebuildUi[0].run();
         });
 
         checkoutBtn.setOnClickListener(v -> {
+            UiMotion.hapticTap(v);
             List<CartItem> items = localStore.getCartItems();
             if (items.isEmpty()) return;
             progress.setVisibility(View.VISIBLE);
@@ -284,16 +299,16 @@ public class NativeCartHelper {
                             callback.onOrderCompleted(json.optString("order_number", ""));
                         }
                         sheet.dismiss();
-                        Toast.makeText(activity, "✓ " + json.optString("message", "تم تأكيد طلبك بنجاح!"), Toast.LENGTH_LONG).show();
+                        Toast.makeText(activity, json.optString("message", "تم تأكيد طلبك بنجاح!"), Toast.LENGTH_LONG).show();
                         return;
                     }
                     boolean insuff = json != null && json.optBoolean("insufficient_balance", false);
                     String msg = json != null ? json.optString("message", "تعذر إتمام الطلب") : (err != null ? err : "خطأ في الاتصال");
                     if (insuff) {
                         new MaterialAlertDialogBuilder(activity)
-                                .setTitle("💳 رصيد المحفظة غير كافٍ")
+                                .setTitle("رصيد المحفظة غير كافٍ")
                                 .setMessage(msg)
-                                .setPositiveButton("شحن المحفظة الآن ⚡", (d, w) -> {
+                                .setPositiveButton("شحن المحفظة الآن", (d, w) -> {
                                     sheet.dismiss();
                                     activity.startActivity(new Intent(activity, NativePaymentActivity.class));
                                 })

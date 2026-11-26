@@ -4,19 +4,19 @@ import android.content.ClipData;
 import android.content.ClipboardManager;
 import android.content.Context;
 import android.content.Intent;
+import android.graphics.Color;
 import android.graphics.Typeface;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
 import android.text.Editable;
+import android.text.TextUtils;
 import android.text.TextWatcher;
 import android.view.Gravity;
 import android.view.View;
 import android.view.ViewGroup;
-import android.widget.Button;
 import android.widget.EditText;
-import android.widget.ImageButton;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.ProgressBar;
@@ -27,6 +27,7 @@ import androidx.appcompat.app.AppCompatActivity;
 
 import com.bumptech.glide.Glide;
 import com.bumptech.glide.load.engine.DiskCacheStrategy;
+import com.bumptech.glide.load.resource.drawable.DrawableTransitionOptions;
 import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 import com.raqamiyat.app.model.GatewayItem;
 
@@ -60,10 +61,10 @@ public class NativePaymentActivity extends AppCompatActivity {
     private TextView limitsHint;
     private EditText amountInput;
     private TextView conversionPreview;
-    private Button btnAmt1, btnAmt2, btnAmt3, btnAmt4;
+    private TextView btnAmt1, btnAmt2, btnAmt3, btnAmt4;
     private TextView statusText;
     private ProgressBar progressBar;
-    private Button btnSubmit, btnVerify;
+    private TextView btnSubmit, btnVerify;
     private TextView recentHeader;
     private LinearLayout recentContainer;
 
@@ -88,8 +89,8 @@ public class NativePaymentActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
-            getWindow().setStatusBarColor(0xFF030712);
-            getWindow().setNavigationBarColor(0xFF030712);
+            getWindow().setStatusBarColor(0xFF050811);
+            getWindow().setNavigationBarColor(0xFF050811);
         }
         setContentView(R.layout.activity_native_payment);
 
@@ -100,7 +101,7 @@ public class NativePaymentActivity extends AppCompatActivity {
 
         bindViews();
         setupActions();
-        updateCurrencyUi();
+        updateCurrencyUi(false);
         loadWalletAndGateways();
     }
 
@@ -140,23 +141,49 @@ public class NativePaymentActivity extends AppCompatActivity {
     }
 
     private void setupActions() {
-        ImageButton btnBack = findViewById(R.id.btn_pay_back);
-        btnBack.setOnClickListener(v -> finish());
+        View btnBack = findViewById(R.id.btn_pay_back);
+        UiMotion.attachPressScale(btnBack);
+        btnBack.setOnClickListener(v -> {
+            UiMotion.hapticTap(v);
+            finish();
+        });
 
-        Button btnRefresh = findViewById(R.id.btn_pay_refresh);
+        View btnRefresh = findViewById(R.id.btn_pay_refresh);
+        UiMotion.attachPressScale(btnRefresh);
         btnRefresh.setOnClickListener(v -> {
-            Toast.makeText(this, "جاري مزامنة الرصيد والبوابات...", Toast.LENGTH_SHORT).show();
+            UiMotion.hapticTap(v);
+            v.animate().rotationBy(360f).setDuration(420).start();
             loadWalletAndGateways();
         });
 
-        Button btnLoginNow = findViewById(R.id.btn_pay_login_now);
+        View btnLoginNow = findViewById(R.id.btn_pay_login_now);
+        UiMotion.attachPressScale(btnLoginNow);
         btnLoginNow.setOnClickListener(v -> openNativeLogin());
 
-        Button btnRedeemCard = findViewById(R.id.btn_redeem_card);
-        btnRedeemCard.setOnClickListener(v -> showRedeemRechargeCardDialog());
+        View btnRedeemCard = findViewById(R.id.btn_redeem_card);
+        UiMotion.attachPressScale(btnRedeemCard);
+        btnRedeemCard.setOnClickListener(v -> {
+            UiMotion.hapticTap(v);
+            showRedeemRechargeCardDialog();
+        });
 
-        optUsd.setOnClickListener(v -> selectCurrency("USD"));
-        optSyp.setOnClickListener(v -> selectCurrency("SYP"));
+        UiMotion.attachPressScale(optUsd);
+        UiMotion.attachPressScale(optSyp);
+        optUsd.setOnClickListener(v -> {
+            UiMotion.hapticTap(v);
+            selectCurrency("USD");
+        });
+        optSyp.setOnClickListener(v -> {
+            UiMotion.hapticTap(v);
+            selectCurrency("SYP");
+        });
+
+        UiMotion.attachPressScale(btnAmt1);
+        UiMotion.attachPressScale(btnAmt2);
+        UiMotion.attachPressScale(btnAmt3);
+        UiMotion.attachPressScale(btnAmt4);
+        UiMotion.attachPressScale(btnSubmit);
+        UiMotion.attachPressScale(btnVerify);
 
         amountInput.addTextChangedListener(new TextWatcher() {
             @Override
@@ -171,8 +198,14 @@ public class NativePaymentActivity extends AppCompatActivity {
             public void afterTextChanged(Editable s) {}
         });
 
-        btnSubmit.setOnClickListener(v -> submitPayment());
-        btnVerify.setOnClickListener(v -> verifyDepositStatus());
+        btnSubmit.setOnClickListener(v -> {
+            UiMotion.hapticTap(v);
+            submitPayment();
+        });
+        btnVerify.setOnClickListener(v -> {
+            UiMotion.hapticTap(v);
+            verifyDepositStatus();
+        });
     }
 
     private void openNativeLogin() {
@@ -198,10 +231,10 @@ public class NativePaymentActivity extends AppCompatActivity {
         box.addView(codeField);
 
         new MaterialAlertDialogBuilder(this)
-                .setTitle("🎟️ شحن بطاقة رصيد رقميات")
+                .setTitle("شحن بطاقة رصيد رقميات")
                 .setMessage("أدخل كود بطاقة الشحن لإضافة قيمتها فوراً إلى رصيد محفظتك:")
                 .setView(box)
-                .setPositiveButton("شحن فوري ⚡", (d, w) -> {
+                .setPositiveButton("شحن فوري", (d, w) -> {
                     String code = codeField.getText() != null ? codeField.getText().toString().trim() : "";
                     if (code.isEmpty()) return;
                     progressBar.setVisibility(View.VISIBLE);
@@ -229,43 +262,56 @@ public class NativePaymentActivity extends AppCompatActivity {
         selectedCurrency = "SYP".equalsIgnoreCase(curr) ? "SYP" : "USD";
         localStore.setPreferredCurrency(selectedCurrency);
         amountInput.setText("");
-        updateCurrencyUi();
+        updateCurrencyUi(true);
     }
 
-    private void updateCurrencyUi() {
+    private void updateCurrencyUi(boolean animateBalance) {
         boolean isUsd = "USD".equals(selectedCurrency);
-        optUsd.setBackgroundResource(isUsd ? R.drawable.bg_chip_selected : R.drawable.bg_chip_unselected);
-        optUsd.setTextColor(isUsd ? 0xFF030712 : 0xFFE2E8F0);
-        optSyp.setBackgroundResource(!isUsd ? R.drawable.bg_chip_selected : R.drawable.bg_chip_unselected);
-        optSyp.setTextColor(!isUsd ? 0xFF030712 : 0xFFE2E8F0);
-
-        rateBadge.setText("سعر الصرف الحي: 1$ = " + RaqamiyatLocalStore.formatSypAmount(sypRate));
-
-        if (!isAuthenticated) {
-            walletBalanceText.setText(isUsd ? "$0.00" : "0 ل.س");
-            walletSecondaryText.setText("سجّل الدخول لمزامنة رصيدك الحقيقي");
+        if (isUsd) {
+            optUsd.setBackgroundResource(R.drawable.bg_chip_selected);
+            optUsd.setTextColor(0xFF050811);
+            optSyp.setBackgroundColor(Color.TRANSPARENT);
+            optSyp.setTextColor(0xFFCBD5E1);
         } else {
-            if (isUsd) {
-                walletBalanceText.setText(String.format(Locale.US, "$%.2f", liveBalanceUsd));
-                walletSecondaryText.setText("≈ " + RaqamiyatLocalStore.formatSypAmount(liveBalanceSyp > 0 ? liveBalanceSyp : (liveBalanceUsd * sypRate)));
-            } else {
-                double sypDisp = liveBalanceSyp > 0 ? liveBalanceSyp : (liveBalanceUsd * sypRate);
-                walletBalanceText.setText(RaqamiyatLocalStore.formatSypAmount(sypDisp));
-                walletSecondaryText.setText(String.format(Locale.US, "≈ $%.2f USD", liveBalanceUsd));
-            }
+            optSyp.setBackgroundResource(R.drawable.bg_chip_selected);
+            optSyp.setTextColor(0xFF050811);
+            optUsd.setBackgroundColor(Color.TRANSPARENT);
+            optUsd.setTextColor(0xFFCBD5E1);
         }
 
-        amountLabel.setText(isUsd ? "المبلغ المطلوب شحنه ($ USD)" : "المبلغ المطلوب شحنه (ل.س SYP)");
-        amountInput.setHint(isUsd ? "أدخل المبلغ بالدولار (مثال: 10)" : "أدخل المبلغ بالليرة السورية (مثال: 50000)");
+        rateBadge.setText("سعر الصرف المباشر: 1$ = " + RaqamiyatLocalStore.formatSypAmount(sypRate));
 
-        // Smart quick-amount buttons adapted to selected currency and gateway limits
+        String primaryBal;
+        String secondaryBal;
+        if (!isAuthenticated) {
+            primaryBal = isUsd ? "$0.00" : "0 ل.س";
+            secondaryBal = "سجّل الدخول لمزامنة رصيدك الحقيقي";
+        } else if (isUsd) {
+            primaryBal = String.format(Locale.US, "$%.2f", liveBalanceUsd);
+            secondaryBal = "≈ " + RaqamiyatLocalStore.formatSypAmount(liveBalanceSyp > 0 ? liveBalanceSyp : (liveBalanceUsd * sypRate));
+        } else {
+            double sypDisp = liveBalanceSyp > 0 ? liveBalanceSyp : (liveBalanceUsd * sypRate);
+            primaryBal = RaqamiyatLocalStore.formatSypAmount(sypDisp);
+            secondaryBal = String.format(Locale.US, "≈ $%.2f USD", liveBalanceUsd);
+        }
+
+        if (animateBalance) {
+            UiMotion.pulseTextChange(walletBalanceText, primaryBal);
+        } else {
+            walletBalanceText.setText(primaryBal);
+        }
+        walletSecondaryText.setText(secondaryBal);
+
+        amountLabel.setText(isUsd ? "مبلغ الشحن ($ USD)" : "مبلغ الشحن (ل.س SYP)");
+        amountInput.setHint(isUsd ? "0.00" : "0");
+
         boolean isMtn = selectedGateway != null && "mtn_pay".equals(selectedGateway.code);
         final String[] vals;
         final String[] labels;
         if (isUsd) {
             if (isMtn) {
                 vals = new String[]{"1", "2", "3", "3.3"};
-                labels = new String[]{"$1", "$2", "$3", "الحد الأقصى"};
+                labels = new String[]{"$1", "$2", "$3", "الأقصى"};
             } else {
                 vals = new String[]{"5", "10", "25", "50"};
                 labels = new String[]{"$5", "$10", "$25", "$50"};
@@ -280,11 +326,15 @@ public class NativePaymentActivity extends AppCompatActivity {
             }
         }
 
-        Button[] btns = new Button[]{btnAmt1, btnAmt2, btnAmt3, btnAmt4};
+        TextView[] btns = new TextView[]{btnAmt1, btnAmt2, btnAmt3, btnAmt4};
         for (int i = 0; i < 4; i++) {
             final String vStr = vals[i];
             btns[i].setText(labels[i]);
-            btns[i].setOnClickListener(v -> amountInput.setText(vStr));
+            btns[i].setOnClickListener(v -> {
+                UiMotion.hapticTap(v);
+                amountInput.setText(vStr);
+                amountInput.setSelection(amountInput.getText().length());
+            });
         }
 
         updateGatewayLimitsHint();
@@ -297,9 +347,9 @@ public class NativePaymentActivity extends AppCompatActivity {
             return;
         }
         if ("USD".equals(selectedCurrency)) {
-            limitsHint.setText(String.format(Locale.US, "الحد الأدنى: $%.2f", selectedGateway.minUsd));
+            limitsHint.setText(String.format(Locale.US, "الأدنى: $%.2f", selectedGateway.minUsd));
         } else {
-            limitsHint.setText("الحد الأدنى: " + RaqamiyatLocalStore.formatSypAmount(selectedGateway.minSyp));
+            limitsHint.setText("الأدنى: " + RaqamiyatLocalStore.formatSypAmount(selectedGateway.minSyp));
         }
     }
 
@@ -317,10 +367,10 @@ public class NativePaymentActivity extends AppCompatActivity {
             }
             if ("USD".equals(selectedCurrency)) {
                 double sypEq = val * sypRate;
-                conversionPreview.setText("💡 يعادل تقريباً: " + RaqamiyatLocalStore.formatSypAmount(sypEq));
+                conversionPreview.setText("القيمة المقابلة: " + RaqamiyatLocalStore.formatSypAmount(sypEq));
             } else {
                 double usdEq = val / Math.max(1.0, sypRate);
-                conversionPreview.setText(String.format(Locale.US, "💡 سيضاف لمحفظتك ما يعادل: $%.2f USD", usdEq));
+                conversionPreview.setText(String.format(Locale.US, "سيضاف لمحفظتك ما يعادل: $%.2f USD", usdEq));
             }
             conversionPreview.setVisibility(View.VISIBLE);
         } catch (Exception e) {
@@ -348,17 +398,17 @@ public class NativePaymentActivity extends AppCompatActivity {
 
                 JSONObject uObj = obj.optJSONObject("user");
                 String uName = uObj != null ? uObj.optString("full_name", "") : "";
-                userGreeting.setText(!uName.isEmpty() ? ("محفظة " + uName + " ✓") : "رصيد محفظتك الحقيقي ✓");
+                userGreeting.setText(!uName.isEmpty() ? ("محفظة " + uName) : "رصيد المحفظة الحقيقي");
 
                 if (livePendingUsd > 0 || liveHeldUsd > 0) {
                     walletBreakdownText.setText(String.format(Locale.US, "معلق: $%.2f • محجوز: $%.2f", livePendingUsd, liveHeldUsd));
                 } else {
-                    walletBreakdownText.setText("متاح بالكامل للشراء الفوري 24/7 ⚡");
+                    walletBreakdownText.setText("جاهز للشراء الفوري على مدار الساعة");
                 }
             } else {
                 loginBanner.setVisibility(View.VISIBLE);
-                userGreeting.setText("رصيد محفظتك الحالي (غير مسجل الدخول)");
-                walletBreakdownText.setText("سجّل دخولك بالأعلى لعرض رصيدك الفعلي");
+                userGreeting.setText("رصيد المحفظة (غير مسجل الدخول)");
+                walletBreakdownText.setText("سجّل دخولك بالأعلى لمزامنة رصيدك");
             }
 
             List<GatewayItem> parsed = GatewayItem.parseList(obj.optJSONArray("gateways"));
@@ -367,7 +417,6 @@ public class NativePaymentActivity extends AppCompatActivity {
                 if (g.forDeposit) gateways.add(g);
             }
 
-            // Preserve selected gateway or pick first available gateway
             if (selectedGateway != null) {
                 GatewayItem match = null;
                 for (GatewayItem g : gateways) {
@@ -392,15 +441,16 @@ public class NativePaymentActivity extends AppCompatActivity {
 
             renderGatewaysList();
             renderRecentTransactions(obj.optJSONArray("recent_transactions"));
-            updateCurrencyUi();
+            updateCurrencyUi(false);
         });
     }
 
     private void renderGatewaysList() {
         gatewaysContainer.removeAllViews();
-        gatewaysCountText.setText(gateways.size() + " وسائل متاحة");
+        gatewaysCountText.setText(gateways.size() + " وسائل دفع");
 
-        for (final GatewayItem gw : gateways) {
+        for (int idx = 0; idx < gateways.size(); idx++) {
+            final GatewayItem gw = gateways.get(idx);
             boolean isSelected = selectedGateway != null && gw.code.equals(selectedGateway.code);
 
             LinearLayout card = new LinearLayout(this);
@@ -408,7 +458,7 @@ public class NativePaymentActivity extends AppCompatActivity {
             card.setGravity(Gravity.CENTER_VERTICAL);
             if (gw.isUnavailable) {
                 card.setBackgroundResource(R.drawable.bg_gateway_disabled);
-                card.setAlpha(0.68f);
+                card.setAlpha(0.62f);
             } else if (isSelected) {
                 card.setBackgroundResource(R.drawable.bg_gateway_selected);
             } else {
@@ -418,14 +468,15 @@ public class NativePaymentActivity extends AppCompatActivity {
             LinearLayout.LayoutParams cardLp = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
             cardLp.bottomMargin = dp(10);
             card.setLayoutParams(cardLp);
-            card.setPadding(dp(12), dp(12), dp(12), dp(12));
+            card.setPadding(dp(14), dp(14), dp(14), dp(14));
+            UiMotion.attachPressScale(card);
 
-            // Crisp White Rounded Logo Frame
+            // White Studio Logo Container
             LinearLayout logoFrame = new LinearLayout(this);
             logoFrame.setBackgroundResource(R.drawable.bg_logo_box);
             logoFrame.setGravity(Gravity.CENTER);
-            LinearLayout.LayoutParams lfLp = new LinearLayout.LayoutParams(dp(48), dp(48));
-            lfLp.setMarginEnd(dp(12));
+            LinearLayout.LayoutParams lfLp = new LinearLayout.LayoutParams(dp(50), dp(50));
+            lfLp.setMarginEnd(dp(14));
             logoFrame.setLayoutParams(lfLp);
 
             ImageView logoImg = new ImageView(this);
@@ -437,13 +488,14 @@ public class NativePaymentActivity extends AppCompatActivity {
             Glide.with(this)
                     .load(logoToLoad)
                     .diskCacheStrategy(DiskCacheStrategy.ALL)
+                    .transition(DrawableTransitionOptions.withCrossFade(180))
                     .placeholder(R.mipmap.ic_launcher)
                     .error(R.mipmap.ic_launcher)
                     .into(logoImg);
             logoFrame.addView(logoImg);
             card.addView(logoFrame);
 
-            // Title + Subtitle + Currencies Column
+            // Gateway Title + Subtitle + Meta
             LinearLayout infoCol = new LinearLayout(this);
             infoCol.setOrientation(LinearLayout.VERTICAL);
             infoCol.setLayoutParams(new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f));
@@ -451,52 +503,54 @@ public class NativePaymentActivity extends AppCompatActivity {
             TextView titleTv = new TextView(this);
             titleTv.setText(gw.name);
             titleTv.setTextColor(0xFFFFFFFF);
-            titleTv.setTextSize(14f);
+            titleTv.setTextSize(14.5f);
             titleTv.setTypeface(titleTv.getTypeface(), Typeface.BOLD);
             infoCol.addView(titleTv);
 
             TextView subTv = new TextView(this);
             subTv.setText(gw.subtitle);
             subTv.setTextColor(isSelected ? 0xFFBAE6FD : 0xFF94A3B8);
-            subTv.setTextSize(11f);
+            subTv.setTextSize(11.5f);
             subTv.setMaxLines(2);
             infoCol.addView(subTv);
 
-            String currStr = android.text.TextUtils.join(" • ", gw.currencies);
-            String feeStr = (gw.feePercent <= 0 && gw.feeFixed <= 0) ? "بدون عمولة إضافية" : ("عمولة " + gw.feePercent + "%");
+            String currStr = TextUtils.join(" • ", gw.currencies);
+            String feeStr = (gw.feePercent <= 0 && gw.feeFixed <= 0) ? "0% عمولة" : ("رسوم " + gw.feePercent + "%");
             TextView metaTv = new TextView(this);
-            metaTv.setText("العملات: " + currStr + "  |  " + feeStr);
+            metaTv.setText(currStr + "  •  " + feeStr);
             metaTv.setTextColor(0xFF64748B);
-            metaTv.setTextSize(10f);
+            metaTv.setTextSize(10.5f);
+            metaTv.setPadding(0, dp(2), 0, 0);
             infoCol.addView(metaTv);
 
             card.addView(infoCol);
 
-            // Status / Selection Badge
+            // Crisp Status Pill
             TextView badgeTv = new TextView(this);
             badgeTv.setTextSize(10.5f);
             badgeTv.setTypeface(badgeTv.getTypeface(), Typeface.BOLD);
             badgeTv.setPadding(dp(10), dp(4), dp(10), dp(4));
             if (gw.isMaintenanceMode) {
-                badgeTv.setText("قيد الصيانة 🛠️");
+                badgeTv.setText("قيد الصيانة");
                 badgeTv.setTextColor(0xFFFCA5A5);
                 badgeTv.setBackgroundResource(R.drawable.bg_badge_red);
             } else if (gw.isComingSoon) {
-                badgeTv.setText("قريباً ⏳");
+                badgeTv.setText("قريباً");
                 badgeTv.setTextColor(0xFFFDE68A);
                 badgeTv.setBackgroundResource(R.drawable.bg_badge_amber);
             } else if (isSelected) {
-                badgeTv.setText("✓ محدد");
+                badgeTv.setText("محدد");
                 badgeTv.setTextColor(0xFF6EE7B7);
                 badgeTv.setBackgroundResource(R.drawable.bg_badge_green);
             } else {
-                badgeTv.setText(gw.badgeLabel != null && !gw.badgeLabel.isEmpty() ? gw.badgeLabel : "متاح ⚡");
+                badgeTv.setText("نشط");
                 badgeTv.setTextColor(0xFF22D3EE);
                 badgeTv.setBackgroundResource(R.drawable.bg_chip_unselected);
             }
             card.addView(badgeTv);
 
             card.setOnClickListener(v -> {
+                UiMotion.hapticTap(v);
                 if (gw.isUnavailable) {
                     String msg = !gw.unavailableMessage.isEmpty()
                             ? gw.unavailableMessage
@@ -506,22 +560,22 @@ public class NativePaymentActivity extends AppCompatActivity {
                 }
                 selectedGateway = gw;
                 if ("mtn_pay".equals(gw.code) && "USD".equals(selectedCurrency)) {
-                    // Cash Mobile works seamlessly in SYP (and USD), default to SYP for clarity
                     selectedCurrency = "SYP";
                     localStore.setPreferredCurrency("SYP");
                 }
                 renderGatewaysList();
                 renderManualMethodBox();
-                updateCurrencyUi();
-                btnSubmit.setText("متابعة الشحن عبر " + gw.name + " ⚡");
+                updateCurrencyUi(false);
+                btnSubmit.setText("متابعة الشحن عبر " + gw.name);
             });
 
             gatewaysContainer.addView(card);
+            UiMotion.animateCardEntrance(card, idx);
         }
 
         renderManualMethodBox();
         if (selectedGateway != null && !selectedGateway.isUnavailable) {
-            btnSubmit.setText("متابعة الشحن عبر " + selectedGateway.name + " ⚡");
+            btnSubmit.setText("متابعة الشحن عبر " + selectedGateway.name);
             btnSubmit.setEnabled(true);
             btnSubmit.setAlpha(1.0f);
         } else {
@@ -554,7 +608,7 @@ public class NativePaymentActivity extends AppCompatActivity {
                 rowView.setOrientation(LinearLayout.HORIZONTAL);
                 rowView.setGravity(Gravity.CENTER_VERTICAL);
                 rowView.setBackgroundResource(R.drawable.bg_input_dark);
-                rowView.setPadding(dp(10), dp(8), dp(10), dp(8));
+                rowView.setPadding(dp(12), dp(10), dp(12), dp(10));
                 LinearLayout.LayoutParams rLp = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
                 rLp.topMargin = dp(6);
                 rowView.setLayoutParams(rLp);
@@ -563,13 +617,14 @@ public class NativePaymentActivity extends AppCompatActivity {
                 tv.setLayoutParams(new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f));
                 tv.setText(rTitle + ": " + rVal);
                 tv.setTextColor(0xFFF8FAFC);
-                tv.setTextSize(12f);
+                tv.setTextSize(12.5f);
                 rowView.addView(tv);
 
                 TextView copyBtn = new TextView(this);
-                copyBtn.setText("نسخ 📋");
+                copyBtn.setText("نسخ");
                 copyBtn.setTextColor(0xFF22D3EE);
-                copyBtn.setTextSize(11f);
+                copyBtn.setTextSize(11.5f);
+                copyBtn.setTypeface(copyBtn.getTypeface(), Typeface.BOLD);
                 copyBtn.setOnClickListener(v -> {
                     ClipboardManager cm = (ClipboardManager) getSystemService(Context.CLIPBOARD_SERVICE);
                     if (cm != null) {
@@ -599,7 +654,7 @@ public class NativePaymentActivity extends AppCompatActivity {
             row.setOrientation(LinearLayout.HORIZONTAL);
             row.setGravity(Gravity.CENTER_VERTICAL);
             row.setBackgroundResource(R.drawable.bg_card_dark);
-            row.setPadding(dp(12), dp(10), dp(12), dp(10));
+            row.setPadding(dp(14), dp(12), dp(14), dp(12));
             LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
             lp.bottomMargin = dp(8);
             row.setLayoutParams(lp);
@@ -611,7 +666,7 @@ public class NativePaymentActivity extends AppCompatActivity {
             TextView title = new TextView(this);
             title.setText(t.optString("title", "عملية شحن"));
             title.setTextColor(0xFFF8FAFC);
-            title.setTextSize(12.5f);
+            title.setTextSize(13f);
             title.setTypeface(title.getTypeface(), Typeface.BOLD);
             left.addView(title);
 
@@ -631,7 +686,7 @@ public class NativePaymentActivity extends AppCompatActivity {
             TextView amtTv = new TextView(this);
             amtTv.setText("SYP".equalsIgnoreCase(cur) ? RaqamiyatLocalStore.formatSypAmount(amt) : String.format(Locale.US, "$%.2f", amt));
             amtTv.setTextColor(0xFFFBBF24);
-            amtTv.setTextSize(13f);
+            amtTv.setTextSize(13.5f);
             amtTv.setTypeface(amtTv.getTypeface(), Typeface.BOLD);
             right.addView(amtTv);
 
@@ -713,10 +768,10 @@ public class NativePaymentActivity extends AppCompatActivity {
                                 selectedGateway.logoUrl,
                                 confirmJson -> {
                                     statusText.setTextColor(0xFF10B981);
-                                    statusText.setText("✓ تم تأكيد الدفع عبر كاش موبايل وإضافة الرصيد إلى محفظتك بنجاح!");
+                                    statusText.setText("تم تأكيد الدفع عبر كاش موبايل وإضافة الرصيد إلى محفظتك بنجاح.");
                                     statusText.setVisibility(View.VISIBLE);
                                     amountInput.setText("");
-                                    Toast.makeText(NativePaymentActivity.this, "تم شحن محفظتك بنجاح ⚡", Toast.LENGTH_LONG).show();
+                                    Toast.makeText(NativePaymentActivity.this, "تم شحن محفظتك بنجاح", Toast.LENGTH_LONG).show();
                                     loadWalletAndGateways();
                                 }
                         );
@@ -725,7 +780,7 @@ public class NativePaymentActivity extends AppCompatActivity {
 
                     if ("manual".equals(payMode)) {
                         statusText.setTextColor(0xFF10B981);
-                        statusText.setText("✓ " + json.optString("message", "تم استلام طلب الإيداع بنجاح!"));
+                        statusText.setText(json.optString("message", "تم استلام طلب الإيداع بنجاح!"));
                         statusText.setVisibility(View.VISIBLE);
                         amountInput.setText("");
                         manualRefInput.setText("");
@@ -770,7 +825,7 @@ public class NativePaymentActivity extends AppCompatActivity {
                 loadWalletAndGateways();
                 if (done) {
                     statusText.setTextColor(0xFF10B981);
-                    statusText.setText("✓ تم تأكيد الدفع وإضافة الرصيد إلى محفظتك بنجاح!");
+                    statusText.setText("تم تأكيد الدفع وإضافة الرصيد إلى محفظتك بنجاح.");
                     statusText.setVisibility(View.VISIBLE);
                     btnVerify.setVisibility(View.GONE);
                     Toast.makeText(NativePaymentActivity.this, "تم شحن المحفظة بنجاح!", Toast.LENGTH_LONG).show();
@@ -792,6 +847,12 @@ public class NativePaymentActivity extends AppCompatActivity {
         intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_SINGLE_TOP);
         startActivity(intent);
         finish();
+    }
+
+    @Override
+    public void finish() {
+        super.finish();
+        UiMotion.applySlideTransition(this);
     }
 
     @Override

@@ -1,12 +1,12 @@
 package com.raqamiyat.app;
 
 import android.app.Activity;
+import android.graphics.Typeface;
 import android.text.InputFilter;
 import android.text.InputType;
 import android.view.Gravity;
 import android.view.View;
 import android.view.ViewGroup;
-import android.widget.Button;
 import android.widget.EditText;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
@@ -20,8 +20,7 @@ import org.json.JSONArray;
 import org.json.JSONObject;
 
 /**
- * 100% Native Cash Mobile (MTN Syria) Phone + SMS OTP Payment BottomSheet.
- * Works seamlessly for both Wallet Deposits and Direct Product Purchases without WebView!
+ * Fintech-Grade Cash Mobile (MTN Syria) Phone + SMS OTP BottomSheet with rounded glass surface & spring physics.
  */
 public class NativeMtnDialogHelper {
 
@@ -49,9 +48,11 @@ public class NativeMtnDialogHelper {
         LinearLayout root = new LinearLayout(activity);
         root.setOrientation(LinearLayout.VERTICAL);
         root.setLayoutDirection(View.LAYOUT_DIRECTION_RTL);
-        root.setBackgroundColor(0xFF0B1120);
-        int pad = dp(activity, 18);
-        root.setPadding(pad, pad, pad, dp(activity, 24));
+        root.setBackgroundResource(R.drawable.bg_bottom_sheet);
+        int pad = dp(activity, 20);
+        root.setPadding(pad, dp(activity, 12), pad, dp(activity, 28));
+
+        root.addView(UiMotion.createDragHandle(activity));
 
         // Header Row with Cash Mobile Logo
         LinearLayout header = new LinearLayout(activity);
@@ -61,9 +62,9 @@ public class NativeMtnDialogHelper {
         LinearLayout logoBox = new LinearLayout(activity);
         logoBox.setBackgroundResource(R.drawable.bg_logo_box);
         logoBox.setGravity(Gravity.CENTER);
-        int boxSz = dp(activity, 48);
+        int boxSz = dp(activity, 50);
         LinearLayout.LayoutParams boxLp = new LinearLayout.LayoutParams(boxSz, boxSz);
-        boxLp.setMarginEnd(dp(activity, 12));
+        boxLp.setMarginEnd(dp(activity, 14));
         logoBox.setLayoutParams(boxLp);
 
         ImageView logoImg = new ImageView(activity);
@@ -81,16 +82,16 @@ public class NativeMtnDialogHelper {
         titleCol.setLayoutParams(new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f));
 
         TextView title = new TextView(activity);
-        title.setText("الدفع المباشر عبر كاش موبايل (MTN)");
+        title.setText("الدفع المباشر — كاش موبايل MTN");
         title.setTextColor(0xFFFFFFFF);
-        title.setTextSize(16f);
-        title.setTypeface(title.getTypeface(), android.graphics.Typeface.BOLD);
+        title.setTextSize(16.5f);
+        title.setTypeface(title.getTypeface(), Typeface.BOLD);
         titleCol.addView(title);
 
         TextView invBadge = new TextView(activity);
-        invBadge.setText("فاتورة رقم #" + invoiceNumber + " • صالحة لمدة 10 دقائق");
+        invBadge.setText("فاتورة #" + invoiceNumber + " • صالحة لمدة 10 دقائق");
         invBadge.setTextColor(0xFF94A3B8);
-        invBadge.setTextSize(11f);
+        invBadge.setTextSize(11.5f);
         titleCol.addView(invBadge);
         header.addView(titleCol);
         root.addView(header);
@@ -98,39 +99,41 @@ public class NativeMtnDialogHelper {
         // Summary Card
         LinearLayout summaryCard = new LinearLayout(activity);
         summaryCard.setOrientation(LinearLayout.VERTICAL);
-        summaryCard.setBackgroundResource(R.drawable.bg_card_dark);
+        summaryCard.setBackgroundResource(R.drawable.bg_wallet_hero);
         LinearLayout.LayoutParams sumLp = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
-        sumLp.topMargin = dp(activity, 14);
+        sumLp.topMargin = dp(activity, 16);
         summaryCard.setLayoutParams(sumLp);
-        summaryCard.setPadding(dp(activity, 14), dp(activity, 12), dp(activity, 14), dp(activity, 12));
+        summaryCard.setPadding(dp(activity, 16), dp(activity, 14), dp(activity, 16), dp(activity, 14));
 
         TextView amtTxt = new TextView(activity);
         amtTxt.setText("المبلغ المطلوب: " + RaqamiyatLocalStore.formatSypAmount(sypAmount));
-        amtTxt.setTextColor(0xFFFBBF24);
-        amtTxt.setTextSize(16f);
-        amtTxt.setTypeface(amtTxt.getTypeface(), android.graphics.Typeface.BOLD);
+        amtTxt.setTextColor(0xFFFDE047);
+        amtTxt.setTextSize(17f);
+        amtTxt.setTypeface(amtTxt.getTypeface(), Typeface.BOLD);
         summaryCard.addView(amtTxt);
 
         if (mtnEquation != null && !mtnEquation.isEmpty()) {
             TextView eqTxt = new TextView(activity);
             eqTxt.setText("إجمالي الخصم مع عمولة الشبكة: " + mtnEquation);
             eqTxt.setTextColor(0xFFCBD5E1);
-            eqTxt.setTextSize(11f);
+            eqTxt.setTextSize(11.5f);
+            eqTxt.setPadding(0, dp(activity, 3), 0, 0);
             summaryCard.addView(eqTxt);
         }
         root.addView(summaryCard);
 
-        // Step 1: Phone Input Container
+        // Step 1: Phone Input
         LinearLayout stepPhone = new LinearLayout(activity);
         stepPhone.setOrientation(LinearLayout.VERTICAL);
         LinearLayout.LayoutParams spLp = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
-        spLp.topMargin = dp(activity, 14);
+        spLp.topMargin = dp(activity, 16);
         stepPhone.setLayoutParams(spLp);
 
         TextView phoneLabel = new TextView(activity);
-        phoneLabel.setText("رقم هاتف كاش موبايل MTN (10 أرقام يبدأ بـ 094 أو 095):");
+        phoneLabel.setText("رقم هاتف كاش موبايل MTN (10 أرقام):");
         phoneLabel.setTextColor(0xFFE2E8F0);
-        phoneLabel.setTextSize(12f);
+        phoneLabel.setTextSize(12.5f);
+        phoneLabel.setTypeface(phoneLabel.getTypeface(), Typeface.BOLD);
         stepPhone.addView(phoneLabel);
 
         EditText phoneInput = new EditText(activity);
@@ -140,9 +143,9 @@ public class NativeMtnDialogHelper {
         phoneInput.setTextColor(0xFFFFFFFF);
         phoneInput.setInputType(InputType.TYPE_CLASS_PHONE);
         phoneInput.setFilters(new InputFilter[]{new InputFilter.LengthFilter(10)});
-        phoneInput.setPadding(dp(activity, 14), dp(activity, 12), dp(activity, 14), dp(activity, 12));
-        LinearLayout.LayoutParams inLp = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dp(activity, 48));
-        inLp.topMargin = dp(activity, 6);
+        phoneInput.setPadding(dp(activity, 16), dp(activity, 12), dp(activity, 16), dp(activity, 12));
+        LinearLayout.LayoutParams inLp = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dp(activity, 50));
+        inLp.topMargin = dp(activity, 8);
         phoneInput.setLayoutParams(inLp);
         stepPhone.addView(phoneInput);
 
@@ -156,14 +159,16 @@ public class NativeMtnDialogHelper {
                 final String pNum = savedPhones.optString(i, "");
                 if (pNum.isEmpty()) continue;
                 TextView chip = new TextView(activity);
-                chip.setText("📱 " + pNum);
+                chip.setText(pNum);
                 chip.setTextColor(0xFF22D3EE);
-                chip.setTextSize(11f);
+                chip.setTextSize(11.5f);
+                chip.setTypeface(chip.getTypeface(), Typeface.BOLD);
                 chip.setBackgroundResource(R.drawable.bg_chip_unselected);
-                chip.setPadding(dp(activity, 10), dp(activity, 5), dp(activity, 10), dp(activity, 5));
+                chip.setPadding(dp(activity, 12), dp(activity, 6), dp(activity, 12), dp(activity, 6));
                 LinearLayout.LayoutParams cLp = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT);
                 cLp.setMarginEnd(dp(activity, 6));
                 chip.setLayoutParams(cLp);
+                UiMotion.attachPressScale(chip);
                 chip.setOnClickListener(v -> phoneInput.setText(pNum));
                 savedRow.addView(chip);
                 if (i == 0 && phoneInput.getText().length() == 0) {
@@ -174,35 +179,36 @@ public class NativeMtnDialogHelper {
         }
         root.addView(stepPhone);
 
-        // Step 2: SMS OTP Input Container (Hidden initially)
+        // Step 2: SMS OTP Input
         LinearLayout stepOtp = new LinearLayout(activity);
         stepOtp.setOrientation(LinearLayout.VERTICAL);
         stepOtp.setVisibility(View.GONE);
         LinearLayout.LayoutParams soLp = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
-        soLp.topMargin = dp(activity, 14);
+        soLp.topMargin = dp(activity, 16);
         stepOtp.setLayoutParams(soLp);
 
         TextView otpLabel = new TextView(activity);
-        otpLabel.setText("أدخل رمز التأكيد (SMS OTP) المرسل إلى هاتفك:");
+        otpLabel.setText("رمز التحقق المرسل عبر الرسالة النصية (SMS):");
         otpLabel.setTextColor(0xFF10B981);
         otpLabel.setTextSize(13f);
-        otpLabel.setTypeface(otpLabel.getTypeface(), android.graphics.Typeface.BOLD);
+        otpLabel.setTypeface(otpLabel.getTypeface(), Typeface.BOLD);
         stepOtp.addView(otpLabel);
 
         EditText otpInput = new EditText(activity);
         otpInput.setBackgroundResource(R.drawable.bg_input_dark);
-        otpInput.setHint("أدخل الرمز السري من الرسالة النصية");
+        otpInput.setHint("أدخل الرمز السري");
         otpInput.setHintTextColor(0xFF64748B);
         otpInput.setTextColor(0xFFFFFFFF);
         otpInput.setGravity(Gravity.CENTER);
+        otpInput.setTextSize(18f);
+        otpInput.setTypeface(otpInput.getTypeface(), Typeface.BOLD);
         otpInput.setInputType(InputType.TYPE_CLASS_NUMBER);
         otpInput.setFilters(new InputFilter[]{new InputFilter.LengthFilter(8)});
-        otpInput.setPadding(dp(activity, 14), dp(activity, 12), dp(activity, 14), dp(activity, 12));
+        otpInput.setPadding(dp(activity, 16), dp(activity, 12), dp(activity, 16), dp(activity, 12));
         otpInput.setLayoutParams(inLp);
         stepOtp.addView(otpInput);
         root.addView(stepOtp);
 
-        // Status & Progress
         TextView statusView = new TextView(activity);
         statusView.setTextSize(12f);
         statusView.setTextColor(0xFFF87171);
@@ -220,27 +226,32 @@ public class NativeMtnDialogHelper {
         progress.setLayoutParams(prLp);
         root.addView(progress);
 
-        // Primary Action Button
-        Button btnAction = new Button(activity);
+        // True Liquid Gold Action Button (TextView so MaterialComponents never tints it flat cyan!)
+        TextView btnAction = new TextView(activity);
         btnAction.setBackgroundResource(R.drawable.bg_button_gold);
-        btnAction.setText("إرسال رمز التحقق SMS ⚡");
-        btnAction.setTextColor(0xFF030712);
-        btnAction.setTextSize(14f);
-        btnAction.setTypeface(btnAction.getTypeface(), android.graphics.Typeface.BOLD);
-        LinearLayout.LayoutParams btnLp = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dp(activity, 50));
-        btnLp.topMargin = dp(activity, 16);
+        btnAction.setGravity(Gravity.CENTER);
+        btnAction.setClickable(true);
+        btnAction.setFocusable(true);
+        btnAction.setText("إرسال رمز التحقق SMS");
+        btnAction.setTextColor(0xFF050811);
+        btnAction.setTextSize(15f);
+        btnAction.setTypeface(btnAction.getTypeface(), Typeface.BOLD);
+        LinearLayout.LayoutParams btnLp = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dp(activity, 52));
+        btnLp.topMargin = dp(activity, 18);
         btnAction.setLayoutParams(btnLp);
+        UiMotion.attachPressScale(btnAction);
         root.addView(btnAction);
 
         final boolean[] isOtpStage = {false};
 
         btnAction.setOnClickListener(v -> {
+            UiMotion.hapticTap(v);
             statusView.setVisibility(View.GONE);
             if (!isOtpStage[0]) {
                 String phone = phoneInput.getText() != null ? phoneInput.getText().toString().trim() : "";
                 if (phone.length() < 9) {
                     statusView.setTextColor(0xFFF87171);
-                    statusView.setText("يرجى إدخال رقم هاتف MTN صحيح مكون من 10 أرقام (مثال: 094XXXXXXX).");
+                    statusView.setText("يرجى إدخال رقم هاتف MTN صحيح مكون من 10 أرقام (094XXXXXXX).");
                     statusView.setVisibility(View.VISIBLE);
                     return;
                 }
@@ -256,9 +267,9 @@ public class NativeMtnDialogHelper {
                         if (code == 200 && json != null && "success".equals(json.optString("status"))) {
                             isOtpStage[0] = true;
                             phoneInput.setEnabled(false);
-                            stepOtp.setVisibility(View.VISIBLE);
+                            UiMotion.revealContainer(stepOtp);
                             otpInput.requestFocus();
-                            btnAction.setText("تأكيد الرمز وإتمام الدفع الآن ✓");
+                            btnAction.setText("تأكيد الرمز وإتمام الدفع الآن");
                             statusView.setTextColor(0xFF10B981);
                             statusView.setText(json.optString("message", "تم إرسال رمز التحقق بنجاح."));
                             statusView.setVisibility(View.VISIBLE);

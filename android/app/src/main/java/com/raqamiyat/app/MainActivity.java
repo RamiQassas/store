@@ -23,7 +23,7 @@ import android.text.TextWatcher;
 import android.view.Gravity;
 import android.view.View;
 import android.view.ViewGroup;
-import android.view.animation.AlphaAnimation;
+import android.view.animation.OvershootInterpolator;
 import android.webkit.CookieManager;
 import android.webkit.PermissionRequest;
 import android.webkit.ValueCallback;
@@ -34,7 +34,6 @@ import android.webkit.WebResourceResponse;
 import android.webkit.WebSettings;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
-import android.widget.Button;
 import android.widget.EditText;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
@@ -43,6 +42,7 @@ import android.widget.RelativeLayout;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.ActivityCompat;
@@ -51,13 +51,14 @@ import androidx.core.content.ContextCompat;
 import androidx.core.content.FileProvider;
 import androidx.recyclerview.widget.GridLayoutManager;
 import androidx.recyclerview.widget.LinearLayoutManager;
+import androidx.recyclerview.widget.PagerSnapHelper;
 import androidx.recyclerview.widget.RecyclerView;
 import androidx.swiperefreshlayout.widget.SwipeRefreshLayout;
 
 import com.bumptech.glide.Glide;
-import com.bumptech.glide.load.engine.DiskCacheStrategy;
 import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 import com.raqamiyat.app.adapter.CategoryAdapter;
+import com.raqamiyat.app.adapter.HeroBannerAdapter;
 import com.raqamiyat.app.adapter.ProductAdapter;
 import com.raqamiyat.app.model.CartItem;
 import com.raqamiyat.app.model.GatewayItem;
@@ -85,7 +86,6 @@ import java.util.concurrent.Executors;
 public class MainActivity extends AppCompatActivity implements ConnectivityHelper.OnConnectivityChangeListener, RaqamiyatNativeBridge.BridgeActionCallback {
 
     private static final String BASE_URL = "https://raqamiyatapp.com/";
-    private static final String CATALOG_URL = "https://raqamiyatapp.com/catalog/";
     private static final String OFFLINE_API_URL = "https://raqamiyatapp.com/api/offline-catalog/";
     private static final String CHANNEL_ID = "raqamiyat_notifications";
     private static final int FILE_CHOOSER_REQUEST_CODE = 1001;
@@ -105,31 +105,33 @@ public class MainActivity extends AppCompatActivity implements ConnectivityHelpe
     private RecyclerView nativeCategoriesRv;
     private RecyclerView nativeProductsRv;
     private EditText nativeSearchInput;
+    private TextView btnClearSearch;
     private TextView nativeEmptyState;
-    private Button btnAdminQuickStudio;
+    private View btnAdminQuickStudio;
     private TextView btnNativeCurrency;
-    private Button btnNativePay;
-    private Button btnNativeNotif;
-    private Button btnNativeCart;
-    private LinearLayout heroWalletBanner;
-    private TextView heroWalletLabel;
-    private TextView heroWalletValue;
-    private LinearLayout heroGatewaysStrip;
+    private View btnNativePay;
+    private View btnNativeNotif;
+    private View btnNativeCart;
+    private TextView txtCartBadge;
+    private View heroCarouselSection;
+    private RecyclerView heroBannerRv;
+    private LinearLayout heroDotsContainer;
 
-    // Native Orders Views
+    // Native Orders & Account Views
     private LinearLayout nativeOrdersContainer;
     private SwipeRefreshLayout nativeOrdersSwipe;
     private LinearLayout nativeOrdersList;
-    private Button btnOrdersRefresh;
-
-    // Native Account Views
+    private View btnOrdersRefresh;
     private LinearLayout nativeAccountContainer;
     private LinearLayout nativeAccountBody;
 
-    // Data & State
+    // Adapters & State
     private CatalogRepository catalogRepository;
     private AppNotificationSync notificationSync;
     private final List<AppNotificationSync.AppNotifItem> latestNotifications = new ArrayList<>();
+    private HeroBannerAdapter heroAdapter;
+    private LinearLayoutManager heroLayoutManager;
+    private int currentHeroSlide = 0;
     private CategoryAdapter categoryAdapter;
     private ProductAdapter productAdapter;
     private final List<ProductItem> allProducts = new ArrayList<>();
@@ -150,7 +152,7 @@ public class MainActivity extends AppCompatActivity implements ConnectivityHelpe
     private double liveBalanceSyp = 0.0;
     private String cachedGoogleLoginUrl = "";
 
-    // WebView Portal Views (Fallback for external payment gateways / admin studio pages)
+    // WebView Fallback Views
     private WebView webView;
     private SwipeRefreshLayout swipeRefresh;
     private ProgressBar progressBar;
@@ -158,8 +160,8 @@ public class MainActivity extends AppCompatActivity implements ConnectivityHelpe
     private TextView bannerText;
     private RelativeLayout splashOverlay;
     private LinearLayout nativeErrorView;
-    private Button btnRetry;
-    private Button btnBrowseCached;
+    private View btnRetry;
+    private View btnBrowseCached;
 
     private ConnectivityHelper connectivityHelper;
     private RaqamiyatLocalStore localStore;
@@ -171,20 +173,47 @@ public class MainActivity extends AppCompatActivity implements ConnectivityHelpe
     private boolean isWaitingForGoogleAuth = false;
     private boolean isWaitingForExternalPayment = false;
     private long backPressedTime = 0;
-    private String cleanChromeUserAgent = "";
-    private String appWebViewUserAgent = "";
     private final Handler mainHandler = new Handler(Looper.getMainLooper());
+
+    private final Runnable heroAutoScrollRunnable = new Runnable() {
+        @Override
+        public void run() {
+            if (heroAdapter != null && heroAdapter.getItemCount() > 1
+                    && isNativeMode && activeNativeTab == TAB_HOME
+                    && heroCarouselSection.getVisibility() == View.VISIBLE) {
+                currentHeroSlide = (currentHeroSlide + 1) % heroAdapter.getItemCount();
+                heroBannerRv.smoothScrollToPosition(currentHeroSlide);
+                updateHeroDots(currentHeroSlide);
+            }
+            mainHandler.postDelayed(this, 4800);
+        }
+    };
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
-            getWindow().setStatusBarColor(0xFF030712);
-            getWindow().setNavigationBarColor(0xFF030712);
+            getWindow().setStatusBarColor(0xFF050811);
+            getWindow().setNavigationBarColor(0xFF050811);
         }
 
         setContentView(R.layout.activity_main);
+
+        // Animate Splash Brand Box
+        View splashBrandBox = findViewById(R.id.splash_brand_box);
+        if (splashBrandBox != null) {
+            splashBrandBox.setScaleX(0.86f);
+            splashBrandBox.setScaleY(0.86f);
+            splashBrandBox.setAlpha(0f);
+            splashBrandBox.animate()
+                    .scaleX(1f)
+                    .scaleY(1f)
+                    .alpha(1f)
+                    .setDuration(420)
+                    .setInterpolator(new OvershootInterpolator(1.4f))
+                    .start();
+        }
 
         // Bind Storefront Views
         nativeStoreContainer = findViewById(R.id.native_store_container);
@@ -192,16 +221,17 @@ public class MainActivity extends AppCompatActivity implements ConnectivityHelpe
         nativeCategoriesRv = findViewById(R.id.native_categories_rv);
         nativeProductsRv = findViewById(R.id.native_products_rv);
         nativeSearchInput = findViewById(R.id.native_search_input);
+        btnClearSearch = findViewById(R.id.btn_clear_search);
         nativeEmptyState = findViewById(R.id.native_empty_state);
         btnAdminQuickStudio = findViewById(R.id.btn_admin_quick_studio);
         btnNativeCurrency = findViewById(R.id.btn_native_currency);
         btnNativePay = findViewById(R.id.btn_native_pay);
         btnNativeNotif = findViewById(R.id.btn_native_notif);
         btnNativeCart = findViewById(R.id.btn_native_cart);
-        heroWalletBanner = findViewById(R.id.hero_wallet_banner);
-        heroWalletLabel = findViewById(R.id.hero_wallet_label);
-        heroWalletValue = findViewById(R.id.hero_wallet_value);
-        heroGatewaysStrip = findViewById(R.id.hero_gateways_strip);
+        txtCartBadge = findViewById(R.id.txt_cart_badge);
+        heroCarouselSection = findViewById(R.id.hero_carousel_section);
+        heroBannerRv = findViewById(R.id.hero_banner_rv);
+        heroDotsContainer = findViewById(R.id.hero_dots_container);
 
         // Bind Native Orders & Account Views
         nativeOrdersContainer = findViewById(R.id.native_orders_container);
@@ -233,6 +263,7 @@ public class MainActivity extends AppCompatActivity implements ConnectivityHelpe
         createNotificationChannel();
         connectivityHelper.startMonitoring();
         setupNativeStorefront();
+        setupHeroCarousel();
         setupNativeOrdersView();
         setupWebView();
         setupErrorView();
@@ -240,7 +271,8 @@ public class MainActivity extends AppCompatActivity implements ConnectivityHelpe
         setupBottomNavigation();
         checkAndRequestPermissions();
 
-        updateHeaderBadges();
+        updateHeaderBadges(false);
+        rebuildHeroSlides();
         renderAccountTab();
 
         Intent intent = getIntent();
@@ -264,6 +296,115 @@ public class MainActivity extends AppCompatActivity implements ConnectivityHelpe
         return Math.round(val * getResources().getDisplayMetrics().density);
     }
 
+    private void openNativeWalletScreen() {
+        if (!connectivityHelper.isOnline()) {
+            nativeBridge.showOfflineTransactionAlert("المحفظة وبوابات الدفع");
+            return;
+        }
+        startActivity(new Intent(MainActivity.this, NativePaymentActivity.class));
+        UiMotion.applySlideTransition(this);
+    }
+
+    private void setupHeroCarousel() {
+        heroLayoutManager = new LinearLayoutManager(this, LinearLayoutManager.HORIZONTAL, false);
+        heroBannerRv.setLayoutManager(heroLayoutManager);
+        PagerSnapHelper snapHelper = new PagerSnapHelper();
+        snapHelper.attachToRecyclerView(heroBannerRv);
+
+        heroAdapter = new HeroBannerAdapter(actionCode -> {
+            if (actionCode == 0) {
+                if (!isAuthenticated) {
+                    openNativeLoginSheet();
+                } else {
+                    openNativeWalletScreen();
+                }
+            } else if (actionCode == 1) {
+                switchToNativeTab(TAB_CATALOG);
+            } else {
+                openNativeWalletScreen();
+            }
+        });
+        heroBannerRv.setAdapter(heroAdapter);
+        heroBannerRv.addOnScrollListener(new RecyclerView.OnScrollListener() {
+            @Override
+            public void onScrollStateChanged(@NonNull RecyclerView recyclerView, int newState) {
+                if (newState == RecyclerView.SCROLL_STATE_IDLE) {
+                    int pos = heroLayoutManager.findFirstCompletelyVisibleItemPosition();
+                    if (pos != RecyclerView.NO_POSITION) {
+                        currentHeroSlide = pos;
+                        updateHeroDots(pos);
+                    }
+                }
+            }
+        });
+    }
+
+    private void rebuildHeroSlides() {
+        List<HeroBannerAdapter.Slide> slides = new ArrayList<>();
+        if (!isAuthenticated) {
+            slides.add(new HeroBannerAdapter.Slide(
+                    R.drawable.bg_wallet_hero,
+                    "محفظة رقميات الذكية",
+                    "سجّل دخولك لمزامنة رصيدك الفوري",
+                    "اعرض رصيدك بالدولار والسوري واشترِ بلمسة واحدة",
+                    "تسجيل الدخول",
+                    0
+            ));
+        } else {
+            String curr = localStore.getPreferredCurrency();
+            double sypDisp = liveBalanceSyp > 0 ? liveBalanceSyp : (liveBalanceUsd * localStore.getSypRate());
+            String mainBal = "USD".equals(curr)
+                    ? String.format(Locale.US, "$%.2f", liveBalanceUsd)
+                    : RaqamiyatLocalStore.formatSypAmount(sypDisp);
+            String subBal = "USD".equals(curr)
+                    ? ("يعادل " + RaqamiyatLocalStore.formatSypAmount(sypDisp) + " • متاح فوراً")
+                    : String.format(Locale.US, "يعادل $%.2f USD • متاح فوراً", liveBalanceUsd);
+            slides.add(new HeroBannerAdapter.Slide(
+                    R.drawable.bg_wallet_hero,
+                    !userFullName.isEmpty() ? ("محفظة " + userFullName) : "رصيد محفظتك المتاح",
+                    mainBal,
+                    subBal,
+                    "شحن الرصيد",
+                    0
+            ));
+        }
+
+        slides.add(new HeroBannerAdapter.Slide(
+                R.drawable.bg_hero_slide_emerald,
+                "تسليم أوتوماتيكي 24/7",
+                "بطاقات وألعاب واشتراكات عالمية",
+                "استلم كود البطاقة فوراً بعد إتمام الطلب بضمان رسمي",
+                "تصفح المنتجات",
+                1
+        ));
+
+        slides.add(new HeroBannerAdapter.Slide(
+                R.drawable.bg_hero_slide_cyan,
+                "بوابات دفع معتمدة",
+                "شام كاش • كاش موبايل • بيميرا",
+                "دفع مباشر آمن بدون عمولات خفية بالدولار والليرة",
+                "بوابات الدفع",
+                2
+        ));
+
+        heroAdapter.submitData(slides, liveGateways);
+        updateHeroDots(currentHeroSlide);
+    }
+
+    private void updateHeroDots(int activeIndex) {
+        heroDotsContainer.removeAllViews();
+        int total = heroAdapter != null ? heroAdapter.getItemCount() : 0;
+        for (int i = 0; i < total; i++) {
+            View dot = new View(this);
+            boolean active = (i == activeIndex);
+            dot.setBackgroundResource(active ? R.drawable.bg_chip_selected : R.drawable.bg_drag_handle);
+            LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(dp(active ? 18 : 6), dp(5));
+            lp.setMarginEnd(dp(5));
+            dot.setLayoutParams(lp);
+            heroDotsContainer.addView(dot);
+        }
+    }
+
     private void setupNativeStorefront() {
         nativeCategoriesRv.setLayoutManager(new LinearLayoutManager(this, LinearLayoutManager.HORIZONTAL, false));
         categoryAdapter = new CategoryAdapter(categoryId -> {
@@ -277,6 +418,7 @@ public class MainActivity extends AppCompatActivity implements ConnectivityHelpe
             Intent detailIntent = new Intent(MainActivity.this, ProductDetailActivity.class);
             detailIntent.putExtra(ProductDetailActivity.EXTRA_PRODUCT, product);
             startActivityForResult(detailIntent, PRODUCT_DETAIL_REQUEST_CODE);
+            UiMotion.applySlideTransition(this);
         });
         productAdapter.setOnAddToCartClickListener(product -> {
             VariantItem v = (product.variants != null && !product.variants.isEmpty()) ? product.variants.get(0) : null;
@@ -284,13 +426,14 @@ public class MainActivity extends AppCompatActivity implements ConnectivityHelpe
             String vId = v != null ? v.id : "default";
             String vName = v != null ? v.name : product.name;
             int cnt = localStore.addToCart(new CartItem(product.id, vId, product.name, vName, product.imageUrl, uPrice, 1, ""));
-            updateHeaderBadges();
-            Toast.makeText(MainActivity.this, "🛒 تمت الإضافة إلى السلة (" + cnt + ")", Toast.LENGTH_SHORT).show();
+            updateHeaderBadges(true);
+            Toast.makeText(MainActivity.this, "تمت الإضافة إلى السلة (" + cnt + ")", Toast.LENGTH_SHORT).show();
         });
         productAdapter.updateCurrencyConfig(localStore.getPreferredCurrency(), localStore.getSypRate());
         nativeProductsRv.setAdapter(productAdapter);
 
-        nativeCatalogSwipe.setColorSchemeColors(0xFF06B6D4, 0xFFD4A853);
+        nativeCatalogSwipe.setColorSchemeColors(0xFFFBBF24, 0xFF22D3EE);
+        nativeCatalogSwipe.setProgressBackgroundColorSchemeColor(0xFF0E1628);
         nativeCatalogSwipe.setOnRefreshListener(() -> {
             loadNativeCatalog(true);
             syncLiveWalletAndSession();
@@ -303,70 +446,85 @@ public class MainActivity extends AppCompatActivity implements ConnectivityHelpe
             @Override
             public void onTextChanged(CharSequence s, int start, int before, int count) {
                 activeSearchQuery = s != null ? s.toString().trim().toLowerCase(Locale.ROOT) : "";
+                btnClearSearch.setVisibility(activeSearchQuery.isEmpty() ? View.GONE : View.VISIBLE);
+                heroCarouselSection.setVisibility((activeSearchQuery.isEmpty() && activeNativeTab == TAB_HOME) ? View.VISIBLE : View.GONE);
                 applyProductFilters();
             }
 
             @Override
             public void afterTextChanged(Editable s) {}
         });
+        btnClearSearch.setOnClickListener(v -> nativeSearchInput.setText(""));
 
-        btnAdminQuickStudio.setOnClickListener(v -> launchNativeStudio());
+        UiMotion.attachPressScale(btnAdminQuickStudio);
+        UiMotion.attachPressScale(btnNativeCurrency);
+        UiMotion.attachPressScale(btnNativePay);
+        UiMotion.attachPressScale(btnNativeNotif);
+        UiMotion.attachPressScale(btnNativeCart);
+
+        btnAdminQuickStudio.setOnClickListener(v -> {
+            UiMotion.hapticTap(v);
+            launchNativeStudio();
+        });
 
         btnNativeCurrency.setOnClickListener(v -> {
+            UiMotion.hapticTap(v);
             String next = localStore.togglePreferredCurrency();
             onGlobalCurrencyChanged();
             Toast.makeText(this, "تم التبديل إلى " + ("USD".equals(next) ? "الدولار الأمريكي ($)" : "الليرة السورية (ل.س)"), Toast.LENGTH_SHORT).show();
         });
 
-        View.OnClickListener openWalletAction = v -> {
-            if (!connectivityHelper.isOnline()) {
-                nativeBridge.showOfflineTransactionAlert("المحفظة وبوابات الدفع");
-                return;
-            }
-            startActivity(new Intent(MainActivity.this, NativePaymentActivity.class));
-        };
-        btnNativePay.setOnClickListener(openWalletAction);
-        heroWalletBanner.setOnClickListener(v -> {
-            if (!isAuthenticated) {
-                openNativeLoginSheet();
-            } else {
-                openWalletAction.onClick(v);
-            }
+        btnNativePay.setOnClickListener(v -> {
+            UiMotion.hapticTap(v);
+            openNativeWalletScreen();
         });
 
-        btnNativeNotif.setOnClickListener(v -> showNotificationsInboxDialog());
-        btnNativeCart.setOnClickListener(v -> NativeCartHelper.showCartSheet(
-                MainActivity.this,
-                catalogRepository,
-                localStore,
-                new NativeCartHelper.CartUpdateCallback() {
-                    @Override
-                    public void onCartChanged() {
-                        updateHeaderBadges();
-                    }
+        btnNativeNotif.setOnClickListener(v -> {
+            UiMotion.hapticTap(v);
+            showNotificationsInboxDialog();
+        });
 
-                    @Override
-                    public void onOrderCompleted(String orderNumber) {
-                        updateHeaderBadges();
-                        syncLiveWalletAndSession();
-                        switchToNativeTab(TAB_ORDERS);
+        btnNativeCart.setOnClickListener(v -> {
+            UiMotion.hapticTap(v);
+            NativeCartHelper.showCartSheet(
+                    MainActivity.this,
+                    catalogRepository,
+                    localStore,
+                    new NativeCartHelper.CartUpdateCallback() {
+                        @Override
+                        public void onCartChanged() {
+                            updateHeaderBadges(true);
+                        }
+
+                        @Override
+                        public void onOrderCompleted(String orderNumber) {
+                            updateHeaderBadges(true);
+                            syncLiveWalletAndSession();
+                            switchToNativeTab(TAB_ORDERS);
+                        }
                     }
-                }
-        ));
+            );
+        });
     }
 
     private void setupNativeOrdersView() {
-        nativeOrdersSwipe.setColorSchemeColors(0xFF06B6D4, 0xFFD4A853);
+        nativeOrdersSwipe.setColorSchemeColors(0xFFFBBF24, 0xFF22D3EE);
+        nativeOrdersSwipe.setProgressBackgroundColorSchemeColor(0xFF0E1628);
         nativeOrdersSwipe.setOnRefreshListener(this::loadNativeOrders);
-        btnOrdersRefresh.setOnClickListener(v -> loadNativeOrders());
+        UiMotion.attachPressScale(btnOrdersRefresh);
+        btnOrdersRefresh.setOnClickListener(v -> {
+            UiMotion.hapticTap(v);
+            v.animate().rotationBy(360f).setDuration(420).start();
+            loadNativeOrders();
+        });
     }
 
     private void onGlobalCurrencyChanged() {
         String curr = localStore.getPreferredCurrency();
         double rate = localStore.getSypRate();
-        updateHeaderBadges();
+        updateHeaderBadges(true);
         productAdapter.updateCurrencyConfig(curr, rate);
-        updateHeroWalletBanner();
+        rebuildHeroSlides();
         if (activeNativeTab == TAB_ORDERS) {
             loadNativeOrders();
         } else if (activeNativeTab == TAB_ACCOUNT) {
@@ -374,57 +532,16 @@ public class MainActivity extends AppCompatActivity implements ConnectivityHelpe
         }
     }
 
-    private void updateHeaderBadges() {
+    private void updateHeaderBadges(boolean animate) {
         String curr = localStore.getPreferredCurrency();
-        btnNativeCurrency.setText("USD".equals(curr) ? "USD $" : "ل.س SYP");
-        int cartCnt = localStore.getCartCount();
-        btnNativeCart.setText("🛒 " + cartCnt);
-    }
-
-    private void updateHeroWalletBanner() {
-        if (!isAuthenticated) {
-            heroWalletLabel.setText("مرحباً بك في تطبيق رقميات ⚡");
-            heroWalletValue.setText("اضغط هنا لتسجيل الدخول ومزامنة رصيدك ←");
+        String cText = "USD".equals(curr) ? "USD $" : "ل.س SYP";
+        if (animate) {
+            UiMotion.pulseTextChange(btnNativeCurrency, cText);
         } else {
-            String curr = localStore.getPreferredCurrency();
-            heroWalletLabel.setText(!userFullName.isEmpty() ? ("رصيد محفظة " + userFullName) : "رصيد محفظتك الحقيقي");
-            if ("USD".equals(curr)) {
-                double sypEq = liveBalanceSyp > 0 ? liveBalanceSyp : (liveBalanceUsd * localStore.getSypRate());
-                heroWalletValue.setText(String.format(Locale.US, "$%.2f  •  %s", liveBalanceUsd, RaqamiyatLocalStore.formatSypAmount(sypEq)));
-            } else {
-                double sypDisp = liveBalanceSyp > 0 ? liveBalanceSyp : (liveBalanceUsd * localStore.getSypRate());
-                heroWalletValue.setText(String.format(Locale.US, "%s  •  $%.2f", RaqamiyatLocalStore.formatSypAmount(sypDisp), liveBalanceUsd));
-            }
+            btnNativeCurrency.setText(cText);
         }
-
-        // Render Official Gateways Logos Strip via Glide
-        heroGatewaysStrip.removeAllViews();
-        int shown = 0;
-        for (GatewayItem g : liveGateways) {
-            if (!"gateway".equals(g.type)) continue;
-            if (shown >= 3) break;
-            shown++;
-
-            LinearLayout box = new LinearLayout(this);
-            box.setBackgroundResource(R.drawable.bg_logo_box);
-            box.setGravity(Gravity.CENTER);
-            LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(dp(34), dp(34));
-            lp.setMarginStart(dp(5));
-            box.setLayoutParams(lp);
-            if (g.isUnavailable) box.setAlpha(0.5f);
-
-            ImageView iv = new ImageView(this);
-            iv.setLayoutParams(new LinearLayout.LayoutParams(dp(26), dp(26)));
-            iv.setScaleType(ImageView.ScaleType.FIT_CENTER);
-            String logoUrl = !g.logoUrl.isEmpty() ? g.logoUrl : (CatalogRepository.DOMAIN + "/api/app/gateway-logo/" + g.provider + "/");
-            Glide.with(this)
-                    .load(logoUrl)
-                    .diskCacheStrategy(DiskCacheStrategy.ALL)
-                    .placeholder(R.mipmap.ic_launcher)
-                    .into(iv);
-            box.addView(iv);
-            heroGatewaysStrip.addView(box);
-        }
+        int cartCnt = localStore.getCartCount();
+        txtCartBadge.setText(String.valueOf(cartCnt));
     }
 
     private void syncLiveWalletAndSession() {
@@ -458,7 +575,7 @@ public class MainActivity extends AppCompatActivity implements ConnectivityHelpe
 
             btnAdminQuickStudio.setVisibility(isAdminUser ? View.VISIBLE : View.GONE);
             productAdapter.updateCurrencyConfig(localStore.getPreferredCurrency(), localStore.getSypRate());
-            updateHeroWalletBanner();
+            rebuildHeroSlides();
             if (activeNativeTab == TAB_ACCOUNT) {
                 renderAccountTab();
             }
@@ -493,7 +610,7 @@ public class MainActivity extends AppCompatActivity implements ConnectivityHelpe
 
             JSONArray arr = obj.optJSONArray("orders");
             if (arr == null || arr.length() == 0) {
-                addOrdersEmptyCard("لا توجد طلبات سابقة في حسابك حتى الآن.\nابدأ بتصفح المنتجات واستمتع بالتسليم الفوري ⚡", false);
+                addOrdersEmptyCard("لا توجد طلبات سابقة في حسابك حتى الآن.\nابدأ بتصفح المنتجات واستمتع بالتسليم الفوري.", false);
                 return;
             }
 
@@ -517,9 +634,9 @@ public class MainActivity extends AppCompatActivity implements ConnectivityHelpe
                 LinearLayout card = new LinearLayout(this);
                 card.setOrientation(LinearLayout.VERTICAL);
                 card.setBackgroundResource(R.drawable.bg_card_dark);
-                card.setPadding(dp(14), dp(14), dp(14), dp(14));
+                card.setPadding(dp(16), dp(16), dp(16), dp(16));
                 LinearLayout.LayoutParams cLp = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
-                cLp.bottomMargin = dp(10);
+                cLp.bottomMargin = dp(12);
                 card.setLayoutParams(cLp);
 
                 // Top Row: Image + Title + Status Badge
@@ -528,11 +645,11 @@ public class MainActivity extends AppCompatActivity implements ConnectivityHelpe
                 topRow.setGravity(Gravity.CENTER_VERTICAL);
 
                 ImageView iv = new ImageView(this);
-                LinearLayout.LayoutParams ivLp = new LinearLayout.LayoutParams(dp(46), dp(46));
-                ivLp.setMarginEnd(dp(10));
+                LinearLayout.LayoutParams ivLp = new LinearLayout.LayoutParams(dp(48), dp(48));
+                ivLp.setMarginEnd(dp(12));
                 iv.setLayoutParams(ivLp);
                 iv.setBackgroundResource(R.drawable.bg_logo_box);
-                iv.setPadding(dp(3), dp(3), dp(3), dp(3));
+                iv.setPadding(dp(4), dp(4), dp(4), dp(4));
                 if (!imgUrl.isEmpty()) {
                     Glide.with(this).load(imgUrl).placeholder(R.mipmap.ic_launcher).into(iv);
                 } else {
@@ -547,14 +664,14 @@ public class MainActivity extends AppCompatActivity implements ConnectivityHelpe
                 TextView tTv = new TextView(this);
                 tTv.setText(title);
                 tTv.setTextColor(0xFFFFFFFF);
-                tTv.setTextSize(13.5f);
+                tTv.setTextSize(14f);
                 tTv.setTypeface(tTv.getTypeface(), Typeface.BOLD);
                 infoCol.addView(tTv);
 
                 TextView subTv = new TextView(this);
                 subTv.setText("#" + orderNumber + " • " + payAr + " • " + createdAt);
                 subTv.setTextColor(0xFF94A3B8);
-                subTv.setTextSize(10.5f);
+                subTv.setTextSize(11f);
                 infoCol.addView(subTv);
                 topRow.addView(infoCol);
 
@@ -582,19 +699,19 @@ public class MainActivity extends AppCompatActivity implements ConnectivityHelpe
                         ? (RaqamiyatLocalStore.formatSypAmount(totalSyp) + String.format(Locale.US, " (≈ $%.2f)", totalUsd))
                         : (String.format(Locale.US, "$%.2f", totalUsd) + " (≈ " + RaqamiyatLocalStore.formatSypAmount(totalSyp) + ")");
                 priceTv.setText("الإجمالي: " + pDisp);
-                priceTv.setTextColor(0xFFFBBF24);
-                priceTv.setTextSize(13f);
+                priceTv.setTextColor(0xFFFDE047);
+                priceTv.setTextSize(13.5f);
                 priceTv.setTypeface(priceTv.getTypeface(), Typeface.BOLD);
-                priceTv.setPadding(0, dp(8), 0, 0);
+                priceTv.setPadding(0, dp(10), 0, 0);
                 card.addView(priceTv);
 
-                // Deliverable Digital Codes / PINs Box
+                // Deliverable Digital Codes Vault Box
                 JSONObject ff = o.optJSONObject("fulfillment");
                 if (ff != null && ff.length() > 0) {
                     LinearLayout codeBox = new LinearLayout(this);
                     codeBox.setOrientation(LinearLayout.VERTICAL);
                     codeBox.setBackgroundResource(R.drawable.bg_gateway_selected);
-                    codeBox.setPadding(dp(12), dp(10), dp(12), dp(10));
+                    codeBox.setPadding(dp(14), dp(12), dp(14), dp(12));
                     LinearLayout.LayoutParams cbLp = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
                     cbLp.topMargin = dp(10);
                     codeBox.setLayoutParams(cbLp);
@@ -611,80 +728,101 @@ public class MainActivity extends AppCompatActivity implements ConnectivityHelpe
 
                         TextView kvTv = new TextView(this);
                         kvTv.setLayoutParams(new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f));
-                        kvTv.setText("🎁 " + k + ": " + v);
+                        kvTv.setText(k + ":  " + v);
                         kvTv.setTextColor(0xFFFFFFFF);
-                        kvTv.setTextSize(12.5f);
+                        kvTv.setTextSize(13f);
                         kvTv.setTypeface(kvTv.getTypeface(), Typeface.BOLD);
                         kRow.addView(kvTv);
 
-                        TextView copyBtn = new TextView(this);
-                        copyBtn.setText("نسخ 📋");
-                        copyBtn.setTextColor(0xFF22D3EE);
-                        copyBtn.setTextSize(11.5f);
-                        copyBtn.setTypeface(copyBtn.getTypeface(), Typeface.BOLD);
-                        copyBtn.setPadding(dp(8), dp(4), dp(8), dp(4));
-                        copyBtn.setOnClickListener(view -> {
+                        LinearLayout copyPill = new LinearLayout(this);
+                        copyPill.setOrientation(LinearLayout.HORIZONTAL);
+                        copyPill.setGravity(Gravity.CENTER_VERTICAL);
+                        copyPill.setBackgroundResource(R.drawable.bg_chip_unselected);
+                        copyPill.setPadding(dp(10), dp(5), dp(10), dp(5));
+
+                        ImageView copyIc = new ImageView(this);
+                        copyIc.setImageResource(R.drawable.ic_copy);
+                        copyIc.setLayoutParams(new LinearLayout.LayoutParams(dp(14), dp(14)));
+                        copyPill.addView(copyIc);
+
+                        TextView copyTxt = new TextView(this);
+                        copyTxt.setText(" نسخ");
+                        copyTxt.setTextColor(0xFF22D3EE);
+                        copyTxt.setTextSize(11f);
+                        copyTxt.setTypeface(copyTxt.getTypeface(), Typeface.BOLD);
+                        copyPill.addView(copyTxt);
+
+                        UiMotion.attachPressScale(copyPill);
+                        copyPill.setOnClickListener(view -> {
+                            UiMotion.hapticTap(view);
                             ClipboardManager cm = (ClipboardManager) getSystemService(Context.CLIPBOARD_SERVICE);
                             if (cm != null) {
                                 cm.setPrimaryClip(ClipData.newPlainText(k, v));
                                 Toast.makeText(MainActivity.this, "تم نسخ الكود بنجاح!", Toast.LENGTH_SHORT).show();
                             }
                         });
-                        kRow.addView(copyBtn);
+                        kRow.addView(copyPill);
                         codeBox.addView(kRow);
                     }
                     card.addView(codeBox);
                 }
 
-                // Action Buttons Row
+                // Action Pills Row
                 LinearLayout actionsRow = new LinearLayout(this);
                 actionsRow.setOrientation(LinearLayout.HORIZONTAL);
                 LinearLayout.LayoutParams arLp = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
-                arLp.topMargin = dp(10);
+                arLp.topMargin = dp(12);
                 actionsRow.setLayoutParams(arLp);
 
-                Button detailsBtn = new Button(this);
-                detailsBtn.setLayoutParams(new LinearLayout.LayoutParams(0, dp(34), 1f));
+                TextView detailsBtn = new TextView(this);
+                detailsBtn.setLayoutParams(new LinearLayout.LayoutParams(0, dp(36), 1f));
                 detailsBtn.setBackgroundResource(R.drawable.bg_chip_unselected);
-                detailsBtn.setText("📄 الفاتورة والتفاصيل");
-                detailsBtn.setAllCaps(false);
+                detailsBtn.setGravity(Gravity.CENTER);
+                detailsBtn.setText("عرض الفاتورة والتفاصيل");
                 detailsBtn.setTextColor(0xFFE2E8F0);
-                detailsBtn.setTextSize(11f);
+                detailsBtn.setTextSize(11.5f);
+                detailsBtn.setTypeface(detailsBtn.getTypeface(), Typeface.BOLD);
+                UiMotion.attachPressScale(detailsBtn);
                 detailsBtn.setOnClickListener(v -> showWebMode(BASE_URL + "dashboard/orders/" + orderId + "/"));
                 actionsRow.addView(detailsBtn);
 
                 if ("processing".equals(st) || "pending".equals(st)) {
-                    Button syncBtn = new Button(this);
-                    LinearLayout.LayoutParams sLp = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, dp(34));
-                    sLp.setMarginStart(dp(6));
+                    TextView syncBtn = new TextView(this);
+                    LinearLayout.LayoutParams sLp = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, dp(36));
+                    sLp.setMarginStart(dp(8));
                     syncBtn.setLayoutParams(sLp);
                     syncBtn.setBackgroundResource(R.drawable.bg_chip_unselected);
-                    syncBtn.setPadding(dp(10), 0, dp(10), 0);
-                    syncBtn.setText("🔄 تحديث الحالة");
-                    syncBtn.setAllCaps(false);
+                    syncBtn.setGravity(Gravity.CENTER);
+                    syncBtn.setPadding(dp(14), 0, dp(14), 0);
+                    syncBtn.setText("تحديث الحالة");
                     syncBtn.setTextColor(0xFF22D3EE);
-                    syncBtn.setTextSize(11f);
+                    syncBtn.setTextSize(11.5f);
+                    syncBtn.setTypeface(syncBtn.getTypeface(), Typeface.BOLD);
+                    UiMotion.attachPressScale(syncBtn);
                     syncBtn.setOnClickListener(v -> performOrderAction(orderId, "sync"));
                     actionsRow.addView(syncBtn);
                 }
 
                 if (canCancel) {
-                    Button cancelBtn = new Button(this);
-                    LinearLayout.LayoutParams xLp = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, dp(34));
-                    xLp.setMarginStart(dp(6));
+                    TextView cancelBtn = new TextView(this);
+                    LinearLayout.LayoutParams xLp = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, dp(36));
+                    xLp.setMarginStart(dp(8));
                     cancelBtn.setLayoutParams(xLp);
                     cancelBtn.setBackgroundResource(R.drawable.bg_badge_red);
-                    cancelBtn.setPadding(dp(10), 0, dp(10), 0);
-                    cancelBtn.setText("✕ إلغاء");
-                    cancelBtn.setAllCaps(false);
+                    cancelBtn.setGravity(Gravity.CENTER);
+                    cancelBtn.setPadding(dp(14), 0, dp(14), 0);
+                    cancelBtn.setText("إلغاء");
                     cancelBtn.setTextColor(0xFFFCA5A5);
-                    cancelBtn.setTextSize(11f);
+                    cancelBtn.setTextSize(11.5f);
+                    cancelBtn.setTypeface(cancelBtn.getTypeface(), Typeface.BOLD);
+                    UiMotion.attachPressScale(cancelBtn);
                     cancelBtn.setOnClickListener(v -> performOrderAction(orderId, "cancel"));
                     actionsRow.addView(cancelBtn);
                 }
 
                 card.addView(actionsRow);
                 nativeOrdersList.addView(card);
+                UiMotion.animateCardEntrance(card, i);
             }
         });
     }
@@ -708,7 +846,7 @@ public class MainActivity extends AppCompatActivity implements ConnectivityHelpe
         card.setOrientation(LinearLayout.VERTICAL);
         card.setGravity(Gravity.CENTER);
         card.setBackgroundResource(R.drawable.bg_card_dark);
-        card.setPadding(dp(24), dp(32), dp(24), dp(32));
+        card.setPadding(dp(24), dp(36), dp(24), dp(36));
 
         TextView tv = new TextView(this);
         tv.setText(text);
@@ -718,16 +856,18 @@ public class MainActivity extends AppCompatActivity implements ConnectivityHelpe
         card.addView(tv);
 
         if (showLoginBtn) {
-            Button btn = new Button(this);
+            TextView btn = new TextView(this);
             btn.setBackgroundResource(R.drawable.bg_button_gold);
-            btn.setText("تسجيل الدخول الآن ⚡");
-            btn.setAllCaps(false);
-            btn.setTextColor(0xFF030712);
+            btn.setGravity(Gravity.CENTER);
+            btn.setText("تسجيل الدخول الآن");
+            btn.setTextColor(0xFF050811);
+            btn.setTextSize(14f);
             btn.setTypeface(btn.getTypeface(), Typeface.BOLD);
-            LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, dp(44));
-            lp.topMargin = dp(16);
+            LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, dp(46));
+            lp.topMargin = dp(18);
             btn.setLayoutParams(lp);
-            btn.setPadding(dp(24), 0, dp(24), 0);
+            btn.setPadding(dp(28), 0, dp(28), 0);
+            UiMotion.attachPressScale(btn);
             btn.setOnClickListener(v -> openNativeLoginSheet());
             card.addView(btn);
         }
@@ -737,87 +877,114 @@ public class MainActivity extends AppCompatActivity implements ConnectivityHelpe
     private void renderAccountTab() {
         nativeAccountBody.removeAllViews();
 
-        // 1. Profile / Login Hero Card
+        // 1. Profile / Login Fintech Card
         LinearLayout hero = new LinearLayout(this);
         hero.setOrientation(LinearLayout.VERTICAL);
         hero.setBackgroundResource(R.drawable.bg_wallet_hero);
-        hero.setPadding(dp(18), dp(18), dp(18), dp(18));
+        hero.setPadding(dp(20), dp(20), dp(20), dp(20));
 
         if (!isAuthenticated) {
             TextView t1 = new TextView(this);
-            t1.setText("مرحباً بك في رقميات | Raqamiyat");
+            t1.setText("مرحباً بك في رقميات");
             t1.setTextColor(0xFFFFFFFF);
-            t1.setTextSize(17f);
+            t1.setTextSize(18f);
             t1.setTypeface(t1.getTypeface(), Typeface.BOLD);
             hero.addView(t1);
 
             TextView t2 = new TextView(this);
             t2.setText("سجّل دخولك لمزامنة محفظتك، عرض الرصيد بالدولار والليرة السورية، ومتابعة طلباتك الفورية.");
             t2.setTextColor(0xFFCBD5E1);
-            t2.setTextSize(12f);
-            t2.setPadding(0, dp(6), 0, dp(14));
+            t2.setTextSize(12.5f);
+            t2.setPadding(0, dp(6), 0, dp(16));
             hero.addView(t2);
 
-            Button loginBtn = new Button(this);
+            TextView loginBtn = new TextView(this);
             loginBtn.setBackgroundResource(R.drawable.bg_button_gold);
-            loginBtn.setText("🔐 تسجيل الدخول السريع");
-            loginBtn.setAllCaps(false);
-            loginBtn.setTextColor(0xFF030712);
-            loginBtn.setTextSize(14f);
+            loginBtn.setGravity(Gravity.CENTER);
+            loginBtn.setText("تسجيل الدخول السريع");
+            loginBtn.setTextColor(0xFF050811);
+            loginBtn.setTextSize(14.5f);
             loginBtn.setTypeface(loginBtn.getTypeface(), Typeface.BOLD);
             loginBtn.setLayoutParams(new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dp(48)));
+            UiMotion.attachPressScale(loginBtn);
             loginBtn.setOnClickListener(v -> openNativeLoginSheet());
             hero.addView(loginBtn);
         } else {
+            LinearLayout profRow = new LinearLayout(this);
+            profRow.setOrientation(LinearLayout.HORIZONTAL);
+            profRow.setGravity(Gravity.CENTER_VERTICAL);
+
+            String dispName = !userFullName.isEmpty() ? userFullName : userNameHandle;
+            String initial = !dispName.isEmpty() ? dispName.substring(0, 1).toUpperCase(Locale.ROOT) : "R";
+
+            TextView avatar = new TextView(this);
+            avatar.setText(initial);
+            avatar.setTextColor(0xFF050811);
+            avatar.setTextSize(18f);
+            avatar.setTypeface(avatar.getTypeface(), Typeface.BOLD);
+            avatar.setGravity(Gravity.CENTER);
+            avatar.setBackgroundResource(R.drawable.bg_chip_selected);
+            LinearLayout.LayoutParams avLp = new LinearLayout.LayoutParams(dp(48), dp(48));
+            avLp.setMarginEnd(dp(14));
+            avatar.setLayoutParams(avLp);
+            profRow.addView(avatar);
+
+            LinearLayout nameCol = new LinearLayout(this);
+            nameCol.setOrientation(LinearLayout.VERTICAL);
+            nameCol.setLayoutParams(new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f));
+
             TextView nameTv = new TextView(this);
-            nameTv.setText((!userFullName.isEmpty() ? userFullName : userNameHandle) + (userIsVerified ? "  ✓ موثق" : ""));
+            nameTv.setText(dispName + (userIsVerified ? " • حساب موثق" : ""));
             nameTv.setTextColor(0xFFFFFFFF);
-            nameTv.setTextSize(18f);
+            nameTv.setTextSize(16.5f);
             nameTv.setTypeface(nameTv.getTypeface(), Typeface.BOLD);
-            hero.addView(nameTv);
+            nameCol.addView(nameTv);
 
             if (!userEmail.isEmpty()) {
                 TextView emailTv = new TextView(this);
                 emailTv.setText(userEmail);
                 emailTv.setTextColor(0xFF94A3B8);
                 emailTv.setTextSize(12f);
-                hero.addView(emailTv);
+                nameCol.addView(emailTv);
             }
+            profRow.addView(nameCol);
+            hero.addView(profRow);
 
             TextView balTv = new TextView(this);
             balTv.setText("رصيد المحفظة: " + localStore.formatPrice(liveBalanceUsd) + "  (" + localStore.formatSecondaryPrice(liveBalanceUsd) + ")");
-            balTv.setTextColor(0xFFFBBF24);
-            balTv.setTextSize(15f);
+            balTv.setTextColor(0xFFFDE047);
+            balTv.setTextSize(16f);
             balTv.setTypeface(balTv.getTypeface(), Typeface.BOLD);
-            balTv.setPadding(0, dp(10), 0, dp(12));
+            balTv.setPadding(0, dp(14), 0, dp(14));
             hero.addView(balTv);
 
-            Button topupBtn = new Button(this);
+            TextView topupBtn = new TextView(this);
             topupBtn.setBackgroundResource(R.drawable.bg_button_gold);
-            topupBtn.setText("💳 شحن المحفظة وبوابات الدفع ⚡");
-            topupBtn.setAllCaps(false);
-            topupBtn.setTextColor(0xFF030712);
-            topupBtn.setTextSize(13.5f);
+            topupBtn.setGravity(Gravity.CENTER);
+            topupBtn.setText("فتح المحفظة وبوابات الدفع");
+            topupBtn.setTextColor(0xFF050811);
+            topupBtn.setTextSize(14f);
             topupBtn.setTypeface(topupBtn.getTypeface(), Typeface.BOLD);
-            topupBtn.setLayoutParams(new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dp(46)));
-            topupBtn.setOnClickListener(v -> startActivity(new Intent(MainActivity.this, NativePaymentActivity.class)));
+            topupBtn.setLayoutParams(new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dp(48)));
+            UiMotion.attachPressScale(topupBtn);
+            topupBtn.setOnClickListener(v -> openNativeWalletScreen());
             hero.addView(topupBtn);
         }
         nativeAccountBody.addView(hero);
 
-        // 2. Global Currency Selector Card
+        // 2. Segmented Global Currency Card
         LinearLayout currCard = new LinearLayout(this);
         currCard.setOrientation(LinearLayout.VERTICAL);
         currCard.setBackgroundResource(R.drawable.bg_card_dark);
-        currCard.setPadding(dp(16), dp(14), dp(16), dp(14));
+        currCard.setPadding(dp(16), dp(16), dp(16), dp(16));
         LinearLayout.LayoutParams ccLp = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
         ccLp.topMargin = dp(14);
         currCard.setLayoutParams(ccLp);
 
         TextView cTitle = new TextView(this);
-        cTitle.setText("💱 عملة العرض والشراء في التطبيق");
+        cTitle.setText("عملة العرض والشراء في التطبيق");
         cTitle.setTextColor(0xFFFFFFFF);
-        cTitle.setTextSize(14f);
+        cTitle.setTextSize(14.5f);
         cTitle.setTypeface(cTitle.getTypeface(), Typeface.BOLD);
         currCard.addView(cTitle);
 
@@ -825,36 +992,40 @@ public class MainActivity extends AppCompatActivity implements ConnectivityHelpe
         cSub.setText("سعر الصرف المباشر: 1$ = " + RaqamiyatLocalStore.formatSypAmount(localStore.getSypRate()));
         cSub.setTextColor(0xFF94A3B8);
         cSub.setTextSize(11.5f);
-        cSub.setPadding(0, dp(2), 0, dp(10));
+        cSub.setPadding(0, dp(2), 0, dp(12));
         currCard.addView(cSub);
 
         LinearLayout cBtns = new LinearLayout(this);
         cBtns.setOrientation(LinearLayout.HORIZONTAL);
         boolean isUsd = "USD".equals(localStore.getPreferredCurrency());
 
-        Button bUsd = new Button(this);
-        LinearLayout.LayoutParams b1Lp = new LinearLayout.LayoutParams(0, dp(40), 1f);
+        TextView bUsd = new TextView(this);
+        LinearLayout.LayoutParams b1Lp = new LinearLayout.LayoutParams(0, dp(42), 1f);
         b1Lp.setMarginEnd(dp(8));
         bUsd.setLayoutParams(b1Lp);
+        bUsd.setGravity(Gravity.CENTER);
         bUsd.setBackgroundResource(isUsd ? R.drawable.bg_chip_selected : R.drawable.bg_chip_unselected);
-        bUsd.setText("الدولار ($ USD)");
-        bUsd.setAllCaps(false);
-        bUsd.setTextColor(isUsd ? 0xFF030712 : 0xFFE2E8F0);
+        bUsd.setText("الدولار الأمريكي ($ USD)");
+        bUsd.setTextColor(isUsd ? 0xFF050811 : 0xFFE2E8F0);
         bUsd.setTypeface(bUsd.getTypeface(), Typeface.BOLD);
+        UiMotion.attachPressScale(bUsd);
         bUsd.setOnClickListener(v -> {
+            UiMotion.hapticTap(v);
             localStore.setPreferredCurrency("USD");
             onGlobalCurrencyChanged();
         });
         cBtns.addView(bUsd);
 
-        Button bSyp = new Button(this);
-        bSyp.setLayoutParams(new LinearLayout.LayoutParams(0, dp(40), 1f));
+        TextView bSyp = new TextView(this);
+        bSyp.setLayoutParams(new LinearLayout.LayoutParams(0, dp(42), 1f));
+        bSyp.setGravity(Gravity.CENTER);
         bSyp.setBackgroundResource(!isUsd ? R.drawable.bg_chip_selected : R.drawable.bg_chip_unselected);
         bSyp.setText("الليرة السورية (ل.س)");
-        bSyp.setAllCaps(false);
-        bSyp.setTextColor(!isUsd ? 0xFF030712 : 0xFFE2E8F0);
+        bSyp.setTextColor(!isUsd ? 0xFF050811 : 0xFFE2E8F0);
         bSyp.setTypeface(bSyp.getTypeface(), Typeface.BOLD);
+        UiMotion.attachPressScale(bSyp);
         bSyp.setOnClickListener(v -> {
+            UiMotion.hapticTap(v);
             localStore.setPreferredCurrency("SYP");
             onGlobalCurrencyChanged();
         });
@@ -862,40 +1033,43 @@ public class MainActivity extends AppCompatActivity implements ConnectivityHelpe
         currCard.addView(cBtns);
         nativeAccountBody.addView(currCard);
 
-        // 3. Quick Actions Menu
-        addAccountActionRow("💳 المحفظة وبوابات الدفع وسجل الإيداعات", "شام كاش، كاش موبايل، بيميرا وكروت الشحن",
-                () -> startActivity(new Intent(this, NativePaymentActivity.class)));
-        addAccountActionRow("📦 سجل طلباتي وأكواد البطاقات", "استعراض جميع مشترياتك ونسخ الأكواد بلمسة واحدة",
-                () -> switchToNativeTab(TAB_ORDERS));
-        addAccountActionRow("🔔 مركز الإشعارات والعروض الحصرية", "أحدث التخفيضات والتنبيهات في رقميات",
-                this::showNotificationsInboxDialog);
+        // 3. Vector Action Rows
+        addAccountActionRow(R.drawable.ic_nav_wallet, "المحفظة وبوابات الدفع الإلكتروني", "شام كاش، كاش موبايل، بيميرا وكروت الشحن",
+                this::openNativeWalletScreen, 1);
+        addAccountActionRow(R.drawable.ic_nav_orders, "سجل طلباتي وأكواد البطاقات", "استعراض المشتريات ونسخ الأكواد بلمسة واحدة",
+                () -> switchToNativeTab(TAB_ORDERS), 2);
+        addAccountActionRow(R.drawable.ic_bell, "مركز الإشعارات والعروض", "أحدث التخفيضات والتنبيهات في رقميات",
+                this::showNotificationsInboxDialog, 3);
 
         if (isAuthenticated) {
-            addAccountActionRow("🛡️ الأمان وتوثيق الهوية (KYC & 2FA)", "إدارة كلمة المرور، التحقق بخطوتين وتوثيق الحساب",
-                    () -> showWebMode(BASE_URL + "dashboard/"));
+            addAccountActionRow(R.drawable.ic_shield_check, "الأمان وتوثيق الهوية (KYC & 2FA)", "إدارة كلمة المرور، التحقق بخطوتين وتوثيق الحساب",
+                    () -> showWebMode(BASE_URL + "dashboard/"), 4);
         }
 
         if (isAdminUser) {
-            addAccountActionRow("🎛️ لوحة تحكم الإدارة الشاملة", "إدارة الطلبات، المنتجات، شام كاش والبوابات",
-                    () -> showWebMode(BASE_URL + "control/"));
-            addAccountActionRow("📷 استوديو تصوير المنتجات بالذكاء الاصطناعي", "عزل الخلفية وتحديث صور المنتجات بالكاميرا",
-                    this::launchNativeStudio);
+            addAccountActionRow(R.drawable.ic_nav_grid, "لوحة تحكم الإدارة الشاملة", "إدارة الطلبات، المنتجات، شام كاش والبوابات",
+                    () -> showWebMode(BASE_URL + "control/"), 5);
+            addAccountActionRow(R.drawable.ic_camera, "استوديو تصوير المنتجات الذكي", "عزل الخلفية وتحديث صور المنتجات بالكاميرا",
+                    this::launchNativeStudio, 6);
         }
 
-        addAccountActionRow("💬 الدعم الفني والتواصل معنا", "فريق دعم رقميات في خدمتك على مدار الساعة",
-                () -> showWebMode(BASE_URL + "contact/"));
+        addAccountActionRow(R.drawable.ic_ticket, "الدعم الفني والتواصل معنا", "فريق دعم رقميات في خدمتك على مدار الساعة",
+                () -> showWebMode(BASE_URL + "contact/"), 7);
 
         if (isAuthenticated) {
-            Button logoutBtn = new Button(this);
-            LinearLayout.LayoutParams loLp = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dp(46));
-            loLp.topMargin = dp(16);
+            TextView logoutBtn = new TextView(this);
+            LinearLayout.LayoutParams loLp = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dp(48));
+            loLp.topMargin = dp(18);
             logoutBtn.setLayoutParams(loLp);
+            logoutBtn.setGravity(Gravity.CENTER);
             logoutBtn.setBackgroundResource(R.drawable.bg_badge_red);
-            logoutBtn.setText("🚪 تسجيل الخروج من الحساب");
-            logoutBtn.setAllCaps(false);
+            logoutBtn.setText("تسجيل الخروج من الحساب");
             logoutBtn.setTextColor(0xFFFCA5A5);
+            logoutBtn.setTextSize(13.5f);
             logoutBtn.setTypeface(logoutBtn.getTypeface(), Typeface.BOLD);
+            UiMotion.attachPressScale(logoutBtn);
             logoutBtn.setOnClickListener(v -> {
+                UiMotion.hapticTap(v);
                 catalogRepository.postJson(CatalogRepository.LOGOUT_API_URL, new JSONObject(), (c, j, e) -> {
                     localStore.saveAppAuthToken("");
                     localStore.saveQuickAccountSnapshot(0.0, "", "");
@@ -906,7 +1080,7 @@ public class MainActivity extends AppCompatActivity implements ConnectivityHelpe
                     liveBalanceUsd = 0.0;
                     liveBalanceSyp = 0.0;
                     btnAdminQuickStudio.setVisibility(View.GONE);
-                    updateHeroWalletBanner();
+                    rebuildHeroSlides();
                     renderAccountTab();
                     Toast.makeText(this, "تم تسجيل الخروج بنجاح", Toast.LENGTH_SHORT).show();
                 });
@@ -915,15 +1089,30 @@ public class MainActivity extends AppCompatActivity implements ConnectivityHelpe
         }
     }
 
-    private void addAccountActionRow(String titleText, String subtitleText, Runnable onClick) {
+    private void addAccountActionRow(int iconRes, String titleText, String subtitleText, Runnable onClick, int animIndex) {
         LinearLayout row = new LinearLayout(this);
         row.setOrientation(LinearLayout.HORIZONTAL);
         row.setGravity(Gravity.CENTER_VERTICAL);
         row.setBackgroundResource(R.drawable.bg_card_dark);
-        row.setPadding(dp(14), dp(13), dp(14), dp(13));
+        row.setPadding(dp(14), dp(14), dp(14), dp(14));
         LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
         lp.topMargin = dp(10);
         row.setLayoutParams(lp);
+        UiMotion.attachPressScale(row);
+
+        LinearLayout iconBox = new LinearLayout(this);
+        iconBox.setBackgroundResource(R.drawable.bg_icon_circle);
+        iconBox.setGravity(Gravity.CENTER);
+        LinearLayout.LayoutParams ibLp = new LinearLayout.LayoutParams(dp(40), dp(40));
+        ibLp.setMarginEnd(dp(12));
+        iconBox.setLayoutParams(ibLp);
+
+        ImageView iv = new ImageView(this);
+        iv.setLayoutParams(new LinearLayout.LayoutParams(dp(19), dp(19)));
+        iv.setImageResource(iconRes);
+        iv.setColorFilter(0xFFFBBF24);
+        iconBox.addView(iv);
+        row.addView(iconBox);
 
         LinearLayout col = new LinearLayout(this);
         col.setOrientation(LinearLayout.VERTICAL);
@@ -944,17 +1133,19 @@ public class MainActivity extends AppCompatActivity implements ConnectivityHelpe
 
         row.addView(col);
 
-        TextView arrow = new TextView(this);
-        arrow.setText("←");
-        arrow.setTextColor(0xFF22D3EE);
-        arrow.setTextSize(15f);
-        arrow.setTypeface(arrow.getTypeface(), Typeface.BOLD);
+        ImageView arrow = new ImageView(this);
+        arrow.setLayoutParams(new LinearLayout.LayoutParams(dp(16), dp(16)));
+        arrow.setImageResource(R.drawable.ic_arrow_back);
+        arrow.setRotation(180f);
+        arrow.setColorFilter(0xFF64748B);
         row.addView(arrow);
 
         row.setOnClickListener(v -> {
+            UiMotion.hapticTap(v);
             if (onClick != null) onClick.run();
         });
         nativeAccountBody.addView(row);
+        UiMotion.animateCardEntrance(row, animIndex);
     }
 
     private void syncAppNotifications() {
@@ -969,7 +1160,7 @@ public class MainActivity extends AppCompatActivity implements ConnectivityHelpe
         syncAppNotifications();
         if (latestNotifications.isEmpty()) {
             new MaterialAlertDialogBuilder(this)
-                    .setTitle("🔔 إشعارات وعروض رقميات")
+                    .setTitle("مركز إشعارات رقميات")
                     .setMessage("لا توجد إشعارات أو عروض جديدة حالياً.")
                     .setPositiveButton("حسناً", (d, w) -> d.dismiss())
                     .show();
@@ -978,11 +1169,10 @@ public class MainActivity extends AppCompatActivity implements ConnectivityHelpe
         CharSequence[] titles = new CharSequence[latestNotifications.size()];
         for (int i = 0; i < latestNotifications.size(); i++) {
             AppNotificationSync.AppNotifItem item = latestNotifications.get(i);
-            String icon = "discount".equals(item.category) ? "🔥 " : ("update".equals(item.category) ? "⚡ " : ("promo".equals(item.category) ? "🎁 " : "💬 "));
-            titles[i] = icon + item.title + "\n" + item.body;
+            titles[i] = item.title + "\n" + item.body;
         }
         new MaterialAlertDialogBuilder(this)
-                .setTitle("🔔 أحدث الإشعارات والعروض")
+                .setTitle("أحدث الإشعارات والعروض")
                 .setItems(titles, (dialog, which) -> {
                     AppNotificationSync.AppNotifItem picked = latestNotifications.get(which);
                     if (picked.actionUrl != null && !picked.actionUrl.isEmpty()) {
@@ -1004,7 +1194,7 @@ public class MainActivity extends AppCompatActivity implements ConnectivityHelpe
                 allProducts.addAll(data.products);
                 if (!data.gateways.isEmpty() && liveGateways.isEmpty()) {
                     liveGateways.addAll(data.gateways);
-                    updateHeroWalletBanner();
+                    rebuildHeroSlides();
                 }
                 productAdapter.updateCurrencyConfig(localStore.getPreferredCurrency(), localStore.getSypRate());
                 applyProductFilters();
@@ -1048,23 +1238,24 @@ public class MainActivity extends AppCompatActivity implements ConnectivityHelpe
     private void switchToNativeTab(int tab) {
         isNativeMode = true;
         activeNativeTab = tab;
-        swipeRefresh.setVisibility(View.GONE);
         nativeErrorView.setVisibility(View.GONE);
 
-        nativeStoreContainer.setVisibility((tab == TAB_HOME || tab == TAB_CATALOG) ? View.VISIBLE : View.GONE);
-        nativeOrdersContainer.setVisibility(tab == TAB_ORDERS ? View.VISIBLE : View.GONE);
-        nativeAccountContainer.setVisibility(tab == TAB_ACCOUNT ? View.VISIBLE : View.GONE);
-
-        setActiveBottomTabHighlight(tab);
-
-        if (tab == TAB_CATALOG) {
-            nativeSearchInput.requestFocus();
+        if (tab == TAB_HOME || tab == TAB_CATALOG) {
+            heroCarouselSection.setVisibility((tab == TAB_HOME && activeSearchQuery.isEmpty()) ? View.VISIBLE : View.GONE);
+            UiMotion.revealContainer(nativeStoreContainer, nativeOrdersContainer, nativeAccountContainer, swipeRefresh);
+            if (tab == TAB_CATALOG) {
+                nativeSearchInput.requestFocus();
+            }
         } else if (tab == TAB_ORDERS) {
+            UiMotion.revealContainer(nativeOrdersContainer, nativeStoreContainer, nativeAccountContainer, swipeRefresh);
             loadNativeOrders();
         } else if (tab == TAB_ACCOUNT) {
+            UiMotion.revealContainer(nativeAccountContainer, nativeStoreContainer, nativeOrdersContainer, swipeRefresh);
             renderAccountTab();
             syncLiveWalletAndSession();
         }
+
+        setActiveBottomTabHighlight(tab);
     }
 
     public static boolean isShamCashExternalUrl(String url) {
@@ -1135,11 +1326,7 @@ public class MainActivity extends AppCompatActivity implements ConnectivityHelpe
             return;
         }
         isNativeMode = false;
-        nativeStoreContainer.setVisibility(View.GONE);
-        nativeOrdersContainer.setVisibility(View.GONE);
-        nativeAccountContainer.setVisibility(View.GONE);
-        nativeErrorView.setVisibility(View.GONE);
-        swipeRefresh.setVisibility(View.VISIBLE);
+        UiMotion.revealContainer(swipeRefresh, nativeStoreContainer, nativeOrdersContainer, nativeAccountContainer, nativeErrorView);
         if (connectivityHelper != null && connectivityHelper.isOnline() && webView != null) {
             webView.getSettings().setCacheMode(WebSettings.LOAD_DEFAULT);
         }
@@ -1150,6 +1337,7 @@ public class MainActivity extends AppCompatActivity implements ConnectivityHelpe
     private void launchNativeStudio() {
         Intent studioIntent = new Intent(this, NativeCameraStudioActivity.class);
         startActivityForResult(studioIntent, NATIVE_STUDIO_REQUEST_CODE);
+        UiMotion.applySlideTransition(this);
     }
 
     private void setupWebView() {
@@ -1177,9 +1365,7 @@ public class MainActivity extends AppCompatActivity implements ConnectivityHelpe
         if (!cleanedUa.contains("Chrome/")) {
             cleanedUa = "Mozilla/5.0 (Linux; Android 13; Mobile) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Mobile Safari/537.36";
         }
-        cleanChromeUserAgent = cleanedUa;
-        appWebViewUserAgent = cleanedUa + " RaqamiyatAndroid/3.2.3 NativeApp";
-        settings.setUserAgentString(appWebViewUserAgent);
+        settings.setUserAgentString(cleanedUa + " RaqamiyatAndroid/3.3.0 NativeApp");
 
         webView.setDownloadListener((url, userAgent, contentDisposition, mimetype, contentLength) -> {
             if (url != null && (url.contains("/download/app") || url.contains("/download/apk") || url.endsWith(".apk"))) {
@@ -1358,10 +1544,13 @@ public class MainActivity extends AppCompatActivity implements ConnectivityHelpe
                 Toast.makeText(this, "وضع عدم الاتصال: يتم عرض البيانات المحفوظة", Toast.LENGTH_SHORT).show();
             }
         });
-        swipeRefresh.setColorSchemeColors(0xFF06B6D4, 0xFFD4A853);
+        swipeRefresh.setColorSchemeColors(0xFFFBBF24, 0xFF22D3EE);
+        swipeRefresh.setProgressBackgroundColorSchemeColor(0xFF0E1628);
     }
 
     private void setupErrorView() {
+        UiMotion.attachPressScale(btnRetry);
+        UiMotion.attachPressScale(btnBrowseCached);
         btnRetry.setOnClickListener(v -> {
             nativeErrorView.setVisibility(View.GONE);
             progressBar.setVisibility(View.VISIBLE);
@@ -1381,39 +1570,61 @@ public class MainActivity extends AppCompatActivity implements ConnectivityHelpe
         View navOrders = findViewById(R.id.nav_item_orders);
         View navAccount = findViewById(R.id.nav_item_account);
 
-        if (navHome != null) {
-            navHome.setOnClickListener(v -> switchToNativeTab(TAB_HOME));
-        }
-        if (navCatalog != null) {
-            navCatalog.setOnClickListener(v -> switchToNativeTab(TAB_CATALOG));
-        }
-        if (navWallet != null) {
-            navWallet.setOnClickListener(v -> startActivity(new Intent(MainActivity.this, NativePaymentActivity.class)));
-        }
-        if (navOrders != null) {
-            navOrders.setOnClickListener(v -> switchToNativeTab(TAB_ORDERS));
-        }
-        if (navAccount != null) {
-            navAccount.setOnClickListener(v -> switchToNativeTab(TAB_ACCOUNT));
-        }
+        UiMotion.attachPressScale(navHome);
+        UiMotion.attachPressScale(navCatalog);
+        UiMotion.attachPressScale(navWallet);
+        UiMotion.attachPressScale(navOrders);
+        UiMotion.attachPressScale(navAccount);
+
+        navHome.setOnClickListener(v -> {
+            UiMotion.hapticTap(v);
+            switchToNativeTab(TAB_HOME);
+        });
+        navCatalog.setOnClickListener(v -> {
+            UiMotion.hapticTap(v);
+            switchToNativeTab(TAB_CATALOG);
+        });
+        navWallet.setOnClickListener(v -> {
+            UiMotion.hapticTap(v);
+            openNativeWalletScreen();
+        });
+        navOrders.setOnClickListener(v -> {
+            UiMotion.hapticTap(v);
+            switchToNativeTab(TAB_ORDERS);
+        });
+        navAccount.setOnClickListener(v -> {
+            UiMotion.hapticTap(v);
+            switchToNativeTab(TAB_ACCOUNT);
+        });
     }
 
     private void setActiveBottomTabHighlight(int tab) {
-        TextView textHome = findViewById(R.id.nav_text_home);
-        TextView textCatalog = findViewById(R.id.nav_text_catalog);
-        TextView textWallet = findViewById(R.id.nav_text_wallet);
-        TextView textOrders = findViewById(R.id.nav_text_orders);
-        TextView textAccount = findViewById(R.id.nav_text_account);
+        int[] pillIds = {R.id.nav_pill_home, R.id.nav_pill_catalog, R.id.nav_pill_wallet, R.id.nav_pill_orders, R.id.nav_pill_account};
+        int[] iconIds = {R.id.nav_icon_home, R.id.nav_icon_catalog, R.id.nav_icon_wallet, R.id.nav_icon_orders, R.id.nav_icon_account};
+        int[] textIds = {R.id.nav_text_home, R.id.nav_text_catalog, R.id.nav_text_wallet, R.id.nav_text_orders, R.id.nav_text_account};
 
         int colorInactive = 0xFF94A3B8;
-        int colorActiveGold = 0xFFD4A853;
-        int colorActiveCyan = 0xFF22D3EE;
+        int colorActive = 0xFFFDE047;
 
-        if (textHome != null) textHome.setTextColor(tab == TAB_HOME ? colorActiveGold : colorInactive);
-        if (textCatalog != null) textCatalog.setTextColor(tab == TAB_CATALOG ? colorActiveGold : colorInactive);
-        if (textWallet != null) textWallet.setTextColor(tab == TAB_WALLET ? colorActiveCyan : colorInactive);
-        if (textOrders != null) textOrders.setTextColor(tab == TAB_ORDERS ? colorActiveGold : colorInactive);
-        if (textAccount != null) textAccount.setTextColor(tab == TAB_ACCOUNT ? colorActiveGold : colorInactive);
+        for (int i = 0; i < 5; i++) {
+            View pill = findViewById(pillIds[i]);
+            ImageView icon = findViewById(iconIds[i]);
+            TextView txt = findViewById(textIds[i]);
+            boolean active = (i == tab);
+            if (pill != null) {
+                pill.setBackgroundResource(active ? R.drawable.bg_nav_active_pill : 0);
+                if (active) {
+                    pill.setScaleX(0.84f);
+                    pill.setScaleY(0.84f);
+                    pill.animate().scaleX(1f).scaleY(1f).setDuration(240).setInterpolator(new OvershootInterpolator(2.0f)).start();
+                }
+            }
+            if (icon != null) icon.setColorFilter(active ? colorActive : colorInactive);
+            if (txt != null) {
+                txt.setTextColor(active ? colorActive : colorInactive);
+                txt.setTypeface(null, active ? Typeface.BOLD : Typeface.NORMAL);
+            }
+        }
     }
 
     private void updateBottomNavigationActiveTabFromUrl(String url) {
@@ -1433,11 +1644,13 @@ public class MainActivity extends AppCompatActivity implements ConnectivityHelpe
 
     private void dismissSplashOverlay() {
         if (splashOverlay != null && splashOverlay.getVisibility() == View.VISIBLE) {
-            AlphaAnimation fadeOut = new AlphaAnimation(1.0f, 0.0f);
-            fadeOut.setDuration(400);
-            fadeOut.setFillAfter(true);
-            splashOverlay.startAnimation(fadeOut);
-            mainHandler.postDelayed(() -> splashOverlay.setVisibility(View.GONE), 400);
+            splashOverlay.animate()
+                    .alpha(0f)
+                    .scaleX(1.06f)
+                    .scaleY(1.06f)
+                    .setDuration(340)
+                    .withEndAction(() -> splashOverlay.setVisibility(View.GONE))
+                    .start();
         }
     }
 
@@ -1458,11 +1671,11 @@ public class MainActivity extends AppCompatActivity implements ConnectivityHelpe
     private void showConnectivityBanner(boolean isOnline) {
         if (!isOnline) {
             connectivityBanner.setBackgroundColor(Color.parseColor("#b45309"));
-            bannerText.setText("⚠️ أنت تتصفح بدون إنترنت • يتم عرض البيانات المخزنة محلياً");
+            bannerText.setText("أنت تتصفح بدون إنترنت • يتم عرض البيانات المخزنة محلياً");
             connectivityBanner.setVisibility(View.VISIBLE);
         } else {
             connectivityBanner.setBackgroundColor(Color.parseColor("#059669"));
-            bannerText.setText("⚡ تم استعادة الاتصال بالإنترنت • البيانات محدثة");
+            bannerText.setText("تم استعادة الاتصال بالإنترنت • البيانات محدثة");
             connectivityBanner.setVisibility(View.VISIBLE);
             mainHandler.postDelayed(() -> {
                 if (connectivityHelper.isOnline()) {
@@ -1478,7 +1691,7 @@ public class MainActivity extends AppCompatActivity implements ConnectivityHelpe
                 HttpURLConnection conn = (HttpURLConnection) new URL(OFFLINE_API_URL).openConnection();
                 conn.setConnectTimeout(6000);
                 conn.setReadTimeout(8000);
-                conn.setRequestProperty("User-Agent", "RaqamiyatAndroid/3.2.3 CacheSync");
+                conn.setRequestProperty("User-Agent", "RaqamiyatAndroid/3.3.0 CacheSync");
                 conn.connect();
 
                 if (conn.getResponseCode() == 200) {
@@ -1504,7 +1717,7 @@ public class MainActivity extends AppCompatActivity implements ConnectivityHelpe
     @Override
     protected void onActivityResult(int requestCode, int resultCode, @Nullable Intent data) {
         if (requestCode == PRODUCT_DETAIL_REQUEST_CODE) {
-            updateHeaderBadges();
+            updateHeaderBadges(false);
             syncLiveWalletAndSession();
             if (resultCode == RESULT_OK && data != null) {
                 if (data.getBooleanExtra(ProductDetailActivity.EXTRA_OPEN_NATIVE_ORDERS, false)) {
@@ -1574,28 +1787,19 @@ public class MainActivity extends AppCompatActivity implements ConnectivityHelpe
 
     private boolean hasPromptedAppUpdate = false;
 
-    private boolean isPackageInstalled(String packageName) {
-        try {
-            getPackageManager().getPackageInfo(packageName, 0);
-            return true;
-        } catch (Exception e) {
-            return false;
-        }
-    }
-
     private void launchGoogleCustomTab(String url) {
         NativeAuthHelper.launchGoogleAuthTab(this, url);
     }
 
     private void downloadAndInstallApkInApp(final String apkUrl) {
-        Toast.makeText(this, "⏳ جاري تحميل وتثبيت التحديث التلقائي داخل التطبيق...", Toast.LENGTH_LONG).show();
+        Toast.makeText(this, "جاري تحميل وتثبيت التحديث التلقائي داخل التطبيق...", Toast.LENGTH_LONG).show();
         Executors.newSingleThreadExecutor().execute(() -> {
             try {
                 HttpURLConnection conn = (HttpURLConnection) new URL(apkUrl).openConnection();
                 conn.setInstanceFollowRedirects(true);
                 conn.setConnectTimeout(15000);
                 conn.setReadTimeout(30000);
-                conn.setRequestProperty("User-Agent", "RaqamiyatAndroid/3.2.3 AutoUpdater");
+                conn.setRequestProperty("User-Agent", "RaqamiyatAndroid/3.3.0 AutoUpdater");
                 conn.connect();
                 if (conn.getResponseCode() == 200) {
                     File outFile = new File(getCacheDir(), "Raqamiyat-Update.apk");
@@ -1641,7 +1845,7 @@ public class MainActivity extends AppCompatActivity implements ConnectivityHelpe
                 HttpURLConnection conn = (HttpURLConnection) new URL(BASE_URL + "api/app/version/").openConnection();
                 conn.setConnectTimeout(5000);
                 conn.setReadTimeout(6000);
-                conn.setRequestProperty("User-Agent", "RaqamiyatAndroid/3.2.3 UpdateCheck");
+                conn.setRequestProperty("User-Agent", "RaqamiyatAndroid/3.3.0 UpdateCheck");
                 conn.connect();
                 if (conn.getResponseCode() == 200) {
                     Scanner scanner = new Scanner(conn.getInputStream(), StandardCharsets.UTF_8.name());
@@ -1663,7 +1867,7 @@ public class MainActivity extends AppCompatActivity implements ConnectivityHelpe
                             mainHandler.post(() -> {
                                 if (!isFinishing()) {
                                     new MaterialAlertDialogBuilder(MainActivity.this)
-                                            .setTitle("⚡ يتوفر تحديث جديد لتطبيق رقميات (" + serverName + ")")
+                                            .setTitle("يتوفر تحديث جديد لتطبيق رقميات (" + serverName + ")")
                                             .setMessage(notes + "\n\nاضغط تحديث ليتم تحميل وتثبيت النسخة الجديدة تلقائياً.")
                                             .setPositiveButton("تحديث تلقائي الآن", (d, w) -> downloadAndInstallApkInApp(apkUrl))
                                             .setNegativeButton("لاحقاً", (d, w) -> d.dismiss())
@@ -1682,11 +1886,14 @@ public class MainActivity extends AppCompatActivity implements ConnectivityHelpe
     protected void onResume() {
         super.onResume();
         CookieManager.getInstance().flush();
-        updateHeaderBadges();
+        updateHeaderBadges(false);
         productAdapter.updateCurrencyConfig(localStore.getPreferredCurrency(), localStore.getSypRate());
         loadNativeCatalog(false);
         syncLiveWalletAndSession();
         syncAppNotifications();
+
+        mainHandler.removeCallbacks(heroAutoScrollRunnable);
+        mainHandler.postDelayed(heroAutoScrollRunnable, 4800);
 
         if (isWaitingForExternalPayment) {
             isWaitingForExternalPayment = false;
@@ -1708,6 +1915,12 @@ public class MainActivity extends AppCompatActivity implements ConnectivityHelpe
             mainHandler.postDelayed(checkSso, 900);
             mainHandler.postDelayed(checkSso, 2000);
         }
+    }
+
+    @Override
+    protected void onPause() {
+        super.onPause();
+        mainHandler.removeCallbacks(heroAutoScrollRunnable);
     }
 
     @Override
@@ -1736,7 +1949,7 @@ public class MainActivity extends AppCompatActivity implements ConnectivityHelpe
                 if (target.contains("/dashboard/orders")) {
                     switchToNativeTab(TAB_ORDERS);
                 } else if (target.contains("/dashboard/wallet")) {
-                    startActivity(new Intent(this, NativePaymentActivity.class));
+                    openNativeWalletScreen();
                 } else {
                     showWebMode(target);
                 }
@@ -1752,7 +1965,7 @@ public class MainActivity extends AppCompatActivity implements ConnectivityHelpe
                     if (code == 200 && json != null && json.optBoolean("is_authenticated", false)) {
                         String appTok = json.optString("app_auth_token", "");
                         if (!appTok.isEmpty()) localStore.saveAppAuthToken(appTok);
-                        Toast.makeText(this, "✓ تم تسجيل الدخول بنجاح في تطبيق رقميات!", Toast.LENGTH_SHORT).show();
+                        Toast.makeText(this, "تم تسجيل الدخول بنجاح في تطبيق رقميات", Toast.LENGTH_SHORT).show();
                         syncLiveWalletAndSession();
                         switchToNativeTab(TAB_HOME);
                     } else {
@@ -1769,7 +1982,7 @@ public class MainActivity extends AppCompatActivity implements ConnectivityHelpe
         } else if (deepUrl.contains("/dashboard/orders")) {
             switchToNativeTab(TAB_ORDERS);
         } else if (deepUrl.contains("/dashboard/wallet")) {
-            startActivity(new Intent(this, NativePaymentActivity.class));
+            openNativeWalletScreen();
         } else if (deepUrl.contains("/auth/app-sso-exchange")
                 || deepUrl.contains("/accounts/")
                 || deepUrl.contains("/auth/")
@@ -1830,11 +2043,7 @@ public class MainActivity extends AppCompatActivity implements ConnectivityHelpe
         if (url.startsWith("http://") || url.startsWith("https://")) {
             if (isNativeMode) {
                 isNativeMode = false;
-                nativeStoreContainer.setVisibility(View.GONE);
-                nativeOrdersContainer.setVisibility(View.GONE);
-                nativeAccountContainer.setVisibility(View.GONE);
-                nativeErrorView.setVisibility(View.GONE);
-                swipeRefresh.setVisibility(View.VISIBLE);
+                UiMotion.revealContainer(swipeRefresh, nativeStoreContainer, nativeOrdersContainer, nativeAccountContainer, nativeErrorView);
             }
             return false;
         }
@@ -1857,7 +2066,7 @@ public class MainActivity extends AppCompatActivity implements ConnectivityHelpe
         syncLiveWalletAndSession();
         NotificationCompat.Builder builder = new NotificationCompat.Builder(this, CHANNEL_ID)
                 .setSmallIcon(R.mipmap.ic_launcher)
-                .setContentTitle("رقميات | تم تأكيد طلبك بنجاح ⚡")
+                .setContentTitle("رقميات | تم تأكيد طلبك بنجاح")
                 .setContentText("طلبك رقم #" + orderId + " قيد المعالجة السريعة الآن.")
                 .setPriority(NotificationCompat.PRIORITY_HIGH)
                 .setAutoCancel(true);
@@ -1902,6 +2111,7 @@ public class MainActivity extends AppCompatActivity implements ConnectivityHelpe
     @Override
     protected void onDestroy() {
         super.onDestroy();
+        mainHandler.removeCallbacks(heroAutoScrollRunnable);
         if (connectivityHelper != null) {
             connectivityHelper.stopMonitoring();
         }

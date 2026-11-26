@@ -9,13 +9,12 @@ import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
 import android.text.InputType;
+import android.text.TextUtils;
 import android.view.Gravity;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ArrayAdapter;
-import android.widget.Button;
 import android.widget.EditText;
-import android.widget.ImageButton;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.ProgressBar;
@@ -30,6 +29,7 @@ import androidx.recyclerview.widget.RecyclerView;
 
 import com.bumptech.glide.Glide;
 import com.bumptech.glide.load.engine.DiskCacheStrategy;
+import com.bumptech.glide.load.resource.drawable.DrawableTransitionOptions;
 import com.google.android.material.bottomsheet.BottomSheetDialog;
 import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 import com.raqamiyat.app.adapter.VariantAdapter;
@@ -81,20 +81,18 @@ public class ProductDetailActivity extends AppCompatActivity {
         final String title;
         final String subtitle;
         final String logoUrl;
-        final boolean isWallet;
         final boolean isUnavailable;
         final String badge;
         final String unavailMsg;
 
         PayOption(String key, String method, String currency, String title, String subtitle,
-                  String logoUrl, boolean isWallet, boolean isUnavailable, String badge, String unavailMsg) {
+                  String logoUrl, boolean isUnavailable, String badge, String unavailMsg) {
             this.key = key;
             this.method = method;
             this.currency = currency;
             this.title = title;
             this.subtitle = subtitle;
             this.logoUrl = logoUrl;
-            this.isWallet = isWallet;
             this.isUnavailable = isUnavailable;
             this.badge = badge;
             this.unavailMsg = unavailMsg;
@@ -105,8 +103,8 @@ public class ProductDetailActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
-            getWindow().setStatusBarColor(0xFF030712);
-            getWindow().setNavigationBarColor(0xFF030712);
+            getWindow().setStatusBarColor(0xFF050811);
+            getWindow().setNavigationBarColor(0xFF0A101F);
         }
         setContentView(R.layout.activity_product_detail);
 
@@ -121,10 +119,15 @@ public class ProductDetailActivity extends AppCompatActivity {
             return;
         }
 
-        ImageButton btnBack = findViewById(R.id.btn_detail_back);
-        btnBack.setOnClickListener(v -> finish());
+        View btnBack = findViewById(R.id.btn_detail_back);
+        UiMotion.attachPressScale(btnBack);
+        btnBack.setOnClickListener(v -> {
+            UiMotion.hapticTap(v);
+            finish();
+        });
 
         btnCurrencyToggle = findViewById(R.id.btn_detail_currency);
+        UiMotion.attachPressScale(btnCurrencyToggle);
         codeBadge = findViewById(R.id.detail_code_badge);
         ImageView img = findViewById(R.id.detail_image);
         TextView category = findViewById(R.id.detail_category);
@@ -135,13 +138,18 @@ public class ProductDetailActivity extends AppCompatActivity {
         TextView description = findViewById(R.id.detail_description);
         TextView variantsLabel = findViewById(R.id.detail_variants_label);
         RecyclerView variantsRv = findViewById(R.id.detail_variants_rv);
-        Button btnBuy = findViewById(R.id.btn_detail_buy);
-        Button btnAddCart = findViewById(R.id.btn_detail_add_cart);
+        View btnBuy = findViewById(R.id.btn_detail_buy);
+        TextView txtBuy = findViewById(R.id.txt_detail_buy);
+        View btnAddCart = findViewById(R.id.btn_detail_add_cart);
+
+        UiMotion.attachPressScale(btnBuy);
+        UiMotion.attachPressScale(btnAddCart);
 
         if (product.imageUrl != null && !product.imageUrl.isEmpty()) {
             Glide.with(this)
                     .load(product.imageUrl)
                     .diskCacheStrategy(DiskCacheStrategy.ALL)
+                    .transition(DrawableTransitionOptions.withCrossFade(220))
                     .placeholder(R.mipmap.ic_launcher)
                     .into(img);
         } else {
@@ -151,8 +159,8 @@ public class ProductDetailActivity extends AppCompatActivity {
         codeBadge.setText(product.code != null && !product.code.isEmpty() ? "#" + product.code : "رقميات");
         category.setText(product.categoryName != null && !product.categoryName.isEmpty() ? product.categoryName : "المنتجات");
         delivery.setText(product.deliveryTimeDisplay != null && !product.deliveryTimeDisplay.isEmpty()
-                ? ("⚡ " + product.deliveryTimeDisplay)
-                : "⚡ تسليم فوري");
+                ? product.deliveryTimeDisplay.replace("⚡", "").trim()
+                : "تسليم فوري");
 
         name.setText(product.name);
         StringBuilder descText = new StringBuilder();
@@ -162,7 +170,7 @@ public class ProductDetailActivity extends AppCompatActivity {
             descText.append("منتج رقمي أصلي متوفر في متجر رقميات بتسليم فوري وضمان كامل.");
         }
         if (product.instructions != null && !product.instructions.trim().isEmpty()) {
-            descText.append("\n\n📌 تعليمات الاستخدام:\n").append(product.instructions.trim());
+            descText.append("\n\nتعليمات الاستخدام:\n").append(product.instructions.trim());
         }
         description.setText(descText.toString());
 
@@ -177,7 +185,7 @@ public class ProductDetailActivity extends AppCompatActivity {
                 if (variant.sku != null && !variant.sku.isEmpty()) {
                     codeBadge.setText("#" + variant.sku);
                 }
-                refreshDisplayedPrices();
+                refreshDisplayedPrices(true);
             });
             variantAdapter.submitList(product.variants);
             variantsRv.setAdapter(variantAdapter);
@@ -187,33 +195,36 @@ public class ProductDetailActivity extends AppCompatActivity {
         }
 
         btnCurrencyToggle.setOnClickListener(v -> {
+            UiMotion.hapticTap(v);
             localStore.togglePreferredCurrency();
-            refreshDisplayedPrices();
+            refreshDisplayedPrices(true);
         });
 
-        refreshDisplayedPrices();
+        refreshDisplayedPrices(false);
         prefetchWalletAndGateways();
 
         if (product.isOutOfStock) {
-            btnBuy.setText("نفدت الكمية حالياً");
+            txtBuy.setText("نفدت الكمية حالياً");
             btnBuy.setEnabled(false);
             btnBuy.setAlpha(0.55f);
             btnAddCart.setVisibility(View.GONE);
         } else {
             btnAddCart.setOnClickListener(v -> {
+                UiMotion.hapticTap(v);
                 double uPrice = selectedVariant != null ? selectedVariant.price : product.price;
                 String vId = selectedVariant != null ? selectedVariant.id : "default";
                 String vName = selectedVariant != null ? selectedVariant.name : product.name;
                 int count = localStore.addToCart(new CartItem(
                         product.id, vId, product.name, vName, product.imageUrl, uPrice, 1, ""
                 ));
-                Toast.makeText(this, "🛒 تمت الإضافة إلى السلة (" + count + ")", Toast.LENGTH_SHORT).show();
+                Toast.makeText(this, "تمت الإضافة إلى السلة (" + count + ")", Toast.LENGTH_SHORT).show();
             });
 
             btnBuy.setOnClickListener(v -> {
+                UiMotion.hapticTap(v);
                 if (!connectivityHelper.isOnline()) {
                     new MaterialAlertDialogBuilder(this)
-                            .setTitle("⚠️ لا يوجد اتصال بالإنترنت")
+                            .setTitle("لا يوجد اتصال بالإنترنت")
                             .setMessage("إتمام الطلب والشراء يتطلب اتصالاً فعالاً بالإنترنت لحماية حسابك وتأكيد العملية.")
                             .setPositiveButton("حسناً", (d, w) -> d.dismiss())
                             .show();
@@ -228,14 +239,19 @@ public class ProductDetailActivity extends AppCompatActivity {
         return Math.round(val * getResources().getDisplayMetrics().density);
     }
 
-    private void refreshDisplayedPrices() {
+    private void refreshDisplayedPrices(boolean animate) {
         String curr = localStore.getPreferredCurrency();
         double rate = localStore.getSypRate();
         btnCurrencyToggle.setText("USD".equals(curr) ? "USD $" : "ل.س SYP");
 
         double activePrice = selectedVariant != null ? selectedVariant.price : product.price;
         if (activePrice > 0) {
-            priceView.setText(localStore.formatPrice(activePrice));
+            String mainStr = localStore.formatPrice(activePrice);
+            if (animate) {
+                UiMotion.pulseTextChange(priceView, mainStr);
+            } else {
+                priceView.setText(mainStr);
+            }
             priceSecondaryView.setText(localStore.formatSecondaryPrice(activePrice));
             priceSecondaryView.setVisibility(View.VISIBLE);
         } else {
@@ -264,7 +280,7 @@ public class ProductDetailActivity extends AppCompatActivity {
                     checkoutGateways.add(g);
                 }
             }
-            refreshDisplayedPrices();
+            refreshDisplayedPrices(false);
         });
     }
 
@@ -281,7 +297,7 @@ public class ProductDetailActivity extends AppCompatActivity {
                 "wallet", "wallet", localStore.getPreferredCurrency(),
                 "محفظة رقميات الإلكترونية", walletSub,
                 CatalogRepository.DOMAIN + "/logo-square.jpg",
-                true, false, "فوري ⚡", ""
+                false, "فوري", ""
         ));
 
         if (!checkoutGateways.isEmpty()) {
@@ -291,13 +307,13 @@ public class ProductDetailActivity extends AppCompatActivity {
                             "sham_usd", "sham_cash", "USD",
                             g.name + " — دولار USD",
                             "تحويل تلقائي إلى تطبيق شام كاش ($ USD)",
-                            g.logoUrl, false, g.isUnavailable, g.badgeLabel, g.unavailableMessage
+                            g.logoUrl, g.isUnavailable, g.badgeLabel, g.unavailableMessage
                     ));
                     opts.add(new PayOption(
                             "sham_syp", "sham_cash", "SYP",
                             g.name + " — ليرة SYP",
                             "تحويل تلقائي إلى تطبيق شام كاش (ل.س SYP)",
-                            g.logoUrl, false, g.isUnavailable, g.badgeLabel, g.unavailableMessage
+                            g.logoUrl, g.isUnavailable, g.badgeLabel, g.unavailableMessage
                     ));
                 } else if ("mtn_pay".equals(g.code)) {
                     double totalSyp = totalUsd * localStore.getSypRate();
@@ -306,8 +322,8 @@ public class ProductDetailActivity extends AppCompatActivity {
                             "mtn_syp", "mtn_pay", "SYP",
                             g.name,
                             overCap ? "يتجاوز سقف كاش موبايل (50,000 ل.س)" : "دفع مباشر برقم الهاتف ورمز SMS من داخل التطبيق",
-                            g.logoUrl, false, g.isUnavailable || overCap,
-                            overCap ? "أعلى من 50,000" : g.badgeLabel,
+                            g.logoUrl, g.isUnavailable || overCap,
+                            overCap ? "أعلى من 50,000" : "نشط",
                             overCap ? "الحد الأقصى للشراء عبر كاش موبايل هو 50,000 ل.س." : g.unavailableMessage
                     ));
                 } else {
@@ -315,21 +331,20 @@ public class ProductDetailActivity extends AppCompatActivity {
                     opts.add(new PayOption(
                             g.code, g.provider, defCurr,
                             g.name, g.subtitle,
-                            g.logoUrl, false, g.isUnavailable, g.badgeLabel, g.unavailableMessage
+                            g.logoUrl, g.isUnavailable, "نشط", g.unavailableMessage
                     ));
                 }
             }
         } else {
-            // Instant fallback if gateways API hasn't returned yet
             opts.add(new PayOption("sham_usd", "sham_cash", "USD", "شام كاش (ShamCash) — USD",
                     "دفع فوري عبر تطبيق شام كاش", CatalogRepository.DOMAIN + "/api/app/gateway-logo/sham_cash/",
-                    false, false, "فوري ⚡", ""));
+                    false, "نشط", ""));
             opts.add(new PayOption("sham_syp", "sham_cash", "SYP", "شام كاش (ShamCash) — SYP",
                     "دفع فوري بالليرة السورية", CatalogRepository.DOMAIN + "/api/app/gateway-logo/sham_cash/",
-                    false, false, "فوري ⚡", ""));
+                    false, "نشط", ""));
             opts.add(new PayOption("mtn_syp", "mtn_pay", "SYP", "كاش موبايل (Cash Mobile)",
                     "دفع مباشر عبر هاتف MTN + رمز SMS", CatalogRepository.DOMAIN + "/api/app/gateway-logo/mtn_pay/",
-                    false, false, "فوري ⚡", ""));
+                    false, "نشط", ""));
         }
         return opts;
     }
@@ -339,9 +354,11 @@ public class ProductDetailActivity extends AppCompatActivity {
         LinearLayout outer = new LinearLayout(this);
         outer.setOrientation(LinearLayout.VERTICAL);
         outer.setLayoutDirection(View.LAYOUT_DIRECTION_RTL);
-        outer.setBackgroundColor(0xFF0B1120);
-        int pad = dp(16);
-        outer.setPadding(pad, pad, pad, dp(22));
+        outer.setBackgroundResource(R.drawable.bg_bottom_sheet);
+        int pad = dp(18);
+        outer.setPadding(pad, dp(12), pad, dp(26));
+
+        outer.addView(UiMotion.createDragHandle(this));
 
         ScrollView scroll = new ScrollView(this);
         LinearLayout root = new LinearLayout(this);
@@ -353,19 +370,19 @@ public class ProductDetailActivity extends AppCompatActivity {
         final String variantLabel = selectedVariant != null ? selectedVariant.name : product.name;
         final int[] qty = {1};
 
-        // Product Summary Header
+        // Product Summary Card
         LinearLayout headerCard = new LinearLayout(this);
         headerCard.setOrientation(LinearLayout.HORIZONTAL);
         headerCard.setGravity(Gravity.CENTER_VERTICAL);
         headerCard.setBackgroundResource(R.drawable.bg_wallet_hero);
-        headerCard.setPadding(dp(12), dp(12), dp(12), dp(12));
+        headerCard.setPadding(dp(14), dp(14), dp(14), dp(14));
 
         ImageView thumb = new ImageView(this);
-        LinearLayout.LayoutParams thLp = new LinearLayout.LayoutParams(dp(52), dp(52));
+        LinearLayout.LayoutParams thLp = new LinearLayout.LayoutParams(dp(54), dp(54));
         thLp.setMarginEnd(dp(12));
         thumb.setLayoutParams(thLp);
         thumb.setBackgroundResource(R.drawable.bg_logo_box);
-        thumb.setPadding(dp(4), dp(4), dp(4), dp(4));
+        thumb.setPadding(dp(5), dp(5), dp(5), dp(5));
         if (product.imageUrl != null && !product.imageUrl.isEmpty()) {
             Glide.with(this).load(product.imageUrl).placeholder(R.mipmap.ic_launcher).into(thumb);
         } else {
@@ -380,20 +397,21 @@ public class ProductDetailActivity extends AppCompatActivity {
         TextView hTitle = new TextView(this);
         hTitle.setText(product.name);
         hTitle.setTextColor(0xFFFFFFFF);
-        hTitle.setTextSize(14f);
+        hTitle.setTextSize(14.5f);
         hTitle.setTypeface(hTitle.getTypeface(), Typeface.BOLD);
         hCol.addView(hTitle);
 
         TextView hSub = new TextView(this);
         hSub.setText("الباقة: " + variantLabel);
-        hSub.setTextColor(0xFF22D3EE);
-        hSub.setTextSize(11.5f);
+        hSub.setTextColor(0xFF67E8F9);
+        hSub.setTextSize(12f);
         hCol.addView(hSub);
 
         final TextView totalPriceTv = new TextView(this);
-        totalPriceTv.setTextColor(0xFFFBBF24);
-        totalPriceTv.setTextSize(15f);
+        totalPriceTv.setTextColor(0xFFFDE047);
+        totalPriceTv.setTextSize(15.5f);
         totalPriceTv.setTypeface(totalPriceTv.getTypeface(), Typeface.BOLD);
+        totalPriceTv.setPadding(0, dp(2), 0, 0);
         hCol.addView(totalPriceTv);
 
         headerCard.addView(hCol);
@@ -404,14 +422,14 @@ public class ProductDetailActivity extends AppCompatActivity {
         qtyRow.setOrientation(LinearLayout.HORIZONTAL);
         qtyRow.setGravity(Gravity.CENTER_VERTICAL);
         LinearLayout.LayoutParams qLp = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
-        qLp.topMargin = dp(14);
+        qLp.topMargin = dp(16);
         qtyRow.setLayoutParams(qLp);
 
         TextView qtyLbl = new TextView(this);
         qtyLbl.setLayoutParams(new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f));
         qtyLbl.setText("الكمية المطلوبة:");
         qtyLbl.setTextColor(0xFFF8FAFC);
-        qtyLbl.setTextSize(13.5f);
+        qtyLbl.setTextSize(14f);
         qtyLbl.setTypeface(qtyLbl.getTypeface(), Typeface.BOLD);
         qtyRow.addView(qtyLbl);
 
@@ -420,14 +438,15 @@ public class ProductDetailActivity extends AppCompatActivity {
         btnMinus.setTextColor(0xFFFFFFFF);
         btnMinus.setTextSize(18f);
         btnMinus.setGravity(Gravity.CENTER);
-        btnMinus.setBackgroundResource(R.drawable.bg_chip_unselected);
-        btnMinus.setLayoutParams(new LinearLayout.LayoutParams(dp(38), dp(36)));
+        btnMinus.setBackgroundResource(R.drawable.bg_icon_circle);
+        btnMinus.setLayoutParams(new LinearLayout.LayoutParams(dp(38), dp(38)));
+        UiMotion.attachPressScale(btnMinus);
         qtyRow.addView(btnMinus);
 
         final TextView qtyValTv = new TextView(this);
         qtyValTv.setText("1");
         qtyValTv.setTextColor(0xFFFFFFFF);
-        qtyValTv.setTextSize(15f);
+        qtyValTv.setTextSize(16f);
         qtyValTv.setTypeface(qtyValTv.getTypeface(), Typeface.BOLD);
         qtyValTv.setPadding(dp(16), 0, dp(16), 0);
         qtyRow.addView(qtyValTv);
@@ -437,8 +456,9 @@ public class ProductDetailActivity extends AppCompatActivity {
         btnPlus.setTextColor(0xFF22D3EE);
         btnPlus.setTextSize(18f);
         btnPlus.setGravity(Gravity.CENTER);
-        btnPlus.setBackgroundResource(R.drawable.bg_chip_unselected);
-        btnPlus.setLayoutParams(new LinearLayout.LayoutParams(dp(38), dp(36)));
+        btnPlus.setBackgroundResource(R.drawable.bg_icon_circle);
+        btnPlus.setLayoutParams(new LinearLayout.LayoutParams(dp(38), dp(38)));
+        UiMotion.attachPressScale(btnPlus);
         qtyRow.addView(btnPlus);
         root.addView(qtyRow);
 
@@ -454,7 +474,7 @@ public class ProductDetailActivity extends AppCompatActivity {
                 fLbl.setTextSize(12.5f);
                 fLbl.setTypeface(fLbl.getTypeface(), Typeface.BOLD);
                 LinearLayout.LayoutParams flLp = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
-                flLp.topMargin = dp(12);
+                flLp.topMargin = dp(14);
                 fLbl.setLayoutParams(flLp);
                 root.addView(fLbl);
 
@@ -463,7 +483,7 @@ public class ProductDetailActivity extends AppCompatActivity {
                     sp.setBackgroundResource(R.drawable.bg_input_dark);
                     ArrayAdapter<String> ad = new ArrayAdapter<>(this, android.R.layout.simple_spinner_dropdown_item, f.options);
                     sp.setAdapter(ad);
-                    LinearLayout.LayoutParams sLp = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dp(46));
+                    LinearLayout.LayoutParams sLp = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dp(48));
                     sLp.topMargin = dp(6);
                     sp.setLayoutParams(sLp);
                     root.addView(sp);
@@ -480,8 +500,8 @@ public class ProductDetailActivity extends AppCompatActivity {
                         et.setInputType(InputType.TYPE_CLASS_TEXT);
                     }
                     et.setSingleLine(true);
-                    et.setPadding(dp(14), dp(10), dp(14), dp(10));
-                    LinearLayout.LayoutParams eLp = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dp(46));
+                    et.setPadding(dp(16), dp(10), dp(16), dp(10));
+                    LinearLayout.LayoutParams eLp = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dp(48));
                     eLp.topMargin = dp(6);
                     et.setLayoutParams(eLp);
                     root.addView(et);
@@ -490,11 +510,12 @@ public class ProductDetailActivity extends AppCompatActivity {
             }
         } else {
             TextView nLbl = new TextView(this);
-            nLbl.setText("معرف الحساب / رقم التواصل / ملاحظة (اختياري):");
+            nLbl.setText("معرف الحساب / رقم التواصل (اختياري):");
             nLbl.setTextColor(0xFFE2E8F0);
             nLbl.setTextSize(12.5f);
+            nLbl.setTypeface(nLbl.getTypeface(), Typeface.BOLD);
             LinearLayout.LayoutParams nlLp = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
-            nlLp.topMargin = dp(12);
+            nlLp.topMargin = dp(14);
             nLbl.setLayoutParams(nlLp);
             root.addView(nLbl);
 
@@ -504,22 +525,22 @@ public class ProductDetailActivity extends AppCompatActivity {
             fallbackNoteInput.setHintTextColor(0xFF64748B);
             fallbackNoteInput.setTextColor(0xFFFFFFFF);
             fallbackNoteInput.setSingleLine(true);
-            fallbackNoteInput.setPadding(dp(14), dp(10), dp(14), dp(10));
-            LinearLayout.LayoutParams fnLp = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dp(46));
+            fallbackNoteInput.setPadding(dp(16), dp(10), dp(16), dp(10));
+            LinearLayout.LayoutParams fnLp = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dp(48));
             fnLp.topMargin = dp(6);
             fallbackNoteInput.setLayoutParams(fnLp);
             root.addView(fallbackNoteInput);
         }
 
-        // Payment Method Cards Section (with real logos via Glide!)
+        // Payment Method Cards Section
         TextView payHeader = new TextView(this);
-        payHeader.setText("اختر وسيلة الدفع:");
+        payHeader.setText("وسيلة الدفع:");
         payHeader.setTextColor(0xFFF8FAFC);
-        payHeader.setTextSize(13.5f);
+        payHeader.setTextSize(14f);
         payHeader.setTypeface(payHeader.getTypeface(), Typeface.BOLD);
         LinearLayout.LayoutParams phLp = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
-        phLp.topMargin = dp(16);
-        phLp.bottomMargin = dp(8);
+        phLp.topMargin = dp(18);
+        phLp.bottomMargin = dp(10);
         payHeader.setLayoutParams(phLp);
         root.addView(payHeader);
 
@@ -528,15 +549,20 @@ public class ProductDetailActivity extends AppCompatActivity {
         root.addView(methodsBox);
 
         final PayOption[] selectedOpt = {null};
-        final Button confirmBtn = new Button(this);
+
+        // True Liquid Gold Confirm CTA (TextView so MaterialButton never overrides background!)
+        final TextView confirmBtn = new TextView(this);
         confirmBtn.setBackgroundResource(R.drawable.bg_button_gold);
-        confirmBtn.setTextColor(0xFF030712);
-        confirmBtn.setTextSize(14.5f);
-        confirmBtn.setAllCaps(false);
+        confirmBtn.setGravity(Gravity.CENTER);
+        confirmBtn.setClickable(true);
+        confirmBtn.setFocusable(true);
+        confirmBtn.setTextColor(0xFF050811);
+        confirmBtn.setTextSize(15.5f);
         confirmBtn.setTypeface(confirmBtn.getTypeface(), Typeface.BOLD);
-        LinearLayout.LayoutParams cbLp = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dp(50));
-        cbLp.topMargin = dp(14);
+        LinearLayout.LayoutParams cbLp = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dp(54));
+        cbLp.topMargin = dp(16);
         confirmBtn.setLayoutParams(cbLp);
+        UiMotion.attachPressScale(confirmBtn);
 
         final Runnable[] renderMethods = new Runnable[1];
         renderMethods[0] = () -> {
@@ -566,10 +592,10 @@ public class ProductDetailActivity extends AppCompatActivity {
                 LinearLayout card = new LinearLayout(this);
                 card.setOrientation(LinearLayout.HORIZONTAL);
                 card.setGravity(Gravity.CENTER_VERTICAL);
-                card.setPadding(dp(10), dp(10), dp(10), dp(10));
+                card.setPadding(dp(12), dp(12), dp(12), dp(12));
                 if (opt.isUnavailable) {
                     card.setBackgroundResource(R.drawable.bg_gateway_disabled);
-                    card.setAlpha(0.65f);
+                    card.setAlpha(0.62f);
                 } else if (isSel) {
                     card.setBackgroundResource(R.drawable.bg_gateway_selected);
                 } else {
@@ -578,16 +604,17 @@ public class ProductDetailActivity extends AppCompatActivity {
                 LinearLayout.LayoutParams cLp = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
                 cLp.bottomMargin = dp(8);
                 card.setLayoutParams(cLp);
+                UiMotion.attachPressScale(card);
 
                 LinearLayout logoFrame = new LinearLayout(this);
                 logoFrame.setBackgroundResource(R.drawable.bg_logo_box);
                 logoFrame.setGravity(Gravity.CENTER);
-                LinearLayout.LayoutParams lfLp = new LinearLayout.LayoutParams(dp(42), dp(42));
-                lfLp.setMarginEnd(dp(10));
+                LinearLayout.LayoutParams lfLp = new LinearLayout.LayoutParams(dp(44), dp(44));
+                lfLp.setMarginEnd(dp(12));
                 logoFrame.setLayoutParams(lfLp);
 
                 ImageView logoIv = new ImageView(this);
-                logoIv.setLayoutParams(new LinearLayout.LayoutParams(dp(34), dp(34)));
+                logoIv.setLayoutParams(new LinearLayout.LayoutParams(dp(36), dp(36)));
                 logoIv.setScaleType(ImageView.ScaleType.FIT_CENTER);
                 Glide.with(this)
                         .load(opt.logoUrl)
@@ -605,37 +632,38 @@ public class ProductDetailActivity extends AppCompatActivity {
                 TextView t1 = new TextView(this);
                 t1.setText(opt.title);
                 t1.setTextColor(0xFFFFFFFF);
-                t1.setTextSize(13f);
+                t1.setTextSize(13.5f);
                 t1.setTypeface(t1.getTypeface(), Typeface.BOLD);
                 col.addView(t1);
 
                 TextView t2 = new TextView(this);
                 t2.setText(opt.subtitle);
                 t2.setTextColor(isSel ? 0xFFBAE6FD : 0xFF94A3B8);
-                t2.setTextSize(10.5f);
+                t2.setTextSize(11f);
                 col.addView(t2);
                 card.addView(col);
 
                 TextView badge = new TextView(this);
                 badge.setTextSize(10f);
                 badge.setTypeface(badge.getTypeface(), Typeface.BOLD);
-                badge.setPadding(dp(8), dp(3), dp(8), dp(3));
+                badge.setPadding(dp(9), dp(3), dp(9), dp(3));
                 if (opt.isUnavailable) {
                     badge.setText(opt.badge != null && !opt.badge.isEmpty() ? opt.badge : "غير متاح");
                     badge.setTextColor(0xFFFDE68A);
                     badge.setBackgroundResource(R.drawable.bg_badge_amber);
                 } else if (isSel) {
-                    badge.setText("✓ محدد");
+                    badge.setText("محدد");
                     badge.setTextColor(0xFF6EE7B7);
                     badge.setBackgroundResource(R.drawable.bg_badge_green);
                 } else {
-                    badge.setText(opt.badge);
+                    badge.setText(opt.badge.replace("⚡", "").trim());
                     badge.setTextColor(0xFF22D3EE);
                     badge.setBackgroundResource(R.drawable.bg_chip_unselected);
                 }
                 card.addView(badge);
 
                 card.setOnClickListener(v -> {
+                    UiMotion.hapticTap(v);
                     if (opt.isUnavailable) {
                         Toast.makeText(this, !opt.unavailMsg.isEmpty() ? opt.unavailMsg : "هذه البوابة غير متاحة حالياً", Toast.LENGTH_LONG).show();
                         return;
@@ -647,10 +675,11 @@ public class ProductDetailActivity extends AppCompatActivity {
                 methodsBox.addView(card);
             }
 
-            confirmBtn.setText("تأكيد وإتمام الشراء (" + localStore.formatPrice(totalUsd) + ") ⚡");
+            confirmBtn.setText("تأكيد وإتمام الشراء • " + localStore.formatPrice(totalUsd));
         };
 
         btnMinus.setOnClickListener(v -> {
+            UiMotion.hapticTap(v);
             if (qty[0] > 1) {
                 qty[0] -= 1;
                 qtyValTv.setText(String.valueOf(qty[0]));
@@ -658,6 +687,7 @@ public class ProductDetailActivity extends AppCompatActivity {
             }
         });
         btnPlus.setOnClickListener(v -> {
+            UiMotion.hapticTap(v);
             qty[0] += 1;
             qtyValTv.setText(String.valueOf(qty[0]));
             renderMethods[0].run();
@@ -675,6 +705,7 @@ public class ProductDetailActivity extends AppCompatActivity {
         root.addView(confirmBtn);
 
         confirmBtn.setOnClickListener(v -> {
+            UiMotion.hapticTap(v);
             if (selectedOpt[0] == null || selectedOpt[0].isUnavailable) {
                 Toast.makeText(this, "يرجى اختيار وسيلة دفع متاحة", Toast.LENGTH_SHORT).show();
                 return;
@@ -723,7 +754,7 @@ public class ProductDetailActivity extends AppCompatActivity {
     private void submitNativeOrder(
             BottomSheetDialog checkoutSheet,
             ProgressBar progress,
-            Button confirmBtn,
+            View confirmBtn,
             PayOption chosen,
             int quantity,
             String customInput,
@@ -807,11 +838,12 @@ public class ProductDetailActivity extends AppCompatActivity {
 
                 if (insufficient) {
                     new MaterialAlertDialogBuilder(this)
-                            .setTitle("💳 رصيد المحفظة غير كافٍ")
+                            .setTitle("رصيد المحفظة غير كافٍ")
                             .setMessage(errMsg)
-                            .setPositiveButton("شحن المحفظة الآن ⚡", (d, w) -> {
+                            .setPositiveButton("شحن المحفظة الآن", (d, w) -> {
                                 checkoutSheet.dismiss();
                                 startActivity(new Intent(this, NativePaymentActivity.class));
+                                UiMotion.applySlideTransition(this);
                             })
                             .setNegativeButton("اختيار بوابة مباشرة", (d, w) -> d.dismiss())
                             .show();
@@ -835,7 +867,7 @@ public class ProductDetailActivity extends AppCompatActivity {
 
         final List<String> codesToCopy = new ArrayList<>();
         if (fulfillment != null && fulfillment.length() > 0) {
-            msg.append("\n\n🎁 بيانات التسليم الفوري:");
+            msg.append("\n\nبيانات التسليم الفوري:");
             Iterator<String> keys = fulfillment.keys();
             while (keys.hasNext()) {
                 String k = keys.next();
@@ -848,16 +880,16 @@ public class ProductDetailActivity extends AppCompatActivity {
         }
 
         MaterialAlertDialogBuilder builder = new MaterialAlertDialogBuilder(this)
-                .setTitle("✓ تم الشراء بنجاح ⚡")
+                .setTitle("تم الشراء بنجاح")
                 .setMessage(msg.toString())
-                .setPositiveButton("عرض طلباتي 📦", (d, w) -> openNativeOrdersInMainApp())
+                .setPositiveButton("عرض طلباتي", (d, w) -> openNativeOrdersInMainApp())
                 .setNegativeButton("إغلاق", (d, w) -> d.dismiss());
 
         if (!codesToCopy.isEmpty()) {
-            builder.setNeutralButton("نسخ الكود 📋", (d, w) -> {
+            builder.setNeutralButton("نسخ الكود", (d, w) -> {
                 ClipboardManager cm = (ClipboardManager) getSystemService(Context.CLIPBOARD_SERVICE);
                 if (cm != null) {
-                    cm.setPrimaryClip(ClipData.newPlainText("كود رقميات", android.text.TextUtils.join("\n", codesToCopy)));
+                    cm.setPrimaryClip(ClipData.newPlainText("كود رقميات", TextUtils.join("\n", codesToCopy)));
                     Toast.makeText(this, "تم نسخ الكود بنجاح!", Toast.LENGTH_SHORT).show();
                 }
             });
@@ -880,9 +912,15 @@ public class ProductDetailActivity extends AppCompatActivity {
     }
 
     @Override
+    public void finish() {
+        super.finish();
+        UiMotion.applySlideTransition(this);
+    }
+
+    @Override
     protected void onResume() {
         super.onResume();
-        refreshDisplayedPrices();
+        refreshDisplayedPrices(false);
         prefetchWalletAndGateways();
     }
 

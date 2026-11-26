@@ -8298,14 +8298,14 @@ def api_app_version_info(request):
     platform_url = (getattr(settings, "SITE_URL", "https://raqamiyatapp.com") or "https://raqamiyatapp.com").rstrip("/")
     return JsonResponse({
         "status": "ok",
-        "version_code": 323,
-        "version_name": "3.2.3",
+        "version_code": 330,
+        "version_name": "3.3.0",
         "live_sync": True,
         "commit": get_local_commit_sha(),
         "apk_url": "https://github.com/RamiQassas/store/releases/download/v2.0.0-apk/Raqamiyat-Release.apk",
         "local_apk_url": f"{platform_url}/download/app/?direct=1",
         "force_update": False,
-        "release_notes": "تطوير جذري لتطبيق رقميات الأصيل (Native Android): عرض الرصيد الحقيقي بالدولار والليرة السورية، ظهور جميع بوابات الدفع مع الشعارات وحالات قريباً/الصيانة، الدفع المباشر عبر كاش موبايل (SMS OTP)، وتبويبات طلباتي وحسابي والسلة الأصيلة.",
+        "release_notes": "إصدار عالمي جديد بالكامل (Raqamiyat Ultra v3.3.0): تصميم Fintech زجاجي وذهبي فاخر، أيقونات متجهة احترافية، سلايدر تفاعلي متحرك، حركات فيزيائية انسيابية، شريط سفلي عائم، ومزامنة حية للرصيد والبوابات.",
     })
 
 
@@ -10163,7 +10163,7 @@ def download_android_apk(request):
                 open(found_path, "rb"),
                 content_type="application/vnd.android.package-archive",
                 as_attachment=True,
-                filename="Raqamiyat-v3.2.3.apk"
+                filename="Raqamiyat-v3.3.0.apk"
             )
             response["Content-Length"] = os.path.getsize(found_path)
             response["Cache-Control"] = "no-store"

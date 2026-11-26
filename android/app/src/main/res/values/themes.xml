@@ -1,14 +1,29 @@
 <resources>
     <style name="Theme.RaqamiyatApp" parent="Theme.MaterialComponents.DayNight.NoActionBar">
-        <item name="colorPrimary">#06B6D4</item>
-        <item name="colorPrimaryVariant">#0891B2</item>
-        <item name="colorOnPrimary">#000000</item>
-        <item name="android:statusBarColor">#030712</item>
-        <item name="android:navigationBarColor">#030712</item>
-        <item name="android:windowBackground">#030712</item>
+        <item name="colorPrimary">#F59E0B</item>
+        <item name="colorPrimaryVariant">#D97706</item>
+        <item name="colorSecondary">#22D3EE</item>
+        <item name="colorOnPrimary">#030712</item>
+        <item name="colorSurface">#0E1628</item>
+        <item name="colorOnSurface">#F8FAFC</item>
+        <item name="android:statusBarColor">#050811</item>
+        <item name="android:navigationBarColor">#050811</item>
+        <item name="android:windowBackground">#050811</item>
+        <item name="bottomSheetDialogTheme">@style/ThemeOverlay.Raqamiyat.BottomSheet</item>
     </style>
+
     <style name="Theme.RaqamiyatApp.NoActionBar" parent="Theme.RaqamiyatApp">
         <item name="windowActionBar">false</item>
         <item name="windowNoTitle">true</item>
+    </style>
+
+    <style name="ThemeOverlay.Raqamiyat.BottomSheet" parent="ThemeOverlay.MaterialComponents.BottomSheetDialog">
+        <item name="bottomSheetStyle">@style/Widget.Raqamiyat.BottomSheet</item>
+        <item name="android:navigationBarColor">#0B1120</item>
+    </style>
+
+    <style name="Widget.Raqamiyat.BottomSheet" parent="Widget.MaterialComponents.BottomSheet.Modal">
+        <item name="android:background">@android:color/transparent</item>
+        <item name="backgroundTint">@android:color/transparent</item>
     </style>
 </resources>

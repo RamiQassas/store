@@ -1,65 +1,76 @@
 <?xml version="1.0" encoding="utf-8"?>
 <RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="#030712"
+    android:background="#050811"
     android:layoutDirection="rtl">
 
-    <!-- Luxury Native Top Bar -->
+    <!-- Fintech Glass Top Bar -->
     <LinearLayout
         android:id="@+id/pay_topbar"
         android:layout_width="match_parent"
-        android:layout_height="58dp"
+        android:layout_height="60dp"
         android:layout_alignParentTop="true"
-        android:background="#0B1120"
+        android:background="#0A101F"
         android:elevation="8dp"
         android:gravity="center_vertical"
         android:orientation="horizontal"
-        android:paddingHorizontal="12dp">
+        android:paddingHorizontal="14dp">
 
-        <ImageButton
+        <FrameLayout
             android:id="@+id/btn_pay_back"
-            android:layout_width="40dp"
-            android:layout_height="40dp"
-            android:background="?android:attr/selectableItemBackgroundBorderless"
-            android:contentDescription="رجوع"
-            android:src="@android:drawable/ic_menu_revert"
-            android:tint="#F8FAFC" />
+            android:layout_width="38dp"
+            android:layout_height="38dp"
+            android:background="@drawable/bg_icon_circle"
+            android:clickable="true"
+            android:focusable="true">
+
+            <ImageView
+                android:layout_width="20dp"
+                android:layout_height="20dp"
+                android:layout_gravity="center"
+                android:src="@drawable/ic_arrow_back" />
+        </FrameLayout>
 
         <LinearLayout
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
             android:orientation="vertical"
-            android:paddingHorizontal="8dp">
+            android:paddingHorizontal="12dp">
 
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="المحفظة وبوابات الدفع ⚡"
+                android:text="المحفظة وبوابات الدفع"
                 android:textColor="#FFFFFF"
-                android:textSize="15sp"
+                android:textSize="16sp"
                 android:textStyle="bold" />
 
             <TextView
                 android:id="@+id/pay_rate_badge"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="مزامنة حية مع حسابك في رقميات"
+                android:text="مزامنة مالية فورية ومشفرة"
                 android:textColor="#94A3B8"
-                android:textSize="10sp" />
+                android:textSize="10.5sp" />
         </LinearLayout>
 
-        <Button
+        <FrameLayout
             android:id="@+id/btn_pay_refresh"
-            android:layout_width="wrap_content"
-            android:layout_height="34dp"
-            android:background="@drawable/bg_chip_unselected"
-            android:paddingHorizontal="10dp"
-            android:text="🔄 تحديث"
-            android:textColor="#22D3EE"
-            android:textSize="11sp"
-            android:textStyle="bold" />
+            android:layout_width="38dp"
+            android:layout_height="38dp"
+            android:background="@drawable/bg_icon_circle"
+            android:clickable="true"
+            android:focusable="true">
+
+            <ImageView
+                android:layout_width="18dp"
+                android:layout_height="18dp"
+                android:layout_gravity="center"
+                android:src="@drawable/ic_refresh" />
+        </FrameLayout>
     </LinearLayout>
 
     <ScrollView
@@ -67,24 +78,24 @@
         android:layout_height="match_parent"
         android:layout_below="@id/pay_topbar"
         android:clipToPadding="false"
-        android:paddingBottom="28dp">
+        android:paddingBottom="32dp">
 
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="vertical"
-            android:padding="14dp">
+            android:padding="16dp">
 
-            <!-- Unauthenticated Prompt Banner -->
+            <!-- Unauthenticated Sign-In Callout -->
             <LinearLayout
                 android:id="@+id/pay_login_banner"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginBottom="12dp"
+                android:layout_marginBottom="14dp"
                 android:background="@drawable/bg_gateway_selected"
                 android:gravity="center_vertical"
                 android:orientation="horizontal"
-                android:padding="14dp"
+                android:padding="16dp"
                 android:visibility="gone">
 
                 <LinearLayout
@@ -96,40 +107,42 @@
                     <TextView
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="سجّل دخولك لعرض رصيدك الحقيقي"
+                        android:text="سجّل دخولك لمزامنة محفظتك"
                         android:textColor="#FFFFFF"
-                        android:textSize="13sp"
+                        android:textSize="13.5sp"
                         android:textStyle="bold" />
 
                     <TextView
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:layout_marginTop="2dp"
-                        android:text="مزامنة فورية للرصيد بالدولار والسوري وتفعيل الشحن المباشر"
+                        android:text="اعرض رصيدك الحقيقي بالدولار والسوري واشحن فوراً"
                         android:textColor="#94A3B8"
                         android:textSize="11sp" />
                 </LinearLayout>
 
-                <Button
+                <TextView
                     android:id="@+id/btn_pay_login_now"
                     android:layout_width="wrap_content"
                     android:layout_height="36dp"
-                    android:layout_marginStart="8dp"
+                    android:layout_marginStart="10dp"
                     android:background="@drawable/bg_button_gold"
-                    android:paddingHorizontal="14dp"
-                    android:text="تسجيل الدخول ⚡"
-                    android:textColor="#030712"
-                    android:textSize="11sp"
+                    android:gravity="center"
+                    android:paddingHorizontal="16dp"
+                    android:text="تسجيل الدخول"
+                    android:textColor="#050811"
+                    android:textSize="12sp"
                     android:textStyle="bold" />
             </LinearLayout>
 
-            <!-- Luxury Wallet Balance Hero Card -->
+            <!-- Fintech Metallic Visa-Style Balance Card -->
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:background="@drawable/bg_wallet_hero"
+                android:elevation="8dp"
                 android:orientation="vertical"
-                android:padding="18dp">
+                android:padding="20dp">
 
                 <LinearLayout
                     android:layout_width="match_parent"
@@ -137,79 +150,84 @@
                     android:gravity="center_vertical"
                     android:orientation="horizontal">
 
-                    <LinearLayout
+                    <ImageView
+                        android:layout_width="16dp"
+                        android:layout_height="16dp"
+                        android:src="@drawable/ic_shield_check" />
+
+                    <TextView
+                        android:id="@+id/pay_user_greeting"
                         android:layout_width="0dp"
                         android:layout_height="wrap_content"
+                        android:layout_marginStart="6dp"
                         android:layout_weight="1"
-                        android:orientation="vertical">
+                        android:text="رصيد المحفظة المتاح"
+                        android:textColor="#CBD5E1"
+                        android:textSize="12sp"
+                        android:textStyle="bold" />
 
-                        <TextView
-                            android:id="@+id/pay_user_greeting"
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:text="رصيد محفظتك المتاح"
-                            android:textColor="#CBD5E1"
-                            android:textSize="12sp"
-                            android:textStyle="bold" />
-
-                        <TextView
-                            android:id="@+id/pay_wallet_balance"
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:layout_marginTop="6dp"
-                            android:text="$0.00"
-                            android:textColor="#FBBF24"
-                            android:textSize="28sp"
-                            android:textStyle="bold" />
-
-                        <TextView
-                            android:id="@+id/pay_wallet_secondary"
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:layout_marginTop="2dp"
-                            android:text="≈ 0 ل.س"
-                            android:textColor="#22D3EE"
-                            android:textSize="12sp"
-                            android:textStyle="bold" />
-                    </LinearLayout>
-
-                    <!-- Instant Balance Currency Switcher -->
+                    <!-- Segmented Pill Currency Switcher -->
                     <LinearLayout
                         android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:gravity="end"
-                        android:orientation="vertical">
+                        android:layout_height="32dp"
+                        android:background="@drawable/bg_chip_unselected"
+                        android:gravity="center_vertical"
+                        android:orientation="horizontal"
+                        android:padding="2dp">
 
                         <TextView
                             android:id="@+id/opt_curr_usd"
-                            android:layout_width="90dp"
-                            android:layout_height="32dp"
+                            android:layout_width="58dp"
+                            android:layout_height="match_parent"
                             android:background="@drawable/bg_chip_selected"
                             android:gravity="center"
                             android:text="USD $"
-                            android:textColor="#030712"
-                            android:textSize="12sp"
+                            android:textColor="#050811"
+                            android:textSize="11sp"
                             android:textStyle="bold" />
 
                         <TextView
                             android:id="@+id/opt_curr_syp"
-                            android:layout_width="90dp"
-                            android:layout_height="32dp"
-                            android:layout_marginTop="6dp"
-                            android:background="@drawable/bg_chip_unselected"
+                            android:layout_width="62dp"
+                            android:layout_height="match_parent"
                             android:gravity="center"
                             android:text="ل.س SYP"
-                            android:textColor="#E2E8F0"
-                            android:textSize="12sp"
+                            android:textColor="#CBD5E1"
+                            android:textSize="11sp"
                             android:textStyle="bold" />
                     </LinearLayout>
                 </LinearLayout>
 
-                <!-- Pending/Held Breakdown + Redeem Recharge Card -->
+                <TextView
+                    android:id="@+id/pay_wallet_balance"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="14dp"
+                    android:letterSpacing="0.02"
+                    android:text="$0.00"
+                    android:textColor="#FDE047"
+                    android:textSize="32sp"
+                    android:textStyle="bold" />
+
+                <TextView
+                    android:id="@+id/pay_wallet_secondary"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="3dp"
+                    android:text="≈ 0 ل.س"
+                    android:textColor="#67E8F9"
+                    android:textSize="13sp"
+                    android:textStyle="bold" />
+
+                <View
+                    android:layout_width="match_parent"
+                    android:layout_height="1dp"
+                    android:layout_marginVertical="14dp"
+                    android:background="#24344D" />
+
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:layout_marginTop="14dp"
                     android:gravity="center_vertical"
                     android:orientation="horizontal">
 
@@ -218,28 +236,43 @@
                         android:layout_width="0dp"
                         android:layout_height="wrap_content"
                         android:layout_weight="1"
-                        android:text="جاهز للشراء الفوري 24/7"
+                        android:text="متاح للشراء الفوري 24/7"
                         android:textColor="#94A3B8"
                         android:textSize="11sp" />
 
-                    <Button
+                    <LinearLayout
                         android:id="@+id/btn_redeem_card"
                         android:layout_width="wrap_content"
                         android:layout_height="32dp"
                         android:background="@drawable/bg_chip_unselected"
-                        android:paddingHorizontal="12dp"
-                        android:text="🎟️ شحن كرت رقميات"
-                        android:textColor="#FBBF24"
-                        android:textSize="11sp"
-                        android:textStyle="bold" />
+                        android:clickable="true"
+                        android:focusable="true"
+                        android:gravity="center_vertical"
+                        android:orientation="horizontal"
+                        android:paddingHorizontal="12dp">
+
+                        <ImageView
+                            android:layout_width="15dp"
+                            android:layout_height="15dp"
+                            android:src="@drawable/ic_ticket" />
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginStart="6dp"
+                            android:text="شحن بطاقة رقميات"
+                            android:textColor="#FDE047"
+                            android:textSize="11sp"
+                            android:textStyle="bold" />
+                    </LinearLayout>
                 </LinearLayout>
             </LinearLayout>
 
-            <!-- Dynamic Payment Gateways Section -->
+            <!-- Gateways Header -->
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="18dp"
+                android:layout_marginTop="22dp"
                 android:gravity="center_vertical"
                 android:orientation="horizontal">
 
@@ -247,29 +280,31 @@
                     android:layout_width="0dp"
                     android:layout_height="wrap_content"
                     android:layout_weight="1"
-                    android:text="اختر بوابة الدفع أو وسيلة الشحن"
+                    android:text="بوابات الدفع الإلكتروني والشحن"
                     android:textColor="#F8FAFC"
-                    android:textSize="14sp"
+                    android:textSize="15sp"
                     android:textStyle="bold" />
 
                 <TextView
                     android:id="@+id/pay_gateways_count"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
+                    android:background="@drawable/bg_chip_unselected"
+                    android:paddingHorizontal="10dp"
+                    android:paddingVertical="3dp"
                     android:textColor="#22D3EE"
-                    android:textSize="11sp"
+                    android:textSize="10.5sp"
                     android:textStyle="bold" />
             </LinearLayout>
 
-            <!-- Populated dynamically with all live site gateways + logos via Glide -->
             <LinearLayout
                 android:id="@+id/pay_gateways_container"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="10dp"
+                android:layout_marginTop="12dp"
                 android:orientation="vertical" />
 
-            <!-- Manual Payment Instructions & Reference Input (Shown only for manual methods) -->
+            <!-- Manual Method Instructions Box -->
             <LinearLayout
                 android:id="@+id/pay_manual_box"
                 android:layout_width="match_parent"
@@ -277,144 +312,161 @@
                 android:layout_marginTop="12dp"
                 android:background="@drawable/bg_card_dark"
                 android:orientation="vertical"
-                android:padding="14dp"
+                android:padding="16dp"
                 android:visibility="gone">
 
                 <TextView
                     android:id="@+id/pay_manual_instructions"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:lineSpacingMultiplier="1.3"
+                    android:lineSpacingMultiplier="1.35"
                     android:textColor="#E2E8F0"
-                    android:textSize="12sp" />
+                    android:textSize="12.5sp" />
 
                 <LinearLayout
                     android:id="@+id/pay_manual_rows"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:layout_marginTop="8dp"
+                    android:layout_marginTop="10dp"
                     android:orientation="vertical" />
 
                 <EditText
                     android:id="@+id/pay_manual_ref_input"
                     android:layout_width="match_parent"
-                    android:layout_height="46dp"
-                    android:layout_marginTop="10dp"
+                    android:layout_height="48dp"
+                    android:layout_marginTop="12dp"
                     android:background="@drawable/bg_input_dark"
                     android:hint="رقم عملية التحويل أو اسم المرسل"
-                    android:paddingHorizontal="12dp"
+                    android:paddingHorizontal="14dp"
                     android:singleLine="true"
                     android:textColor="#FFFFFF"
                     android:textColorHint="#64748B"
                     android:textSize="13sp" />
             </LinearLayout>
 
-            <!-- Amount Input & Limits -->
+            <!-- Amount Input Card -->
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="16dp"
-                android:gravity="center_vertical"
-                android:orientation="horizontal">
+                android:background="@drawable/bg_card_dark"
+                android:orientation="vertical"
+                android:padding="16dp">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:gravity="center_vertical"
+                    android:orientation="horizontal">
+
+                    <TextView
+                        android:id="@+id/pay_amount_label"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:text="مبلغ الشحن ($ USD)"
+                        android:textColor="#F8FAFC"
+                        android:textSize="13.5sp"
+                        android:textStyle="bold" />
+
+                    <TextView
+                        android:id="@+id/pay_limits_hint"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:textColor="#94A3B8"
+                        android:textSize="11sp" />
+                </LinearLayout>
+
+                <EditText
+                    android:id="@+id/pay_amount_input"
+                    android:layout_width="match_parent"
+                    android:layout_height="54dp"
+                    android:layout_marginTop="10dp"
+                    android:background="@drawable/bg_input_dark"
+                    android:hint="أدخل المبلغ"
+                    android:inputType="numberDecimal"
+                    android:paddingHorizontal="16dp"
+                    android:textColor="#FFFFFF"
+                    android:textColorHint="#64748B"
+                    android:textSize="18sp"
+                    android:textStyle="bold" />
 
                 <TextView
-                    android:id="@+id/pay_amount_label"
-                    android:layout_width="0dp"
+                    android:id="@+id/pay_conversion_preview"
+                    android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:layout_weight="1"
-                    android:text="المبلغ المطلوب شحنه ($ USD)"
-                    android:textColor="#F8FAFC"
-                    android:textSize="13sp"
-                    android:textStyle="bold" />
+                    android:layout_marginTop="8dp"
+                    android:textColor="#22D3EE"
+                    android:textSize="12sp"
+                    android:textStyle="bold"
+                    android:visibility="gone" />
 
-                <TextView
-                    android:id="@+id/pay_limits_hint"
-                    android:layout_width="wrap_content"
+                <!-- True Glass Quick-Amount Pills (Not hijacked by MaterialButton!) -->
+                <LinearLayout
+                    android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:textColor="#94A3B8"
-                    android:textSize="11sp" />
-            </LinearLayout>
+                    android:layout_marginTop="12dp"
+                    android:orientation="horizontal">
 
-            <EditText
-                android:id="@+id/pay_amount_input"
-                android:layout_width="match_parent"
-                android:layout_height="52dp"
-                android:layout_marginTop="8dp"
-                android:background="@drawable/bg_input_dark"
-                android:hint="أدخل المبلغ (مثال: 25)"
-                android:inputType="numberDecimal"
-                android:paddingHorizontal="14dp"
-                android:textColor="#FFFFFF"
-                android:textColorHint="#64748B"
-                android:textSize="16sp"
-                android:textStyle="bold" />
+                    <TextView
+                        android:id="@+id/btn_amt_5"
+                        android:layout_width="0dp"
+                        android:layout_height="38dp"
+                        android:layout_marginEnd="6dp"
+                        android:layout_weight="1"
+                        android:background="@drawable/bg_chip_unselected"
+                        android:clickable="true"
+                        android:focusable="true"
+                        android:gravity="center"
+                        android:text="$5"
+                        android:textColor="#F8FAFC"
+                        android:textSize="12.5sp"
+                        android:textStyle="bold" />
 
-            <TextView
-                android:id="@+id/pay_conversion_preview"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="6dp"
-                android:textColor="#22D3EE"
-                android:textSize="11.5sp"
-                android:visibility="gone" />
+                    <TextView
+                        android:id="@+id/btn_amt_10"
+                        android:layout_width="0dp"
+                        android:layout_height="38dp"
+                        android:layout_marginEnd="6dp"
+                        android:layout_weight="1"
+                        android:background="@drawable/bg_chip_unselected"
+                        android:clickable="true"
+                        android:focusable="true"
+                        android:gravity="center"
+                        android:text="$10"
+                        android:textColor="#F8FAFC"
+                        android:textSize="12.5sp"
+                        android:textStyle="bold" />
 
-            <!-- Smart Currency-Aware Quick Amounts -->
-            <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="10dp"
-                android:orientation="horizontal">
+                    <TextView
+                        android:id="@+id/btn_amt_25"
+                        android:layout_width="0dp"
+                        android:layout_height="38dp"
+                        android:layout_marginEnd="6dp"
+                        android:layout_weight="1"
+                        android:background="@drawable/bg_chip_unselected"
+                        android:clickable="true"
+                        android:focusable="true"
+                        android:gravity="center"
+                        android:text="$25"
+                        android:textColor="#F8FAFC"
+                        android:textSize="12.5sp"
+                        android:textStyle="bold" />
 
-                <Button
-                    android:id="@+id/btn_amt_5"
-                    android:layout_width="0dp"
-                    android:layout_height="38dp"
-                    android:layout_marginEnd="6dp"
-                    android:layout_weight="1"
-                    android:background="@drawable/bg_chip_unselected"
-                    android:text="$5"
-                    android:textAllCaps="false"
-                    android:textColor="#F8FAFC"
-                    android:textSize="12sp"
-                    android:textStyle="bold" />
-
-                <Button
-                    android:id="@+id/btn_amt_10"
-                    android:layout_width="0dp"
-                    android:layout_height="38dp"
-                    android:layout_marginEnd="6dp"
-                    android:layout_weight="1"
-                    android:background="@drawable/bg_chip_unselected"
-                    android:text="$10"
-                    android:textAllCaps="false"
-                    android:textColor="#F8FAFC"
-                    android:textSize="12sp"
-                    android:textStyle="bold" />
-
-                <Button
-                    android:id="@+id/btn_amt_25"
-                    android:layout_width="0dp"
-                    android:layout_height="38dp"
-                    android:layout_marginEnd="6dp"
-                    android:layout_weight="1"
-                    android:background="@drawable/bg_chip_unselected"
-                    android:text="$25"
-                    android:textAllCaps="false"
-                    android:textColor="#F8FAFC"
-                    android:textSize="12sp"
-                    android:textStyle="bold" />
-
-                <Button
-                    android:id="@+id/btn_amt_50"
-                    android:layout_width="0dp"
-                    android:layout_height="38dp"
-                    android:layout_weight="1"
-                    android:background="@drawable/bg_chip_unselected"
-                    android:text="$50"
-                    android:textAllCaps="false"
-                    android:textColor="#F8FAFC"
-                    android:textSize="12sp"
-                    android:textStyle="bold" />
+                    <TextView
+                        android:id="@+id/btn_amt_50"
+                        android:layout_width="0dp"
+                        android:layout_height="38dp"
+                        android:layout_weight="1"
+                        android:background="@drawable/bg_chip_unselected"
+                        android:clickable="true"
+                        android:focusable="true"
+                        android:gravity="center"
+                        android:text="$50"
+                        android:textColor="#F8FAFC"
+                        android:textSize="12.5sp"
+                        android:textStyle="bold" />
+                </LinearLayout>
             </LinearLayout>
 
             <TextView
@@ -423,54 +475,60 @@
                 android:layout_height="wrap_content"
                 android:layout_marginTop="12dp"
                 android:background="@drawable/bg_card_dark"
-                android:padding="12dp"
+                android:padding="14dp"
                 android:textColor="#22D3EE"
-                android:textSize="12sp"
+                android:textSize="12.5sp"
                 android:visibility="gone" />
 
             <ProgressBar
                 android:id="@+id/pay_progress"
-                android:layout_width="32dp"
-                android:layout_height="32dp"
+                android:layout_width="30dp"
+                android:layout_height="30dp"
                 android:layout_gravity="center_horizontal"
                 android:layout_marginTop="12dp"
-                android:indeterminateTint="#22D3EE"
+                android:indeterminateTint="#FBBF24"
                 android:visibility="gone" />
 
-            <Button
+            <!-- True Liquid Gold Primary CTA -->
+            <TextView
                 android:id="@+id/btn_pay_submit"
                 android:layout_width="match_parent"
-                android:layout_height="52dp"
-                android:layout_marginTop="18dp"
+                android:layout_height="54dp"
+                android:layout_marginTop="16dp"
                 android:background="@drawable/bg_button_gold"
-                android:text="متابعة الشحن الفوري عبر البوابة ⚡"
-                android:textAllCaps="false"
-                android:textColor="#030712"
-                android:textSize="15sp"
+                android:clickable="true"
+                android:elevation="6dp"
+                android:focusable="true"
+                android:gravity="center"
+                android:text="متابعة الشحن الفوري"
+                android:textColor="#050811"
+                android:textSize="15.5sp"
                 android:textStyle="bold" />
 
-            <Button
+            <TextView
                 android:id="@+id/btn_pay_verify"
                 android:layout_width="match_parent"
-                android:layout_height="46dp"
+                android:layout_height="48dp"
                 android:layout_marginTop="10dp"
                 android:background="@drawable/bg_button_cyan"
-                android:text="تحقق من اكتمال الدفع وتحديث الرصيد 🔄"
-                android:textAllCaps="false"
-                android:textColor="#030712"
-                android:textSize="13sp"
+                android:clickable="true"
+                android:focusable="true"
+                android:gravity="center"
+                android:text="تحقق من اكتمال الدفع وتحديث الرصيد"
+                android:textColor="#050811"
+                android:textSize="13.5sp"
                 android:textStyle="bold"
                 android:visibility="gone" />
 
-            <!-- Recent Wallet Transactions History -->
+            <!-- Recent Wallet Transactions Timeline -->
             <TextView
                 android:id="@+id/pay_recent_header"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="24dp"
-                android:text="آخر عمليات الشحن والإيداع"
+                android:layout_marginTop="26dp"
+                android:text="سجل عمليات الشحن الأخيرة"
                 android:textColor="#F8FAFC"
-                android:textSize="14sp"
+                android:textSize="14.5sp"
                 android:textStyle="bold"
                 android:visibility="gone" />
 

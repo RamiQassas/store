@@ -1,8 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
 <RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="#030712">
+    android:background="#050811">
 
     <!-- Connectivity Status Banner -->
     <LinearLayout
@@ -22,7 +23,7 @@
             android:id="@+id/banner_text"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="⚠️ أنت تتصفح بدون إنترنت • يتم عرض البيانات المخزنة محلياً"
+            android:text="أنت تتصفح بدون إنترنت • يتم عرض البيانات المخزنة محلياً"
             android:textColor="#FFFFFF"
             android:textSize="11sp"
             android:textStyle="bold" />
@@ -41,201 +42,263 @@
         android:visibility="gone" />
 
     <!-- ══════════════════════════════════════════════════════════════ -->
-    <!-- 1. NATIVE STOREFRONT CONTAINER (الرئيسية والخدمات)             -->
+    <!-- 1. WORLD-CLASS NATIVE STOREFRONT (الرئيسية والمنتجات)          -->
     <!-- ══════════════════════════════════════════════════════════════ -->
     <LinearLayout
         android:id="@+id/native_store_container"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:layout_above="@id/native_bottom_navigation"
         android:layout_below="@id/page_progress"
-        android:background="#030712"
+        android:background="#050811"
         android:layoutDirection="rtl"
         android:orientation="vertical"
         android:visibility="visible">
 
-        <!-- Native Luxury App Header -->
+        <!-- Obsidian Glass App Header (Zero Emojis, Crisp Vector Icons) -->
         <LinearLayout
             android:layout_width="match_parent"
-            android:layout_height="56dp"
-            android:background="#0B1120"
-            android:elevation="6dp"
+            android:layout_height="60dp"
+            android:background="#0A101F"
+            android:elevation="8dp"
             android:gravity="center_vertical"
             android:orientation="horizontal"
-            android:paddingHorizontal="10dp">
+            android:paddingHorizontal="12dp">
 
-            <ImageView
-                android:layout_width="32dp"
-                android:layout_height="32dp"
-                android:contentDescription="رقميات"
-                android:src="@mipmap/ic_launcher" />
+            <com.google.android.material.card.MaterialCardView
+                android:layout_width="36dp"
+                android:layout_height="36dp"
+                app:cardBackgroundColor="#111C33"
+                app:cardCornerRadius="12dp"
+                app:cardElevation="0dp"
+                app:strokeColor="#55FBBF24"
+                app:strokeWidth="1dp">
+
+                <ImageView
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:contentDescription="رقميات"
+                    android:padding="2dp"
+                    android:src="@mipmap/ic_launcher" />
+            </com.google.android.material.card.MaterialCardView>
 
             <LinearLayout
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
-                android:layout_marginStart="8dp"
+                android:layout_marginStart="9dp"
                 android:layout_weight="1"
                 android:orientation="vertical">
 
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="رقميات | Raqamiyat"
-                    android:textColor="#D4A853"
-                    android:textSize="14sp"
+                    android:letterSpacing="0.02"
+                    android:text="رقميات"
+                    android:textColor="#FFFFFF"
+                    android:textSize="15.5sp"
                     android:textStyle="bold" />
 
                 <TextView
                     android:id="@+id/native_store_subtitle"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="شحن فوري • بطاقات وخدمات رقمية"
-                    android:textColor="#94A3B8"
-                    android:textSize="9.5sp" />
+                    android:text="RAQAMIYAT STORE"
+                    android:textColor="#FBBF24"
+                    android:textSize="9sp"
+                    android:textStyle="bold" />
             </LinearLayout>
 
-            <Button
+            <!-- Admin Camera Studio Vector Circle -->
+            <FrameLayout
                 android:id="@+id/btn_admin_quick_studio"
-                android:layout_width="36dp"
-                android:layout_height="32dp"
-                android:layout_marginEnd="4dp"
-                android:background="@drawable/bg_button_cyan"
-                android:padding="0dp"
-                android:text="📷"
-                android:textColor="#030712"
-                android:textSize="12sp"
-                android:visibility="gone" />
+                android:layout_width="34dp"
+                android:layout_height="34dp"
+                android:layout_marginEnd="6dp"
+                android:background="@drawable/bg_icon_circle"
+                android:clickable="true"
+                android:focusable="true"
+                android:visibility="gone">
 
+                <ImageView
+                    android:layout_width="17dp"
+                    android:layout_height="17dp"
+                    android:layout_gravity="center"
+                    android:src="@drawable/ic_camera" />
+            </FrameLayout>
+
+            <!-- Currency Switcher Pill -->
             <TextView
                 android:id="@+id/btn_native_currency"
                 android:layout_width="wrap_content"
                 android:layout_height="32dp"
-                android:layout_marginEnd="5dp"
-                android:background="@drawable/bg_chip_selected"
+                android:layout_marginEnd="6dp"
+                android:background="@drawable/bg_chip_unselected"
+                android:clickable="true"
+                android:focusable="true"
                 android:gravity="center"
-                android:paddingHorizontal="9dp"
+                android:paddingHorizontal="10dp"
                 android:text="USD $"
-                android:textColor="#030712"
+                android:textColor="#FDE047"
                 android:textSize="11sp"
                 android:textStyle="bold" />
 
-            <Button
+            <!-- Liquid Gold Quick Top-Up Pill -->
+            <LinearLayout
                 android:id="@+id/btn_native_pay"
                 android:layout_width="wrap_content"
                 android:layout_height="32dp"
-                android:layout_marginEnd="5dp"
+                android:layout_marginEnd="6dp"
                 android:background="@drawable/bg_button_gold"
-                android:paddingHorizontal="9dp"
-                android:text="💳 شحن"
-                android:textAllCaps="false"
-                android:textColor="#030712"
-                android:textSize="11sp"
-                android:textStyle="bold" />
+                android:clickable="true"
+                android:focusable="true"
+                android:gravity="center_vertical"
+                android:orientation="horizontal"
+                android:paddingHorizontal="10dp">
 
-            <Button
-                android:id="@+id/btn_native_notif"
-                android:layout_width="34dp"
-                android:layout_height="32dp"
-                android:layout_marginEnd="5dp"
-                android:background="@drawable/bg_chip_unselected"
-                android:padding="0dp"
-                android:text="🔔"
-                android:textColor="#F8FAFC"
-                android:textSize="12sp" />
-
-            <Button
-                android:id="@+id/btn_native_cart"
-                android:layout_width="wrap_content"
-                android:layout_height="32dp"
-                android:background="@drawable/bg_chip_unselected"
-                android:paddingHorizontal="8dp"
-                android:text="🛒 0"
-                android:textAllCaps="false"
-                android:textColor="#22D3EE"
-                android:textSize="11sp"
-                android:textStyle="bold" />
-        </LinearLayout>
-
-        <!-- Luxury Hero Wallet & Official Gateways Strip -->
-        <LinearLayout
-            android:id="@+id/hero_wallet_banner"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginHorizontal="10dp"
-            android:layout_marginTop="8dp"
-            android:background="@drawable/bg_wallet_hero"
-            android:gravity="center_vertical"
-            android:orientation="horizontal"
-            android:paddingHorizontal="12dp"
-            android:paddingVertical="10dp">
-
-            <LinearLayout
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:orientation="vertical">
+                <ImageView
+                    android:layout_width="13dp"
+                    android:layout_height="13dp"
+                    android:src="@drawable/ic_bolt"
+                    android:tint="#050811" />
 
                 <TextView
-                    android:id="@+id/hero_wallet_label"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="رصيد محفظتك المتاح ⚡"
-                    android:textColor="#CBD5E1"
-                    android:textSize="10.5sp" />
-
-                <TextView
-                    android:id="@+id/hero_wallet_value"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="1dp"
-                    android:text="سجّل دخولك لمزامنة الرصيد"
-                    android:textColor="#FBBF24"
-                    android:textSize="15sp"
+                    android:layout_marginStart="3dp"
+                    android:text="شحن"
+                    android:textColor="#050811"
+                    android:textSize="11.5sp"
                     android:textStyle="bold" />
             </LinearLayout>
 
-            <!-- Official Payment Gateways Logos Strip -->
+            <!-- Notification Bell Circle -->
+            <FrameLayout
+                android:id="@+id/btn_native_notif"
+                android:layout_width="34dp"
+                android:layout_height="34dp"
+                android:layout_marginEnd="6dp"
+                android:background="@drawable/bg_icon_circle"
+                android:clickable="true"
+                android:focusable="true">
+
+                <ImageView
+                    android:layout_width="17dp"
+                    android:layout_height="17dp"
+                    android:layout_gravity="center"
+                    android:src="@drawable/ic_bell" />
+            </FrameLayout>
+
+            <!-- Cart Pill with Vector Icon & Counter -->
             <LinearLayout
-                android:id="@+id/hero_gateways_strip"
+                android:id="@+id/btn_native_cart"
+                android:layout_width="wrap_content"
+                android:layout_height="34dp"
+                android:background="@drawable/bg_chip_unselected"
+                android:clickable="true"
+                android:focusable="true"
+                android:gravity="center_vertical"
+                android:orientation="horizontal"
+                android:paddingHorizontal="10dp">
+
+                <ImageView
+                    android:layout_width="16dp"
+                    android:layout_height="16dp"
+                    android:src="@drawable/ic_cart"
+                    android:tint="#22D3EE" />
+
+                <TextView
+                    android:id="@+id/txt_cart_badge"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="4dp"
+                    android:text="0"
+                    android:textColor="#FFFFFF"
+                    android:textSize="11.5sp"
+                    android:textStyle="bold" />
+            </LinearLayout>
+        </LinearLayout>
+
+        <!-- Interactive Auto-Scrolling Hero Carousel -->
+        <LinearLayout
+            android:id="@+id/hero_carousel_section"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="10dp"
+            android:orientation="vertical">
+
+            <androidx.recyclerview.widget.RecyclerView
+                android:id="@+id/hero_banner_rv"
+                android:layout_width="match_parent"
+                android:layout_height="128dp"
+                android:clipToPadding="false"
+                android:paddingHorizontal="10dp" />
+
+            <LinearLayout
+                android:id="@+id/hero_dots_container"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
+                android:layout_gravity="center_horizontal"
+                android:layout_marginTop="7dp"
                 android:gravity="center_vertical"
                 android:orientation="horizontal" />
         </LinearLayout>
 
-        <!-- Native Search Bar & Category Chips -->
+        <!-- Glass Search Bar & Category Pills -->
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:background="#030712"
             android:orientation="vertical"
-            android:paddingHorizontal="10dp"
+            android:paddingHorizontal="12dp"
             android:paddingTop="8dp"
             android:paddingBottom="6dp">
 
-            <EditText
-                android:id="@+id/native_search_input"
+            <LinearLayout
                 android:layout_width="match_parent"
-                android:layout_height="42dp"
+                android:layout_height="44dp"
                 android:background="@drawable/bg_input_dark"
-                android:hint="🔍 ابحث عن بطاقة، لعبة، اشتراك، أو كود..."
-                android:imeOptions="actionSearch"
-                android:inputType="text"
-                android:paddingHorizontal="14dp"
-                android:singleLine="true"
-                android:textColor="#FFFFFF"
-                android:textColorHint="#64748B"
-                android:textSize="12.5sp" />
+                android:gravity="center_vertical"
+                android:orientation="horizontal"
+                android:paddingHorizontal="14dp">
+
+                <ImageView
+                    android:layout_width="18dp"
+                    android:layout_height="18dp"
+                    android:src="@drawable/ic_search" />
+
+                <EditText
+                    android:id="@+id/native_search_input"
+                    android:layout_width="0dp"
+                    android:layout_height="match_parent"
+                    android:layout_marginStart="10dp"
+                    android:layout_weight="1"
+                    android:background="@android:color/transparent"
+                    android:hint="ابحث عن بطاقة، لعبة، اشتراك، أو كود..."
+                    android:imeOptions="actionSearch"
+                    android:inputType="text"
+                    android:singleLine="true"
+                    android:textColor="#FFFFFF"
+                    android:textColorHint="#64748B"
+                    android:textSize="13sp" />
+
+                <TextView
+                    android:id="@+id/btn_clear_search"
+                    android:layout_width="26dp"
+                    android:layout_height="26dp"
+                    android:gravity="center"
+                    android:text="✕"
+                    android:textColor="#94A3B8"
+                    android:textSize="13sp"
+                    android:visibility="gone" />
+            </LinearLayout>
 
             <androidx.recyclerview.widget.RecyclerView
                 android:id="@+id/native_categories_rv"
                 android:layout_width="match_parent"
                 android:layout_height="40dp"
-                android:layout_marginTop="8dp"
+                android:layout_marginTop="9dp"
                 android:clipToPadding="false" />
         </LinearLayout>
 
-        <!-- Native Products Grid with Pull-to-Refresh -->
+        <!-- Products Grid (padded at bottom so Floating Dock never overlaps last row!) -->
         <androidx.swiperefreshlayout.widget.SwipeRefreshLayout
             android:id="@+id/native_catalog_swipe"
             android:layout_width="match_parent"
@@ -251,7 +314,9 @@
                     android:layout_width="match_parent"
                     android:layout_height="match_parent"
                     android:clipToPadding="false"
-                    android:padding="5dp" />
+                    android:paddingHorizontal="7dp"
+                    android:paddingTop="4dp"
+                    android:paddingBottom="84dp" />
 
                 <TextView
                     android:id="@+id/native_empty_state"
@@ -267,48 +332,57 @@
     </LinearLayout>
 
     <!-- ══════════════════════════════════════════════════════════════ -->
-    <!-- 2. NATIVE ORDERS CONTAINER (طلباتي - 100% Native)              -->
+    <!-- 2. NATIVE ORDERS CONTAINER (طلباتي)                            -->
     <!-- ══════════════════════════════════════════════════════════════ -->
     <LinearLayout
         android:id="@+id/native_orders_container"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:layout_above="@id/native_bottom_navigation"
         android:layout_below="@id/page_progress"
-        android:background="#030712"
+        android:background="#050811"
         android:layoutDirection="rtl"
         android:orientation="vertical"
         android:visibility="gone">
 
         <LinearLayout
             android:layout_width="match_parent"
-            android:layout_height="56dp"
-            android:background="#0B1120"
-            android:elevation="6dp"
+            android:layout_height="60dp"
+            android:background="#0A101F"
+            android:elevation="8dp"
             android:gravity="center_vertical"
             android:orientation="horizontal"
-            android:paddingHorizontal="14dp">
+            android:paddingHorizontal="16dp">
+
+            <ImageView
+                android:layout_width="22dp"
+                android:layout_height="22dp"
+                android:src="@drawable/ic_nav_orders"
+                android:tint="#FBBF24" />
 
             <TextView
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
+                android:layout_marginStart="10dp"
                 android:layout_weight="1"
-                android:text="📦 طلباتي وأكواد التسليم"
+                android:text="طلباتي وأكواد التسليم"
                 android:textColor="#FFFFFF"
-                android:textSize="16sp"
+                android:textSize="16.5sp"
                 android:textStyle="bold" />
 
-            <Button
+            <FrameLayout
                 android:id="@+id/btn_orders_refresh"
-                android:layout_width="wrap_content"
-                android:layout_height="34dp"
-                android:background="@drawable/bg_chip_unselected"
-                android:paddingHorizontal="12dp"
-                android:text="🔄 تحديث"
-                android:textAllCaps="false"
-                android:textColor="#22D3EE"
-                android:textSize="11sp"
-                android:textStyle="bold" />
+                android:layout_width="36dp"
+                android:layout_height="36dp"
+                android:background="@drawable/bg_icon_circle"
+                android:clickable="true"
+                android:focusable="true">
+
+                <ImageView
+                    android:layout_width="18dp"
+                    android:layout_height="18dp"
+                    android:layout_gravity="center"
+                    android:src="@drawable/ic_refresh" />
+            </FrameLayout>
         </LinearLayout>
 
         <androidx.swiperefreshlayout.widget.SwipeRefreshLayout
@@ -320,7 +394,9 @@
                 android:layout_width="match_parent"
                 android:layout_height="match_parent"
                 android:clipToPadding="false"
-                android:padding="12dp">
+                android:paddingHorizontal="14dp"
+                android:paddingTop="14dp"
+                android:paddingBottom="90dp">
 
                 <LinearLayout
                     android:id="@+id/native_orders_list"
@@ -332,35 +408,41 @@
     </LinearLayout>
 
     <!-- ══════════════════════════════════════════════════════════════ -->
-    <!-- 3. NATIVE ACCOUNT CONTAINER (حسابي - 100% Native)              -->
+    <!-- 3. NATIVE ACCOUNT CONTAINER (حسابي)                            -->
     <!-- ══════════════════════════════════════════════════════════════ -->
     <LinearLayout
         android:id="@+id/native_account_container"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:layout_above="@id/native_bottom_navigation"
         android:layout_below="@id/page_progress"
-        android:background="#030712"
+        android:background="#050811"
         android:layoutDirection="rtl"
         android:orientation="vertical"
         android:visibility="gone">
 
         <LinearLayout
             android:layout_width="match_parent"
-            android:layout_height="56dp"
-            android:background="#0B1120"
-            android:elevation="6dp"
+            android:layout_height="60dp"
+            android:background="#0A101F"
+            android:elevation="8dp"
             android:gravity="center_vertical"
             android:orientation="horizontal"
-            android:paddingHorizontal="14dp">
+            android:paddingHorizontal="16dp">
+
+            <ImageView
+                android:layout_width="22dp"
+                android:layout_height="22dp"
+                android:src="@drawable/ic_nav_user"
+                android:tint="#FBBF24" />
 
             <TextView
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
+                android:layout_marginStart="10dp"
                 android:layout_weight="1"
-                android:text="👤 حسابي وإعدادات التطبيق"
+                android:text="حسابي والإعدادات"
                 android:textColor="#FFFFFF"
-                android:textSize="16sp"
+                android:textSize="16.5sp"
                 android:textStyle="bold" />
         </LinearLayout>
 
@@ -368,7 +450,9 @@
             android:layout_width="match_parent"
             android:layout_height="match_parent"
             android:clipToPadding="false"
-            android:padding="14dp">
+            android:paddingHorizontal="16dp"
+            android:paddingTop="16dp"
+            android:paddingBottom="90dp">
 
             <LinearLayout
                 android:id="@+id/native_account_body"
@@ -393,21 +477,26 @@
             android:id="@+id/main_webview"
             android:layout_width="match_parent"
             android:layout_height="match_parent"
-            android:background="#0a0a0f" />
+            android:background="#050811" />
     </androidx.swiperefreshlayout.widget.SwipeRefreshLayout>
 
-    <!-- Native Mobile Ergonomic Bottom Navigation Bar -->
+    <!-- ══════════════════════════════════════════════════════════════ -->
+    <!-- FLOATING GLASSMORPHIC BOTTOM NAVIGATION DOCK (Vector Icons!)   -->
+    <!-- ══════════════════════════════════════════════════════════════ -->
     <LinearLayout
         android:id="@+id/native_bottom_navigation"
         android:layout_width="match_parent"
-        android:layout_height="58dp"
+        android:layout_height="64dp"
         android:layout_alignParentBottom="true"
-        android:background="#0B1120"
-        android:elevation="16dp"
+        android:layout_marginHorizontal="10dp"
+        android:layout_marginBottom="8dp"
+        android:background="@drawable/bg_bottom_dock"
+        android:elevation="20dp"
         android:gravity="center"
         android:layoutDirection="rtl"
         android:orientation="horizontal"
-        android:paddingVertical="4dp">
+        android:paddingHorizontal="6dp"
+        android:paddingVertical="5dp">
 
         <!-- 1. الرئيسية -->
         <LinearLayout
@@ -415,26 +504,34 @@
             android:layout_width="0dp"
             android:layout_height="match_parent"
             android:layout_weight="1"
-            android:background="?android:attr/selectableItemBackground"
             android:clickable="true"
             android:focusable="true"
             android:gravity="center"
             android:orientation="vertical">
 
-            <TextView
-                android:id="@+id/nav_icon_home"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="🏠"
-                android:textSize="17sp" />
+            <FrameLayout
+                android:id="@+id/nav_pill_home"
+                android:layout_width="46dp"
+                android:layout_height="28dp"
+                android:background="@drawable/bg_nav_active_pill">
+
+                <ImageView
+                    android:id="@+id/nav_icon_home"
+                    android:layout_width="19dp"
+                    android:layout_height="19dp"
+                    android:layout_gravity="center"
+                    android:src="@drawable/ic_nav_home"
+                    android:tint="#FDE047" />
+            </FrameLayout>
 
             <TextView
                 android:id="@+id/nav_text_home"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
+                android:layout_marginTop="2dp"
                 android:text="الرئيسية"
-                android:textColor="#D4A853"
-                android:textSize="10.5sp"
+                android:textColor="#FDE047"
+                android:textSize="10sp"
                 android:textStyle="bold" />
         </LinearLayout>
 
@@ -444,26 +541,33 @@
             android:layout_width="0dp"
             android:layout_height="match_parent"
             android:layout_weight="1"
-            android:background="?android:attr/selectableItemBackground"
             android:clickable="true"
             android:focusable="true"
             android:gravity="center"
             android:orientation="vertical">
 
-            <TextView
-                android:id="@+id/nav_icon_catalog"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="⚡"
-                android:textSize="17sp" />
+            <FrameLayout
+                android:id="@+id/nav_pill_catalog"
+                android:layout_width="46dp"
+                android:layout_height="28dp">
+
+                <ImageView
+                    android:id="@+id/nav_icon_catalog"
+                    android:layout_width="19dp"
+                    android:layout_height="19dp"
+                    android:layout_gravity="center"
+                    android:src="@drawable/ic_nav_grid"
+                    android:tint="#94A3B8" />
+            </FrameLayout>
 
             <TextView
                 android:id="@+id/nav_text_catalog"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
+                android:layout_marginTop="2dp"
                 android:text="المنتجات"
                 android:textColor="#94A3B8"
-                android:textSize="10.5sp" />
+                android:textSize="10sp" />
         </LinearLayout>
 
         <!-- 3. المحفظة -->
@@ -472,26 +576,33 @@
             android:layout_width="0dp"
             android:layout_height="match_parent"
             android:layout_weight="1"
-            android:background="?android:attr/selectableItemBackground"
             android:clickable="true"
             android:focusable="true"
             android:gravity="center"
             android:orientation="vertical">
 
-            <TextView
-                android:id="@+id/nav_icon_wallet"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="💳"
-                android:textSize="17sp" />
+            <FrameLayout
+                android:id="@+id/nav_pill_wallet"
+                android:layout_width="46dp"
+                android:layout_height="28dp">
+
+                <ImageView
+                    android:id="@+id/nav_icon_wallet"
+                    android:layout_width="19dp"
+                    android:layout_height="19dp"
+                    android:layout_gravity="center"
+                    android:src="@drawable/ic_nav_wallet"
+                    android:tint="#94A3B8" />
+            </FrameLayout>
 
             <TextView
                 android:id="@+id/nav_text_wallet"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
+                android:layout_marginTop="2dp"
                 android:text="المحفظة"
                 android:textColor="#94A3B8"
-                android:textSize="10.5sp" />
+                android:textSize="10sp" />
         </LinearLayout>
 
         <!-- 4. طلباتي -->
@@ -500,26 +611,33 @@
             android:layout_width="0dp"
             android:layout_height="match_parent"
             android:layout_weight="1"
-            android:background="?android:attr/selectableItemBackground"
             android:clickable="true"
             android:focusable="true"
             android:gravity="center"
             android:orientation="vertical">
 
-            <TextView
-                android:id="@+id/nav_icon_orders"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="📦"
-                android:textSize="17sp" />
+            <FrameLayout
+                android:id="@+id/nav_pill_orders"
+                android:layout_width="46dp"
+                android:layout_height="28dp">
+
+                <ImageView
+                    android:id="@+id/nav_icon_orders"
+                    android:layout_width="19dp"
+                    android:layout_height="19dp"
+                    android:layout_gravity="center"
+                    android:src="@drawable/ic_nav_orders"
+                    android:tint="#94A3B8" />
+            </FrameLayout>
 
             <TextView
                 android:id="@+id/nav_text_orders"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
+                android:layout_marginTop="2dp"
                 android:text="طلباتي"
                 android:textColor="#94A3B8"
-                android:textSize="10.5sp" />
+                android:textSize="10sp" />
         </LinearLayout>
 
         <!-- 5. حسابي -->
@@ -528,26 +646,33 @@
             android:layout_width="0dp"
             android:layout_height="match_parent"
             android:layout_weight="1"
-            android:background="?android:attr/selectableItemBackground"
             android:clickable="true"
             android:focusable="true"
             android:gravity="center"
             android:orientation="vertical">
 
-            <TextView
-                android:id="@+id/nav_icon_account"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="👤"
-                android:textSize="17sp" />
+            <FrameLayout
+                android:id="@+id/nav_pill_account"
+                android:layout_width="46dp"
+                android:layout_height="28dp">
+
+                <ImageView
+                    android:id="@+id/nav_icon_account"
+                    android:layout_width="19dp"
+                    android:layout_height="19dp"
+                    android:layout_gravity="center"
+                    android:src="@drawable/ic_nav_user"
+                    android:tint="#94A3B8" />
+            </FrameLayout>
 
             <TextView
                 android:id="@+id/nav_text_account"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
+                android:layout_marginTop="2dp"
                 android:text="حسابي"
                 android:textColor="#94A3B8"
-                android:textSize="10.5sp" />
+                android:textSize="10sp" />
         </LinearLayout>
     </LinearLayout>
 
@@ -556,7 +681,7 @@
         android:id="@+id/native_error_view"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:background="#0a0a0f"
+        android:background="#050811"
         android:elevation="8dp"
         android:gravity="center"
         android:orientation="vertical"
@@ -564,8 +689,8 @@
         android:visibility="gone">
 
         <ImageView
-            android:layout_width="72dp"
-            android:layout_height="72dp"
+            android:layout_width="76dp"
+            android:layout_height="76dp"
             android:layout_marginBottom="16dp"
             android:src="@mipmap/ic_launcher" />
 
@@ -583,7 +708,7 @@
             android:layout_height="wrap_content"
             android:layout_marginBottom="24dp"
             android:gravity="center"
-            android:text="يبدو أنك غير متصل بالإنترنت حالياً. يمكنك تصفح المنتجات والخدمات المحفوظة محلياً، أو إعادة المحاولة فور توفر الشبكة."
+            android:text="يمكنك تصفح الكتالوج المحفوظ محلياً أو إعادة المحاولة فور توفر الشبكة."
             android:textColor="#94A3B8"
             android:textSize="13sp" />
 
@@ -593,73 +718,92 @@
             android:gravity="center"
             android:orientation="horizontal">
 
-            <Button
+            <TextView
                 android:id="@+id/btn_retry_connection"
                 android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
+                android:layout_height="42dp"
                 android:layout_marginEnd="10dp"
-                android:backgroundTint="#06B6D4"
+                android:background="@drawable/bg_button_gold"
+                android:clickable="true"
+                android:focusable="true"
+                android:gravity="center"
                 android:paddingHorizontal="20dp"
-                android:text="إعادة المحاولة 🔄"
-                android:textColor="#000000"
-                android:textSize="12sp"
+                android:text="إعادة المحاولة"
+                android:textColor="#050811"
+                android:textSize="12.5sp"
                 android:textStyle="bold" />
 
-            <Button
+            <TextView
                 android:id="@+id/btn_browse_cached"
                 android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:backgroundTint="#1E293B"
-                android:paddingHorizontal="16dp"
-                android:text="الكتالوج المحفوظ 📦"
+                android:layout_height="42dp"
+                android:background="@drawable/bg_chip_unselected"
+                android:clickable="true"
+                android:focusable="true"
+                android:gravity="center"
+                android:paddingHorizontal="18dp"
+                android:text="الكتالوج المحفوظ"
                 android:textColor="#FFFFFF"
-                android:textSize="12sp" />
+                android:textSize="12.5sp"
+                android:textStyle="bold" />
         </LinearLayout>
     </LinearLayout>
 
-    <!-- Luxury Native Splash Screen Overlay -->
+    <!-- Animated Luxury Splash Screen Overlay -->
     <RelativeLayout
         android:id="@+id/splash_overlay"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:background="#030712"
-        android:elevation="20dp">
+        android:background="#050811"
+        android:elevation="28dp">
 
         <LinearLayout
+            android:id="@+id/splash_brand_box"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_centerInParent="true"
             android:gravity="center"
             android:orientation="vertical">
 
-            <ImageView
-                android:layout_width="86dp"
-                android:layout_height="86dp"
-                android:layout_marginBottom="14dp"
-                android:src="@mipmap/ic_launcher" />
+            <com.google.android.material.card.MaterialCardView
+                android:layout_width="92dp"
+                android:layout_height="92dp"
+                android:layout_marginBottom="16dp"
+                app:cardBackgroundColor="#0F172A"
+                app:cardCornerRadius="26dp"
+                app:cardElevation="12dp"
+                app:strokeColor="#66FBBF24"
+                app:strokeWidth="1.5dp">
+
+                <ImageView
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:padding="6dp"
+                    android:src="@mipmap/ic_launcher" />
+            </com.google.android.material.card.MaterialCardView>
 
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_marginBottom="4dp"
-                android:letterSpacing="0.04"
-                android:text="رقميات | Raqamiyat"
-                android:textColor="#D4A853"
-                android:textSize="20sp"
+                android:letterSpacing="0.05"
+                android:text="رقميات | RAQAMIYAT"
+                android:textColor="#FDE047"
+                android:textSize="21sp"
                 android:textStyle="bold" />
 
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_marginBottom="24dp"
-                android:text="متجرك العالمي للبطاقات والخدمات الرقمية"
-                android:textColor="#64748B"
+                android:layout_marginBottom="26dp"
+                android:text="المنصة الرقمية العالمية للبطاقات والمدفوعات الفورية"
+                android:textColor="#94A3B8"
                 android:textSize="11.5sp" />
 
             <ProgressBar
-                android:layout_width="28dp"
-                android:layout_height="28dp"
-                android:indeterminateTint="#06B6D4" />
+                android:layout_width="26dp"
+                android:layout_height="26dp"
+                android:indeterminateTint="#FBBF24" />
         </LinearLayout>
     </RelativeLayout>
 
